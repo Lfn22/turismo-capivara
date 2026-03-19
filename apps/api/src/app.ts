@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import Fastify from 'fastify'
-import prisma from './database'
+import { tenantsRoutes } from './modules/tenants/tenants.routes'
 
 const app = Fastify({ logger: true })
 
@@ -8,10 +8,7 @@ app.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }
 })
 
-app.get('/tenants', async () => {
-  const tenants = await prisma.tenant.findMany()
-  return tenants
-})
+app.register(tenantsRoutes)
 
 const start = async () => {
   try {
