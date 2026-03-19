@@ -2,6 +2,7 @@ import 'dotenv/config'
 import Fastify from 'fastify'
 import { tenantsRoutes } from './modules/tenants/tenants.routes'
 import { packagesRoutes } from './modules/packages/packages.routes'
+import { bookingsRoutes } from './modules/bookings/bookings.routes'
 
 const app = Fastify({ logger: true })
 
@@ -11,6 +12,7 @@ app.get('/health', async () => {
 
 app.register(tenantsRoutes)
 app.register(packagesRoutes)
+app.register(bookingsRoutes)
 
 const start = async () => {
   try {
