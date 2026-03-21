@@ -1,5 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import prisma from '../../database'
+import { authenticate } from '../../shared/middlewares/authenticate'
+import { authorize } from '../../shared/middlewares/authorize'
 
 export async function bookingsRoutes(app: FastifyInstance) {
   app.post('/tenants/:slug/bookings', async (request, reply) => {
@@ -123,27 +125,33 @@ export async function bookingsRoutes(app: FastifyInstance) {
     return updated
   })
 
-  app.get('/tenants/:slug/bookings', async (request, reply) => {
-    const { slug } = request.params as { slug: string }
+  app.get(
+    '/tenants/:slug/bookings',
+    {
+      onRequest: [authenticate, authorize(['ADMIN', 'ATENDENTE'])],
+    },
+    async (request, reply) => {
+      const { slug } = request.params as { slug: string }
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { slug },
-    })
+      const tenant = await prisma.tenant.findUnique({
+        where: { slug },
+      })
 
-    if (!tenant) {
-      return reply.status(404).send({ message: 'Tenant não encontrado' })
-    }
+      if (!tenant) {
+        return reply.status(404).send({ message: 'Tenant não encontrado' })
+      }
 
-    const bookings = await prisma.booking.findMany({
-      where: { tenantId: tenant.id },
-      include: {
-        slot: {
-          include: { package: true },
+      const bookings = await prisma.booking.findMany({
+        where: { tenantId: tenant.id },
+        include: {
+          slot: {
+            include: { package: true },
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+        orderBy: { createdAt: 'desc' },
+      })
 
-    return bookings
-  })
+      return bookings
+    }
+  )
 }
