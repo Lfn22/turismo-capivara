@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
+import { hashSync } from 'bcryptjs'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -40,6 +41,7 @@ async function main() {
       tenantId: receptivo1.id,
       name: 'Carlos Admin',
       email: 'carlos@serraviva.com',
+      password: hashSync('senha123', 10),
       role: 'ADMIN',
     },
   })
@@ -49,6 +51,7 @@ async function main() {
       tenantId: receptivo1.id,
       name: 'Ana Condutora',
       email: 'ana@serraviva.com',
+      password: hashSync('senha123', 10),
       role: 'CONDUTOR',
     },
   })
@@ -58,6 +61,7 @@ async function main() {
       tenantId: receptivo2.id,
       name: 'Pedro Admin',
       email: 'pedro@capivaraturismo.com',
+      password: hashSync('senha123', 10),
       role: 'ADMIN',
     },
   })

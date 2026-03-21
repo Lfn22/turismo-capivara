@@ -23,6 +23,7 @@ model User {
   tenantId  String
   name      String
   email     String
+  password  String
   role      Role
   createdAt DateTime @default(now())
 
