@@ -1,12 +1,18 @@
 import 'dotenv/config'
 import Fastify from 'fastify'
 import jwt from '@fastify/jwt'
+import cors from '@fastify/cors'
 import { tenantsRoutes } from './modules/tenants/tenants.routes'
 import { packagesRoutes } from './modules/packages/packages.routes'
 import { bookingsRoutes } from './modules/bookings/bookings.routes'
 import { authRoutes } from './modules/auth/auth.routes'
 
 const app = Fastify({ logger: true })
+
+app.register(cors, {
+  origin: ['http://localhost:3000'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+})
 
 app.register(jwt, {
   secret: process.env.JWT_SECRET ?? 'desenvolvimento-secret-trocar-em-producao',
