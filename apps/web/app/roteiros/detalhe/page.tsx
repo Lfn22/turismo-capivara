@@ -1,5 +1,7 @@
 import Link from "next/link"
 
+type Difficulty = "EASY" | "MODERATE" | "HARD"
+
 interface DepartureSlot {
   id: string
   startsAt: string
@@ -14,12 +16,12 @@ interface Roteiro {
   duration: number
   capacity: number
   price: string | number
-  departureSlots?: DepartureSlot[]
+  difficulty: Difficulty
+  departureSlots: DepartureSlot[]
 }
 
 async function getRoteiro(id: string): Promise<Roteiro | null> {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
 
   try {
     const res = await fetch(
@@ -32,8 +34,14 @@ async function getRoteiro(id: string): Promise<Roteiro | null> {
 
     if (!res.ok) return null
 
-    return await res.json()
-  } catch {
+    const data = await res.json()
+
+    // 🔒 validação mínima defensiva
+    if (!data || typeof data !== "object") return null
+
+    return data
+  } catch (err) {
+    console.error("Erro ao buscar roteiro:", err)
     return null
   }
 }
@@ -53,8 +61,14 @@ function formatDate(dateStr: string): string {
 
 function formatPrice(price: string | number): string {
   const num = Number(price)
-  if (isNaN(num)) return "—"
+  if (!Number.isFinite(num)) return "—"
   return num.toFixed(2)
+}
+
+const DIFFICULTY: Record<Difficulty, { label: string; color: string }> = {
+  EASY: { label: "Fácil", color: "var(--ochre-light)" },
+  MODERATE: { label: "Moderado", color: "var(--ochre)" },
+  HARD: { label: "Difícil", color: "var(--stone-600)" },
 }
 
 export default async function RoteiroPage({
@@ -66,13 +80,10 @@ export default async function RoteiroPage({
 
   if (!id) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-400 mb-4">Roteiro não especificado.</p>
-          <Link
-            href="/roteiros"
-            className="text-orange-500 hover:underline text-sm"
-          >
+      <div style={centerContainer}>
+        <div style={{ textAlign: "center" }}>
+          <p style={mutedText}>Roteiro não especificado.</p>
+          <Link href="/roteiros" style={linkStyle}>
             Ver todos os roteiros
           </Link>
         </div>
@@ -84,13 +95,10 @@ export default async function RoteiroPage({
 
   if (!roteiro) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-400 mb-4">Roteiro não encontrado.</p>
-          <Link
-            href="/roteiros"
-            className="text-orange-500 hover:underline text-sm"
-          >
+      <div style={centerContainer}>
+        <div style={{ textAlign: "center" }}>
+          <p style={mutedText}>Roteiro não encontrado.</p>
+          <Link href="/roteiros" style={linkStyle}>
             Ver todos os roteiros
           </Link>
         </div>
@@ -100,98 +108,62 @@ export default async function RoteiroPage({
 
   const preco = formatPrice(roteiro.price)
 
+  const diff =
+    roteiro.difficulty && DIFFICULTY[roteiro.difficulty]
+      ? DIFFICULTY[roteiro.difficulty]
+      : DIFFICULTY.MODERATE
+
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
-      <div className="bg-white border-b border-gray-100 px-4 py-12">
-        <div className="max-w-3xl mx-auto">
-          <Link
-            href="/roteiros"
-            className="text-sm text-orange-500 hover:underline mb-4 inline-block"
-          >
-            Voltar para roteiros
+    <div style={{ minHeight: "100vh", background: "var(--stone-50)" }}>
+      <nav style={navStyle}>
+        <div style={navInner}>
+          <Link href="/" style={logoStyle}>
+            Serra da Capivara
           </Link>
 
-          <h1 className="text-3xl font-bold text-[#1A1A1A] tracking-tight mb-2">
-            {roteiro.name}
-          </h1>
-
-          <p className="text-gray-500">{roteiro.description}</p>
-
-          <div className="flex flex-wrap gap-6 mt-6 text-sm text-gray-600">
-            <span>
-              <span className="font-medium">Duração:</span>{" "}
-              {roteiro.duration}h
-            </span>
-
-            <span>
-              <span className="font-medium">Capacidade:</span> até{" "}
-              {roteiro.capacity} pessoas
-            </span>
-
-            <span className="font-semibold text-orange-600">
-              R$ {preco} por pessoa
-            </span>
-          </div>
+          <Link href="/roteiros" style={backLinkStyle}>
+            ← Voltar para roteiros
+          </Link>
         </div>
-      </div>
+      </nav>
 
-      <main className="max-w-3xl mx-auto px-4 py-12">
-        <h2 className="text-lg font-semibold text-[#1A1A1A] mb-4">
-          Datas disponíveis
-        </h2>
-
-        {(!roteiro.departureSlots ||
-          roteiro.departureSlots.length === 0) && (
-          <p className="text-gray-400 text-sm">
+      <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "48px 24px" }}>
+        {!roteiro.departureSlots?.length && (
+          <p style={{ color: "var(--stone-500)" }}>
             Nenhuma data disponível no momento.
           </p>
         )}
 
-        <div className="grid gap-3">
+        <div style={{ display: "grid", gap: "12px" }}>
           {roteiro.departureSlots?.map((slot) => {
-            const vagasRestantes =
-              (slot.capacity ?? 0) - (slot.booked ?? 0)
-
+            const vagasRestantes = Math.max(0, slot.capacity - slot.booked)
             const esgotado = vagasRestantes <= 0
 
             return (
-              <div
-                key={slot.id}
-                className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between"
-              >
+              <div key={slot.id} style={{ ...cardStyle, opacity: esgotado ? 0.6 : 1 }}>
                 <div>
-                  <p className="font-medium text-[#1A1A1A]">
+                  <p style={dateStyle}>
                     {formatDate(slot.startsAt)}
                   </p>
 
-                  <p
-                    className={`text-sm mt-0.5 ${
-                      esgotado ? "text-red-400" : "text-gray-400"
-                    }`}
-                  >
+                  <p style={{ color: esgotado ? "var(--stone-400)" : "var(--stone-500)" }}>
                     {esgotado
                       ? "Esgotado"
                       : `${vagasRestantes} vagas restantes`}
                   </p>
                 </div>
 
-                <div className="text-right">
-                  <p className="text-lg font-bold text-[#1A1A1A]">
-                    R$ {preco}
-                  </p>
+                <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+                  <p style={priceStyle}>R$ {preco}</p>
 
                   {esgotado ? (
-                    <span className="mt-2 inline-block bg-gray-100 text-gray-400 text-sm font-medium px-4 py-2 rounded-full cursor-not-allowed">
-                      Esgotado
+                    <span style={disabledButton}>
+                      Indisponível
                     </span>
                   ) : (
                     <Link
-                      href={`/reservar?slot=${encodeURIComponent(
-                        slot.id
-                      )}&roteiro=${encodeURIComponent(
-                        roteiro.id
-                      )}&tenant=serra-viva`}
-                      className="mt-2 inline-block bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-full transition-colors"
+                      href={`/reservar?slot=${slot.id}`}
+                      style={buttonStyle}
                     >
                       Reservar
                     </Link>
@@ -204,4 +176,87 @@ export default async function RoteiroPage({
       </main>
     </div>
   )
+}
+
+/* ===== estilos reaproveitáveis ===== */
+
+const centerContainer = {
+  minHeight: "100vh",
+  background: "var(--stone-50)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+}
+
+const mutedText = {
+  color: "var(--stone-500)",
+  marginBottom: "16px",
+}
+
+const linkStyle = {
+  color: "var(--ochre)",
+  textDecoration: "none",
+  fontSize: "14px",
+}
+
+const navStyle = {
+  background: "var(--stone-900)",
+  borderBottom: "1px solid var(--stone-700)",
+  padding: "20px 24px",
+}
+
+const navInner = {
+  maxWidth: "1100px",
+  margin: "0 auto",
+  display: "flex",
+  justifyContent: "space-between",
+}
+
+const logoStyle = {
+  fontFamily: "var(--font-display)",
+  color: "var(--stone-100)",
+  textDecoration: "none",
+}
+
+const backLinkStyle = {
+  color: "var(--stone-400)",
+  textDecoration: "none",
+}
+
+const cardStyle = {
+  background: "white",
+  border: "1px solid var(--stone-200)",
+  borderRadius: "8px",
+  padding: "24px 28px",
+  display: "flex",
+  justifyContent: "space-between",
+  flexWrap: "wrap",
+}
+
+const dateStyle = {
+  fontFamily: "var(--font-display)",
+  fontSize: "18px",
+  color: "var(--stone-900)",
+  textTransform: "capitalize" as const,
+}
+
+const priceStyle = {
+  fontFamily: "var(--font-display)",
+  fontSize: "24px",
+  color: "var(--stone-900)",
+}
+
+const buttonStyle = {
+  background: "var(--stone-900)",
+  color: "white",
+  padding: "10px 20px",
+  borderRadius: "4px",
+  textDecoration: "none",
+}
+
+const disabledButton = {
+  background: "var(--stone-100)",
+  color: "var(--stone-400)",
+  padding: "10px 20px",
+  borderRadius: "4px",
 }

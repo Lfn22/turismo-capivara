@@ -1,177 +1,272 @@
-"use client"
-
-import Link from "next/link"
-
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
-      <nav className="bg-white border-b border-gray-100 px-4 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+    <div style={{ minHeight: "100vh", background: "var(--stone-50)" }}>
+
+      <nav style={{
+        background: "var(--stone-900)",
+        borderBottom: "1px solid var(--stone-700)",
+        padding: "20px 24px",
+      }}>
+        <div style={{
+          maxWidth: "1100px",
+          margin: "0 auto",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}>
           <div>
-            <p className="font-bold text-[#1A1A1A] tracking-tight">
+            <p style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "18px",
+              color: "var(--stone-100)",
+              letterSpacing: "-0.02em",
+            }}>
               Serra da Capivara
             </p>
-            <p className="text-xs text-gray-400">
+            <p style={{ fontSize: "11px", color: "var(--stone-400)", marginTop: "2px", letterSpacing: "0.08em", textTransform: "uppercase" }}>
               Patrimônio Mundial UNESCO
             </p>
           </div>
-
-          <Link
-            href="/roteiros"
-            className="bg-[#14532D] hover:bg-[#166534] text-white text-sm font-medium px-4 py-2 rounded-full transition-colors"
-          >
-            Ver roteiros
-          </Link>
+          <a href="/roteiros" style={{
+            background: "var(--ochre)",
+            color: "white",
+            padding: "10px 20px",
+            borderRadius: "4px",
+            fontSize: "13px",
+            fontWeight: "600",
+            textDecoration: "none",
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+          }}>
+            Ver Roteiros
+          </a>
         </div>
       </nav>
 
-      <section className="bg-white px-4 py-24 text-center border-b border-gray-100">
-        <p className="text-sm font-medium text-[#166534] mb-3 tracking-widest uppercase">
-          Patrimônio Mundial da UNESCO
-        </p>
-
-        <h1 className="text-5xl font-bold text-[#1A1A1A] tracking-tight mb-4 leading-tight">
-          Explore a história
-          <br />
-          de 25 mil anos
-        </h1>
-
-        <p className="text-gray-500 max-w-lg mx-auto mb-8 leading-relaxed">
-          A Serra da Capivara abriga o maior conjunto de sítios arqueológicos
-          das Américas. Venha conhecer as pinturas rupestres mais antigas do mundo.
-        </p>
-
-        <div className="flex gap-3 justify-center flex-wrap">
-          <Link
-            href="/roteiros"
-            className="bg-[#14532D] hover:bg-[#166534] text-white font-semibold px-6 py-3 rounded-full transition-colors"
-          >
-            Ver roteiros disponíveis
-          </Link>
-
-          <a
-            href="#sobre"
-            className="bg-white hover:bg-gray-50 text-[#1A1A1A] font-medium px-6 py-3 rounded-full border border-gray-200 transition-colors"
-          >
-            Saiba mais
-          </a>
+      <section style={{
+        background: "linear-gradient(160deg, var(--stone-900) 0%, var(--stone-700) 60%, var(--stone-600) 100%)",
+        padding: "120px 24px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: "radial-gradient(circle at 20% 50%, rgba(196,133,42,0.15) 0%, transparent 60%), radial-gradient(circle at 80% 20%, rgba(196,133,42,0.08) 0%, transparent 50%)",
+        }} />
+        <div style={{ maxWidth: "900px", margin: "0 auto", position: "relative" }}>
+          <p style={{
+            fontSize: "12px",
+            color: "var(--ochre-light)",
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            marginBottom: "24px",
+          }}>
+            Piauí, Brasil · 25.000 anos de história
+          </p>
+          <h1 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(40px, 7vw, 80px)",
+            color: "var(--stone-50)",
+            lineHeight: "1.05",
+            letterSpacing: "-0.03em",
+            marginBottom: "32px",
+            maxWidth: "700px",
+          }}>
+            Onde a história<br />
+            <span style={{ color: "var(--ochre-light)" }}>humana começou</span>
+          </h1>
+          <p style={{
+            fontSize: "18px",
+            color: "var(--stone-300)",
+            maxWidth: "520px",
+            lineHeight: "1.7",
+            marginBottom: "48px",
+          }}>
+            O maior conjunto de sítios arqueológicos das Américas, 
+            com pinturas rupestres que reescreveram a história da humanidade.
+          </p>
+          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+            <a href="/roteiros" style={{
+              background: "var(--ochre)",
+              color: "white",
+              padding: "16px 32px",
+              borderRadius: "4px",
+              fontSize: "15px",
+              fontWeight: "600",
+              textDecoration: "none",
+              letterSpacing: "0.02em",
+            }}>
+              Explorar roteiros
+            </a>
+            <a href="#como-funciona" style={{
+              background: "transparent",
+              color: "var(--stone-300)",
+              padding: "16px 32px",
+              borderRadius: "4px",
+              fontSize: "15px",
+              fontWeight: "400",
+              textDecoration: "none",
+              border: "1px solid var(--stone-600)",
+            }}>
+              Como funciona
+            </a>
+          </div>
         </div>
       </section>
 
-      <section className="max-w-5xl mx-auto px-4 py-16 grid grid-cols-1 gap-6 md:grid-cols-3">
-        <div className="bg-white border border-gray-100 rounded-2xl p-6">
-          <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mb-4">
-            <span className="text-green-700 text-lg">🗿</span>
+      <section style={{
+        maxWidth: "1100px",
+        margin: "0 auto",
+        padding: "80px 24px",
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        gap: "24px",
+      }}>
+        {[
+          {
+            num: "1.300+",
+            label: "Sítios arqueológicos",
+            desc: "Registrados dentro do parque nacional, cada um com pinturas e gravuras únicas.",
+          },
+          {
+            num: "25 mil",
+            label: "Anos de história",
+            desc: "As pinturas rupestres mais antigas das Américas, que reescreveram a cronologia humana.",
+          },
+          {
+            num: "100%",
+            label: "Condutores credenciados",
+            desc: "Todos os guias são certificados pelo ICMBio e especializados no parque.",
+          },
+        ].map((item) => (
+          <div key={item.num} style={{
+            background: "white",
+            border: "1px solid var(--stone-200)",
+            borderRadius: "8px",
+            padding: "32px",
+          }}>
+            <p style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "40px",
+              color: "var(--ochre)",
+              letterSpacing: "-0.03em",
+              marginBottom: "8px",
+            }}>
+              {item.num}
+            </p>
+            <p style={{ fontSize: "14px", fontWeight: "600", color: "var(--stone-800)", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              {item.label}
+            </p>
+            <p style={{ fontSize: "14px", color: "var(--stone-500)", lineHeight: "1.6" }}>
+              {item.desc}
+            </p>
           </div>
-          <h3 className="font-semibold text-[#1A1A1A] mb-2">
-            Sítios arqueológicos
-          </h3>
-          <p className="text-gray-500 text-sm leading-relaxed">
-            Mais de 1.300 sítios registrados com pinturas rupestres datando de 25.000 anos.
-          </p>
-        </div>
-
-        <div className="bg-white border border-gray-100 rounded-2xl p-6">
-          <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mb-4">
-            <span className="text-green-700 text-lg">🦁</span>
-          </div>
-          <h3 className="font-semibold text-[#1A1A1A] mb-2">
-            Fauna e flora únicas
-          </h3>
-          <p className="text-gray-500 text-sm leading-relaxed">
-            Cerrado e caatinga se encontram formando um ecossistema único com espécies endêmicas.
-          </p>
-        </div>
-
-        <div className="bg-white border border-gray-100 rounded-2xl p-6">
-          <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mb-4">
-            <span className="text-green-700 text-lg">🧭</span>
-          </div>
-          <h3 className="font-semibold text-[#1A1A1A] mb-2">
-            Condutores credenciados
-          </h3>
-          <p className="text-gray-500 text-sm leading-relaxed">
-            Todos os nossos guias são credenciados pelo ICMBio e especializados no parque.
-          </p>
-        </div>
+        ))}
       </section>
 
-      <section id="sobre" className="bg-white border-t border-gray-100 px-4 py-16">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-[#1A1A1A] tracking-tight mb-4">
-            Como funciona
+      <section id="como-funciona" style={{
+        background: "var(--stone-100)",
+        borderTop: "1px solid var(--stone-200)",
+        borderBottom: "1px solid var(--stone-200)",
+        padding: "80px 24px",
+      }}>
+        <div style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center" }}>
+          <p style={{ fontSize: "11px", color: "var(--ochre)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "16px" }}>
+            Processo
+          </p>
+          <h2 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(28px, 4vw, 44px)",
+            color: "var(--stone-900)",
+            marginBottom: "56px",
+          }}>
+            Como reservar sua visita
           </h2>
-
-          <p className="text-gray-500 mb-12">
-            Reserve seu passeio em poucos minutos
-          </p>
-
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            {[1, 2, 3].map((step) => (
-              <div key={step} className="text-center">
-                <div className="w-10 h-10 bg-[#14532D] text-white rounded-full flex items-center justify-center mx-auto mb-3 font-bold">
-                  {step}
-                </div>
-
-                {step === 1 && (
-                  <>
-                    <h4 className="font-semibold text-[#1A1A1A] mb-1">
-                      Escolha o roteiro
-                    </h4>
-                    <p className="text-gray-500 text-sm">
-                      Selecione o circuito e a data que preferir
-                    </p>
-                  </>
-                )}
-
-                {step === 2 && (
-                  <>
-                    <h4 className="font-semibold text-[#1A1A1A] mb-1">
-                      Preencha seus dados
-                    </h4>
-                    <p className="text-gray-500 text-sm">
-                      Nome, contato e número de pessoas
-                    </p>
-                  </>
-                )}
-
-                {step === 3 && (
-                  <>
-                    <h4 className="font-semibold text-[#1A1A1A] mb-1">
-                      Confirme via Pix
-                    </h4>
-                    <p className="text-gray-500 text-sm">
-                      Receba a confirmação por WhatsApp após o pagamento
-                    </p>
-                  </>
-                )}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: "40px",
+          }}>
+            {[
+              { n: "01", title: "Escolha o roteiro", desc: "Selecione entre nossos circuitos e encontre a data ideal" },
+              { n: "02", title: "Preencha os dados", desc: "Nome, contato e número de pessoas do seu grupo" },
+              { n: "03", title: "Confirme via Pix", desc: "Receba a confirmação por WhatsApp após o pagamento" },
+            ].map((step) => (
+              <div key={step.n} style={{ textAlign: "center" }}>
+                <p style={{
+                  fontFamily: "var(--font-display)",
+                  fontSize: "48px",
+                  color: "var(--stone-200)",
+                  letterSpacing: "-0.04em",
+                  lineHeight: "1",
+                  marginBottom: "16px",
+                }}>
+                  {step.n}
+                </p>
+                <p style={{ fontSize: "15px", fontWeight: "600", color: "var(--stone-800)", marginBottom: "8px" }}>
+                  {step.title}
+                </p>
+                <p style={{ fontSize: "14px", color: "var(--stone-500)", lineHeight: "1.6" }}>
+                  {step.desc}
+                </p>
               </div>
             ))}
           </div>
+          <div style={{ marginTop: "56px" }}>
+            <a href="/roteiros" style={{
+              background: "var(--stone-900)",
+              color: "white",
+              padding: "16px 40px",
+              borderRadius: "4px",
+              fontSize: "14px",
+              fontWeight: "600",
+              textDecoration: "none",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+            }}>
+              Ver roteiros disponíveis
+            </a>
+          </div>
         </div>
       </section>
 
-      <footer className="bg-[#1A1A1A] text-white px-4 py-10">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <footer style={{
+        background: "var(--stone-900)",
+        padding: "48px 24px",
+      }}>
+        <div style={{
+          maxWidth: "1100px",
+          margin: "0 auto",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "24px",
+        }}>
           <div>
-            <p className="font-bold tracking-tight">
+            <p style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "16px",
+              color: "var(--stone-100)",
+            }}>
               Serra da Capivara Turismo
             </p>
-            <p className="text-gray-400 text-sm mt-0.5">
+            <p style={{ fontSize: "12px", color: "var(--stone-500)", marginTop: "4px" }}>
               São Raimundo Nonato, Piauí
             </p>
           </div>
-
-          <div className="flex gap-6 text-sm text-gray-400">
-            <Link href="/roteiros" className="hover:text-white transition-colors">
+          <div style={{ display: "flex", gap: "32px" }}>
+            <a href="/roteiros" style={{ fontSize: "13px", color: "var(--stone-400)", textDecoration: "none" }}>
               Roteiros
-            </Link>
-            <Link href="/dashboard" className="hover:text-white transition-colors">
+            </a>
+            <a href="/dashboard" style={{ fontSize: "13px", color: "var(--stone-400)", textDecoration: "none" }}>
               Painel
-            </Link>
+            </a>
           </div>
         </div>
       </footer>
+
     </div>
   )
 }

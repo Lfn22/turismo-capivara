@@ -19,13 +19,13 @@ interface Booking {
   }
 }
 
-const STATUS_LABEL: Record<string, { label: string; className: string }> = {
-  PENDING: { label: "Pendente", className: "bg-yellow-100 text-yellow-700" },
-  CONFIRMED: { label: "Confirmada", className: "bg-green-100 text-green-700" },
-  CANCELLED: { label: "Cancelada", className: "bg-red-100 text-red-700" },
-  CHECKED_IN: { label: "Check-in", className: "bg-blue-100 text-blue-700" },
-  COMPLETED: { label: "Concluida", className: "bg-gray-100 text-gray-600" },
-  NO_SHOW: { label: "Nao compareceu", className: "bg-red-50 text-red-400" },
+const STATUS: Record<string, { label: string; bg: string; color: string }> = {
+  PENDING: { label: "Pendente", bg: "#FEF9EC", color: "#B45309" },
+  CONFIRMED: { label: "Confirmada", bg: "#F0FDF4", color: "#15803D" },
+  CANCELLED: { label: "Cancelada", bg: "#FEF2F2", color: "#DC2626" },
+  CHECKED_IN: { label: "Check-in", bg: "#EFF6FF", color: "#1D4ED8" },
+  COMPLETED: { label: "Concluída", bg: "var(--stone-100)", color: "var(--stone-500)" },
+  NO_SHOW: { label: "Não compareceu", bg: "#FEF2F2", color: "#9CA3AF" },
 }
 
 export default function ReservasPage() {
@@ -60,31 +60,22 @@ export default function ReservasPage() {
         }
         return res.json()
       })
-      .then((data) => {
-        if (data) setBookings(data)
-      })
+      .then((data) => { if (data) setBookings(data) })
       .catch(() => setErro("Erro ao carregar reservas."))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => {
-    loadBookings()
-  }, [])
+  useEffect(() => { loadBookings() }, [])
 
   async function handleConfirm(bookingId: string) {
     setActionLoading(bookingId)
     try {
       const res = await fetch(
         getBaseUrl() + "/tenants/serra-viva/bookings/" + bookingId + "/confirm",
-        {
-          method: "PATCH",
-          headers: { Authorization: "Bearer " + getToken() },
-        }
+        { method: "PATCH", headers: { Authorization: "Bearer " + getToken() } }
       )
       if (res.ok) {
-        setBookings((prev) =>
-          prev.map((b) => (b.id === bookingId ? { ...b, status: "CONFIRMED" } : b))
-        )
+        setBookings((prev) => prev.map((b) => b.id === bookingId ? { ...b, status: "CONFIRMED" } : b))
       }
     } finally {
       setActionLoading(null)
@@ -97,15 +88,10 @@ export default function ReservasPage() {
     try {
       const res = await fetch(
         getBaseUrl() + "/tenants/serra-viva/bookings/" + bookingId + "/cancel",
-        {
-          method: "PATCH",
-          headers: { Authorization: "Bearer " + getToken() },
-        }
+        { method: "PATCH", headers: { Authorization: "Bearer " + getToken() } }
       )
       if (res.ok) {
-        setBookings((prev) =>
-          prev.map((b) => (b.id === bookingId ? { ...b, status: "CANCELLED" } : b))
-        )
+        setBookings((prev) => prev.map((b) => b.id === bookingId ? { ...b, status: "CANCELLED" } : b))
       }
     } finally {
       setActionLoading(null)
@@ -123,20 +109,38 @@ export default function ReservasPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5EFE6] flex items-center justify-center">
-        <p className="text-[#6B5B45] text-sm">Carregando reservas...</p>
+      <div style={{ minHeight: "100vh", background: "var(--stone-900)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: "var(--stone-500)", fontSize: "14px", letterSpacing: "0.06em" }}>Carregando reservas...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#F5EFE6]">
-      <div className="bg-white border-b border-[#E8D5B7] px-4 py-5">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+    <div style={{ minHeight: "100vh", background: "var(--stone-50)" }}>
+
+      <nav style={{
+        background: "var(--stone-900)",
+        borderBottom: "1px solid var(--stone-700)",
+        padding: "20px 24px",
+      }}>
+        <div style={{
+          maxWidth: "1100px",
+          margin: "0 auto",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}>
           <div>
-            <h1 className="text-xl font-bold text-[#1A1A1A]">Reservas</h1>
-            <p className="text-[#6B5B45] text-sm mt-0.5">
-              {bookings.length} reserva{bookings.length !== 1 ? "s" : ""} encontrada{bookings.length !== 1 ? "s" : ""}
+            <p style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "18px",
+              color: "var(--stone-100)",
+              letterSpacing: "-0.02em",
+            }}>
+              Serra da Capivara
+            </p>
+            <p style={{ fontSize: "11px", color: "var(--stone-500)", marginTop: "2px", letterSpacing: "0.06em" }}>
+              Painel administrativo
             </p>
           </div>
           <button
@@ -144,74 +148,164 @@ export default function ReservasPage() {
               localStorage.removeItem("token")
               window.location.href = "/dashboard"
             }}
-            className="text-sm text-[#6B5B45] hover:text-red-500 transition-colors"
+            style={{
+              background: "transparent",
+              border: "1px solid var(--stone-700)",
+              color: "var(--stone-400)",
+              padding: "8px 16px",
+              borderRadius: "4px",
+              fontSize: "12px",
+              cursor: "pointer",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+            }}
           >
             Sair
           </button>
         </div>
-      </div>
+      </nav>
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      <section style={{
+        background: "var(--stone-900)",
+        padding: "40px 24px 32px",
+        borderBottom: "1px solid var(--stone-700)",
+      }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto", display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+          <div>
+            <p style={{ fontSize: "11px", color: "var(--ochre-light)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "12px" }}>
+              Gestão
+            </p>
+            <h1 style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(24px, 4vw, 40px)",
+              color: "var(--stone-50)",
+              letterSpacing: "-0.03em",
+            }}>
+              Reservas
+            </h1>
+          </div>
+          <div style={{ display: "flex", gap: "16px" }}>
+            {["PENDING", "CONFIRMED", "CANCELLED"].map((s) => {
+              const count = bookings.filter((b) => b.status === s).length
+              const st = STATUS[s]
+              return (
+                <div key={s} style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid var(--stone-700)",
+                  borderRadius: "6px",
+                  padding: "12px 20px",
+                  textAlign: "center",
+                }}>
+                  <p style={{ fontFamily: "var(--font-display)", fontSize: "24px", color: "var(--stone-100)", letterSpacing: "-0.02em" }}>
+                    {count}
+                  </p>
+                  <p style={{ fontSize: "11px", color: "var(--stone-500)", marginTop: "2px", letterSpacing: "0.06em" }}>
+                    {st.label}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "40px 24px" }}>
         {erro && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 mb-6">
+          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "4px", padding: "12px 16px", fontSize: "14px", color: "#DC2626", marginBottom: "24px" }}>
             {erro}
           </div>
         )}
 
         {bookings.length === 0 && !erro && (
-          <div className="text-center py-16">
-            <p className="text-[#6B5B45] text-sm">Nenhuma reserva encontrada.</p>
+          <div style={{ textAlign: "center", padding: "80px 24px" }}>
+            <p style={{ color: "var(--stone-400)", fontSize: "14px" }}>Nenhuma reserva encontrada.</p>
           </div>
         )}
 
-        <div className="grid gap-3">
+        <div style={{ display: "grid", gap: "12px" }}>
           {bookings.map((booking) => {
-            const status = STATUS_LABEL[booking.status] ?? STATUS_LABEL.PENDING
+            const st = STATUS[booking.status] ?? STATUS.PENDING
             const isActing = actionLoading === booking.id
-            const canAct = ["PENDING", "CONFIRMED"].includes(booking.status)
+            const total = (Number(booking.slot?.package?.price) * booking.pax).toFixed(2)
 
             return (
-              <div
-                key={booking.id}
-                className="bg-white border border-[#E8D5B7] rounded-2xl p-5"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={
-                        "text-xs font-medium px-2 py-0.5 rounded-full " + status.className
-                      }>
-                        {status.label}
+              <div key={booking.id} style={{
+                background: "white",
+                border: "1px solid var(--stone-200)",
+                borderRadius: "8px",
+                padding: "24px 28px",
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "24px", flexWrap: "wrap" }}>
+
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                      <span style={{
+                        fontSize: "11px",
+                        fontWeight: "600",
+                        background: st.bg,
+                        color: st.color,
+                        padding: "3px 10px",
+                        borderRadius: "3px",
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                      }}>
+                        {st.label}
                       </span>
-                      <span className="text-xs text-[#9C8470]">
+                      <span style={{ fontSize: "12px", color: "var(--stone-400)" }}>
                         {formatDate(booking.createdAt)}
                       </span>
                     </div>
-                    <p className="font-semibold text-[#1A1A1A]">{booking.customerName}</p>
-                    <p className="text-sm text-[#6B5B45]">{booking.customerEmail}</p>
-                    <p className="text-sm text-[#6B5B45]">{booking.customerPhone}</p>
+
+                    <p style={{ fontFamily: "var(--font-display)", fontSize: "18px", color: "var(--stone-900)", letterSpacing: "-0.01em", marginBottom: "4px" }}>
+                      {booking.customerName}
+                    </p>
+                    <p style={{ fontSize: "13px", color: "var(--stone-500)", marginBottom: "2px" }}>
+                      {booking.customerEmail}
+                    </p>
+                    <p style={{ fontSize: "13px", color: "var(--stone-500)" }}>
+                      {booking.customerPhone}
+                    </p>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-medium text-[#1A1A1A]">
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <p style={{ fontSize: "13px", fontWeight: "600", color: "var(--stone-700)", marginBottom: "4px" }}>
                       {booking.slot?.package?.name}
                     </p>
-                    <p className="text-xs text-[#9C8470] mt-0.5">
+                    <p style={{ fontSize: "12px", color: "var(--stone-400)", marginBottom: "4px" }}>
                       {formatDate(booking.slot?.startsAt)} · {booking.pax} pessoa{booking.pax !== 1 ? "s" : ""}
                     </p>
-                    <p className="text-sm font-bold text-orange-600 mt-1">
-                      R$ {(Number(booking.slot?.package?.price) * booking.pax).toFixed(2)}
+                    <p style={{ fontFamily: "var(--font-display)", fontSize: "22px", color: "var(--stone-900)", letterSpacing: "-0.02em" }}>
+                      R$ {total}
                     </p>
                   </div>
                 </div>
 
-                {canAct && (
-                  <div className="flex gap-2 mt-4 pt-4 border-t border-[#F0E6D3]">
+                {["PENDING", "CONFIRMED"].includes(booking.status) && (
+                  <div style={{
+                    display: "flex",
+                    gap: "8px",
+                    marginTop: "20px",
+                    paddingTop: "20px",
+                    borderTop: "1px solid var(--stone-100)",
+                  }}>
                     {booking.status === "PENDING" && (
                       <button
                         onClick={() => handleConfirm(booking.id)}
                         disabled={isActing}
-                        className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white text-sm font-medium py-2 rounded-xl transition-colors"
+                        style={{
+                          flex: 1,
+                          background: isActing ? "var(--stone-100)" : "var(--stone-900)",
+                          color: isActing ? "var(--stone-400)" : "white",
+                          border: "none",
+                          padding: "10px 16px",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                          cursor: isActing ? "not-allowed" : "pointer",
+                          transition: "background 0.2s",
+                        }}
                       >
                         {isActing ? "..." : "Confirmar"}
                       </button>
@@ -219,7 +313,21 @@ export default function ReservasPage() {
                     <button
                       onClick={() => handleCancel(booking.id)}
                       disabled={isActing}
-                      className="flex-1 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 text-sm font-medium py-2 rounded-xl transition-colors"
+                      style={{
+                        flex: 1,
+                        background: "transparent",
+                        color: isActing ? "var(--stone-300)" : "#DC2626",
+                        border: "1px solid",
+                        borderColor: isActing ? "var(--stone-200)" : "#FECACA",
+                        padding: "10px 16px",
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                        cursor: isActing ? "not-allowed" : "pointer",
+                        transition: "all 0.2s",
+                      }}
                     >
                       {isActing ? "..." : "Cancelar"}
                     </button>

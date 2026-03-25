@@ -23,34 +23,68 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setErro(data.message ?? "Credenciais invalidas.")
+        setErro(data.message ?? "Credenciais inválidas.")
         return
       }
 
       localStorage.setItem("token", data.token)
       window.location.href = "/dashboard/reservas"
     } catch {
-      setErro("Erro de conexao. Tente novamente.")
+      setErro("Erro de conexão. Tente novamente.")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#F5EFE6] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-[#1A1A1A] tracking-tight">
-            Painel administrativo
-          </h1>
-          <p className="text-[#6B5B45] text-sm mt-1">
+    <div style={{
+      minHeight: "100vh",
+      background: "var(--stone-900)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "24px",
+    }}>
+      <div style={{ width: "100%", maxWidth: "400px" }}>
+
+        <div style={{ textAlign: "center", marginBottom: "40px" }}>
+          <p style={{
+            fontSize: "11px",
+            color: "var(--ochre-light)",
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            marginBottom: "12px",
+          }}>
             Serra da Capivara Turismo
           </p>
+          <h1 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "32px",
+            color: "var(--stone-50)",
+            letterSpacing: "-0.02em",
+          }}>
+            Painel administrativo
+          </h1>
         </div>
-        <div className="bg-white border border-[#E8D5B7] rounded-2xl p-6 shadow-sm">
-          <form onSubmit={handleSubmit} className="grid gap-4">
+
+        <div style={{
+          background: "white",
+          border: "1px solid var(--stone-200)",
+          borderRadius: "8px",
+          padding: "40px",
+        }}>
+          <form onSubmit={handleSubmit} style={{ display: "grid", gap: "20px" }}>
+
             <div>
-              <label className="block text-sm font-semibold text-[#3D2B1F] mb-1.5">
+              <label style={{
+                display: "block",
+                fontSize: "12px",
+                fontWeight: "600",
+                color: "var(--stone-600)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                marginBottom: "8px",
+              }}>
                 E-mail
               </label>
               <input
@@ -58,12 +92,33 @@ export default function LoginPage() {
                 required
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full bg-[#FDFAF6] border border-[#D9C5A0] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder-[#B8A48A] focus:outline-none focus:border-orange-400 focus:bg-white transition-colors"
                 placeholder="seu@email.com"
+                style={{
+                  width: "100%",
+                  background: "var(--stone-50)",
+                  border: "1px solid var(--stone-200)",
+                  borderRadius: "4px",
+                  padding: "12px 16px",
+                  fontSize: "15px",
+                  color: "var(--stone-900)",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => e.target.style.borderColor = "var(--ochre)"}
+                onBlur={(e) => e.target.style.borderColor = "var(--stone-200)"}
               />
             </div>
+
             <div>
-              <label className="block text-sm font-semibold text-[#3D2B1F] mb-1.5">
+              <label style={{
+                display: "block",
+                fontSize: "12px",
+                fontWeight: "600",
+                color: "var(--stone-600)",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                marginBottom: "8px",
+              }}>
                 Senha
               </label>
               <input
@@ -71,24 +126,70 @@ export default function LoginPage() {
                 required
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full bg-[#FDFAF6] border border-[#D9C5A0] rounded-xl px-4 py-3 text-sm text-[#1A1A1A] placeholder-[#B8A48A] focus:outline-none focus:border-orange-400 focus:bg-white transition-colors"
                 placeholder="••••••••"
+                style={{
+                  width: "100%",
+                  background: "var(--stone-50)",
+                  border: "1px solid var(--stone-200)",
+                  borderRadius: "4px",
+                  padding: "12px 16px",
+                  fontSize: "15px",
+                  color: "var(--stone-900)",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => e.target.style.borderColor = "var(--ochre)"}
+                onBlur={(e) => e.target.style.borderColor = "var(--stone-200)"}
               />
             </div>
+
             {erro && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
+              <div style={{
+                background: "#FFF1ED",
+                border: "1px solid #F5C2A8",
+                borderRadius: "4px",
+                padding: "12px 16px",
+                fontSize: "14px",
+                color: "#8A2E0F",
+              }}>
                 {erro}
               </div>
             )}
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:bg-orange-300 text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+              style={{
+                width: "100%",
+                background: loading ? "var(--stone-300)" : "var(--ochre)",
+                color: "white",
+                border: "none",
+                padding: "14px 24px",
+                borderRadius: "4px",
+                fontSize: "13px",
+                fontWeight: "600",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
             >
               {loading ? "Entrando..." : "Entrar"}
             </button>
+
           </form>
         </div>
+
+        <p style={{
+          textAlign: "center",
+          fontSize: "12px",
+          color: "var(--stone-500)",
+          marginTop: "24px",
+        }}>
+          <a href="/" style={{ color: "var(--stone-400)", textDecoration: "none" }}>
+            ← Voltar ao site
+          </a>
+        </p>
+
       </div>
     </div>
   )
