@@ -32,17 +32,24 @@ export default function ReservasPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
-  useEffect(() => {
-    const token = localStorage.getItem("token")
+  function getToken() {
+    return localStorage.getItem("token") ?? ""
+  }
+
+  function getBaseUrl() {
+    return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
+  }
+
+  function loadBookings() {
+    const token = getToken()
     if (!token) {
       window.location.href = "/dashboard"
       return
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
-
-    fetch(baseUrl + "/tenants/serra-viva/bookings", {
+    fetch(getBaseUrl() + "/tenants/serra-viva/bookings", {
       headers: { Authorization: "Bearer " + token },
     })
       .then((res) => {
@@ -58,7 +65,52 @@ export default function ReservasPage() {
       })
       .catch(() => setErro("Erro ao carregar reservas."))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadBookings()
   }, [])
+
+  async function handleConfirm(bookingId: string) {
+    setActionLoading(bookingId)
+    try {
+      const res = await fetch(
+        getBaseUrl() + "/tenants/serra-viva/bookings/" + bookingId + "/confirm",
+        {
+          method: "PATCH",
+          headers: { Authorization: "Bearer " + getToken() },
+        }
+      )
+      if (res.ok) {
+        setBookings((prev) =>
+          prev.map((b) => (b.id === bookingId ? { ...b, status: "CONFIRMED" } : b))
+        )
+      }
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  async function handleCancel(bookingId: string) {
+    if (!confirm("Cancelar esta reserva?")) return
+    setActionLoading(bookingId)
+    try {
+      const res = await fetch(
+        getBaseUrl() + "/tenants/serra-viva/bookings/" + bookingId + "/cancel",
+        {
+          method: "PATCH",
+          headers: { Authorization: "Bearer " + getToken() },
+        }
+      )
+      if (res.ok) {
+        setBookings((prev) =>
+          prev.map((b) => (b.id === bookingId ? { ...b, status: "CANCELLED" } : b))
+        )
+      }
+    } finally {
+      setActionLoading(null)
+    }
+  }
 
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString("pt-BR", {
@@ -115,6 +167,9 @@ export default function ReservasPage() {
         <div className="grid gap-3">
           {bookings.map((booking) => {
             const status = STATUS_LABEL[booking.status] ?? STATUS_LABEL.PENDING
+            const isActing = actionLoading === booking.id
+            const canAct = ["PENDING", "CONFIRMED"].includes(booking.status)
+
             return (
               <div
                 key={booking.id}
@@ -136,6 +191,7 @@ export default function ReservasPage() {
                     <p className="text-sm text-[#6B5B45]">{booking.customerEmail}</p>
                     <p className="text-sm text-[#6B5B45]">{booking.customerPhone}</p>
                   </div>
+
                   <div className="text-right shrink-0">
                     <p className="text-sm font-medium text-[#1A1A1A]">
                       {booking.slot?.package?.name}
@@ -148,6 +204,27 @@ export default function ReservasPage() {
                     </p>
                   </div>
                 </div>
+
+                {canAct && (
+                  <div className="flex gap-2 mt-4 pt-4 border-t border-[#F0E6D3]">
+                    {booking.status === "PENDING" && (
+                      <button
+                        onClick={() => handleConfirm(booking.id)}
+                        disabled={isActing}
+                        className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white text-sm font-medium py-2 rounded-xl transition-colors"
+                      >
+                        {isActing ? "..." : "Confirmar"}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleCancel(booking.id)}
+                      disabled={isActing}
+                      className="flex-1 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 text-sm font-medium py-2 rounded-xl transition-colors"
+                    >
+                      {isActing ? "..." : "Cancelar"}
+                    </button>
+                  </div>
+                )}
               </div>
             )
           })}

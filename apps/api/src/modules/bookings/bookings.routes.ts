@@ -125,6 +125,39 @@ export async function bookingsRoutes(app: FastifyInstance) {
     return updated
   })
 
+  app.patch('/tenants/:slug/bookings/:id/confirm', async (request, reply) => {
+    const { slug, id } = request.params as { slug: string; id: string }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug },
+    })
+
+    if (!tenant) {
+      return reply.status(404).send({ message: 'Tenant não encontrado' })
+    }
+
+    const booking = await prisma.booking.findFirst({
+      where: { id, tenantId: tenant.id },
+    })
+
+    if (!booking) {
+      return reply.status(404).send({ message: 'Reserva não encontrada' })
+    }
+
+    if (booking.status !== 'PENDING') {
+      return reply.status(400).send({
+        message: 'Apenas reservas pendentes podem ser confirmadas',
+      })
+    }
+
+    const updated = await prisma.booking.update({
+      where: { id },
+      data: { status: 'CONFIRMED' },
+    })
+
+    return updated
+  })
+
   app.get(
     '/tenants/:slug/bookings',
     {
