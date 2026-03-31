@@ -13,7 +13,6 @@ COPY apps/web/package.json ./apps/web/
 RUN pnpm install --frozen-lockfile
 
 COPY apps/api ./apps/api
-COPY packages ./packages
 
 RUN pnpm --filter @turismo/api build
 
