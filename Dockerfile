@@ -13,6 +13,7 @@ COPY apps/web/package.json ./apps/web/
 RUN pnpm install --frozen-lockfile
 
 COPY apps/api ./apps/api
+COPY packages ./packages
 
 RUN pnpm --filter @turismo/api build
 
@@ -20,4 +21,4 @@ WORKDIR /app/apps/api
 
 EXPOSE 3333
 
-CMD ["sh", "-c", "pnpm prisma migrate deploy && node dist/app.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/app.js"]
