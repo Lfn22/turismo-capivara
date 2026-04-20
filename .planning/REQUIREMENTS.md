@@ -10,10 +10,10 @@
 
 ### Security (SEC) — Bloqueante para pagamento
 
-- [ ] **SEC-01**: Todas as rotas da API validam input com Zod antes de processar dados (nenhuma rota aceita payload sem schema validation)
+- [x] **SEC-01**: Todas as rotas da API validam input com Zod antes de processar dados (nenhuma rota aceita payload sem schema validation)
 - [x] **SEC-02**: CORS configurado via variável de ambiente (não hardcoded); @fastify/helmet registrado e ativo em produção
 - [x] **SEC-03**: Endpoints de booking, cancelamento e confirmação exigem autenticação JWT válida; cross-tenant ownership verificado em cada operação
-- [ ] **SEC-04**: Plataforma oferece política de privacidade (LGPD) e usuário pode exportar/deletar seus dados
+- [x] **SEC-04**: Plataforma oferece política de privacidade (LGPD) e usuário pode exportar/deletar seus dados
 
 ### Auth (AUTH)
 
@@ -97,10 +97,10 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| SEC-01 | Phase 1 — Security Hardening | Pending |
+| SEC-01 | Phase 1 — Security Hardening | Complete |
 | SEC-02 | Phase 1 — Security Hardening | Complete |
 | SEC-03 | Phase 1 — Security Hardening | Complete |
-| SEC-04 | Phase 1 — Security Hardening | Pending |
+| SEC-04 | Phase 1 — Security Hardening | Complete |
 | AUTH-01 | Phase 2 — User Access & Guide Onboarding | Pending |
 | AUTH-02 | Phase 2 — User Access & Guide Onboarding | Pending |
 | AUTH-03 | Phase 2 — User Access & Guide Onboarding | Pending |

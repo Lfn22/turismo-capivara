@@ -12,7 +12,7 @@ Evolução de uma SaaS de turismo brownfield para um marketplace onde turistas e
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Security Hardening** - Corrigir as 6 vulnerabilidades críticas do codebase atual que bloqueiam o lançamento com pagamentos
+- [x] **Phase 1: Security Hardening** - Corrigir as 6 vulnerabilidades críticas do codebase atual que bloqueiam o lançamento com pagamentos
 - [ ] **Phase 2: User Access & Guide Onboarding** - Turistas criam conta, guias se cadastram e passam por aprovação de admin
 - [ ] **Phase 3: Itineraries & Availability** - Guia cria e publica roteiros com preço, dificuldade e calendário de slots
 - [ ] **Phase 4: Marketplace Discovery** - Turista pesquisa, filtra e compara guias lado a lado para o mesmo roteiro
@@ -24,6 +24,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Goal**: Todas as rotas da API têm validação de input, autenticação forçada, CORS e helmet configurados para produção — pré-requisito para habilitar pagamentos.
 **Depends on**: Nothing (first phase)
 **Requirements**: SEC-01, SEC-02, SEC-03, SEC-04
+**Plans**: 4 (01-01: error handler + helmet + CORS, 01-02: JWT auth on bookings, 01-03: Zod validation, 01-04: LGPD endpoints)
+**Status**: Complete (2026-04-20)
 **Success Criteria** (what must be TRUE):
   1. Nenhuma rota da API aceita payload sem schema Zod — requisições malformadas retornam 400 com erro descritivo
   2. CORS aceita o domínio de produção (configurado via variável de ambiente) e rejeita origens não autorizadas
@@ -90,7 +92,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Security Hardening | 3/4 | In Progress |  |
+| 1. Security Hardening | 4/4 | Complete | 2026-04-20 |
 | 2. User Access & Guide Onboarding | 0/TBD | Not started | - |
 | 3. Itineraries & Availability | 0/TBD | Not started | - |
 | 4. Marketplace Discovery | 0/TBD | Not started | - |
