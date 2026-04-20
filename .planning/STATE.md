@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: ROADMAP.md criado com 5 fases, 26/26 requirements cobertos.
-last_updated: "2026-04-20T11:21:56.288Z"
+stopped_at: Plan 01-03 completed — Zod validation on all 4 route modules (SEC-01)
+last_updated: "2026-04-20T11:29:51.242Z"
 last_activity: 2026-04-20
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
-  percent: 50
+  completed_plans: 3
+  percent: 75
 ---
 
 # STATE.md — Turismo Capivara
@@ -26,19 +26,19 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 1 of 5 (Security Hardening)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: Ready to execute
 Last activity: 2026-04-20
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███████░░░] 75%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 3
+- Average duration: ~4m
+- Total execution time: ~12m
 
 **By Phase:**
 
@@ -57,6 +57,8 @@ Progress: [░░░░░░░░░░] 0%
 - Regiões como tags/filtros, não entidades administrativas — simplicidade para MVP
 - Guide approval por admin antes de publicar roteiros — controle de qualidade e liability
 
+- Zod v4 uses ZodError.issues (not .errors) — all route catch blocks use err.issues.map()
+- 
 ### Pending Todos
 
 None yet.
@@ -71,6 +73,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-20T11:21:56.273Z
-Stopped at: ROADMAP.md criado com 5 fases, 26/26 requirements cobertos.
+Last session: 2026-04-20T11:29:51.242Z
+Stopped at: Plan 01-03 completed — Zod validation on all 4 route modules (SEC-01)
 Resume file: None
