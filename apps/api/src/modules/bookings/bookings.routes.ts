@@ -64,9 +64,14 @@ export async function bookingsRoutes(app: FastifyInstance) {
     const booking = await prisma.$transaction(async (tx) => {
       const slot = await tx.departureSlot.findUnique({
         where: { id: slotId },
+        include: { package: { select: { tenantId: true } } },
       })
 
       if (!slot) {
+        throw new AppError('Slot não encontrado', 404)
+      }
+
+      if (slot.package.tenantId !== tenant.id) {
         throw new AppError('Slot não encontrado', 404)
       }
 
@@ -104,7 +109,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
   app.patch(
     '/tenants/:slug/bookings/:id/cancel',
-    { preHandler: [authenticate] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE'])] },
     async (request, reply) => {
       let params
       try {
@@ -156,7 +161,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
   app.patch(
     '/tenants/:slug/bookings/:id/confirm',
-    { preHandler: [authenticate] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE'])] },
     async (request, reply) => {
       let params
       try {
