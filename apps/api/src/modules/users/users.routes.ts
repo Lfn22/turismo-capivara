@@ -44,18 +44,26 @@ export async function usersRoutes(app: FastifyInstance) {
       })
       if (!existing) throw new AppError('Usuário não encontrado', 404)
 
-      const salt = process.env.ANONYMIZATION_SALT ?? 'capivara-lgpd-salt-dev'
+      const salt = process.env.ANONYMIZATION_SALT
+      if (!salt) throw new AppError('Configuração de anonimização ausente', 500)
       const anonymizedEmail = createHash('sha256')
         .update(existing.email + salt)
         .digest('hex')
 
-      // Update user PII only — booking rows are NOT touched (LGPD preserves transactional history)
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          name: 'Usuário Removido',
-          email: anonymizedEmail,
-        },
+      // Anonymize user PII and matching customerEmail in bookings within a single transaction
+      await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            name: 'Usuário Removido',
+            email: anonymizedEmail,
+          },
+        })
+
+        await tx.booking.updateMany({
+          where: { customerEmail: existing.email },
+          data: { customerEmail: anonymizedEmail },
+        })
       })
 
       return reply.status(204).send()
