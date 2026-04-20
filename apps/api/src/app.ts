@@ -19,8 +19,12 @@ app.register(cors, {
 
 app.register(helmet)
 
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required')
+}
+
 app.register(jwt, {
-  secret: process.env.JWT_SECRET ?? 'desenvolvimento-secret-trocar-em-producao',
+  secret: process.env.JWT_SECRET,
 })
 
 app.get('/health', async () => {

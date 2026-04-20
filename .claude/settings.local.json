@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Bash(node:*)",
+      "Bash(find .:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Skill(gsd-resume-work)",
+      "mcp__plugin_claude-mem_mcp-search__get_observations",
+      "Skill(gsd-discuss-phase)",
+      "mcp__plugin_claude-mem_mcp-search__smart_outline",
+      "Bash(cat \"C:/projetos/turismo-capivara/apps/api/src/shared/types/\"*.ts)",
+      "Bash(python3:*)",
+      "Skill(gsd-code-review)"
+    ]
+  }
+}
