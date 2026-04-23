@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
+milestone_name: MVP
 status: executing
-stopped_at: Phase 1 UAT complete — 4/4 passed, advancing to Phase 2
-last_updated: "2026-04-20T18:36:00Z"
-last_activity: 2026-04-20
+stopped_at: Roadmap revisado — MVP redefinido com 6 fases, aguardando execução da Fase 2
+last_updated: "2026-04-23T20:27:00Z"
+last_activity: 2026-04-23
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 1
   total_plans: 4
   completed_plans: 4
-  percent: 20
+  percent: 17
 ---
 
 # STATE.md — Turismo Capivara
@@ -20,62 +20,65 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-04-17)
 
-**Core value:** Turista encontra, compara e reserva um guia para seu roteiro desejado — tudo em um único fluxo com pagamento integrado.
-**Current focus:** Phase 2 — User Access & Guide Onboarding
+**Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
+**Current focus:** Phase 2 — Cadastro de Guias + Aprovação Admin
 
 ## Current Position
 
-Phase: 2 of 5 (User Access & Guide Onboarding)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-04-20
+Phase: 2 de 6 (Cadastro de Guias + Aprovação Admin)
+Plan: 0 de ? na fase atual
+Status: Pronto para executar (2 planos de schema+registro já escritos)
+Last activity: 2026-04-23
 
-Progress: [██████████] 100%
+## Decisões estratégicas
 
-## Performance Metrics
+- **Beachhead:** Serra da Capivara (PI) como destino inicial — UNESCO, sem digitalização, guias dependem de WhatsApp
+- **Modelo de negócio:** Comissão 3–5% por reserva, não assinatura mensal
+- **Parceiro institucional alvo:** FUMDHAM / SETUR-PI — abordar após MVP com dados reais
+- **Multi-tenant:** cada destino/operador é um tenant isolado por slug — arquitetura já implementada
+- **Motor de reserva:** trava transacional anti-overbooking já existe (POST /bookings com prisma.$transaction)
+- **Pagamento:** apenas PIX (Mercado Pago) no MVP — cartão de crédito é pós-MVP
+- **Discovery:** listagem simples por destino no MVP — busca avançada e comparação são pós-MVP
+- **Guest checkout:** turista não precisa criar conta para reservar (Phase 6)
 
-**Velocity:**
+## Decisões técnicas
 
-- Total plans completed: 4
-- Average duration: ~4m
-- Total execution time: ~17m
+- Zod v4: `ZodError.issues` (não `.errors`) — todos os catch blocks usam `err.issues.map()`
+- LGPD: booking rows preservados após anonimização do usuário (histórico transacional via customerEmail)
+- `ANONYMIZATION_SALT` obrigatório no Railway — fallback de dev intencional
+- Rotas escopadas por tenant: padrão `/tenants/:slug/resource` com helper `parseParams`
+- Aprovação de guia: `authenticate + authorize([Role.ADMIN])` — padrão já estabelecido
 
-**By Phase:**
+## Fase 2 — Contexto de execução
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| - | - | - | - |
+Dois planos já escritos (não executados):
+- `02-01-PLAN.md`: extensão do schema Prisma (approvalStatus, cpf, bio, photo, specialties, regions, rejectionReason ao User)
+- `02-02-PLAN.md`: POST /auth/register diferenciando CLIENTE vs CONDUTOR
 
-## Accumulated Context
+Planos ainda a escrever para completar a Fase 2:
+- Admin: GET + PATCH de aprovação de guias
+- Perfil público: GET /tenants/:slug/guides e GET /tenants/:slug/guides/:id
+- Perfil próprio: PUT /tenants/:slug/guides/me
 
-### Decisions
+## Performance histórica
 
-- Marketplace (não SaaS): turistas comparam guias para o mesmo roteiro — diferencial central
-- Brownfield: reaproveitar Fastify 5 + Prisma 7 + Next.js 16; não reconstruir do zero
-- SEC em Phase 1: 6 vulnerabilidades críticas bloqueiam pagamentos — corrigir primeiro
-- Pix obrigatório (Mercado Pago preferencial); cartão de crédito como fallback
-- Regiões como tags/filtros, não entidades administrativas — simplicidade para MVP
-- Guide approval por admin antes de publicar roteiros — controle de qualidade e liability
+| Phase | Plans | Tempo total | Média/plano |
+|-------|-------|-------------|-------------|
+| 1. Security Hardening | 4 | ~17min | ~4min |
 
-- Zod v4 uses ZodError.issues (not .errors) — all route catch blocks use err.issues.map()
-- LGPD: booking rows preserved after user anonymization (transactional history via customerEmail linkage)
-- ANONYMIZATION_SALT env var required in Railway production — dev fallback intentional
+## Pós-MVP (deferred)
 
-### Pending Todos
-
-None yet.
-
-### Blockers/Concerns
-
-- CORS hardcoded para localhost:3000 → resolvido em Phase 1 (SEC-02)
-- Endpoints de booking sem autenticação → resolvido em Phase 1 (SEC-03)
-- Sem validação de input no servidor → resolvido em Phase 1 (SEC-01)
-- `@fastify/helmet` instalado mas não registrado → resolvido em Phase 1 (SEC-02)
-- LGPD data-rights sem implementação → resolvido em Phase 1 (SEC-04)
-- tenantSlug "serra-viva" hardcoded no frontend → endereçado em Phase 2 ao desacoplar multi-tenant para marketplace
+- Busca por texto e filtros avançados
+- Comparação de guias lado a lado
+- Multi-guia por roteiro
+- Reviews e avaliações
+- Cartão de crédito
+- Vitrines de parceiros (hotéis, restaurantes)
+- Relatórios institucionais (FUMDHAM / SETUR-PI)
+- Notificações automáticas por email/WhatsApp
 
 ## Session Continuity
 
-Last session: 2026-04-20T18:36:00Z
-Stopped at: Phase 1 UAT complete — 4/4 passed, Phase 2 ready to plan
+Last session: 2026-04-23T20:27:00Z
+Stopped at: ROADMAP.md atualizado com MVP de 6 fases, STATE.md limpo
 Resume file: None
