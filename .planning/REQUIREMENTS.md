@@ -17,8 +17,8 @@
 
 ### Auth (AUTH)
 
-- [ ] **AUTH-01**: Turista pode criar conta com email/senha e acessar a plataforma como CLIENTE
-- [ ] **AUTH-02**: Guia pode criar conta com CPF/CNPJ e aguardar aprovação como CONDUTOR
+- [x] **AUTH-01**: Turista pode criar conta com email/senha e acessar a plataforma como CLIENTE
+- [x] **AUTH-02**: Guia pode criar conta com CPF/CNPJ e aguardar aprovação como CONDUTOR
 - [ ] **AUTH-03**: Admin pode aprovar ou rejeitar cadastro de guia; guia rejeitado recebe notificação de status
 
 ### Guide Profiles (GUIDE)
@@ -101,8 +101,8 @@
 | SEC-02 | Phase 1 — Security Hardening | Complete |
 | SEC-03 | Phase 1 — Security Hardening | Complete |
 | SEC-04 | Phase 1 — Security Hardening | Complete |
-| AUTH-01 | Phase 2 — User Access & Guide Onboarding | Pending |
-| AUTH-02 | Phase 2 — User Access & Guide Onboarding | Pending |
+| AUTH-01 | Phase 2 — User Access & Guide Onboarding | Complete |
+| AUTH-02 | Phase 2 — User Access & Guide Onboarding | Complete |
 | AUTH-03 | Phase 2 — User Access & Guide Onboarding | Pending |
 | GUIDE-01 | Phase 2 — User Access & Guide Onboarding | Pending |
 | GUIDE-02 | Phase 2 — User Access & Guide Onboarding | Pending |
