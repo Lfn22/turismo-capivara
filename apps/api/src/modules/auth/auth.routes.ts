@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
-import { compareSync } from 'bcryptjs'
+import { compareSync, hashSync } from 'bcryptjs'
 import { z, ZodError } from 'zod'
+import { Prisma } from '@prisma/client'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 
@@ -9,6 +10,26 @@ const loginBodySchema = z.object({
   password: z.string().min(1, { message: 'Senha obrigatória' }),
   tenantSlug: z.string().min(1, { message: 'Slug do tenant obrigatório' }),
 })
+
+const slugParamsSchema = z.object({
+  slug: z.string().min(1, { message: 'Slug obrigatório' }),
+})
+
+const registerBodySchema = z.discriminatedUnion('role', [
+  z.object({
+    role: z.literal('CLIENTE'),
+    name: z.string().min(1, { message: 'Nome obrigatório' }),
+    email: z.string().email({ message: 'Email inválido' }),
+    password: z.string().min(8, { message: 'Senha deve ter no mínimo 8 caracteres' }),
+  }),
+  z.object({
+    role: z.literal('CONDUTOR'),
+    name: z.string().min(1, { message: 'Nome obrigatório' }),
+    email: z.string().email({ message: 'Email inválido' }),
+    password: z.string().min(8, { message: 'Senha deve ter no mínimo 8 caracteres' }),
+    cpf: z.string().regex(/^\d{11}$/, { message: 'CPF deve conter 11 dígitos numéricos' }),
+  }),
+])
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/login', async (request, reply) => {
@@ -65,5 +86,93 @@ export async function authRoutes(app: FastifyInstance) {
     )
 
     return reply.status(200).send({ token })
+  })
+
+  app.post('/tenants/:slug/auth/register', async (request, reply) => {
+    let params
+    try {
+      params = slugParamsSchema.parse(request.params)
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return reply.status(400).send({
+          message: 'Dados inválidos',
+          errors: err.issues.map((e) => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
+        })
+      }
+      throw err
+    }
+
+    let body
+    try {
+      body = registerBodySchema.parse(request.body)
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return reply.status(400).send({
+          message: 'Dados inválidos',
+          errors: err.issues.map((e) => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
+        })
+      }
+      throw err
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: params.slug },
+    })
+
+    if (!tenant) {
+      throw new AppError('Tenant não encontrado', 404)
+    }
+
+    const hashedPassword = hashSync(body.password, 10)
+
+    try {
+      if (body.role === 'CLIENTE') {
+        await prisma.user.create({
+          data: {
+            tenantId: tenant.id,
+            name: body.name,
+            email: body.email,
+            password: hashedPassword,
+            role: 'CLIENTE',
+          },
+          select: { id: true },
+        })
+      } else {
+        await prisma.$transaction(async (tx) => {
+          const user = await tx.user.create({
+            data: {
+              tenantId: tenant.id,
+              name: body.name,
+              email: body.email,
+              password: hashedPassword,
+              role: 'CONDUTOR',
+              cpf: body.cpf,
+            },
+            select: { id: true },
+          })
+          await tx.guideProfile.create({
+            data: {
+              userId: user.id,
+              especialidades: [],
+              regioes: [],
+              portfolioPhotos: [],
+            },
+          })
+        })
+      }
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new AppError('Email já cadastrado neste tenant', 409)
+      }
+      throw err
+    }
+
+    return reply.status(201).send({ message: 'Conta criada com sucesso' })
   })
 }
