@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: MVP
 status: executing
-stopped_at: Roadmap revisado — MVP redefinido com 6 fases, aguardando execução da Fase 2
-last_updated: "2026-04-23T20:27:00Z"
+stopped_at: Phase 2 Plan 01 complete — schema extended with GuideProfile + ApprovalStatus
+last_updated: "2026-04-23T20:49:00Z"
 last_activity: 2026-04-23
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 5
+  completed_plans: 5
   percent: 17
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 2 de 6 (Cadastro de Guias + Aprovação Admin)
-Plan: 0 de ? na fase atual
-Status: Pronto para executar (2 planos de schema+registro já escritos)
+Plan: 1 de ? na fase atual
+Status: Executando — 02-01 completo (schema + migration), 02-02 a executar
 Last activity: 2026-04-23
 
 ## Decisões estratégicas
@@ -65,6 +65,7 @@ Planos ainda a escrever para completar a Fase 2:
 | Phase | Plans | Tempo total | Média/plano |
 |-------|-------|-------------|-------------|
 | 1. Security Hardening | 4 | ~17min | ~4min |
+| 2. Cadastro de Guias (parcial) | 1 | ~3min | ~3min |
 
 ## Pós-MVP (deferred)
 
@@ -79,6 +80,6 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-04-23T20:27:00Z
-Stopped at: ROADMAP.md atualizado com MVP de 6 fases, STATE.md limpo
+Last session: 2026-04-23T20:49:00Z
+Stopped at: Phase 2 Plan 01 complete — 02-01-SUMMARY.md committed
 Resume file: None

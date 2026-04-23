@@ -203,7 +203,7 @@ A arquitetura multi-tenant já existe. O motor de reserva com trava transacional
 | Phase | Nome | Plans | Status | Concluída |
 |-------|------|-------|--------|-----------|
 | 1 | Security Hardening | 4/4 | Complete | 2026-04-20 |
-| 2 | Cadastro de Guias + Aprovação Admin | 2/TBD | Not started | — |
+| 2 | Cadastro de Guias + Aprovação Admin | 2/TBD | In progress (1/TBD done) | — |
 | 3 | Roteiros e Disponibilidade | 0/TBD | Not started | — |
 | 4 | Motor de Pagamento | 0/TBD | Not started | — |
 | 5 | Painel do Guia | 0/TBD | Not started | — |
