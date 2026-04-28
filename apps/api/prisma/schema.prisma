@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  
+  url      = env("DATABASE_URL")
 }
 
 model Tenant {
@@ -25,7 +25,7 @@ model User {
   email           String
   password        String
   role            Role
-  cpf             String?
+  cpf             String?   @unique
   approvalStatus  ApprovalStatus @default(PENDING)
   rejectionReason String?
   createdAt       DateTime       @default(now())

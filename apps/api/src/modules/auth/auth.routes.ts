@@ -1,9 +1,16 @@
 import { FastifyInstance } from 'fastify'
+import { createHmac } from 'crypto'
 import { compareSync, hashSync } from 'bcryptjs'
 import { z, ZodError } from 'zod'
 import { Prisma } from '@prisma/client'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
+
+function hashCpf(cpf: string): string {
+  const secret = process.env.CPF_SECRET
+  if (!secret) throw new Error('CPF_SECRET environment variable is required')
+  return createHmac('sha256', secret).update(cpf).digest('hex')
+}
 
 const loginBodySchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
@@ -153,7 +160,7 @@ export async function authRoutes(app: FastifyInstance) {
               email: body.email,
               password: hashedPassword,
               role: 'CONDUTOR',
-              cpf: body.cpf,
+              cpf: hashCpf(body.cpf),
             },
             select: { id: true },
           })
@@ -169,6 +176,10 @@ export async function authRoutes(app: FastifyInstance) {
       }
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const fields = err.meta?.target as string[] | undefined
+        if (fields?.includes('cpf')) {
+          throw new AppError('CPF já cadastrado', 409)
+        }
         throw new AppError('Email já cadastrado neste tenant', 409)
       }
       throw err
