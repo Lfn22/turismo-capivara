@@ -81,6 +81,7 @@ export async function authRoutes(app: FastifyInstance) {
         tenantId: user.tenantId,
         role: user.role,
         name: user.name,
+        approvalStatus: user.approvalStatus,
       },
       { expiresIn: '1d' }
     )

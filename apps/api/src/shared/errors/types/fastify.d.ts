@@ -7,12 +7,14 @@ declare module '@fastify/jwt' {
       tenantId: string
       role: string
       name: string
+      approvalStatus?: string
     }
     user: {
       sub: string
       tenantId: string
       role: string
       name: string
+      approvalStatus?: string
     }
   }
 }
