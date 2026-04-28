@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: MVP
 status: ready_to_execute
-stopped_at: Phase 2 gap-closure plans written (02-03, 02-04) — ready to execute
-last_updated: "2026-04-28T11:30:00Z"
+stopped_at: Completed 02-04-PLAN.md — guides module (5 endpoints) created and registered in app.ts
+last_updated: "2026-04-28T17:21:39Z"
 last_activity: 2026-04-28
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 4
-  completed_plans: 2
-  percent: 17
+  completed_plans: 4
+  percent: 50
 ---
 
 # STATE.md — Turismo Capivara
@@ -80,6 +80,6 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-04-23T20:59:04Z
-Stopped at: Completed 02-02-PLAN.md — POST /tenants/:slug/auth/register in auth.routes.ts
+Last session: 2026-04-28T17:21:39Z
+Stopped at: Completed 02-04-PLAN.md — guides module (5 endpoints) created and registered in app.ts
 Resume file: None
