@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Tenant {
@@ -33,6 +32,7 @@ model User {
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id])
   guideProfile GuideProfile?
+  tourPackages TourPackage[] @relation("ConductorPackages")
 
   @@unique([email, tenantId])
 }
@@ -54,6 +54,7 @@ model GuideProfile {
 model TourPackage {
   id          String   @id @default(cuid())
   tenantId    String
+  conductorId  String?
   name        String
   description String
   duration    Int
@@ -65,6 +66,7 @@ model TourPackage {
   updatedAt   DateTime @updatedAt
 
   tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  conductor      User?           @relation("ConductorPackages", fields: [conductorId], references: [id])
   departureSlots DepartureSlot[]
 }
 
@@ -73,6 +75,7 @@ model DepartureSlot {
   packageId   String
   startsAt    DateTime
   capacity    Int
+  minCapacity  Int        @default(1)
   booked      Int        @default(0)
   status      SlotStatus @default(OPEN)
   createdAt   DateTime   @default(now())
