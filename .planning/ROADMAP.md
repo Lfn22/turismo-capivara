@@ -94,8 +94,11 @@ A arquitetura multi-tenant já existe. O motor de reserva com trava transacional
 | PATCH /tenants/:slug/packages/:id/slots/:slotId | CONDUTOR | Edita slot |
 | DELETE /tenants/:slug/packages/:id/slots/:slotId | CONDUTOR | Remove slot |
 
-**Status**: Não iniciada
-**Plans**: TBD
+**Status**: Planejada (3 planos criados)
+**Plans**: 3 plans
+- [ ] 03-01-PLAN.md — Schema migration: add conductorId to TourPackage + minCapacity to DepartureSlot
+- [ ] 03-02-PLAN.md — Package CRUD endpoints (POST/PUT/DELETE) with ownership + hasMinimumReached in GET
+- [ ] 03-03-PLAN.md — Slot CRUD endpoints (POST/PATCH/DELETE) with cascade booking cancellation
 
 **Success Criteria**:
   1. Guia cria roteiro com título, descrição, preço por pessoa e nível de dificuldade
