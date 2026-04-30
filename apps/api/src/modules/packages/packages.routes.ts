@@ -60,7 +60,14 @@ export async function packagesRoutes(app: FastifyInstance) {
       },
     })
 
-    return packages
+    const packagesWithMinReached = packages.map((pkg) => ({
+      ...pkg,
+      departureSlots: pkg.departureSlots.map((slot) => ({
+        ...slot,
+        hasMinimumReached: slot.booked >= slot.minCapacity,
+      })),
+    }))
+    return packagesWithMinReached
   })
 
   app.get('/tenants/:slug/packages/:id', async (request, reply) => {
@@ -95,6 +102,13 @@ export async function packagesRoutes(app: FastifyInstance) {
       throw new AppError('Roteiro não encontrado', 404)
     }
 
-    return tourPackage
+    const packageWithMinReached = {
+      ...tourPackage,
+      departureSlots: tourPackage.departureSlots.map((slot) => ({
+        ...slot,
+        hasMinimumReached: slot.booked >= slot.minCapacity,
+      })),
+    }
+    return packageWithMinReached
   })
 }
