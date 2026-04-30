@@ -17,7 +17,7 @@ A arquitetura multi-tenant já existe. O motor de reserva com trava transacional
 
 - [x] **Phase 1: Security Hardening** — 6 vulnerabilidades críticas corrigidas, API pronta para produção
 - [ ] **Phase 2: Cadastro de Guias + Aprovação Admin** — Registro de turistas e guias, aprovação por admin, perfis públicos
-- [ ] **Phase 3: Roteiros e Disponibilidade** — Guia cria e gerencia roteiros e calendário de slots
+- [x] **Phase 3: Roteiros e Disponibilidade** — Guia cria e gerencia roteiros e calendário de slots
 - [ ] **Phase 4: Motor de Pagamento** — PIX via Mercado Pago + webhook de confirmação
 - [ ] **Phase 5: Painel do Guia** — Interface web para o guia gerenciar reservas, pagamentos e roteiros
 - [ ] **Phase 6: Interface do Turista** — Listagem de guias, perfil, fluxo de reserva e confirmação
@@ -94,11 +94,11 @@ A arquitetura multi-tenant já existe. O motor de reserva com trava transacional
 | PATCH /tenants/:slug/packages/:id/slots/:slotId | CONDUTOR | Edita slot |
 | DELETE /tenants/:slug/packages/:id/slots/:slotId | CONDUTOR | Remove slot |
 
-**Status**: Planejada (3 planos criados)
+**Status**: Complete (2026-04-30)
 **Plans**: 3 plans
 - [x] 03-01-PLAN.md — Schema migration: add conductorId to TourPackage + minCapacity to DepartureSlot
 - [x] 03-02-PLAN.md — Package CRUD endpoints (POST/PUT/DELETE) with ownership + hasMinimumReached in GET
-- [ ] 03-03-PLAN.md — Slot CRUD endpoints (POST/PATCH/DELETE) with cascade booking cancellation
+- [x] 03-03-PLAN.md — Slot CRUD endpoints (POST/PATCH/DELETE) with cascade booking cancellation
 
 **Success Criteria**:
   1. Guia cria roteiro com título, descrição, preço por pessoa e nível de dificuldade
@@ -207,7 +207,7 @@ A arquitetura multi-tenant já existe. O motor de reserva com trava transacional
 |-------|------|-------|--------|-----------|
 | 1 | Security Hardening | 4/4 | Complete | 2026-04-20 |
 | 2 | Cadastro de Guias + Aprovação Admin | 4/4 | Complete | 2026-04-28 |
-| 3 | Roteiros e Disponibilidade | 2/3 | In progress | — |
+| 3 | Roteiros e Disponibilidade | 3/3 | Complete | 2026-04-30 |
 | 4 | Motor de Pagamento | 0/TBD | Not started | — |
 | 5 | Painel do Guia | 0/TBD | Not started | — |
 | 6 | Interface do Turista | 0/TBD | Not started | — |

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: MVP
 status: ready_to_execute
-stopped_at: Completed 03-02-PLAN.md — POST/PUT/DELETE package endpoints with ownership + hasMinimumReached on GET
-last_updated: "2026-04-30T11:48:00Z"
+stopped_at: Completed 03-03-PLAN.md — POST/PATCH/DELETE slot endpoints with cascade booking cancellation via $transaction
+last_updated: "2026-04-30T12:12:00Z"
 last_activity: 2026-04-30
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 3
-  completed_plans: 2
-  percent: 39
+  completed_plans: 3
+  percent: 42
 ---
 
 # STATE.md — Turismo Capivara
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 3 de 6 (Roteiros e Disponibilidade)
-Plan: 2 de 3 executados (03-01 schema + 03-02 package CRUD completos)
-Status: Em execução — 03-03 (slot CRUD) pendente
+Plan: 3 de 3 executados (03-01 schema + 03-02 package CRUD + 03-03 slot CRUD completos)
+Status: Phase 3 completa — pronta para Phase 4 (Motor de Pagamento)
 Last activity: 2026-04-30
 
 ## Decisões estratégicas
@@ -50,6 +50,9 @@ Last activity: 2026-04-30
 - Aprovação de guia: `authenticate + authorize([Role.ADMIN])` — padrão já estabelecido
 - conductorId always set from JWT.sub — never from request body (T-03-02-02 mitigation)
 - Soft-delete via active=false — packages remain in DB for historical booking integrity
+- Slot cancellation ownership check inside $transaction — atomic with mutation (prevents TOCTOU)
+- Booking cascade on slot cancel filters strictly to status=PENDING — CONFIRMED bookings never auto-cancelled
+- Idempotency guard (slot.status === CANCELLED → 400) inside $transaction — safe against race conditions
 
 ## Fase 2 — Contexto de execução
 
@@ -82,6 +85,6 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-04-30T11:48:00Z
-Stopped at: Completed 03-02-PLAN.md — POST/PUT/DELETE package endpoints with ownership + hasMinimumReached on GET
+Last session: 2026-04-30T12:12:00Z
+Stopped at: Completed 03-03-PLAN.md — POST/PATCH/DELETE slot endpoints with cascade booking cancellation via $transaction
 Resume file: None
