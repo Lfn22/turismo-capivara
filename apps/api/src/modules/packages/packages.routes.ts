@@ -44,6 +44,33 @@ const createPackageBodySchema = z.object({
 
 const updatePackageBodySchema = createPackageBodySchema.partial()
 
+const slugIdAndSlotIdParamsSchema = z.object({
+  slug: z.string().min(1, { message: 'Slug obrigatório' }),
+  id: z.string().min(1, { message: 'ID obrigatório' }),
+  slotId: z.string().min(1, { message: 'slotId obrigatório' }),
+})
+
+const createSlotBodySchema = z.object({
+  startsAt: z.string().datetime({ message: 'Data inválida' }),
+  capacity: z.number().int().min(1, { message: 'Capacidade mínima é 1' }),
+  minCapacity: z.number().int().min(1, { message: 'Mínimo de participantes é 1' }),
+}).refine((d) => d.minCapacity <= d.capacity, {
+  message: 'Mínimo não pode exceder capacidade máxima',
+  path: ['minCapacity'],
+})
+
+const updateSlotBodySchema = z.object({
+  startsAt: z.string().datetime({ message: 'Data inválida' }).optional(),
+  capacity: z.number().int().min(1, { message: 'Capacidade mínima é 1' }).optional(),
+  minCapacity: z.number().int().min(1, { message: 'Mínimo de participantes é 1' }).optional(),
+}).refine(
+  (d) => {
+    if (d.minCapacity !== undefined && d.capacity !== undefined) return d.minCapacity <= d.capacity
+    return true
+  },
+  { message: 'Mínimo não pode exceder capacidade máxima', path: ['minCapacity'] },
+)
+
 export async function packagesRoutes(app: FastifyInstance) {
   app.get('/tenants/:slug/packages', async (request, reply) => {
     const { data: params, error } = parseParams(slugParamsSchema, request.params, reply)
@@ -227,5 +254,88 @@ export async function packagesRoutes(app: FastifyInstance) {
     })
 
     return reply.status(200).send({ message: 'Roteiro inativado' })
+  })
+
+  app.post('/tenants/:slug/packages/:id/slots', {
+    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
+  }, async (request, reply) => {
+    const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
+    if (error) return
+
+    let body
+    try {
+      body = createSlotBodySchema.parse(request.body)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send({
+        message: 'Dados inválidos',
+        errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })),
+      })
+      throw err
+    }
+
+    const tenant = await prisma.tenant.findUnique({ where: { slug: params!.slug } })
+    if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+    const pkg = await prisma.tourPackage.findFirst({
+      where: { id: params!.id, tenantId: tenant.id },
+    })
+    if (!pkg) throw new AppError('Roteiro não encontrado', 404)
+
+    const user = request.user as { sub: string; role: string }
+    if (user.role === 'CONDUTOR' && pkg.conductorId !== user.sub) throw new AppError('Acesso negado', 403)
+
+    const slot = await prisma.departureSlot.create({
+      data: {
+        packageId: pkg.id,
+        startsAt: new Date(body!.startsAt),
+        capacity: body!.capacity,
+        minCapacity: body!.minCapacity,
+      },
+    })
+
+    return reply.status(201).send(slot)
+  })
+
+  app.patch('/tenants/:slug/packages/:id/slots/:slotId', {
+    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
+  }, async (request, reply) => {
+    const { data: params, error } = parseParams(slugIdAndSlotIdParamsSchema, request.params, reply)
+    if (error) return
+
+    let body
+    try {
+      body = updateSlotBodySchema.parse(request.body)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send({
+        message: 'Dados inválidos',
+        errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })),
+      })
+      throw err
+    }
+
+    const tenant = await prisma.tenant.findUnique({ where: { slug: params!.slug } })
+    if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+    const slot = await prisma.departureSlot.findFirst({
+      where: { id: params!.slotId, package: { tenantId: tenant.id } },
+      include: { package: { select: { conductorId: true, id: true } } },
+    })
+    if (!slot) throw new AppError('Slot não encontrado', 404)
+    if (slot.package.id !== params!.id) throw new AppError('Slot não encontrado', 404)
+
+    const user = request.user as { sub: string; role: string }
+    if (user.role === 'CONDUTOR' && slot.package.conductorId !== user.sub) throw new AppError('Acesso negado', 403)
+
+    const updateData: Record<string, unknown> = {}
+    if (body!.startsAt !== undefined) updateData.startsAt = new Date(body!.startsAt)
+    if (body!.capacity !== undefined) updateData.capacity = body!.capacity
+    if (body!.minCapacity !== undefined) updateData.minCapacity = body!.minCapacity
+
+    const updated = await prisma.departureSlot.update({
+      where: { id: params!.slotId },
+      data: updateData,
+    })
+
+    return reply.status(200).send(updated)
   })
 }
