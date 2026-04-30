@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: MVP
 status: ready_to_execute
-stopped_at: Completed 02-04-PLAN.md — guides module (5 endpoints) created and registered in app.ts
-last_updated: "2026-04-28T17:21:39Z"
-last_activity: 2026-04-28
+stopped_at: Completed 03-02-PLAN.md — POST/PUT/DELETE package endpoints with ownership + hasMinimumReached on GET
+last_updated: "2026-04-30T11:48:00Z"
+last_activity: 2026-04-30
 progress:
   total_phases: 6
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 50
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 2
+  percent: 39
 ---
 
 # STATE.md — Turismo Capivara
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Phase 2 — Cadastro de Guias + Aprovação Admin
+**Current focus:** Phase 3 — Roteiros e Disponibilidade
 
 ## Current Position
 
-Phase: 2 de 6 (Cadastro de Guias + Aprovação Admin)
-Plan: 2 de ? na fase atual
-Status: Executando — 02-01 completo (schema + migration), 02-02 completo (register endpoint), próximos planos a escrever
-Last activity: 2026-04-23
+Phase: 3 de 6 (Roteiros e Disponibilidade)
+Plan: 2 de 3 executados (03-01 schema + 03-02 package CRUD completos)
+Status: Em execução — 03-03 (slot CRUD) pendente
+Last activity: 2026-04-30
 
 ## Decisões estratégicas
 
@@ -48,6 +48,8 @@ Last activity: 2026-04-23
 - `ANONYMIZATION_SALT` obrigatório no Railway — fallback de dev intencional
 - Rotas escopadas por tenant: padrão `/tenants/:slug/resource` com helper `parseParams`
 - Aprovação de guia: `authenticate + authorize([Role.ADMIN])` — padrão já estabelecido
+- conductorId always set from JWT.sub — never from request body (T-03-02-02 mitigation)
+- Soft-delete via active=false — packages remain in DB for historical booking integrity
 
 ## Fase 2 — Contexto de execução
 
@@ -80,6 +82,6 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-04-28T17:21:39Z
-Stopped at: Completed 02-04-PLAN.md — guides module (5 endpoints) created and registered in app.ts
+Last session: 2026-04-30T11:48:00Z
+Stopped at: Completed 03-02-PLAN.md — POST/PUT/DELETE package endpoints with ownership + hasMinimumReached on GET
 Resume file: None

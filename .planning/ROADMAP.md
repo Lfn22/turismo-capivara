@@ -96,8 +96,8 @@ A arquitetura multi-tenant já existe. O motor de reserva com trava transacional
 
 **Status**: Planejada (3 planos criados)
 **Plans**: 3 plans
-- [ ] 03-01-PLAN.md — Schema migration: add conductorId to TourPackage + minCapacity to DepartureSlot
-- [ ] 03-02-PLAN.md — Package CRUD endpoints (POST/PUT/DELETE) with ownership + hasMinimumReached in GET
+- [x] 03-01-PLAN.md — Schema migration: add conductorId to TourPackage + minCapacity to DepartureSlot
+- [x] 03-02-PLAN.md — Package CRUD endpoints (POST/PUT/DELETE) with ownership + hasMinimumReached in GET
 - [ ] 03-03-PLAN.md — Slot CRUD endpoints (POST/PATCH/DELETE) with cascade booking cancellation
 
 **Success Criteria**:
@@ -207,7 +207,7 @@ A arquitetura multi-tenant já existe. O motor de reserva com trava transacional
 |-------|------|-------|--------|-----------|
 | 1 | Security Hardening | 4/4 | Complete | 2026-04-20 |
 | 2 | Cadastro de Guias + Aprovação Admin | 4/4 | Complete | 2026-04-28 |
-| 3 | Roteiros e Disponibilidade | 0/TBD | Not started | — |
+| 3 | Roteiros e Disponibilidade | 2/3 | In progress | — |
 | 4 | Motor de Pagamento | 0/TBD | Not started | — |
 | 5 | Painel do Guia | 0/TBD | Not started | — |
 | 6 | Interface do Turista | 0/TBD | Not started | — |
