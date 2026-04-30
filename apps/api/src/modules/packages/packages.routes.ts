@@ -338,4 +338,41 @@ export async function packagesRoutes(app: FastifyInstance) {
 
     return reply.status(200).send(updated)
   })
+
+  app.delete('/tenants/:slug/packages/:id/slots/:slotId', {
+    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
+  }, async (request, reply) => {
+    const { data: params, error } = parseParams(slugIdAndSlotIdParamsSchema, request.params, reply)
+    if (error) return
+
+    const tenant = await prisma.tenant.findUnique({ where: { slug: params!.slug } })
+    if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+    const user = request.user as { sub: string; role: string }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const slot = await tx.departureSlot.findFirst({
+        where: { id: params!.slotId, package: { tenantId: tenant.id } },
+        include: { package: { select: { conductorId: true, id: true } } },
+      })
+      if (!slot) throw new AppError('Slot não encontrado', 404)
+      if (slot.package.id !== params!.id) throw new AppError('Slot não encontrado', 404)
+      if (user.role === 'CONDUTOR' && slot.package.conductorId !== user.sub) throw new AppError('Acesso negado', 403)
+      if (slot.status === 'CANCELLED') throw new AppError('Slot já cancelado', 400)
+
+      await tx.departureSlot.update({
+        where: { id: params!.slotId },
+        data: { status: 'CANCELLED' },
+      })
+
+      const { count } = await tx.booking.updateMany({
+        where: { slotId: params!.slotId, status: 'PENDING' },
+        data: { status: 'CANCELLED' },
+      })
+
+      return { message: 'Slot cancelado', bookingsCancelled: count }
+    })
+
+    return reply.status(200).send(result)
+  })
 }
