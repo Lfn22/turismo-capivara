@@ -15,7 +15,12 @@
       "Bash(python3:*)",
       "Skill(gsd-code-review)",
       "Skill(gsd-verify-work)",
-      "Skill(gsd-plan-phase)"
+      "Skill(gsd-plan-phase)",
+      "Skill(gsd-execute-phase)",
+      "Bash(ls C:/projetos/turismo-capivara/.planning/phases/01-security-hardening/*.md)",
+      "Bash(ls C:/projetos/turismo-capivara/.planning/phases/02-user-access-guide-onboarding/*.md)",
+      "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
+      "Skill(gsd-progress)"
     ]
   }
 }
