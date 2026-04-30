@@ -20,7 +20,15 @@
       "Bash(ls C:/projetos/turismo-capivara/.planning/phases/01-security-hardening/*.md)",
       "Bash(ls C:/projetos/turismo-capivara/.planning/phases/02-user-access-guide-onboarding/*.md)",
       "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
-      "Skill(gsd-progress)"
+      "Skill(gsd-progress)",
+      "Bash(pnpm exec:*)",
+      "Bash(pnpm install:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "mcp__plugin_context-mode_context-mode__ctx_search",
+      "mcp__plugin_context-mode_context-mode__ctx_execute_file",
+      "mcp__plugin_context-mode_context-mode__ctx_execute",
+      "Bash(npx tsc:*)",
+      "Bash(npx prisma:*)"
     ]
   }
 }
