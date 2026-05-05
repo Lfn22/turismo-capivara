@@ -87,16 +87,20 @@ model DepartureSlot {
 }
 
 model Booking {
-  id         String        @id @default(cuid())
-  tenantId   String
-  slotId     String
+  id            String        @id @default(cuid())
+  tenantId      String
+  slotId        String
   customerName  String
   customerEmail String
   customerPhone String
-  pax        Int
-  status     BookingStatus @default(PENDING)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  pax           Int
+  customerCpf   String?
+  paymentId     String?
+  paymentUrl    String?
+  expiresAt     DateTime?
+  status        BookingStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   slot    DepartureSlot @relation(fields: [slotId], references: [id])
   voucher Voucher?
@@ -139,6 +143,7 @@ enum BookingStatus {
   CHECKED_IN
   COMPLETED
   CANCELLED
+  EXPIRED
   NO_SHOW
 }
 
