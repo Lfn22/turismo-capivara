@@ -15,6 +15,7 @@ model Tenant {
 
   users        User[]
   tourPackages TourPackage[]
+  bookings     Booking[]
 }
 
 model User {
@@ -102,6 +103,7 @@ model Booking {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
+  tenant  Tenant        @relation(fields: [tenantId], references: [id])
   slot    DepartureSlot @relation(fields: [slotId], references: [id])
   voucher Voucher?
 }
