@@ -124,8 +124,13 @@ A arquitetura multi-tenant já existe. O motor de reserva com trava transacional
 | POST /webhooks/mercadopago | Recebe `payment.updated` → valida assinatura → muda booking para CONFIRMED |
 | Idempotência no webhook | Evitar dupla confirmação em retentativas do MP |
 
-**Status**: Não iniciada
-**Plans**: TBD
+**Status**: Planejada
+**Plans**: 3 planos
+
+Plans:
+- [ ] 04-01-PLAN.md — Setup, schema, AppError, fastify-raw-body, vitest
+- [ ] 04-02-PLAN.md — PaymentService PIX + POST /bookings com compensação
+- [ ] 04-03-PLAN.md — Webhook handler HMAC + transições de booking
 
 **Success Criteria**:
   1. Ao criar reserva, turista recebe `payment_url` direto para o Mercado Pago
@@ -208,6 +213,6 @@ A arquitetura multi-tenant já existe. O motor de reserva com trava transacional
 | 1 | Security Hardening | 4/4 | Complete | 2026-04-20 |
 | 2 | Cadastro de Guias + Aprovação Admin | 4/4 | Complete | 2026-04-28 |
 | 3 | Roteiros e Disponibilidade | 3/3 | Complete | 2026-04-30 |
-| 4 | Motor de Pagamento | 0/TBD | Not started | — |
+| 4 | Motor de Pagamento | 3/3 | Planejada | — |
 | 5 | Painel do Guia | 0/TBD | Not started | — |
 | 6 | Interface do Turista | 0/TBD | Not started | — |
