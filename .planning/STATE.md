@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: MVP
-status: ready_to_execute
-stopped_at: Completed 03-03-PLAN.md — POST/PATCH/DELETE slot endpoints with cascade booking cancellation via $transaction
-last_updated: "2026-04-30T12:12:00Z"
-last_activity: 2026-04-30
+status: in_progress
+stopped_at: Completed 04-01-PLAN.md — payment infrastructure (mercadopago + raw-body + schema fields)
+last_updated: "2026-05-05T17:45:00Z"
+last_activity: 2026-05-05
 progress:
   total_phases: 6
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
-  percent: 42
+  completed_phases: 3
+  total_plans: 4
+  completed_plans: 4
+  percent: 50
 ---
 
 # STATE.md — Turismo Capivara
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Phase 3 — Roteiros e Disponibilidade
+**Current focus:** Phase 4 — Motor de Pagamento
 
 ## Current Position
 
-Phase: 3 de 6 (Roteiros e Disponibilidade)
-Plan: 3 de 3 executados (03-01 schema + 03-02 package CRUD + 03-03 slot CRUD completos)
-Status: Phase 3 completa — pronta para Phase 4 (Motor de Pagamento)
-Last activity: 2026-04-30
+Phase: 4 de 6 (Motor de Pagamento)
+Plan: 1 de 3 executado (04-01 infra: mercadopago + schema + raw-body completo)
+Status: Phase 4 em progresso — 04-01 completo, próximo 04-02 (PIX checkout endpoint)
+Last activity: 2026-05-05
 
 ## Decisões estratégicas
 
@@ -53,6 +53,9 @@ Last activity: 2026-04-30
 - Slot cancellation ownership check inside $transaction — atomic with mutation (prevents TOCTOU)
 - Booking cascade on slot cancel filters strictly to status=PENDING — CONFIRMED bookings never auto-cancelled
 - Idempotency guard (slot.status === CANCELLED → 400) inside $transaction — safe against race conditions
+- fastify-raw-body registrado com global:false — opt-in por rota para validação HMAC de webhooks Mercado Pago
+- customerCpf opcional no Booking — identificação do pagador PIX sem obrigatoriedade em reservas existentes
+- EXPIRED no BookingStatus — PIX com QR code gerado mas não pago dentro do prazo
 
 ## Fase 2 — Contexto de execução
 
@@ -85,6 +88,6 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-04-30T12:12:00Z
-Stopped at: Completed 03-03-PLAN.md — POST/PATCH/DELETE slot endpoints with cascade booking cancellation via $transaction
+Last session: 2026-05-05T17:45:00Z
+Stopped at: Completed 04-01-PLAN.md — payment infrastructure setup
 Resume file: None
