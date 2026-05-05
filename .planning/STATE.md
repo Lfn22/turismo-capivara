@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: MVP
 status: in_progress
-stopped_at: Completed 04-01-PLAN.md — payment infrastructure (mercadopago + raw-body + schema fields)
-last_updated: "2026-05-05T17:45:00Z"
+stopped_at: Completed 04-03-PLAN.md — MP webhook handler with HMAC-SHA256 validation and booking transitions
+last_updated: "2026-05-05T22:54:00Z"
 last_activity: 2026-05-05
 progress:
   total_phases: 6
-  completed_phases: 3
-  total_plans: 4
-  completed_plans: 4
-  percent: 50
+  completed_phases: 4
+  total_plans: 7
+  completed_plans: 7
+  percent: 67
 ---
 
 # STATE.md — Turismo Capivara
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 4 de 6 (Motor de Pagamento)
-Plan: 1 de 3 executado (04-01 infra: mercadopago + schema + raw-body completo)
-Status: Phase 4 em progresso — 04-01 completo, próximo 04-02 (PIX checkout endpoint)
+Plan: 3 de 3 executado (04-01 infra + 04-02 PIX checkout + 04-03 webhook handler — COMPLETO)
+Status: Phase 4 completa — todos os 3 planos executados
 Last activity: 2026-05-05
 
 ## Decisões estratégicas
@@ -56,6 +56,10 @@ Last activity: 2026-05-05
 - fastify-raw-body registrado com global:false — opt-in por rota para validação HMAC de webhooks Mercado Pago
 - customerCpf opcional no Booking — identificação do pagador PIX sem obrigatoriedade em reservas existentes
 - EXPIRED no BookingStatus — PIX com QR code gerado mas não pago dentro do prazo
+- Webhook lookup por external_reference (bookingId) — evita race condition com paymentId ainda não gravado
+- HMAC manifest MP 2024+: "id:<paymentId>;request-date:<ts>;" — não usa rawBody, usa manifest estruturado
+- Return 200 em falha do MP API — evita flood de retentativas
+- EXPIRED transition: prisma.$transaction envolve booking.update + departureSlot.booked decrement atomicamente
 
 ## Fase 2 — Contexto de execução
 
@@ -88,6 +92,6 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-05-05T17:45:00Z
-Stopped at: Completed 04-01-PLAN.md — payment infrastructure setup
+Last session: 2026-05-05T22:54:00Z
+Stopped at: Completed 04-03-PLAN.md — Phase 4 complete (webhook handler HMAC + booking transitions)
 Resume file: None
