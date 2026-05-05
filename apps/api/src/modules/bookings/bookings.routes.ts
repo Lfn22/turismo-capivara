@@ -113,26 +113,39 @@ export async function bookingsRoutes(app: FastifyInstance) {
       select: { price: true, name: true },
     })
 
+    // Guard: package must exist to build a valid PIX amount
+    if (!pkg) {
+      await prisma.$transaction(async (tx) => {
+        await tx.booking.delete({ where: { id: booking.id } })
+        await tx.departureSlot.update({
+          where: { id: slotId },
+          data: { booked: { decrement: pax }, status: 'OPEN' },
+        })
+      })
+      throw new AppError('Pacote não encontrado para este slot', 500)
+    }
+
     // MP call happens OUTSIDE $transaction — per D-02
     let paymentResult
     try {
       paymentResult = await createPixPayment({
         bookingId: booking.id,
-        transactionAmount: Number(pkg?.price ?? 0),
-        description: `Reserva #${booking.id} — ${pkg?.name ?? 'Roteiro'}`,
+        transactionAmount: Number(pkg.price),
+        description: `Reserva #${booking.id} — ${pkg.name}`,
         customerEmail,
         customerCpf,
       })
     } catch (err) {
-      // Compensation: delete booking to avoid orphan (per D-02)
-      await prisma.booking.delete({ where: { id: booking.id } })
-      // Decrement slot back
-      await prisma.departureSlot.update({
-        where: { id: slotId },
-        data: {
-          booked: { decrement: pax },
-          status: 'OPEN',
-        },
+      // Compensation: delete booking and restore slot atomically (per D-02)
+      await prisma.$transaction(async (tx) => {
+        await tx.booking.delete({ where: { id: booking.id } })
+        await tx.departureSlot.update({
+          where: { id: slotId },
+          data: {
+            booked: { decrement: pax },
+            status: 'OPEN',
+          },
+        })
       })
       throw err // AppError 502 propagates to error handler
     }
@@ -148,7 +161,17 @@ export async function bookingsRoutes(app: FastifyInstance) {
     })
 
     return reply.status(201).send({
-      ...updatedBooking,
+      id: updatedBooking.id,
+      tenantId: updatedBooking.tenantId,
+      slotId: updatedBooking.slotId,
+      customerName: updatedBooking.customerName,
+      customerEmail: updatedBooking.customerEmail,
+      pax: updatedBooking.pax,
+      status: updatedBooking.status,
+      paymentId: updatedBooking.paymentId,
+      paymentUrl: updatedBooking.paymentUrl,
+      expiresAt: updatedBooking.expiresAt,
+      createdAt: updatedBooking.createdAt,
       qrCode: paymentResult.qrCode,
     })
   })
@@ -272,10 +295,17 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
       const bookings = await prisma.booking.findMany({
         where: { tenantId: tenant.id },
-        include: {
-          slot: {
-            include: { package: true },
-          },
+        select: {
+          id: true,
+          customerName: true,
+          customerEmail: true,
+          pax: true,
+          status: true,
+          paymentId: true,
+          paymentUrl: true,
+          expiresAt: true,
+          createdAt: true,
+          slot: { include: { package: true } },
         },
         orderBy: { createdAt: 'desc' },
       })
