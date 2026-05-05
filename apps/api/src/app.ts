@@ -10,6 +10,7 @@ import { bookingsRoutes } from './modules/bookings/bookings.routes'
 import { authRoutes } from './modules/auth/auth.routes'
 import { usersRoutes } from './modules/users/users.routes'
 import { guidesRoutes } from './modules/guides/guides.routes'
+import { webhooksRoutes } from './modules/webhooks/webhooks.routes'
 import { AppError } from './shared/errors/AppError'
 
 const app = Fastify({ logger: true })
@@ -45,6 +46,7 @@ app.register(packagesRoutes)
 app.register(bookingsRoutes)
 app.register(usersRoutes)
 app.register(guidesRoutes)
+app.register(webhooksRoutes)
 
 app.setErrorHandler((err, _request, reply) => {
   if (err instanceof AppError) {
