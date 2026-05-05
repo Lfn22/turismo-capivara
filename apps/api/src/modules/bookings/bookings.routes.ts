@@ -4,12 +4,14 @@ import prisma from '../../database'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { AppError } from '../../shared/errors/AppError'
+import { createPixPayment } from '../../services/payment.service'
 
 const createBookingBodySchema = z.object({
   slotId: z.string().min(1, { message: 'slotId obrigatório' }),
   customerName: z.string().min(1, { message: 'Nome do cliente obrigatório' }),
   customerEmail: z.string().email({ message: 'Email do cliente inválido' }),
   customerPhone: z.string().min(1, { message: 'Telefone do cliente obrigatório' }),
+  customerCpf: z.string().min(11, { message: 'CPF do cliente obrigatório' }),
   pax: z.number().int().positive({ message: 'Número de participantes deve ser inteiro positivo' }),
 })
 
@@ -51,7 +53,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
     }
 
     const { slug } = params
-    const { slotId, customerName, customerEmail, customerPhone, pax } = body
+    const { slotId, customerName, customerEmail, customerPhone, customerCpf, pax } = body
 
     const tenant = await prisma.tenant.findUnique({
       where: { slug },
@@ -98,13 +100,57 @@ export async function bookingsRoutes(app: FastifyInstance) {
           customerName,
           customerEmail,
           customerPhone,
+          customerCpf,
           pax,
           status: 'PENDING',
         },
       })
     })
 
-    return reply.status(201).send(booking)
+    // Query package price OUTSIDE $transaction (keeps tx minimal)
+    const pkg = await prisma.tourPackage.findFirst({
+      where: { departureSlots: { some: { id: slotId } } },
+      select: { price: true, name: true },
+    })
+
+    // MP call happens OUTSIDE $transaction — per D-02
+    let paymentResult
+    try {
+      paymentResult = await createPixPayment({
+        bookingId: booking.id,
+        transactionAmount: Number(pkg?.price ?? 0),
+        description: `Reserva #${booking.id} — ${pkg?.name ?? 'Roteiro'}`,
+        customerEmail,
+        customerCpf,
+      })
+    } catch (err) {
+      // Compensation: delete booking to avoid orphan (per D-02)
+      await prisma.booking.delete({ where: { id: booking.id } })
+      // Decrement slot back
+      await prisma.departureSlot.update({
+        where: { id: slotId },
+        data: {
+          booked: { decrement: pax },
+          status: 'OPEN',
+        },
+      })
+      throw err // AppError 502 propagates to error handler
+    }
+
+    // Update booking with payment fields
+    const updatedBooking = await prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        paymentId: paymentResult.paymentId,
+        paymentUrl: paymentResult.paymentUrl,
+        expiresAt: paymentResult.expiresAt,
+      },
+    })
+
+    return reply.status(201).send({
+      ...updatedBooking,
+      qrCode: paymentResult.qrCode,
+    })
   })
 
   app.patch(
