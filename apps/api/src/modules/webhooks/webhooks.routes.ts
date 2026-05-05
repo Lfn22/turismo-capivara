@@ -78,7 +78,8 @@ export async function webhooksRoutes(app: FastifyInstance) {
       const isValid = validateMpSignature(signatureHeader, paymentId)
 
       if (!isValid) {
-        return reply.status(400).send({ message: 'Assinatura inválida' })
+        app.log.warn({ sig: signatureHeader.slice(0, 40) }, 'Assinatura de webhook inválida')
+        return reply.status(200).send({ message: 'ok' })
       }
 
       // 4. Fetch payment details from MP to get authoritative status and external_reference
@@ -112,7 +113,8 @@ export async function webhooksRoutes(app: FastifyInstance) {
       }
 
       // 6. Idempotency check (per D-08): already in terminal state — no reprocessing
-      if (booking.status === 'CONFIRMED' || booking.status === 'EXPIRED') {
+      const TERMINAL_STATES: string[] = ['CONFIRMED', 'CANCELLED', 'EXPIRED', 'COMPLETED', 'NO_SHOW']
+      if (TERMINAL_STATES.includes(booking.status)) {
         return reply.status(200).send({ message: 'ok' })
       }
 
@@ -131,11 +133,13 @@ export async function webhooksRoutes(app: FastifyInstance) {
             data: { status: 'EXPIRED' },
           })
 
+          const currentSlot = await tx.departureSlot.findUnique({ where: { id: booking.slotId } })
+          const newBooked = Math.max(0, (currentSlot?.booked ?? booking.pax) - booking.pax)
           await tx.departureSlot.update({
             where: { id: booking.slotId },
             data: {
               booked: { decrement: booking.pax },
-              status: 'OPEN',
+              status: newBooked < (currentSlot?.capacity ?? 1) ? 'OPEN' : 'FULL',
             },
           })
         })
