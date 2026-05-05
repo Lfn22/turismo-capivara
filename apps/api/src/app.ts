@@ -1,5 +1,6 @@
 import 'dotenv/config'
 import Fastify from 'fastify'
+import rawBody from 'fastify-raw-body'
 import jwt from '@fastify/jwt'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
@@ -12,6 +13,12 @@ import { guidesRoutes } from './modules/guides/guides.routes'
 import { AppError } from './shared/errors/AppError'
 
 const app = Fastify({ logger: true })
+
+app.register(rawBody, {
+  global: false,
+  encoding: false,
+  runFirst: true,
+})
 
 app.register(cors, {
   origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
