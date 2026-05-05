@@ -64,16 +64,27 @@ export async function bookingsRoutes(app: FastifyInstance) {
     }
 
     const booking = await prisma.$transaction(async (tx) => {
-      const slot = await tx.departureSlot.findUnique({
-        where: { id: slotId },
-        include: { package: { select: { tenantId: true } } },
-      })
+      // Lock the slot row to prevent concurrent overbooking (WR-04)
+      const [slot] = await tx.$queryRaw<Array<{
+        id: string
+        booked: number
+        capacity: number
+        status: string
+        packageId: string
+        tenantId: string
+      }>>`
+        SELECT ds.id, ds.booked, ds.capacity, ds.status, ds."packageId", tp."tenantId"
+        FROM "DepartureSlot" ds
+        JOIN "TourPackage" tp ON tp.id = ds."packageId"
+        WHERE ds.id = ${slotId}
+        FOR UPDATE
+      `
 
       if (!slot) {
         throw new AppError('Slot não encontrado', 404)
       }
 
-      if (slot.package.tenantId !== tenant.id) {
+      if (slot.tenantId !== tenant.id) {
         throw new AppError('Slot não encontrado', 404)
       }
 
