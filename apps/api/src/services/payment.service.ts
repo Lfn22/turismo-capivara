@@ -84,5 +84,6 @@ export async function createPixPayment(
     }
   }
 
+  console.error('[PaymentService] createPixPayment failed after 3 attempts:', lastError)
   throw new AppError('Serviço de pagamento indisponível', 502)
 }
