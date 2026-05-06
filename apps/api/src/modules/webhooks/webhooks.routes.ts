@@ -120,9 +120,9 @@ export async function webhooksRoutes(app: FastifyInstance) {
 
       // 7. Transition based on authoritative payment status from MP API
       if (status === 'approved') {
-        // PENDING → CONFIRMED
-        await prisma.booking.update({
-          where: { id: booking.id },
+        // PENDING → CONFIRMED (idempotent: only transitions if still PENDING)
+        await prisma.booking.updateMany({
+          where: { id: booking.id, status: 'PENDING' },
           data: { status: 'CONFIRMED' },
         })
       } else if (status === 'cancelled' || status === 'rejected') {
