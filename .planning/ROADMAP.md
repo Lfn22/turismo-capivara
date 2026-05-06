@@ -161,8 +161,16 @@ Plans:
 |---|---|
 | Aprovação de guias | Lista PENDING com CPF, bio, especialidades → botão Aprovar / Rejeitar com motivo |
 
-**Status**: Não iniciada
-**Plans**: TBD
+**Status**: Em planejamento
+**Plans**: 6 planos
+
+Plans:
+- [ ] 05-01-PLAN.md — API gaps (GET /guides/me/bookings + PATCH /guides/me/profile) + instalar next-auth/react-calendar
+- [ ] 05-02-PLAN.md — NextAuth wiring: lib/auth.ts, middleware.ts, /[slug]/login page
+- [ ] 05-03-PLAN.md — Componentes compartilhados: SidebarNav, StatusBadge, Modal, layouts de route group
+- [ ] 05-04-PLAN.md — Telas Dashboard e Reservas (consume GET /guides/me/bookings)
+- [ ] 05-05-PLAN.md — Telas Roteiros e Disponibilidade (calendário react-calendar + modal de slot)
+- [ ] 05-06-PLAN.md — Tela Perfil (GUIDE-02 badge) + Admin Guias (GUIDE-03) + remoção de legacy
 
 **Success Criteria**:
   1. Guia acessa painel e vê reservas organizadas por status e data
