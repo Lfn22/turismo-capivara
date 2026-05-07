@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: MVP
 status: in_progress
-stopped_at: "05-01 complete — GET /guides/me/bookings + PATCH /guides/me/profile + next-auth@4.24.14 + react-calendar@6.0.1"
-last_updated: "2026-05-07T17:46:35Z"
+stopped_at: "05-02 complete — NextAuth CredentialsProvider + middleware role guard + login page /[slug]/login"
+last_updated: "2026-05-07T17:56:00Z"
 last_activity: 2026-05-07
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 13
-  completed_plans: 8
-  percent: 62
+  completed_plans: 9
+  percent: 69
 ---
 
 # STATE.md — Turismo Capivara
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 5 de 6 (Painel do Guia)
-Plan: 1 de 6 executado (05-01 API gaps + frontend deps — COMPLETO)
-Status: Phase 5 em progresso — 1/6 planos executados
+Plan: 2 de 6 executados (05-02 NextAuth + middleware + login — COMPLETO)
+Status: Phase 5 em progresso — 2/6 planos executados
 Last activity: 2026-05-07
 
 ## Decisões estratégicas
@@ -63,6 +63,9 @@ Last activity: 2026-05-07
 - Phase 5 guide endpoints: conductorId sempre do JWT.sub — nunca de params de URL (T-05-02 mitigação)
 - next-auth@4.24.14 escolhido para autenticação do painel — NEXTAUTH_SECRET em .env.local (gitignored)
 - react-calendar@6.0.1 instalado para tela de disponibilidade (Phase 5 Plan 05)
+- Providers wrapper pattern: providers.tsx Client Component wraps SessionProvider; layout.tsx stays Server Component
+- Middleware uses withAuth from next-auth/middleware — role guard via token?.role check on JWT-signed claims
+- signIn pages config set to /login (fallback); real tenant login at /[slug]/login
 
 ## Fase 2 — Contexto de execução
 
@@ -95,6 +98,6 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-05-07T17:46:35Z
-Stopped at: 05-01 complete — GET /guides/me/bookings + PATCH /guides/me/profile + next-auth@4.24.14 + react-calendar@6.0.1
-Resume file: .planning/phases/05-painel-do-guia/05-02-PLAN.md
+Last session: 2026-05-07T17:56:00Z
+Stopped at: 05-02 complete — NextAuth CredentialsProvider + middleware role guard + login page /[slug]/login
+Resume file: .planning/phases/05-painel-do-guia/05-03-PLAN.md
