@@ -27,6 +27,7 @@ const updateProfileBodySchema = z.object({
   photoUrl: z.string().url({ message: 'URL inválida' }).optional().nullable(),
   especialidades: z.array(z.string()).optional(),
   regioes: z.array(z.string()).optional(),
+  portfolioPhotos: z.array(z.string().url({ message: 'URL inválida' })).optional(),
 })
 
 function zodError(err: ZodError) {
@@ -332,6 +333,7 @@ export async function guidesRoutes(app: FastifyInstance) {
         ...(body.photoUrl !== undefined && { photoUrl: body.photoUrl }),
         ...(body.especialidades !== undefined && { especialidades: body.especialidades }),
         ...(body.regioes !== undefined && { regioes: body.regioes }),
+        ...(body.portfolioPhotos !== undefined && { portfolioPhotos: body.portfolioPhotos }),
       },
       select: {
         id: true,
@@ -339,6 +341,7 @@ export async function guidesRoutes(app: FastifyInstance) {
         photoUrl: true,
         especialidades: true,
         regioes: true,
+        portfolioPhotos: true,
       },
     })
 
