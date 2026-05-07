@@ -38,7 +38,6 @@ async function attemptCreatePayment(
       transaction_amount: input.transactionAmount,
       description: input.description,
       payment_method_id: 'pix',
-      payment_type_id: 'bank_transfer',
       date_of_expiration: expiresAt.toISOString(),
       payer: {
         email: input.customerEmail,

@@ -2,6 +2,8 @@ import { FastifyInstance } from 'fastify'
 import { z, ZodError } from 'zod'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
+import { authenticate } from '../../shared/middlewares/authenticate'
+import { authorize } from '../../shared/middlewares/authorize'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -18,6 +20,13 @@ const adminGuidesQuerySchema = z.object({
 
 const rejectBodySchema = z.object({
   reason: z.string().min(1, { message: 'Motivo da rejeição obrigatório' }),
+})
+
+const updateProfileBodySchema = z.object({
+  bio: z.string().optional(),
+  photoUrl: z.string().url({ message: 'URL inválida' }).optional().nullable(),
+  especialidades: z.array(z.string()).optional(),
+  regioes: z.array(z.string()).optional(),
 })
 
 function zodError(err: ZodError) {
@@ -246,5 +255,93 @@ export async function guidesRoutes(app: FastifyInstance) {
     })
 
     return reply.status(200).send({ message: 'Guia rejeitado' })
+  })
+
+  // GET /tenants/:slug/guides/me/bookings — CONDUTOR only
+  app.get('/tenants/:slug/guides/me/bookings', {
+    preHandler: [authenticate, authorize(['CONDUTOR'])],
+  }, async (request, reply) => {
+    const conductor = request.user as { sub: string; tenantId: string; role: string }
+
+    let params
+    try {
+      params = slugParamsSchema.parse(request.params)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+      throw err
+    }
+
+    const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
+    if (!tenant) throw new AppError('Tenant não encontrado', 404)
+    if (tenant.id !== conductor.tenantId) throw new AppError('Acesso negado', 403)
+
+    const bookings = await prisma.booking.findMany({
+      where: {
+        tenantId: tenant.id,
+        slot: {
+          package: {
+            conductorId: conductor.sub,
+          },
+        },
+      },
+      include: {
+        slot: {
+          include: {
+            package: {
+              select: { id: true, name: true, price: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return reply.status(200).send({ bookings })
+  })
+
+  // PATCH /tenants/:slug/guides/me/profile — CONDUTOR only
+  app.patch('/tenants/:slug/guides/me/profile', {
+    preHandler: [authenticate, authorize(['CONDUTOR'])],
+  }, async (request, reply) => {
+    const conductor = request.user as { sub: string; tenantId: string; role: string }
+
+    let params
+    try {
+      params = slugParamsSchema.parse(request.params)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+      throw err
+    }
+
+    let body
+    try {
+      body = updateProfileBodySchema.parse(request.body)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+      throw err
+    }
+
+    const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
+    if (!tenant) throw new AppError('Tenant não encontrado', 404)
+    if (tenant.id !== conductor.tenantId) throw new AppError('Acesso negado', 403)
+
+    const profile = await prisma.guideProfile.update({
+      where: { userId: conductor.sub },
+      data: {
+        ...(body.bio !== undefined && { bio: body.bio }),
+        ...(body.photoUrl !== undefined && { photoUrl: body.photoUrl }),
+        ...(body.especialidades !== undefined && { especialidades: body.especialidades }),
+        ...(body.regioes !== undefined && { regioes: body.regioes }),
+      },
+      select: {
+        id: true,
+        bio: true,
+        photoUrl: true,
+        especialidades: true,
+        regioes: true,
+      },
+    })
+
+    return reply.status(200).send({ profile })
   })
 }
