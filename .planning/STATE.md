@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: MVP
 status: in_progress
-stopped_at: Completed 04-03-PLAN.md — MP webhook handler with HMAC-SHA256 validation and booking transitions
-last_updated: "2026-05-05T22:54:00Z"
-last_activity: 2026-05-05
+stopped_at: "05-01 complete — GET /guides/me/bookings + PATCH /guides/me/profile + next-auth@4.24.14 + react-calendar@6.0.1"
+last_updated: "2026-05-07T17:46:35Z"
+last_activity: 2026-05-07
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 7
-  completed_plans: 7
-  percent: 67
+  total_plans: 13
+  completed_plans: 8
+  percent: 62
 ---
 
 # STATE.md — Turismo Capivara
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Phase 4 — Motor de Pagamento
+**Current focus:** Phase 5 — Painel do Guia
 
 ## Current Position
 
-Phase: 4 de 6 (Motor de Pagamento)
-Plan: 3 de 3 executado (04-01 infra + 04-02 PIX checkout + 04-03 webhook handler — COMPLETO)
-Status: Phase 4 completa — todos os 3 planos executados
-Last activity: 2026-05-05
+Phase: 5 de 6 (Painel do Guia)
+Plan: 1 de 6 executado (05-01 API gaps + frontend deps — COMPLETO)
+Status: Phase 5 em progresso — 1/6 planos executados
+Last activity: 2026-05-07
 
 ## Decisões estratégicas
 
@@ -60,6 +60,9 @@ Last activity: 2026-05-05
 - HMAC manifest MP 2024+: "id:<paymentId>;request-date:<ts>;" — não usa rawBody, usa manifest estruturado
 - Return 200 em falha do MP API — evita flood de retentativas
 - EXPIRED transition: prisma.$transaction envolve booking.update + departureSlot.booked decrement atomicamente
+- Phase 5 guide endpoints: conductorId sempre do JWT.sub — nunca de params de URL (T-05-02 mitigação)
+- next-auth@4.24.14 escolhido para autenticação do painel — NEXTAUTH_SECRET em .env.local (gitignored)
+- react-calendar@6.0.1 instalado para tela de disponibilidade (Phase 5 Plan 05)
 
 ## Fase 2 — Contexto de execução
 
@@ -92,6 +95,6 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-05-05T22:54:00Z
-Stopped at: Completed 04-03-PLAN.md — Phase 4 complete (webhook handler HMAC + booking transitions)
-Resume file: None
+Last session: 2026-05-07T17:46:35Z
+Stopped at: 05-01 complete — GET /guides/me/bookings + PATCH /guides/me/profile + next-auth@4.24.14 + react-calendar@6.0.1
+Resume file: .planning/phases/05-painel-do-guia/05-02-PLAN.md
