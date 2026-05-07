@@ -169,7 +169,7 @@ Plans:
 - [x] 05-02-PLAN.md — NextAuth wiring: lib/auth.ts, middleware.ts, /[slug]/login page
 - [x] 05-03-PLAN.md — Componentes compartilhados: SidebarNav, StatusBadge, Modal, layouts de route group
 - [x] 05-04-PLAN.md — Telas Dashboard e Reservas (consume GET /guides/me/bookings)
-- [ ] 05-05-PLAN.md — Telas Roteiros e Disponibilidade (calendário react-calendar + modal de slot)
+- [x] 05-05-PLAN.md — Telas Roteiros e Disponibilidade (calendário react-calendar + modal de slot)
 - [ ] 05-06-PLAN.md — Tela Perfil (GUIDE-02 badge) + Admin Guias (GUIDE-03) + remoção de legacy
 
 **Success Criteria**:
@@ -222,5 +222,5 @@ Plans:
 | 2 | Cadastro de Guias + Aprovação Admin | 4/4 | Complete | 2026-04-28 |
 | 3 | Roteiros e Disponibilidade | 3/3 | Complete | 2026-04-30 |
 | 4 | Motor de Pagamento | 3/3 | Complete | 2026-05-05 |
-| 5 | Painel do Guia | 4/6 | In progress | — |
+| 5 | Painel do Guia | 5/6 | In progress | — |
 | 6 | Interface do Turista | 0/TBD | Not started | — |
