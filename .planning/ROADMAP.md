@@ -161,14 +161,14 @@ Plans:
 |---|---|
 | Aprovação de guias | Lista PENDING com CPF, bio, especialidades → botão Aprovar / Rejeitar com motivo |
 
-**Status**: Em progresso (1/6 planos executados)
+**Status**: Em progresso (4/6 planos executados)
 **Plans**: 6 planos
 
 Plans:
 - [x] 05-01-PLAN.md — API gaps (GET /guides/me/bookings + PATCH /guides/me/profile) + instalar next-auth/react-calendar
-- [ ] 05-02-PLAN.md — NextAuth wiring: lib/auth.ts, middleware.ts, /[slug]/login page
-- [ ] 05-03-PLAN.md — Componentes compartilhados: SidebarNav, StatusBadge, Modal, layouts de route group
-- [ ] 05-04-PLAN.md — Telas Dashboard e Reservas (consume GET /guides/me/bookings)
+- [x] 05-02-PLAN.md — NextAuth wiring: lib/auth.ts, middleware.ts, /[slug]/login page
+- [x] 05-03-PLAN.md — Componentes compartilhados: SidebarNav, StatusBadge, Modal, layouts de route group
+- [x] 05-04-PLAN.md — Telas Dashboard e Reservas (consume GET /guides/me/bookings)
 - [ ] 05-05-PLAN.md — Telas Roteiros e Disponibilidade (calendário react-calendar + modal de slot)
 - [ ] 05-06-PLAN.md — Tela Perfil (GUIDE-02 badge) + Admin Guias (GUIDE-03) + remoção de legacy
 
@@ -222,5 +222,5 @@ Plans:
 | 2 | Cadastro de Guias + Aprovação Admin | 4/4 | Complete | 2026-04-28 |
 | 3 | Roteiros e Disponibilidade | 3/3 | Complete | 2026-04-30 |
 | 4 | Motor de Pagamento | 3/3 | Complete | 2026-05-05 |
-| 5 | Painel do Guia | 1/6 | In progress | — |
+| 5 | Painel do Guia | 4/6 | In progress | — |
 | 6 | Interface do Turista | 0/TBD | Not started | — |

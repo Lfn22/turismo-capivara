@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: MVP
 status: in_progress
-stopped_at: "05-02 complete — NextAuth CredentialsProvider + middleware role guard + login page /[slug]/login"
-last_updated: "2026-05-07T17:56:00Z"
+stopped_at: "05-04 complete — Dashboard RSC + Reservas client page com optimistic update"
+last_updated: "2026-05-07T22:44:46Z"
 last_activity: 2026-05-07
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 13
-  completed_plans: 9
-  percent: 69
+  completed_plans: 11
+  percent: 85
 ---
 
 # STATE.md — Turismo Capivara
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 5 de 6 (Painel do Guia)
-Plan: 2 de 6 executados (05-02 NextAuth + middleware + login — COMPLETO)
-Status: Phase 5 em progresso — 2/6 planos executados
+Plan: 4 de 6 executados (05-04 Dashboard + Reservas — COMPLETO)
+Status: Phase 5 em progresso — 4/6 planos executados
 Last activity: 2026-05-07
 
 ## Decisões estratégicas
@@ -66,6 +66,8 @@ Last activity: 2026-05-07
 - Providers wrapper pattern: providers.tsx Client Component wraps SessionProvider; layout.tsx stays Server Component
 - Middleware uses withAuth from next-auth/middleware — role guard via token?.role check on JWT-signed claims
 - signIn pages config set to /login (fallback); real tenant login at /[slug]/login
+- Client Components com dynamic params usam use(params) — params é Promise<{slug}> no Next.js 16
+- Dashboard RSC: token via session.user.token (campo apiToken do callback jwt em auth.ts)
 
 ## Fase 2 — Contexto de execução
 
@@ -98,6 +100,6 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-05-07T17:56:00Z
-Stopped at: 05-02 complete — NextAuth CredentialsProvider + middleware role guard + login page /[slug]/login
-Resume file: .planning/phases/05-painel-do-guia/05-03-PLAN.md
+Last session: 2026-05-07T22:44:46Z
+Stopped at: 05-04 complete — Dashboard RSC + Reservas client page com optimistic update
+Resume file: .planning/phases/05-painel-do-guia/05-05-PLAN.md
