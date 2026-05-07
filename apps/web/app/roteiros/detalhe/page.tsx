@@ -230,7 +230,7 @@ const cardStyle = {
   padding: "24px 28px",
   display: "flex",
   justifyContent: "space-between",
-  flexWrap: "wrap",
+  flexWrap: "wrap" as const,
 }
 
 const dateStyle = {
