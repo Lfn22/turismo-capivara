@@ -20,12 +20,12 @@ interface Roteiro {
   departureSlots: DepartureSlot[]
 }
 
-async function getRoteiro(id: string): Promise<Roteiro | null> {
+async function getRoteiro(id: string, tenant: string): Promise<Roteiro | null> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
 
   try {
     const res = await fetch(
-      `${baseUrl}/tenants/serra-viva/packages/${id}`,
+      `${baseUrl}/tenants/${tenant}/packages/${id}`,
       {
         next: { revalidate: 300 },
         signal: AbortSignal.timeout(5000),
@@ -74,9 +74,9 @@ const DIFFICULTY: Record<Difficulty, { label: string; color: string }> = {
 export default async function RoteiroPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>
+  searchParams: Promise<{ id?: string; tenant?: string }>
 }) {
-  const { id } = await searchParams
+  const { id, tenant = 'capivara' } = await searchParams
 
   if (!id) {
     return (
@@ -91,7 +91,7 @@ export default async function RoteiroPage({
     )
   }
 
-  const roteiro = await getRoteiro(id)
+  const roteiro = await getRoteiro(id, tenant)
 
   if (!roteiro) {
     return (
