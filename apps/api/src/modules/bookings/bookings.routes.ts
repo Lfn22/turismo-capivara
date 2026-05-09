@@ -128,9 +128,10 @@ export async function bookingsRoutes(app: FastifyInstance) {
     if (!pkg) {
       await prisma.$transaction(async (tx) => {
         await tx.booking.delete({ where: { id: booking.id } })
+        const s1 = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
         await tx.departureSlot.update({
           where: { id: slotId },
-          data: { booked: { decrement: pax }, status: 'OPEN' },
+          data: { booked: { decrement: pax }, ...(s1?.status === 'FULL' ? { status: 'OPEN' } : {}) },
         })
       })
       throw new AppError('Pacote não encontrado para este slot', 500)
@@ -150,11 +151,12 @@ export async function bookingsRoutes(app: FastifyInstance) {
       // Compensation: delete booking and restore slot atomically (per D-02)
       await prisma.$transaction(async (tx) => {
         await tx.booking.delete({ where: { id: booking.id } })
+        const s2 = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
         await tx.departureSlot.update({
           where: { id: slotId },
           data: {
             booked: { decrement: pax },
-            status: 'OPEN',
+            ...(s2?.status === 'FULL' ? { status: 'OPEN' } : {}),
           },
         })
       })
@@ -189,7 +191,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
   app.patch(
     '/tenants/:slug/bookings/:id/cancel',
-    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR'])] },
     async (request, reply) => {
       let params
       try {
@@ -210,10 +212,16 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
       const booking = await prisma.booking.findFirst({
         where: { id, tenantId: tenant.id },
+        include: { slot: { include: { package: { select: { conductorId: true } } } } },
       })
 
       if (!booking) {
         throw new AppError('Reserva não encontrada', 404)
+      }
+
+      const user = request.user as { sub: string; role: string }
+      if (user.role === 'CONDUTOR' && booking.slot?.package?.conductorId !== user.sub) {
+        throw new AppError('Acesso negado', 403)
       }
 
       if (!['PENDING', 'CONFIRMED'].includes(booking.status)) {
@@ -234,7 +242,10 @@ export async function bookingsRoutes(app: FastifyInstance) {
           where: { id: booking.slotId },
           data: {
             booked: { decrement: booking.pax },
-            status: remainingActive === 0 && newBooked < (currentSlot?.capacity ?? 1) ? 'OPEN' : (newBooked >= (currentSlot?.capacity ?? 1) ? 'FULL' : 'OPEN'),
+            // Only recalculate status for OPEN/FULL slots — preserve CANCELLED/COMPLETED
+            ...(currentSlot?.status !== 'CANCELLED' && currentSlot?.status !== 'COMPLETED' ? {
+              status: remainingActive === 0 && newBooked < (currentSlot?.capacity ?? 1) ? 'OPEN' : (newBooked >= (currentSlot?.capacity ?? 1) ? 'FULL' : 'OPEN'),
+            } : {}),
           },
         })
 
@@ -251,7 +262,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
   app.patch(
     '/tenants/:slug/bookings/:id/confirm',
-    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR'])] },
     async (request, reply) => {
       let params
       try {
@@ -272,10 +283,16 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
       const booking = await prisma.booking.findFirst({
         where: { id, tenantId: tenant.id },
+        include: { slot: { include: { package: { select: { conductorId: true } } } } },
       })
 
       if (!booking) {
         throw new AppError('Reserva não encontrada', 404)
+      }
+
+      const user = request.user as { sub: string; role: string }
+      if (user.role === 'CONDUTOR' && booking.slot?.package?.conductorId !== user.sub) {
+        throw new AppError('Acesso negado', 403)
       }
 
       if (booking.status !== 'PENDING') {
