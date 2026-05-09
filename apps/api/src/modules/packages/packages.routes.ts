@@ -84,10 +84,14 @@ export async function packagesRoutes(app: FastifyInstance) {
       throw new AppError('Tenant não encontrado', 404)
     }
 
+    const query = request.query as { conductorId?: string }
+    const conductorId = query.conductorId ?? undefined
+
     const packages = await prisma.tourPackage.findMany({
       where: {
         tenantId: tenant.id,
         active: true,
+        ...(conductorId ? { conductorId } : {}),
       },
       include: {
         departureSlots: {
@@ -283,6 +287,10 @@ export async function packagesRoutes(app: FastifyInstance) {
 
     const user = request.user as { sub: string; role: string }
     if (user.role === 'CONDUTOR' && pkg.conductorId !== user.sub) throw new AppError('Acesso negado', 403)
+    if (user.role === 'CONDUTOR') {
+      const conductor = await prisma.user.findUnique({ where: { id: user.sub }, select: { approvalStatus: true } })
+      if (conductor?.approvalStatus !== 'APPROVED') throw new AppError('Guia não aprovado para criar slots', 403)
+    }
 
     const slot = await prisma.departureSlot.create({
       data: {

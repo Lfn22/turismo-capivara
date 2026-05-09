@@ -1,4 +1,6 @@
 import { getServerSession } from "next-auth"
+import { getToken } from "next-auth/jwt"
+import { headers } from "next/headers"
 import { authOptions } from "@/lib/auth"
 import { apiFetch } from "@/lib/api/client"
 import Link from "next/link"
@@ -33,19 +35,19 @@ export default async function RoteirosPage({
 }) {
   const { slug } = await params
   const session = await getServerSession(authOptions)
-  const token = (session?.user as any)?.token ?? ""
+  const jwt = await getToken({ req: { headers: await headers() } as any, secret: process.env.NEXTAUTH_SECRET })
+  const token = (jwt?.apiToken as string) ?? ""
   const userId = (session?.user as any)?.id ?? ""
+  const role = (session?.user as any)?.role ?? ""
 
   let packages: Package[] = []
   let loadError = false
 
   try {
-    const data = await apiFetch<Package[]>(`/tenants/${slug}/packages`, token)
-    const all = Array.isArray(data) ? data : []
-    // API returns all active tenant packages — filter to conductor's own packages
-    packages = userId
-      ? all.filter((p) => !p.conductorId || p.conductorId === userId)
-      : all
+    // Pass conductorId to the API so filtering happens server-side (avoids overfetch)
+    const qs = role === "CONDUTOR" && userId ? `?conductorId=${encodeURIComponent(userId)}` : ""
+    const data = await apiFetch<Package[]>(`/tenants/${slug}/packages${qs}`, token)
+    packages = Array.isArray(data) ? data : []
   } catch {
     loadError = true
   }
