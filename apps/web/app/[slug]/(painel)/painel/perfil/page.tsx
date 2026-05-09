@@ -2,8 +2,6 @@
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
-
 interface GuideProfileData {
   id: string
   bio: string | null
@@ -26,7 +24,6 @@ export default function PerfilPage({
   params: Promise<{ slug: string }>
 }) {
   const { data: session } = useSession()
-  const token = (session?.user as any)?.token ?? ""
   const sessionUserId = (session?.user as any)?.id ?? ""
 
   const [slug, setSlug] = useState("")
@@ -53,15 +50,13 @@ export default function PerfilPage({
   }, [params])
 
   useEffect(() => {
-    if (!token || !slug) return
+    if (!slug) return
     setLoading(true)
     setLoadError(false)
 
     // GET /tenants/:slug/guides returns only APPROVED guides.
     // For PENDING guides, fall back to an empty profile using session data.
-    fetch(`${API_URL}/tenants/${slug}/guides`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`/api/proxy?path=/tenants/${slug}/guides`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
@@ -97,7 +92,7 @@ export default function PerfilPage({
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
-  }, [token, slug, sessionUserId])
+  }, [slug, sessionUserId])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -106,10 +101,9 @@ export default function PerfilPage({
     setSaveSuccess(false)
 
     try {
-      const res = await fetch(`${API_URL}/tenants/${slug}/guides/me/profile`, {
+      const res = await fetch(`/api/proxy?path=/tenants/${slug}/guides/me/profile`, {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
