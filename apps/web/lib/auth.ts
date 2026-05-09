@@ -25,15 +25,18 @@ export const authOptions: NextAuthOptions = {
         })
         if (!res.ok) return null
         const { token } = await res.json()
-        const payload = JSON.parse(
-          Buffer.from(token.split(".")[1], "base64url").toString()
-        )
+        // Verify claims server-side via /auth/me (avoids client-side JWT decode without sig check)
+        const meRes = await fetch(`${process.env.API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!meRes.ok) return null
+        const { id, role, tenantId } = await meRes.json()
         return {
-          id: payload.sub,
-          name: payload.name ?? credentials.email,
+          id,
+          name: credentials.email,
           email: credentials.email,
-          role: payload.role,
-          tenantId: payload.tenantId,
+          role,
+          tenantId,
           token,
         }
       },
@@ -54,7 +57,9 @@ export const authOptions: NextAuthOptions = {
         id: token.sub as string,
         role: token.role as string,
         tenantId: token.tenantId as string,
-        token: token.apiToken as string,
+        // NOTE: apiToken is kept only in the encrypted JWT cookie (server-side).
+        // Client components must proxy API calls through a Next.js route handler.
+        // RSC pages use getToken() from next-auth/jwt to read apiToken server-side.
       } as any
       return session
     },

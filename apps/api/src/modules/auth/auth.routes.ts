@@ -5,6 +5,7 @@ import { z, ZodError } from 'zod'
 import { Prisma } from '@prisma/client'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
+import { authenticate } from '../../shared/middlewares/authenticate'
 
 function hashCpf(cpf: string): string {
   const secret = process.env.CPF_SECRET
@@ -186,5 +187,15 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     return reply.status(201).send({ message: 'Conta criada com sucesso' })
+  })
+
+  // GET /auth/me — returns verified JWT claims without exposing raw token to client
+  app.get('/auth/me', { preHandler: [authenticate] }, async (request, reply) => {
+    const user = request.user as { sub: string; role: string; tenantId: string }
+    return reply.status(200).send({
+      id: user.sub,
+      role: user.role,
+      tenantId: user.tenantId,
+    })
   })
 }
