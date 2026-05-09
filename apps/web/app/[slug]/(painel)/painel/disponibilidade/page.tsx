@@ -1,6 +1,5 @@
 "use client"
 import { use, useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
 import Calendar from "react-calendar"
 import { Modal } from "@/components/ui/Modal"
 
@@ -10,15 +9,13 @@ interface Slot {
   startsAt: string
   capacity: number
   booked: number
-  status: "OPEN" | "CLOSED" | "DEPARTED"
+  status: "OPEN" | "FULL" | "CANCELLED" | "COMPLETED"
 }
 
 interface Package {
   id: string
   name: string
 }
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
 
 function toLocalDateStr(date: Date): string {
   const y = date.getFullYear()
@@ -40,15 +37,15 @@ export default function DisponibilidadePage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = use(params)
-  const { data: session } = useSession()
-  const token = (session?.user as any)?.token ?? ""
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [allSlots, setAllSlots] = useState<Slot[]>([])
   const [daySlots, setDaySlots] = useState<Slot[]>([])
   const [packages, setPackages] = useState<Package[]>([])
   const [loading, setLoading] = useState(false)
+  const [slotsError, setSlotsError] = useState<string | null>(null)
   const [closingSlot, setClosingSlot] = useState<string | null>(null)
+  const [closeError, setCloseError] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
 
   // Modal form state
@@ -62,10 +59,7 @@ export default function DisponibilidadePage({
 
   // Load packages for dropdown
   useEffect(() => {
-    if (!token) return
-    fetch(`${API_URL}/tenants/${slug}/packages`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`/api/proxy?path=/tenants/${slug}/packages`)
       .then((r) => r.json())
       .then((data) => {
         const pkgs: Package[] = Array.isArray(data) ? data : (data.packages ?? [])
@@ -73,25 +67,24 @@ export default function DisponibilidadePage({
         if (pkgs.length > 0) setFormPackageId(pkgs[0].id)
       })
       .catch(() => {})
-  }, [token, slug])
+  }, [slug])
 
   // Load all slots for calendar tile coloring (fetched when packages are ready)
   useEffect(() => {
-    if (!token || packages.length === 0) return
+    if (packages.length === 0) return
     setLoading(true)
+    setSlotsError(null)
     Promise.all(
       packages.map((pkg) =>
-        fetch(`${API_URL}/tenants/${slug}/packages/${pkg.id}/slots`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-          .then((r) => r.json())
+        fetch(`/api/proxy?path=/tenants/${slug}/packages/${pkg.id}/slots`)
+          .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
           .then((data) => (Array.isArray(data) ? data : (data.slots ?? [])) as Slot[])
-          .catch(() => [] as Slot[])
       )
     )
       .then((results) => setAllSlots(results.flat()))
+      .catch(() => setSlotsError("Erro ao carregar slots. Tente novamente."))
       .finally(() => setLoading(false))
-  }, [token, packages, slug])
+  }, [packages, slug])
 
   // Filter slots for selected date
   useEffect(() => {
@@ -108,20 +101,18 @@ export default function DisponibilidadePage({
     if (view !== "month") return null
     const dateStr = toLocalDateStr(date)
     const slotsForDay = allSlots.filter(
-      (s) => s.startsAt.startsWith(dateStr) && s.status !== "DEPARTED"
+      (s) => s.startsAt.startsWith(dateStr) && s.status !== "CANCELLED" && s.status !== "COMPLETED"
     )
     if (slotsForDay.length === 0) return null
 
     const hasOpen = slotsForDay.some((s) => s.status === "OPEN")
     const isFullyBooked =
-      hasOpen &&
-      slotsForDay
-        .filter((s) => s.status === "OPEN")
-        .every((s) => s.booked >= s.capacity)
+      !hasOpen &&
+      slotsForDay.some((s) => s.status === "FULL")
 
     let bg = "rgba(196,133,42,0.8)" // ochre = disponível
-    if (!hasOpen) bg = "rgba(156,163,175,0.7)" // cinza = fechado
-    else if (isFullyBooked) bg = "rgba(220,38,38,0.7)" // vermelho = lotado
+    if (isFullyBooked) bg = "rgba(220,38,38,0.7)" // vermelho = lotado
+    else if (!hasOpen) bg = "rgba(156,163,175,0.7)" // cinza = fechado/sem slots ativos
 
     return (
       <div
@@ -139,15 +130,16 @@ export default function DisponibilidadePage({
 
   async function handleCloseSlot(slot: Slot) {
     setClosingSlot(slot.id)
+    setCloseError(null)
     try {
       const res = await fetch(
-        `${API_URL}/tenants/${slug}/packages/${slot.packageId}/slots/${slot.id}/close`,
-        { method: "PATCH", headers: { Authorization: `Bearer ${token}` } }
+        `/api/proxy?path=/tenants/${slug}/packages/${slot.packageId}/slots/${slot.id}`,
+        { method: "DELETE" }
       )
-      if (res.ok) {
-        const updated = { ...slot, status: "CLOSED" as const }
-        setAllSlots((prev) => prev.map((s) => (s.id === slot.id ? updated : s)))
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setAllSlots((prev) => prev.map((s) => (s.id === slot.id ? { ...s, status: "CANCELLED" as const } : s)))
+    } catch {
+      setCloseError("Erro ao cancelar slot. Tente novamente.")
     } finally {
       setClosingSlot(null)
     }
@@ -177,13 +169,10 @@ export default function DisponibilidadePage({
 
     try {
       const res = await fetch(
-        `${API_URL}/tenants/${slug}/packages/${formPackageId}/slots`,
+        `/api/proxy?path=/tenants/${slug}/packages/${formPackageId}/slots`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ startsAt, capacity: formVagas }),
         }
       )
@@ -267,6 +256,40 @@ export default function DisponibilidadePage({
           Disponibilidade
         </h1>
       </div>
+
+      {slotsError && (
+        <p
+          role="alert"
+          aria-live="assertive"
+          style={{
+            fontSize: "14px",
+            color: "#DC2626",
+            marginBottom: "16px",
+            padding: "8px 12px",
+            background: "#FEF2F2",
+            borderRadius: "4px",
+          }}
+        >
+          {slotsError}
+        </p>
+      )}
+
+      {closeError && (
+        <p
+          role="alert"
+          aria-live="assertive"
+          style={{
+            fontSize: "14px",
+            color: "#DC2626",
+            marginBottom: "16px",
+            padding: "8px 12px",
+            background: "#FEF2F2",
+            borderRadius: "4px",
+          }}
+        >
+          {closeError}
+        </p>
+      )}
 
       {/* Two-column layout: calendar + slots panel */}
       <div
