@@ -139,7 +139,10 @@ export async function webhooksRoutes(app: FastifyInstance) {
             where: { id: booking.slotId },
             data: {
               booked: { decrement: booking.pax },
-              status: newBooked < (currentSlot?.capacity ?? 1) ? 'OPEN' : 'FULL',
+              // Only recalculate status for OPEN/FULL slots — preserve CANCELLED/COMPLETED
+              ...(currentSlot?.status !== 'CANCELLED' && currentSlot?.status !== 'COMPLETED'
+                ? { status: newBooked < (currentSlot?.capacity ?? 1) ? 'OPEN' : 'FULL' }
+                : {}),
             },
           })
         })
