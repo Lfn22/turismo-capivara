@@ -341,21 +341,21 @@ export default function PerfilPage({
                 marginTop: "4px",
               }}
             >
-              Separe com virgulas
+              Separe com vírgulas
             </p>
           </div>
 
           {/* Regioes */}
           <div>
             <label htmlFor="regioes" style={labelStyle}>
-              Regioes atendidas
+              Regiões atendidas
             </label>
             <input
               id="regioes"
               type="text"
               value={regioes}
               onChange={(e) => setRegioes(e.target.value)}
-              placeholder="Ex: Serra da Capivara, Piaui (separadas por virgula)"
+              placeholder="Ex: Serra da Capivara, Piauí (separadas por vírgula)"
               style={inputStyle}
             />
             <p
@@ -365,13 +365,13 @@ export default function PerfilPage({
                 marginTop: "4px",
               }}
             >
-              Separe com virgulas
+              Separe com vírgulas
             </p>
           </div>
 
-          {/* Portfolio de Fotos (GUIDE-04) */}
+          {/* Portfólio de Fotos (GUIDE-04) */}
           <div>
-            <label style={labelStyle}>Portfolio de Fotos</label>
+            <label style={labelStyle}>Portfólio de Fotos</label>
             <p
               style={{
                 fontSize: "14px",
@@ -380,7 +380,7 @@ export default function PerfilPage({
                 marginBottom: "8px",
               }}
             >
-              Adicione URLs de fotos do seu portfolio.
+              Adicione URLs de fotos do seu portfólio.
             </p>
 
             {portfolioPhotos.length > 0 && (
@@ -523,7 +523,7 @@ export default function PerfilPage({
                 minHeight: "44px",
               }}
             >
-              {saving ? "Salvando..." : "Salvar Alteracoes"}
+              {saving ? "Salvando..." : "Salvar Alterações"}
             </button>
 
             {saveSuccess && (

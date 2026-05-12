@@ -473,7 +473,7 @@ export default function AdminGuiasPage({
               cursor: rejectSubmitting ? "not-allowed" : "pointer",
             }}
           >
-            {rejectSubmitting ? "Rejeitando..." : "Confirmar Rejeicao"}
+            {rejectSubmitting ? "Rejeitando..." : "Confirmar Rejeição"}
           </button>
         </div>
       </Modal>
