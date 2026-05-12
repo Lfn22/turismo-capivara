@@ -9,7 +9,7 @@ declare module "next-auth" {
       email: string
       role: string
       tenantId: string
-      token: string
+      // token intentionally omitted — apiToken stays server-side in encrypted JWT
     }
   }
 }

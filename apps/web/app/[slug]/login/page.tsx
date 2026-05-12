@@ -1,9 +1,10 @@
 "use client"
 import { signIn } from "next-auth/react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 
-export default function LoginPage({ params }: { params: { slug: string } }) {
+export default function LoginPage() {
+  const params = useParams<{ slug: string }>()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)

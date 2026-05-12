@@ -122,11 +122,10 @@ export async function guidesRoutes(app: FastifyInstance) {
   })
 
   // GET /tenants/:slug/admin/guides?status=PENDING — ADMIN only
-  app.get('/tenants/:slug/admin/guides', async (request, reply) => {
-    await request.jwtVerify()
+  app.get('/tenants/:slug/admin/guides', {
+    preHandler: [authenticate, authorize(['ADMIN'])],
+  }, async (request, reply) => {
     const admin = request.user as { sub: string; tenantId: string; role: string }
-
-    if (admin.role !== 'ADMIN') throw new AppError('Acesso negado', 403)
 
     let params
     try {
@@ -143,11 +142,6 @@ export async function guidesRoutes(app: FastifyInstance) {
       if (err instanceof ZodError) return reply.status(400).send(zodError(err))
       throw err
     }
-
-    const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
-    if (!tenant) throw new AppError('Tenant não encontrado', 404)
-
-    if (tenant.id !== admin.tenantId) throw new AppError('Acesso negado', 403)
 
     const guides = await prisma.guideProfile.findMany({
       where: {
@@ -179,11 +173,10 @@ export async function guidesRoutes(app: FastifyInstance) {
   })
 
   // PATCH /tenants/:slug/admin/guides/:id/approve — ADMIN only
-  app.patch('/tenants/:slug/admin/guides/:id/approve', async (request, reply) => {
-    await request.jwtVerify()
+  app.patch('/tenants/:slug/admin/guides/:id/approve', {
+    preHandler: [authenticate, authorize(['ADMIN'])],
+  }, async (request, reply) => {
     const admin = request.user as { sub: string; tenantId: string; role: string }
-
-    if (admin.role !== 'ADMIN') throw new AppError('Acesso negado', 403)
 
     let params
     try {
@@ -215,11 +208,10 @@ export async function guidesRoutes(app: FastifyInstance) {
   })
 
   // PATCH /tenants/:slug/admin/guides/:id/reject — ADMIN only
-  app.patch('/tenants/:slug/admin/guides/:id/reject', async (request, reply) => {
-    await request.jwtVerify()
+  app.patch('/tenants/:slug/admin/guides/:id/reject', {
+    preHandler: [authenticate, authorize(['ADMIN'])],
+  }, async (request, reply) => {
     const admin = request.user as { sub: string; tenantId: string; role: string }
-
-    if (admin.role !== 'ADMIN') throw new AppError('Acesso negado', 403)
 
     let params
     try {

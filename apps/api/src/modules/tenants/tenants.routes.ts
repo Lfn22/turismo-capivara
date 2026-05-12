@@ -2,13 +2,17 @@ import { FastifyInstance } from 'fastify'
 import { z, ZodError } from 'zod'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
+import { authenticate } from '../../shared/middlewares/authenticate'
+import { authorize } from '../../shared/middlewares/authorize'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
 })
 
 export async function tenantsRoutes(app: FastifyInstance) {
-  app.get('/tenants', async () => {
+  app.get('/tenants', {
+    preHandler: [authenticate, authorize(['ADMIN'])],
+  }, async () => {
     const tenants = await prisma.tenant.findMany()
     return tenants
   })

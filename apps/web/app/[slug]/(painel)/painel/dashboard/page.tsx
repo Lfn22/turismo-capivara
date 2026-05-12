@@ -1,5 +1,5 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getToken } from "next-auth/jwt"
+import { headers } from "next/headers"
 import { apiFetch } from "@/lib/api/client"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 
@@ -47,8 +47,8 @@ export default async function DashboardPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const session = await getServerSession(authOptions)
-  const token = (session?.user as any)?.token ?? ""
+  const jwt = await getToken({ req: { headers: await headers() } as any, secret: process.env.NEXTAUTH_SECRET })
+  const token = (jwt?.apiToken as string) ?? ""
 
   let bookings: Booking[] = []
   let packages: Package[] = []
@@ -57,7 +57,7 @@ export default async function DashboardPage({
   try {
     const [bookingsData, packagesData] = await Promise.all([
       apiFetch<{ bookings: Booking[] }>(`/tenants/${slug}/guides/me/bookings`, token),
-      apiFetch<{ packages: Package[] } | Package[]>(`/tenants/${slug}/packages`, token),
+      apiFetch<{ packages: Package[] } | Package[]>(`/tenants/${slug}/packages?conductorId=${jwt?.sub}`, token),
     ])
     bookings = bookingsData.bookings ?? []
     packages = Array.isArray(packagesData)

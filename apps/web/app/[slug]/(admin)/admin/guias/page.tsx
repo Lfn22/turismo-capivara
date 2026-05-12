@@ -1,13 +1,12 @@
 "use client"
-import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
+import { use, useState, useEffect } from "react"
 import { Modal } from "@/components/ui/Modal"
 
 interface GuideUser {
   id: string
   name: string
   email: string
-  approvalStatus: "PENDING_APPROVAL" | "APPROVED" | "REJECTED"
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED"
   rejectionReason: string | null
 }
 
@@ -19,10 +18,9 @@ interface Guide {
   user: GuideUser
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
 
 const GUIDE_STATUS: Record<string, { label: string; bg: string; color: string }> = {
-  PENDING_APPROVAL: { label: "Aguardando", bg: "#FEF9EC", color: "#B45309" },
+  PENDING: { label: "Aguardando", bg: "#FEF9EC", color: "#B45309" },
   APPROVED: { label: "Aprovado", bg: "#F0FDF4", color: "#15803D" },
   REJECTED: { label: "Rejeitado", bg: "#FEF2F2", color: "#DC2626" },
 }
@@ -32,10 +30,7 @@ export default function AdminGuiasPage({
 }: {
   params: Promise<{ slug: string }>
 }) {
-  const { data: session } = useSession()
-  const token = (session?.user as any)?.token ?? ""
-
-  const [slug, setSlug] = useState("")
+  const { slug } = use(params)
   const [guides, setGuides] = useState<Guide[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -48,17 +43,10 @@ export default function AdminGuiasPage({
   const [rejectError, setRejectError] = useState<string | null>(null)
   const [rejectSubmitting, setRejectSubmitting] = useState(false)
 
-  // Unwrap params Promise (Next.js 16 Client Components)
-  useEffect(() => {
-    Promise.resolve(params).then(({ slug: s }) => setSlug(s))
-  }, [params])
-
-  function loadGuides(currentSlug: string, currentToken: string) {
+  function loadGuides() {
     setLoading(true)
     setLoadError(false)
-    fetch(`${API_URL}/tenants/${currentSlug}/admin/guides`, {
-      headers: { Authorization: `Bearer ${currentToken}` },
-    })
+    fetch(`/api/proxy?path=/tenants/${slug}/admin/guides`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
@@ -71,8 +59,9 @@ export default function AdminGuiasPage({
   }
 
   useEffect(() => {
-    if (token && slug) loadGuides(slug, token)
-  }, [token, slug])
+    loadGuides()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug])
 
   async function handleApprove(guide: Guide) {
     setActionLoading(guide.id)
@@ -87,11 +76,8 @@ export default function AdminGuiasPage({
     )
     try {
       const res = await fetch(
-        `${API_URL}/tenants/${slug}/admin/guides/${guide.id}/approve`,
-        {
-          method: "PATCH",
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `/api/proxy?path=/tenants/${slug}/admin/guides/${guide.id}/approve`,
+        { method: "PATCH" }
       )
       if (!res.ok) throw new Error()
     } catch {
@@ -99,7 +85,7 @@ export default function AdminGuiasPage({
       setGuides((prev) =>
         prev.map((g) =>
           g.id === guide.id
-            ? { ...g, user: { ...g.user, approvalStatus: "PENDING_APPROVAL" } }
+            ? { ...g, user: { ...g.user, approvalStatus: "PENDING" } }
             : g
         )
       )
@@ -120,13 +106,10 @@ export default function AdminGuiasPage({
 
     try {
       const res = await fetch(
-        `${API_URL}/tenants/${slug}/admin/guides/${rejectGuide.id}/reject`,
+        `/api/proxy?path=/tenants/${slug}/admin/guides/${rejectGuide.id}/reject`,
         {
           method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ reason: rejectReason }),
         }
       )
@@ -159,10 +142,10 @@ export default function AdminGuiasPage({
   }
 
   const pending = guides.filter(
-    (g) => g.user.approvalStatus === "PENDING_APPROVAL"
+    (g) => g.user.approvalStatus === "PENDING"
   )
   const others = guides.filter(
-    (g) => g.user.approvalStatus !== "PENDING_APPROVAL"
+    (g) => g.user.approvalStatus !== "PENDING"
   )
 
   return (
@@ -284,7 +267,7 @@ export default function AdminGuiasPage({
               {[...pending, ...others].map((guide, i) => {
                 const st =
                   GUIDE_STATUS[guide.user.approvalStatus] ??
-                  GUIDE_STATUS.PENDING_APPROVAL
+                  GUIDE_STATUS.PENDING
                 const isActing = actionLoading === guide.id
                 return (
                   <tr
@@ -327,7 +310,7 @@ export default function AdminGuiasPage({
                       </span>
                     </td>
                     <td style={{ padding: "12px 16px" }}>
-                      {guide.user.approvalStatus === "PENDING_APPROVAL" && (
+                      {guide.user.approvalStatus === "PENDING" && (
                         <div style={{ display: "flex", gap: "8px" }}>
                           <button
                             onClick={() => handleApprove(guide)}

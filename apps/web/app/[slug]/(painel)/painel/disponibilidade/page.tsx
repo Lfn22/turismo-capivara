@@ -419,8 +419,8 @@ export default function DisponibilidadePage({
                           }}
                         >
                           {slot.booked}/{slot.capacity} vagas
-                          {slot.status === "CLOSED" && " — Fechado"}
-                          {slot.status === "DEPARTED" && " — Partido"}
+                          {slot.status === "CANCELLED" && " — Cancelado"}
+                          {slot.status === "COMPLETED" && " — Concluído"}
                         </p>
                       </div>
                       {slot.status === "OPEN" && (

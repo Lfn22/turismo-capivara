@@ -1,6 +1,5 @@
 "use client"
 import { use, useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 
 interface Booking {
@@ -15,8 +14,6 @@ interface Booking {
     package: { name: string; price: string | number }
   }
 }
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", {
@@ -34,8 +31,6 @@ export default function ReservasPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = use(params)
-  const { data: session } = useSession()
-  const token = (session?.user as any)?.token ?? ""
 
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,12 +40,9 @@ export default function ReservasPage({
   const [statusFilter, setStatusFilter] = useState<string>("ALL")
 
   function loadBookings() {
-    if (!token) return
     setLoading(true)
     setError(null)
-    fetch(`${API_URL}/tenants/${slug}/guides/me/bookings`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`/api/proxy?path=/tenants/${slug}/guides/me/bookings`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
@@ -61,9 +53,9 @@ export default function ReservasPage({
   }
 
   useEffect(() => {
-    if (token) loadBookings()
+    loadBookings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
+  }, [slug])
 
   async function handleConfirm(id: string) {
     setActionLoading(id)
@@ -74,9 +66,9 @@ export default function ReservasPage({
       prev.map((b) => (b.id === id ? { ...b, status: "CONFIRMED" } : b))
     )
     try {
-      const res = await fetch(`${API_URL}/tenants/${slug}/bookings/${id}/confirm`, {
+      const res = await fetch(`/api/proxy?path=/tenants/${slug}/bookings/${id}/confirm`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
       })
       if (!res.ok) throw new Error()
     } catch {
@@ -101,9 +93,9 @@ export default function ReservasPage({
       prev.map((b) => (b.id === id ? { ...b, status: "CANCELLED" } : b))
     )
     try {
-      const res = await fetch(`${API_URL}/tenants/${slug}/bookings/${id}/cancel`, {
+      const res = await fetch(`/api/proxy?path=/tenants/${slug}/bookings/${id}/cancel`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
       })
       if (!res.ok) throw new Error()
     } catch {
