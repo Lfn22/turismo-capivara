@@ -28,7 +28,17 @@
       "mcp__plugin_context-mode_context-mode__ctx_execute_file",
       "mcp__plugin_context-mode_context-mode__ctx_execute",
       "Bash(npx tsc:*)",
-      "Bash(npx prisma:*)"
+      "Bash(npx prisma:*)",
+      "WebSearch",
+      "Bash(ls \"C:/projetos/turismo-capivara/.planning/phases/05-painel-do-guia/\"*VALIDATION*)",
+      "Skill(gsd-add-tests)",
+      "Skill(gsd-code-review-fix)",
+      "Bash(xargs cat:*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(echo \"EXIT_TSC:$?\")",
+      "Bash(echo \"TSC_EXIT:$?\")",
+      "Bash(git:*)",
+      "Bash(gsd-sdk query:*)"
     ]
   }
 }
