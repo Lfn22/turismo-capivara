@@ -128,7 +128,7 @@ export default function PerfilPage({
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
     } catch (err: any) {
-      setSaveError(err.message ?? "Nao foi possivel salvar. Tente novamente.")
+      setSaveError(err.message ?? "Não foi possível salvar. Tente novamente.")
     } finally {
       setSaving(false)
     }
@@ -331,7 +331,7 @@ export default function PerfilPage({
               type="text"
               value={especialidades}
               onChange={(e) => setEspecialidades(e.target.value)}
-              placeholder="Ex: arqueologia, trilha, fotografia (separadas por virgula)"
+              placeholder="Ex: arqueologia, trilha, fotografia (separadas por vírgula)"
               style={inputStyle}
             />
             <p

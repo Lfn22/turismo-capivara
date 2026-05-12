@@ -89,7 +89,7 @@ export default function AdminGuiasPage({
             : g
         )
       )
-      setActionError("Nao foi possivel realizar a acao. Tente novamente.")
+      setActionError("Não foi possível realizar a ação. Tente novamente.")
     } finally {
       setActionLoading(null)
     }
@@ -98,7 +98,7 @@ export default function AdminGuiasPage({
   async function handleRejectConfirm() {
     if (!rejectGuide) return
     if (!rejectReason.trim()) {
-      setRejectError("Informe o motivo da rejeicao.")
+      setRejectError("Informe o motivo da rejeição.")
       return
     }
     setRejectSubmitting(true)
@@ -135,7 +135,7 @@ export default function AdminGuiasPage({
       setRejectGuide(null)
       setRejectReason("")
     } catch {
-      setRejectError("Nao foi possivel rejeitar o guia. Tente novamente.")
+      setRejectError("Não foi possível rejeitar o guia. Tente novamente.")
     } finally {
       setRejectSubmitting(false)
     }
@@ -171,7 +171,7 @@ export default function AdminGuiasPage({
             margin: 0,
           }}
         >
-          Aprovacao de Guias
+          Aprovação de Guias
         </h1>
       </div>
 
@@ -246,7 +246,7 @@ export default function AdminGuiasPage({
           >
             <thead>
               <tr style={{ background: "var(--stone-100)" }}>
-                {["Nome", "Email", "Especialidades", "Status", "Acoes"].map(
+                {["Nome", "Email", "Especialidades", "Status", "Ações"].map(
                   (h) => (
                     <th
                       key={h}
@@ -387,7 +387,7 @@ export default function AdminGuiasPage({
             marginBottom: "16px",
           }}
         >
-          Informe o motivo da rejeicao. O guia podera ver esta mensagem.
+          Informe o motivo da rejeição. O guia poderá ver esta mensagem.
         </p>
 
         <div style={{ marginBottom: "16px" }}>
