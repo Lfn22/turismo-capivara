@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: MVP
 status: in_progress
-stopped_at: "05-05 complete — Roteiros RSC grid + Disponibilidade react-calendar com modal de slot"
-last_updated: "2026-05-07T23:00:00Z"
-last_activity: 2026-05-07
+stopped_at: "05-06 complete — Perfil do Guia + Aprovacao Admin + 6 bug fixes de auditoria"
+last_updated: "2026-05-12T18:21:00Z"
+last_activity: 2026-05-12
 progress:
   total_phases: 6
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 13
-  completed_plans: 12
-  percent: 92
+  completed_plans: 13
+  percent: 100
 ---
 
 # STATE.md — Turismo Capivara
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 5 de 6 (Painel do Guia)
-Plan: 5 de 6 executados (05-05 Roteiros + Disponibilidade — COMPLETO)
-Status: Phase 5 em progresso — 5/6 planos executados
-Last activity: 2026-05-07
+Plan: 6 de 6 executados (05-06 Perfil do Guia + Aprovacao Admin — COMPLETO)
+Status: Phase 5 COMPLETA — 6/6 planos executados
+Last activity: 2026-05-12
 
 ## Decisões estratégicas
 
@@ -69,6 +69,10 @@ Last activity: 2026-05-07
 - signIn pages config set to /login (fallback); real tenant login at /[slug]/login
 - Client Components com dynamic params usam use(params) — params é Promise<{slug}> no Next.js 16
 - Dashboard RSC: token via session.user.token (campo apiToken do callback jwt em auth.ts)
+- approvalStatus guard removido do PATCH guides/me/profile — PENDING guides devem completar perfil antes da aprovação (chicken-and-egg)
+- Rejeitar flow usa modal com textarea obrigatório; Aprovar é PATCH direto sem confirmação
+- portfolioPhotos aceito como string[] com validação de URL no schema Zod
+- Badge "Guia Verificado" condicionado a approvalStatus === APPROVED via /auth/me
 
 ## Fase 2 — Contexto de execução
 
@@ -101,6 +105,6 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-05-07T23:00:00Z
-Stopped at: 05-05 complete — Roteiros RSC grid + Disponibilidade react-calendar com modal de slot
-Resume file: .planning/phases/05-painel-do-guia/05-06-PLAN.md
+Last session: 2026-05-12T18:21:00Z
+Stopped at: 05-06 complete — Perfil do Guia + Aprovacao Admin + 6 bug fixes de auditoria
+Resume file: None — Phase 5 completa
