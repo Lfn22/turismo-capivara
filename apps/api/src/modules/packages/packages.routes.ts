@@ -260,6 +260,41 @@ export async function packagesRoutes(app: FastifyInstance) {
     return reply.status(200).send({ message: 'Roteiro inativado' })
   })
 
+  app.get('/tenants/:slug/packages/:id/slots', async (request, reply) => {
+    const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
+    if (error) return
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: params!.slug },
+    })
+
+    if (!tenant) {
+      throw new AppError('Tenant não encontrado', 404)
+    }
+
+    const tourPackage = await prisma.tourPackage.findFirst({
+      where: { id: params!.id, tenantId: tenant.id, active: true },
+    })
+
+    if (!tourPackage) {
+      throw new AppError('Roteiro não encontrado', 404)
+    }
+
+    const slots = await prisma.departureSlot.findMany({
+      where: {
+        packageId: params!.id,
+        status: 'OPEN',
+        startsAt: { gte: new Date() },
+      },
+      orderBy: { startsAt: 'asc' },
+    })
+
+    return slots.map((slot) => ({
+      ...slot,
+      hasMinimumReached: slot.booked >= slot.minCapacity,
+    }))
+  })
+
   app.post('/tenants/:slug/packages/:id/slots', {
     preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
   }, async (request, reply) => {
