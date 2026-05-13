@@ -146,6 +146,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
         description: `Reserva #${booking.id} — ${pkg.name}`,
         customerEmail,
         customerCpf,
+        slug,
       })
     } catch (err) {
       // Compensation: delete booking and restore slot atomically (per D-02)
