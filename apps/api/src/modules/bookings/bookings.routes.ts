@@ -189,6 +189,55 @@ export async function bookingsRoutes(app: FastifyInstance) {
     })
   })
 
+  app.get(
+    '/tenants/:slug/bookings/:id',
+    async (request, reply) => {
+      let params
+      try {
+        params = slugAndIdParamsSchema.parse(request.params)
+      } catch (err) {
+        if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
+        throw err
+      }
+
+      let query
+      try {
+        query = z.object({ email: z.string().email({ message: 'Email inválido' }) }).parse(request.query)
+      } catch (err) {
+        if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
+        throw err
+      }
+
+      const { slug, id } = params
+      const { email } = query
+
+      const tenant = await prisma.tenant.findUnique({ where: { slug } })
+      if (!tenant) {
+        throw new AppError('Tenant não encontrado', 404)
+      }
+
+      const booking = await prisma.booking.findFirst({
+        where: { id, tenantId: tenant.id },
+        include: {
+          slot: {
+            select: {
+              startsAt: true,
+              package: { select: { name: true } },
+            },
+          },
+        },
+      })
+
+      // Return 404 for both "not found" and "email mismatch" to prevent enumeration (D-08)
+      if (!booking || booking.customerEmail !== email) {
+        throw new AppError('Reserva não encontrada', 404)
+      }
+
+      const { customerCpf, customerPhone, ...safeBooking } = booking
+      return safeBooking
+    }
+  )
+
   app.patch(
     '/tenants/:slug/bookings/:id/cancel',
     { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR'])] },
