@@ -5,7 +5,7 @@ milestone_name: MVP
 status: in_progress
 stopped_at: "05-06 complete — Perfil do Guia + Aprovacao Admin + 6 bug fixes de auditoria"
 last_updated: "2026-05-12T18:21:00Z"
-last_activity: 2026-05-12
+last_activity: 2026-05-13
 progress:
   total_phases: 6
   completed_phases: 5
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 Phase: 5 de 6 (Painel do Guia)
 Plan: 6 de 6 executados (05-06 Perfil do Guia + Aprovacao Admin — COMPLETO)
 Status: Phase 5 COMPLETA — 6/6 planos executados
-Last activity: 2026-05-12
+Last activity: 2026-05-13 - Completed quick task 260513-xrp: Wire up dashboard page
 
 ## Decisões estratégicas
 
@@ -103,8 +103,19 @@ Planos ainda a escrever para completar a Fase 2:
 - Relatórios institucionais (FUMDHAM / SETUR-PI)
 - Notificações automáticas por email/WhatsApp
 
+## Accumulated Context
+
+### Roadmap Evolution
+- Phase 6 added: Interface do Turista (2026-05-12) — already defined in ROADMAP.md; planning directory created
+
 ## Session Continuity
 
 Last session: 2026-05-12T18:21:00Z
 Stopped at: 05-06 complete — Perfil do Guia + Aprovacao Admin + 6 bug fixes de auditoria
 Resume file: None — Phase 5 completa
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260513-xrp | Wire up dashboard page | 2026-05-13 | 6ba428e | [260513-xrp-wire-dashboard-page](./quick/260513-xrp-wire-dashboard-page/) |
