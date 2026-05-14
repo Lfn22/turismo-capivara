@@ -117,6 +117,7 @@ export default async function GuiasPage({
                   specialties: guide.especialidades,
                   packageCount: 0,
                 }}
+              />
             ))}
           </div>
         )}
