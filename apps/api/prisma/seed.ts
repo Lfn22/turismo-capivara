@@ -15,6 +15,7 @@ async function main() {
   await prisma.booking.deleteMany()
   await prisma.departureSlot.deleteMany()
   await prisma.tourPackage.deleteMany()
+  await prisma.guideProfile.deleteMany()
   await prisma.user.deleteMany()
   await prisma.tenant.deleteMany()
 
@@ -43,16 +44,50 @@ async function main() {
       email: 'carlos@serraviva.com',
       password: hashSync('senha123', 10),
       role: 'ADMIN',
+      approvalStatus: 'APPROVED',
     },
   })
 
-  await prisma.user.create({
+  const anaUser = await prisma.user.create({
     data: {
       tenantId: receptivo1.id,
       name: 'Ana Condutora',
       email: 'ana@serraviva.com',
       password: hashSync('senha123', 10),
       role: 'CONDUTOR',
+      cpf: '12345678901',
+      approvalStatus: 'APPROVED',
+    },
+  })
+
+  await prisma.guideProfile.create({
+    data: {
+      userId: anaUser.id,
+      bio: 'Guia experiente da Serra da Capivara com 10 anos de experiência em arqueologia e trilhas.',
+      especialidades: ['Arqueologia', 'Trilhas', 'Fotografia'],
+      regioes: ['Serra da Capivara', 'Piauí'],
+    },
+  })
+
+  // CONDUTOR pendente de aprovação — para testar fluxo de admin
+  const joaoUser = await prisma.user.create({
+    data: {
+      tenantId: receptivo1.id,
+      name: 'João Condutor Pendente',
+      email: 'joao@serraviva.com',
+      password: hashSync('senha123', 10),
+      role: 'CONDUTOR',
+      cpf: '98765432100',
+      approvalStatus: 'PENDING',
+    },
+  })
+
+  await prisma.guideProfile.create({
+    data: {
+      userId: joaoUser.id,
+      bio: 'Condutor local especializado em fauna e flora do cerrado piauiense.',
+      especialidades: ['Fauna', 'Flora', 'Cerrado'],
+      regioes: ['Serra da Capivara'],
     },
   })
 
@@ -63,6 +98,7 @@ async function main() {
       email: 'pedro@capivaraturismo.com',
       password: hashSync('senha123', 10),
       role: 'ADMIN',
+      approvalStatus: 'APPROVED',
     },
   })
 
@@ -71,6 +107,7 @@ async function main() {
   const roteiro1 = await prisma.tourPackage.create({
     data: {
       tenantId: receptivo1.id,
+      conductorId: anaUser.id,
       name: 'Circuito das Pedras Pintadas',
       description: 'Visita aos principais sitios arqueologicos do parque',
       duration: 4,
@@ -83,6 +120,7 @@ async function main() {
   const roteiro2 = await prisma.tourPackage.create({
     data: {
       tenantId: receptivo1.id,
+      conductorId: anaUser.id,
       name: 'Trilha do Boqueirao',
       description: 'Trilha com vista panoramica do vale',
       duration: 6,
@@ -124,8 +162,40 @@ async function main() {
     })
   }
 
+  console.log('Criando booking de teste...')
+
+  const primeiroSlot = await prisma.departureSlot.findFirst({
+    where: { packageId: roteiro1.id },
+    orderBy: { startsAt: 'asc' },
+  })
+
+  if (primeiroSlot) {
+    await prisma.booking.create({
+      data: {
+        tenantId: receptivo1.id,
+        slotId: primeiroSlot.id,
+        customerName: 'Maria Turista',
+        customerEmail: 'maria@teste.com',
+        customerPhone: '86999990000',
+        customerCpf: '11122233344',
+        pax: 2,
+        status: 'PENDING',
+      },
+    })
+
+    await prisma.departureSlot.update({
+      where: { id: primeiroSlot.id },
+      data: { booked: 2 },
+    })
+  }
+
   console.log('Seed concluido!')
-  console.log('Tenants criados:', receptivo1.slug, receptivo2.slug)
+  console.log('Tenants: serra-viva | capivara-turismo')
+  console.log('Usuarios:')
+  console.log('  ADMIN: carlos@serraviva.com / senha123')
+  console.log('  CONDUTOR (APPROVED): ana@serraviva.com / senha123')
+  console.log('  CONDUTOR (PENDING): joao@serraviva.com / senha123')
+  console.log('  ADMIN (tenant2): pedro@capivaraturismo.com / senha123')
 }
 
 main()

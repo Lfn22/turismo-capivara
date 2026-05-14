@@ -10,6 +10,13 @@ export default withAuth(
     const slugMatch = pathname.match(/^\/([^/]+)\//)
     const slug = slugMatch?.[1] ?? ""
 
+    // Sem sessão — redireciona para /{slug}/login (tenant-aware)
+    if (!token) {
+      return NextResponse.redirect(
+        new URL(`/${slug}/login?callbackUrl=${encodeURIComponent(req.url)}`, req.url)
+      )
+    }
+
     if (pathname.includes("/painel") && token?.role !== "CONDUTOR") {
       return NextResponse.redirect(
         new URL(`/${slug}/login?error=forbidden`, req.url)
@@ -26,7 +33,8 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token,
+      // Sempre true — lógica de auth tratada acima no middleware
+      authorized: () => true,
     },
   }
 )

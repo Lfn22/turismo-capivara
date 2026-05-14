@@ -289,7 +289,8 @@ export async function guidesRoutes(app: FastifyInstance) {
       orderBy: { createdAt: 'desc' },
     })
 
-    return reply.status(200).send({ bookings })
+    const safeBookings = bookings.map(({ customerCpf, customerPhone, ...b }) => b)
+    return reply.status(200).send({ bookings: safeBookings })
   })
 
   // PATCH /tenants/:slug/guides/me/profile — CONDUTOR only
