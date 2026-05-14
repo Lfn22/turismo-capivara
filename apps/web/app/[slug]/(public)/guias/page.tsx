@@ -109,15 +109,14 @@ export default async function GuiasPage({
             {guides.map((guide) => (
               <GuideCard
                 key={guide.id}
+                href={`/${slug}/guias/${guide.id}`}
                 guide={{
                   id: guide.id,
                   name: guide.user.name,
-                  photo: guide.photoUrl ?? undefined,
+                  photoUrl: guide.photoUrl ?? null,
                   specialties: guide.especialidades,
                   packageCount: 0,
                 }}
-                slug={slug}
-              />
             ))}
           </div>
         )}

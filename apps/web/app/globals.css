@@ -36,3 +36,44 @@ h1, h2, h3, h4 {
   line-height: 1.2;
   letter-spacing: -0.02em;
 }
+
+/* ── Hero entrance animation ─────────────────────────────────── */
+@keyframes heroFadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-content-enter {
+  animation: heroFadeSlide 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.1s;
+}
+
+/* ── Destination nav transition ──────────────────────────────── */
+.dest-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  transition: transform 0.3s ease, background-color 0.3s ease, backdrop-filter 0.3s ease;
+}
+
+.dest-nav--hidden {
+  transform: translateY(-100%);
+}
+
+.dest-nav--opaque {
+  background-color: var(--stone-900);
+  backdrop-filter: none;
+}
+
+.dest-nav--transparent {
+  background-color: transparent;
+  backdrop-filter: none;
+}
