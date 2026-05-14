@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: MVP
-status: in_progress
-stopped_at: "05-06 complete — Perfil do Guia + Aprovacao Admin + 6 bug fixes de auditoria"
-last_updated: "2026-05-12T18:21:00Z"
+status: complete
+stopped_at: "06-04 complete — MVP v1.0 todos os 6 fases executadas"
+last_updated: "2026-05-14T13:00:00Z"
 last_activity: 2026-05-13
 progress:
   total_phases: 6
-  completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
+  completed_phases: 6
+  total_plans: 24
+  completed_plans: 24
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Phase 5 — Painel do Guia
+**Current focus:** Phase 6 — Interface do Turista
 
 ## Current Position
 
-Phase: 5 de 6 (Painel do Guia)
-Plan: 6 de 6 executados (05-06 Perfil do Guia + Aprovacao Admin — COMPLETO)
-Status: Phase 5 COMPLETA — 6/6 planos executados
-Last activity: 2026-05-13 - Completed quick task 260513-xrp: Wire up dashboard page
+Phase: 6 de 6 (Interface do Turista)
+Plan: 4 de 4 executados
+Status: MVP COMPLETO — 6/6 fases executadas, 24/24 planos
+Last activity: 2026-05-14 - Phase 06-04 complete: legacy cleanup, all 6 phases done
 
 ## Decisões estratégicas
 

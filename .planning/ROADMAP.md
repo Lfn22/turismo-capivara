@@ -19,8 +19,8 @@ A arquitetura multi-tenant já existe. O motor de reserva com trava transacional
 - [ ] **Phase 2: Cadastro de Guias + Aprovação Admin** — Registro de turistas e guias, aprovação por admin, perfis públicos
 - [x] **Phase 3: Roteiros e Disponibilidade** — Guia cria e gerencia roteiros e calendário de slots
 - [x] **Phase 4: Motor de Pagamento** — PIX via Mercado Pago + webhook de confirmação
-- [ ] **Phase 5: Painel do Guia** — Interface web para o guia gerenciar reservas, pagamentos e roteiros
-- [ ] **Phase 6: Interface do Turista** — Listagem de guias, perfil, fluxo de reserva e confirmação
+- [x] **Phase 5: Painel do Guia** — Interface web para o guia gerenciar reservas, pagamentos e roteiros
+- [x] **Phase 6: Interface do Turista** — Listagem de guias, perfil, fluxo de reserva e confirmação
 
 ---
 
@@ -203,8 +203,8 @@ Plans:
 - Vitrines de parceiros (hotéis, restaurantes)
 - Relatórios institucionais (FUMDHAM / SETUR-PI)
 
-**Status**: Não iniciada
-**Plans**: TBD
+**Status**: Complete (2026-05-13)
+**Plans**: 4/4 executados
 
 **Success Criteria**:
   1. Turista encontra um guia navegando pela listagem do destino
@@ -222,5 +222,5 @@ Plans:
 | 2 | Cadastro de Guias + Aprovação Admin | 4/4 | Complete | 2026-04-28 |
 | 3 | Roteiros e Disponibilidade | 3/3 | Complete | 2026-04-30 |
 | 4 | Motor de Pagamento | 3/3 | Complete | 2026-05-05 |
-| 5 | Painel do Guia | 5/6 | In progress | — |
-| 6 | Interface do Turista | 0/TBD | Not started | — |
+| 5 | Painel do Guia | 6/6 | Complete | 2026-05-13 |
+| 6 | Interface do Turista | 4/4 | Complete | 2026-05-13 |
