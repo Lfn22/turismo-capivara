@@ -2,94 +2,96 @@
 
 **Project:** Marketplace de guias de turismo — turistas encontram, comparam e reservam guias para roteiros específicos com pagamento integrado.
 
-**v1 scope:** 26 requirements across 8 categories.
+**Current milestone:** v1.1 Launch Readiness — 13 requirements across 5 categories.
 
 ---
 
-## v1 Requirements
+## v1.1 Requirements
 
-### Security (SEC) — Bloqueante para pagamento
+### Onboarding (ONBOARD)
 
-- [x] **SEC-01**: Todas as rotas da API validam input com Zod antes de processar dados (nenhuma rota aceita payload sem schema validation)
-- [x] **SEC-02**: CORS configurado via variável de ambiente (não hardcoded); @fastify/helmet registrado e ativo em produção
-- [x] **SEC-03**: Endpoints de booking, cancelamento e confirmação exigem autenticação JWT válida; cross-tenant ownership verificado em cada operação
-- [x] **SEC-04**: Plataforma oferece política de privacidade (LGPD) e usuário pode exportar/deletar seus dados
+- [ ] **ONBOARD-01**: Operadora pode criar conta via endpoint público (nome, email, senha, slug) — cria Tenant + 1º usuário ADMIN atomicamente com proteção contra race condition
+- [ ] **ONBOARD-02**: Operadora acessa página `/onboarding` com formulário de cadastro e checklist pós-signup (completar perfil, criar 1º guia, aguardar aprovação do sistema)
+- [ ] **ONBOARD-03**: Super-admin pode aprovar ou rejeitar novas operadoras via painel central antes de ficarem ativas no marketplace
 
-### Auth (AUTH)
+### Notificações (NOTIF)
 
-- [x] **AUTH-01**: Turista pode criar conta com email/senha e acessar a plataforma como CLIENTE
-- [x] **AUTH-02**: Guia pode criar conta com CPF/CNPJ e aguardar aprovação como CONDUTOR
-- [ ] **AUTH-03**: Admin pode aprovar ou rejeitar cadastro de guia; guia rejeitado recebe notificação de status
+- [ ] **NOTIF-01**: Turista recebe email de confirmação de reserva com código PIX, QR code e prazo de pagamento imediatamente após criar booking
+- [ ] **NOTIF-02**: Turista recebe email de confirmação quando pagamento PIX é confirmado via webhook do Mercado Pago
+- [ ] **NOTIF-03**: CONDUTOR recebe email quando admin aprova sua conta de guia
+- [ ] **NOTIF-04**: Turista recebe email de aviso quando booking expira (PIX não pago dentro do prazo)
 
-### Guide Profiles (GUIDE)
+### Operações (OPS)
 
-- [ ] **GUIDE-01**: Guia tem perfil público com foto, bio, especialidades e lista de regiões atendidas
-- [ ] **GUIDE-02**: Guias aprovados exibem badge visual de guia verificado no perfil e nas listagens
-- [ ] **GUIDE-03**: Guias podem ser agrupados sob uma operadora ou empresa com perfil compartilhado
-- [ ] **GUIDE-04**: Guia pode adicionar portfólio de fotos de experiências ao próprio perfil
+- [ ] **OPS-01**: Sistema expira automaticamente bookings com status PENDING após `expiresAt` e libera a capacidade do slot correspondente (cron a cada 60s, com lock de concorrência)
+- [ ] **OPS-02**: API limita requisições por IP em rotas de autenticação e endpoints públicos de booking; rotas de webhook do Mercado Pago são isentas
+- [ ] **OPS-03**: Erros não tratados em produção são capturados com contexto de tenant/usuário e alertados via Sentry
 
-### Packages & Itineraries (PKG)
+### Segurança (SEC)
 
-- [ ] **PKG-01**: Guia pode criar roteiro com título, descrição, preço, nível de dificuldade e slots de saída com datas
-- [ ] **PKG-02**: Múltiplos guias podem oferecer o mesmo roteiro com preços distintos e visíveis para comparação
-- [ ] **PKG-03**: Guia define número mínimo e máximo de participantes por slot ao criar ou editar disponibilidade
-- [ ] **PKG-04**: Guia pode gerenciar calendário de disponibilidade: adicionar, editar e cancelar slots futuros
+- [ ] **SEC-05**: CPF do turista no model Booking é armazenado como hash HMAC-SHA256 (nunca em plaintext); migração segura em 4 fases com dual-read durante janela de transição (LGPD)
 
-### Discovery & Search (DISC)
+### Self-service do Turista (TOURIST)
 
-- [ ] **DISC-01**: Turista pode filtrar roteiros disponíveis por região (implementada como tags de localização)
-- [ ] **DISC-02**: Turista pode ver múltiplos guias para o mesmo roteiro lado a lado com preços e badges (comparação)
-- [ ] **DISC-03**: Turista pode buscar roteiros por nome de roteiro ou destino via campo de busca textual
-- [ ] **DISC-04**: Listagem paginada de todos os roteiros disponíveis é exibida na página inicial
-
-### Bookings (BOOK)
-
-- [ ] **BOOK-01**: Turista pode reservar slot com garantia transacional de capacidade (anti-overbooking em concorrência)
-- [ ] **BOOK-02**: Reserva transita automaticamente para CONFIRMED após pagamento aprovado pelo gateway
-- [ ] **BOOK-03**: Turista pode cancelar reserva; política de reembolso aplicada conforme regra de antecedência
-
-### Payments (PAY)
-
-- [ ] **PAY-01**: Turista pode pagar reserva via PIX (Mercado Pago); confirmação instantânea após pagamento
-- [ ] **PAY-02**: Turista pode pagar reserva com cartão de crédito (Mercado Pago) como alternativa ao PIX
-- [ ] **PAY-03**: Plataforma calcula e repassa automaticamente o valor líquido ao guia após confirmação da reserva
-
-### Storefronts (STORE)
-
-- [ ] **STORE-01**: Admin pode cadastrar hotéis e restaurantes parceiros para exibição em destaque em roteiros relacionados (display only — sem booking)
+- [ ] **TOURIST-01**: Turista pode consultar sua reserva usando email + código da reserva (últimos 6 caracteres do ID) via endpoint público sem necessidade de conta
+- [ ] **TOURIST-02**: Turista pode visualizar o status atual da reserva e rever o QR code PIX se ainda PENDING via página `/[slug]/minha-reserva`
 
 ---
 
-## v2 Requirements (Deferred)
+## v1.1 Future Requirements (Deferred)
 
-- **PAY-v2-01**: Pagamento via Stripe para turistas internacionais (moeda estrangeira)
-- **BOOK-v2-01**: Checkout multi-guia: carrinho com múltiplos roteiros de guias diferentes em uma transação
-- **TRUST-v2-01**: Sistema de avaliações: turista avalia guia após conclusão do roteiro
-- **GUIDE-v2-01**: Reviews com nota média exibida no perfil e nas listagens
-- **MSG-v2-01**: Mensagens entre turista e guia antes da confirmação
-- **ADMIN-v2-01**: Dashboard de análise para guias (receita, taxa de ocupação, avaliações)
-
----
-
-## Out of Scope
-
-- Booking de hotéis/restaurantes dentro da plataforma — storefronts são display only; complexidade de pagamento split não justifica MVP
-- White-label multi-marketplace — requer infraestrutura de isolamento além do escopo de brownfield atual
-- Algoritmo de ranking ML para listagens — prematura otimização; relevância manual suficiente para MVP
-- Arbitragem de disputas de reembolso — requer suporte humano; escalar com volume
-- Painel administrativo regional — admins usam painel geral de tenant para v1
-- Tours multi-trecho ou multi-destino — complexidade de itinerário fora do escopo MVP
-- Seguro ou garantia de viagem — requer parceria jurídica; fora do produto
+- **NOTIF-05**: Templates de email com design visual — email básico resolve para lançamento (v1.2)
+- **OPS-04**: Queue de email com retry automático via BullMQ/Redis — fire-and-forget com logging suficiente para v1.1 (v1.2 se volume escalar)
+- **ONBOARD-04**: Verificação de email no signup — aprovação manual do super-admin compensa por ora (v1.2)
+- **TOURIST-03**: Links de recuperação com token por email — re-entrar no checkout resolve o imediato (v1.2)
+- **SEC-06**: Chave de idempotência em POST /bookings — risco baixo para v1.1 (v1.2)
 
 ---
 
-## Validated (Already in Codebase)
+## Out of Scope (v1.1)
 
-- ✓ **AUTH-E-01**: JWT authentication com login/logout e sessão persistida — *existing*
-- ✓ **AUTH-E-02**: Multi-tenant isolation por slug com roles ADMIN, ATENDENTE, CONDUTOR, CLIENTE — *existing*
-- ✓ **BOOK-E-01**: Sistema de booking com slots de capacidade, transação atômica anti-overbooking e ciclo de status PENDING→CONFIRMED→COMPLETED — *existing*
-- ✓ **PKG-E-01**: Tour packages com título, descrição, preço e nível de dificuldade — *existing*
-- ✓ **INFRA-E-01**: Deploy Railway com Nixpacks, monorepo Turborepo, pnpm workspaces — *existing*
+- **Pagamento com cartão de crédito** — PIX tem conversão superior no Brasil para ticket < R$500; cartão adiciona 3DS + antifraude (v2)
+- **Split payment / repasse automático ao guia** — requer conta MP verificada do guia, compliance Enterprise (v2)
+- **PDF de voucher** — email de confirmação resolve; ninguém pede PDF antes de 50 clientes (v2)
+- **Comparação de guias side-by-side** — sem volume de guias para fazer sentido (v2)
+- **Filtros e busca avançada** — sem dados, filtros sempre vazios (v2 quando > 20 pacotes)
+- **Rotas /destinos/* (discovery global)** — marketplace cross-tenant; estabilizar multi-tenant primeiro (v2)
+- **Notificações por WhatsApp/SMS** — email resolve com 1/10 do esforço (v2)
+- **SSO/OAuth para operadoras** — email+senha suficiente para early adopters B2B (v2)
+- **CAPTCHA no signup** — monitorar; adicionar se spam > 10/dia (v1.5 se necessário)
+
+---
+
+## Validated (v1.0 MVP — Completo)
+
+| REQ-ID | Descrição | Fase |
+|--------|-----------|------|
+| SEC-01 | Input validation com Zod em todas as rotas | Phase 1 |
+| SEC-02 | CORS configurável por env + Helmet ativo | Phase 1 |
+| SEC-03 | Endpoints de booking protegidos por JWT | Phase 1 |
+| SEC-04 | CPF de usuário hasheado HMAC-SHA256 (LGPD) | Phase 1 |
+| AUTH-01 | Turista pode se registrar e autenticar | Phase 2 |
+| AUTH-02 | Guia pode se registrar com CPF e aguardar aprovação | Phase 2 |
+| AUTH-03 | Admin pode aprovar ou rejeitar guias | Phase 2 |
+| GUIDE-01 | Guia pode criar e editar perfil público | Phase 2 |
+| GUIDE-02 | Guia exibe badge "Verificado" quando aprovado | Phase 2 |
+| GUIDE-03 | Turista pode ver perfil público do guia | Phase 2 |
+| GUIDE-04 | Guia pode adicionar fotos ao portfólio | Phase 2 |
+| PKG-01 | Guia pode criar roteiros com preço e capacidade | Phase 3 |
+| PKG-02 | Guia pode gerenciar slots de saída (calendário) | Phase 3 |
+| PKG-03 | Turista pode ver listagem de roteiros | Phase 3 |
+| PKG-04 | Turista pode ver detalhe de roteiro com guia | Phase 3 |
+| DISC-01 | Turista pode filtrar roteiros por destino | Phase 4 |
+| DISC-02 | Turista pode pesquisar guias | Phase 4 |
+| DISC-03 | Turista pode ver destinos disponíveis | Phase 4 |
+| DISC-04 | Turista pode comparar guias para o mesmo roteiro | Phase 4 |
+| STORE-01 | Vitrines de parceiros vinculadas a roteiros | Phase 4 |
+| BOOK-01 | Turista pode reservar um slot com anti-overbooking | Phase 5 |
+| BOOK-02 | Admin pode confirmar e cancelar reservas | Phase 5 |
+| BOOK-03 | Guia pode ver suas reservas no painel | Phase 5 |
+| PAY-01 | Turista paga via PIX com QR code (Mercado Pago) | Phase 5 |
+| PAY-02 | Webhook valida assinatura HMAC e confirma booking | Phase 5 |
+| PAY-03 | Guia pode ver painel com reservas e valores | Phase 5 |
 
 ---
 
@@ -97,35 +99,22 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| SEC-01 | Phase 1 — Security Hardening | Complete |
-| SEC-02 | Phase 1 — Security Hardening | Complete |
-| SEC-03 | Phase 1 — Security Hardening | Complete |
-| SEC-04 | Phase 1 — Security Hardening | Complete |
-| AUTH-01 | Phase 2 — User Access & Guide Onboarding | Complete |
-| AUTH-02 | Phase 2 — User Access & Guide Onboarding | Complete |
-| AUTH-03 | Phase 2 — User Access & Guide Onboarding | Pending |
-| GUIDE-01 | Phase 2 — User Access & Guide Onboarding | Pending |
-| GUIDE-02 | Phase 2 — User Access & Guide Onboarding | Pending |
-| GUIDE-03 | Phase 2 — User Access & Guide Onboarding | Pending |
-| GUIDE-04 | Phase 2 — User Access & Guide Onboarding | Pending |
-| PKG-01 | Phase 3 — Itineraries & Availability | Pending |
-| PKG-02 | Phase 3 — Itineraries & Availability | Pending |
-| PKG-03 | Phase 3 — Itineraries & Availability | Pending |
-| PKG-04 | Phase 3 — Itineraries & Availability | Pending |
-| DISC-01 | Phase 4 — Marketplace Discovery | Pending |
-| DISC-02 | Phase 4 — Marketplace Discovery | Pending |
-| DISC-03 | Phase 4 — Marketplace Discovery | Pending |
-| DISC-04 | Phase 4 — Marketplace Discovery | Pending |
-| STORE-01 | Phase 4 — Marketplace Discovery | Pending |
-| BOOK-01 | Phase 5 — Booking & Payments | Pending |
-| BOOK-02 | Phase 5 — Booking & Payments | Pending |
-| BOOK-03 | Phase 5 — Booking & Payments | Pending |
-| PAY-01 | Phase 5 — Booking & Payments | Pending |
-| PAY-02 | Phase 5 — Booking & Payments | Pending |
-| PAY-03 | Phase 5 — Booking & Payments | Pending |
+| ONBOARD-01 | Phase 8 | Pending |
+| ONBOARD-02 | Phase 8 | Pending |
+| ONBOARD-03 | Phase 8 | Pending |
+| NOTIF-01 | Phase 9 | Pending |
+| NOTIF-02 | Phase 9 | Pending |
+| NOTIF-03 | Phase 9 | Pending |
+| NOTIF-04 | Phase 9 | Pending |
+| OPS-01 | Phase 9 | Pending |
+| OPS-02 | Phase 7 | Pending |
+| OPS-03 | Phase 7 | Pending |
+| SEC-05 | Phase 8 | Pending |
+| TOURIST-01 | Phase 10 | Pending |
+| TOURIST-02 | Phase 10 | Pending |
 
-**Coverage:** 26/26 v1 requirements mapped. No orphans.
+**Coverage:** 13/13 v1.1 requirements. No orphans. Phases assigned by roadmapper.
 
 ---
 
-*Last updated: 2026-04-17 — traceability populated by roadmapper*
+*Last updated: 2026-05-15 — Roadmap v1.1 created, phases 7-10 assigned*

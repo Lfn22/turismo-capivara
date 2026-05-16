@@ -1,5 +1,20 @@
 # Turismo Capivara
 
+## Current Milestone: v1.1 Launch Readiness
+
+**Goal:** Remover todos os bloqueadores de receita e estabilizar o produto para operar com clientes reais.
+
+**Target features:**
+- Onboarding self-service da operadora (criação de tenant via UI + API)
+- Expiração automática de bookings PENDING (cron — liberar slots abandonados)
+- Notificações transacionais por email via Resend (booking criado, confirmado, guia aprovado)
+- "Minha reserva" — turista recupera booking por email sem criar conta
+- Rate limiting em rotas de auth e endpoints públicos
+- CPF do turista hasheado no Booking (LGPD — V-01)
+- Monitoramento de erros em produção (Sentry)
+- Índices de banco de dados + validação de minCapacity em bookings
+- Correção do middleware Web: slug ↔ tenantId cross-check
+
 ## What This Is
 
 Um marketplace de turismo onde guias publicam roteiros com seus próprios preços e turistas comparam guias para o mesmo roteiro antes de reservar e pagar online. Hotéis e restaurantes têm vitrines de exposição vinculadas a roteiros. A plataforma cobre múltiplas regiões, com operadoras podendo agregar guias sob sua marca.

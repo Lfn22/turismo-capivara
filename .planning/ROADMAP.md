@@ -1,220 +1,102 @@
-# Roadmap: Turismo Capivara — MVP
+# Roadmap: Turismo Capivara — v1.1 Launch Readiness
 
 ## Overview
 
-SaaS de turismo com foco inicial na Serra da Capivara (PI) como beachhead, construído para escalar para qualquer destino de ecoturismo e turismo histórico. O MVP valida o ciclo completo: guia se cadastra e publica roteiros → turista encontra, reserva e paga → guia recebe confirmação e gerencia seu painel.
+Prepara o CAPI para usuários reais: onboarding de operadoras sem intervenção manual, emails transacionais em todo o ciclo de reserva, expiração automática de bookings não pagos, proteção da API com rate limiting, observabilidade com Sentry, migração LGPD do CPF no Booking, e self-service do turista para consultar reservas sem conta.
 
-A arquitetura multi-tenant já existe. O motor de reserva com trava transacional já existe. O que o MVP entrega é a camada de identidade (cadastro/aprovação), a gestão de conteúdo pelo guia, o pagamento integrado e as interfaces web.
+**Milestone:** v1.1 Launch Readiness
+**Continues from:** v1.0 MVP (Phases 1–6, complete 2026-05-13)
+**Phases:** 4 (Phase 7–10)
+**Requirements:** 13 v1.1 requirements
 
-**Estratégia de negócio:** Comissão sobre transação (3–5% por reserva) em vez de assinatura mensal. Contato institucional com FUMDHAM/SETUR-PI após MVP rodando com dados reais.
+---
 
 ## Phase Numbering
 
-- Integer phases (1, 2, 3…): Trabalho planejado do milestone
-- Decimal phases (2.1, 2.2): Inserções urgentes (marcadas com INSERTED)
+v1.0 MVP ended at Phase 6. v1.1 starts at Phase 7.
+
+---
 
 ## Phases
 
-- [x] **Phase 1: Security Hardening** — 6 vulnerabilidades críticas corrigidas, API pronta para produção
-- [ ] **Phase 2: Cadastro de Guias + Aprovação Admin** — Registro de turistas e guias, aprovação por admin, perfis públicos
-- [x] **Phase 3: Roteiros e Disponibilidade** — Guia cria e gerencia roteiros e calendário de slots
-- [x] **Phase 4: Motor de Pagamento** — PIX via Mercado Pago + webhook de confirmação
-- [x] **Phase 5: Painel do Guia** — Interface web para o guia gerenciar reservas, pagamentos e roteiros
-- [x] **Phase 6: Interface do Turista** — Listagem de guias, perfil, fluxo de reserva e confirmação
+- [ ] **Phase 7: Platform Hardening** — Rate limiting + Sentry protegem e monitoram produção
+- [ ] **Phase 8: Operator Onboarding** — Operadoras se registram sem intervenção manual do dev
+- [ ] **Phase 9: Booking Lifecycle Automation** — Expiração automática + emails transacionais em todo o ciclo
+- [ ] **Phase 10: Tourist Self-Service** — Turista consulta e cancela reserva via email + código, sem conta
 
 ---
 
 ## Phase Details
 
-### Phase 1: Security Hardening
-**Goal**: API segura e pronta para produção — validação de input, autenticação em todos os endpoints, CORS/Helmet configurados, LGPD implementado.
-**Status**: Complete (2026-04-20)
-**Plans**: 4/4 executados e verificados
-**Success Criteria**:
-  1. Todas as rotas validam payload com Zod — requisições malformadas retornam 400
-  2. CORS aceita domínio de produção via env e rejeita origens não autorizadas
-  3. `@fastify/helmet` ativo e respondendo com headers de segurança
-  4. Endpoints de booking exigem JWT válido — 401 sem autenticação
-  5. Usuário pode exportar e solicitar exclusão dos próprios dados (LGPD)
-
----
-
-### Phase 2: Cadastro de Guias + Aprovação Admin
-**Goal**: Turistas criam conta, guias se cadastram com CPF e aguardam aprovação de admin. Após aprovação, perfil público do guia fica visível na plataforma.
-**Depends on**: Phase 1
-**Requirements**: AUTH-01, AUTH-02, AUTH-03, GUIDE-01, GUIDE-02, GUIDE-03, GUIDE-04
-
-**Schema — extensões necessárias no modelo User:**
-- `approvalStatus`: enum PENDING | APPROVED | REJECTED (nullable, só para CONDUTOR)
-- `cpf`: String? (obrigatório no registro de CONDUTOR)
-- `bio`: String?
-- `photoUrl`: String?
-- `specialties`: String[] (ex: arqueologia, trilha, fotografia)
-- `regions`: String[] (ex: Serra da Capivara, Piauí)
-- `rejectionReason`: String?
-
-**Endpoints a construir:**
-
-| Endpoint | Acesso | Finalidade |
-|---|---|---|
-| POST /auth/register | Público | Cadastro CLIENTE ou CONDUTOR (CONDUTOR inicia PENDING) |
-| GET /admin/tenants/:slug/guides | ADMIN | Lista guias com filtro de status |
-| PATCH /admin/tenants/:slug/guides/:id/status | ADMIN | Aprovar ou rejeitar guia |
-| GET /tenants/:slug/guides | Público | Lista guias aprovados do tenant |
-| GET /tenants/:slug/guides/:id | Público | Perfil público do guia |
-| PUT /tenants/:slug/guides/me | CONDUTOR | Guia atualiza próprio perfil |
-
-**Status**: Não iniciada (2 planos de schema+registro escritos, não executados)
-**Plans**: TBD
-
-**Success Criteria**:
-  1. Turista cria conta com email/senha e acessa a plataforma com role CLIENTE
-  2. Guia submete cadastro com CPF, bio e especialidades — status inicial é PENDING
-  3. Admin aprova ou rejeita guia via painel; status muda para APPROVED ou REJECTED
-  4. Perfil público do guia aprovado exibe foto, bio, especialidades e regiões atendidas
-  5. Guia rejeitado não aparece na listagem pública
-
----
-
-### Phase 3: Roteiros e Disponibilidade
-**Goal**: Guia aprovado cria e publica roteiros com preço e dificuldade, define slots de saída com datas e capacidade, e gerencia seu calendário.
-**Depends on**: Phase 2
-**Requirements**: PKG-01, PKG-02, PKG-03, PKG-04
-
-> **Nota:** TourPackage e DepartureSlot já existem no schema e têm endpoints de leitura. O que falta é a gestão pelo próprio guia (create/update/delete).
-
-**Endpoints a construir:**
-
-| Endpoint | Acesso | Finalidade |
-|---|---|---|
-| POST /tenants/:slug/packages | CONDUTOR | Guia cria roteiro |
-| PUT /tenants/:slug/packages/:id | CONDUTOR | Guia edita roteiro |
-| DELETE /tenants/:slug/packages/:id | CONDUTOR | Guia remove roteiro |
-| POST /tenants/:slug/packages/:id/slots | CONDUTOR | Guia cria slot de data |
-| PATCH /tenants/:slug/packages/:id/slots/:slotId | CONDUTOR | Edita slot |
-| DELETE /tenants/:slug/packages/:id/slots/:slotId | CONDUTOR | Remove slot |
-
-**Status**: Complete (2026-04-30)
-**Plans**: 3 plans
-- [x] 03-01-PLAN.md — Schema migration: add conductorId to TourPackage + minCapacity to DepartureSlot
-- [x] 03-02-PLAN.md — Package CRUD endpoints (POST/PUT/DELETE) with ownership + hasMinimumReached in GET
-- [x] 03-03-PLAN.md — Slot CRUD endpoints (POST/PATCH/DELETE) with cascade booking cancellation
-
-**Success Criteria**:
-  1. Guia cria roteiro com título, descrição, preço por pessoa e nível de dificuldade
-  2. Guia define slot de saída com data, vagas mínimas e máximas
-  3. Guia edita e cancela slots futuros no calendário de disponibilidade
-  4. Roteiro inativo não aparece para turistas
-
----
-
-### Phase 4: Motor de Pagamento
-**Goal**: Turista reserva um slot (trava transacional já existe) e paga via PIX pelo Mercado Pago. Webhook confirma o pagamento e transiciona a reserva para CONFIRMED automaticamente.
-**Depends on**: Phase 3
-**Requirements**: BOOK-01, BOOK-02, PAY-01, PAY-02
-
-> **Nota:** A trava transacional anti-overbooking já está implementada no POST /tenants/:slug/bookings. O que falta é a geração do link de pagamento e o webhook de confirmação.
-
-**O que construir:**
-
-| Componente | Detalhe |
-|---|---|
-| Integração SDK Mercado Pago | `@mercadopago/sdk-js` — geração de preference/link |
-| Modificar POST /bookings | Ao criar reserva → gera preference MP → retorna `payment_url` junto com a reserva |
-| POST /webhooks/mercadopago | Recebe `payment.updated` → valida assinatura → muda booking para CONFIRMED |
-| Idempotência no webhook | Evitar dupla confirmação em retentativas do MP |
-
-**Status**: Complete (2026-05-05)
-**Plans**: 3 planos
+### Phase 7: Platform Hardening
+**Goal:** Rate limiting e monitoramento de erros estão ativos em produção antes de qualquer usuário real acessar a API.
+**Depends on:** Phase 6 (v1.0 complete)
+**Requirements:** OPS-02, OPS-03
+**Success Criteria** (what must be TRUE):
+  1. Requisições repetidas do mesmo IP para rotas de auth e booking público recebem 429 com header Retry-After após ultrapassar o limite configurado
+  2. O endpoint `/webhooks/mercadopago` está na whitelist de rate limiting e nunca retorna 429 — payloads válidos do MP sempre são processados
+  3. Qualquer exceção não tratada em qualquer rota Fastify aparece no Sentry com tenant slug, route path e stack trace
+  4. O DSN do Sentry é lido de variável de ambiente — nenhum DSN hardcoded no código-fonte; environment tag diferencia production de staging
+**Plans:** 2 plans
 
 Plans:
-- [x] 04-01-PLAN.md — Setup, schema, AppError, fastify-raw-body, vitest
-- [x] 04-02-PLAN.md — PaymentService PIX + POST /bookings com compensação
-- [x] 04-03-PLAN.md — Webhook handler HMAC + transições de booking
-
-**Success Criteria**:
-  1. Ao criar reserva, turista recebe `payment_url` direto para o Mercado Pago
-  2. Após pagamento aprovado no MP, booking transiciona automaticamente para CONFIRMED via webhook
-  3. Webhook rejeita eventos sem assinatura válida do Mercado Pago
-  4. Dois turistas simultâneos no mesmo slot não excedem a capacidade (garantia transacional)
+- [ ] 07-01-PLAN.md — Rate limiting: trustProxy, @fastify/rate-limit global, overrides por rota (auth 20/min, booking 60/min), webhook isento
+- [ ] 07-02-PLAN.md — Sentry: initSentry(), setupFastifyErrorHandler, filtro AppError, contexto tenant/usuário
 
 ---
 
-### Phase 5: Painel do Guia
-**Goal**: Interface web para o guia gerenciar reservas, pagamentos, roteiros e disponibilidade. Interface admin para aprovar ou rejeitar guias.
-**Depends on**: Phase 4
-**Requirements**: GUIDE-02, GUIDE-03, GUIDE-04
-
-**Telas do guia:**
-
-| Tela | O que mostra |
-|---|---|
-| Dashboard | Resumo: reservas pendentes, reservas pagas, próximos slots |
-| Reservas | Lista com nome do turista, data do slot, status (PENDING / CONFIRMED / CANCELLED) |
-| Roteiros | Meus roteiros ativos, criar novo, editar |
-| Disponibilidade | Calendário de slots com vagas abertas e fechadas |
-| Perfil | Editar bio, foto, especialidades e regiões |
-
-**Tela admin:**
-
-| Tela | O que faz |
-|---|---|
-| Aprovação de guias | Lista PENDING com CPF, bio, especialidades → botão Aprovar / Rejeitar com motivo |
-
-**Status**: Em progresso (4/6 planos executados)
-**Plans**: 6 planos
-
-Plans:
-- [x] 05-01-PLAN.md — API gaps (GET /guides/me/bookings + PATCH /guides/me/profile) + instalar next-auth/react-calendar
-- [x] 05-02-PLAN.md — NextAuth wiring: lib/auth.ts, middleware.ts, /[slug]/login page
-- [x] 05-03-PLAN.md — Componentes compartilhados: SidebarNav, StatusBadge, Modal, layouts de route group
-- [x] 05-04-PLAN.md — Telas Dashboard e Reservas (consume GET /guides/me/bookings)
-- [x] 05-05-PLAN.md — Telas Roteiros e Disponibilidade (calendário react-calendar + modal de slot)
-- [ ] 05-06-PLAN.md — Tela Perfil (GUIDE-02 badge) + Admin Guias (GUIDE-03) + remoção de legacy
-
-**Success Criteria**:
-  1. Guia acessa painel e vê reservas organizadas por status e data
-  2. Guia distingue reservas aguardando pagamento das confirmadas
-  3. Guia cria e edita roteiros diretamente pelo painel
-  4. Admin vê guias pendentes e aprova ou rejeita com motivo registrado
+### Phase 8: Operator Onboarding
+**Goal:** Uma nova operadora pode criar sua conta e tenant via formulário público, sem que o desenvolvedor precise tocar no banco de dados.
+**Depends on:** Phase 7
+**Requirements:** ONBOARD-01, ONBOARD-02, ONBOARD-03, SEC-05
+**Success Criteria** (what must be TRUE):
+  1. Operadora preenche o formulário em `/onboarding` com nome, email, senha e slug — um Tenant + usuário ADMIN são criados atomicamente; qualquer falha parcial reverte a transação
+  2. Após signup bem-sucedido, operadora vê checklist pós-cadastro: completar perfil, criar 1º guia, aguardar aprovação do sistema
+  3. Super-admin pode aprovar ou rejeitar a operadora em painel central antes de ela ficar ativa no marketplace; operadora rejeitada não aparece em listagens públicas
+  4. Nenhum CPF em plaintext existe na tabela `Booking` após a migração — lookup por email + código de reserva funciona corretamente com CPF hasheado
+**Plans:** TBD
+**UI hint**: yes
 
 ---
 
-### Phase 6: Interface do Turista
-**Goal**: Interface web mínima para o turista encontrar um guia, ver disponibilidade, reservar e pagar. Listagem por destino, sem discovery avançado.
-**Depends on**: Phase 5
-**Requirements**: DISC-01, BOOK-01, BOOK-02, PAY-01
+### Phase 9: Booking Lifecycle Automation
+**Goal:** Bookings não pagos expiram automaticamente liberando a vaga, e cada transição de estado da reserva dispara o email transacional correto para o turista ou guia.
+**Depends on:** Phase 8
+**Requirements:** OPS-01, NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04
+**Success Criteria** (what must be TRUE):
+  1. Um booking criado mas não pago dentro da janela configurada (ex: 30 min) transiciona para EXPIRED via cron — a capacidade do slot é decrementada de volta e o slot fica disponível para novos turistas
+  2. Turista recebe email imediato ao criar booking (status PENDING) com código PIX, QR code e prazo de pagamento
+  3. Turista recebe email de confirmação quando pagamento PIX é aprovado (status CONFIRMED via webhook Mercado Pago)
+  4. Turista recebe email de aviso quando booking expira — PIX não pago dentro do prazo
+  5. CONDUTOR recebe email quando admin aprova sua conta de guia
+**Plans:** TBD
 
-**Telas:**
+---
 
-| Tela | O que faz |
-|---|---|
-| Home / Listagem | Guias aprovados por destino, com foto, especialidades e roteiros disponíveis |
-| Perfil do guia | Bio, roteiros publicados, calendário de slots com vagas |
-| Fluxo de reserva | Selecionar slot → preencher nome/email → ir para pagamento |
-| Redirect Mercado Pago | Pagamento externo |
-| Confirmação | "Reserva confirmada. Você receberá contato do guia." |
-
-**Deferred (pós-MVP):**
-- Busca por texto e filtros avançados
-- Comparação de guias lado a lado
-- Multi-guia por roteiro
-- Reviews e avaliações
-- Vitrines de parceiros (hotéis, restaurantes)
-- Relatórios institucionais (FUMDHAM / SETUR-PI)
-
-**Status**: Complete (2026-05-13)
-**Plans**: 4/4 executados
-
-**Success Criteria**:
-  1. Turista encontra um guia navegando pela listagem do destino
-  2. Turista reserva um slot e é redirecionado para o Mercado Pago
-  3. Após pagamento, turista vê tela de confirmação com detalhes da reserva
-  4. Fluxo completo funciona sem conta cadastrada (guest checkout)
+### Phase 10: Tourist Self-Service
+**Goal:** Turista encontra e gerencia sua reserva usando apenas email + código da reserva — sem necessidade de criar conta ou fazer login.
+**Depends on:** Phase 9
+**Requirements:** TOURIST-01, TOURIST-02
+**Success Criteria** (what must be TRUE):
+  1. Turista acessa `/[slug]/minha-reserva`, insere email + últimos 6 caracteres do ID da reserva e vê detalhes completos: status, roteiro, data, guia, valor
+  2. Se booking está PENDING, turista vê o QR code PIX na página de consulta e pode rever o prazo de pagamento
+  3. Turista com booking cancelável (PENDING ou CONFIRMED, antes do cutoff) pode solicitar cancelamento pela página de consulta e recebe email de cancelamento
+  4. O endpoint de lookup retorna erro genérico para combinações inválidas — não revela se o email ou o código individualmente existem no sistema
+**Plans:** TBD
+**UI hint**: yes
 
 ---
 
 ## Progress
+
+| Phase | Nome | Plans Complete | Status | Concluída |
+|-------|------|----------------|--------|-----------|
+| 7 | Platform Hardening | 0/2 | In progress | - |
+| 8 | Operator Onboarding | 0/? | Not started | - |
+| 9 | Booking Lifecycle Automation | 0/? | Not started | - |
+| 10 | Tourist Self-Service | 0/? | Not started | - |
+
+**v1.0 MVP (Phases 1–6): 6/6 complete**
 
 | Phase | Nome | Plans | Status | Concluída |
 |-------|------|-------|--------|-----------|

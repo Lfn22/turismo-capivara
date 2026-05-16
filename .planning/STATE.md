@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: MVP
-status: complete
-stopped_at: "06-04 complete — MVP v1.0 todos os 6 fases executadas"
-last_updated: "2026-05-14T13:00:00Z"
-last_activity: 2026-05-13
+milestone: v1.1
+milestone_name: Launch Readiness
+status: in_progress
+stopped_at: ""
+last_updated: "2026-05-15T21:15:00-03:00"
+last_activity: 2026-05-15
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 24
-  completed_plans: 24
-  percent: 100
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # STATE.md — Turismo Capivara
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-17)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Phase 6 — Interface do Turista
+**Current focus:** Milestone v1.1 — Launch Readiness
 
 ## Current Position
 
-Phase: 6 de 6 (Interface do Turista)
-Plan: 4 de 4 executados
-Status: MVP COMPLETO — 6/6 fases executadas, 24/24 planos
-Last activity: 2026-05-14 - Phase 06-04 complete: legacy cleanup, all 6 phases done
+Phase: 7 (not started)
+Plan: —
+Status: Roadmap complete — ready to plan Phase 7
+Last activity: 2026-05-15 — v1.1 roadmap created (Phases 7–10)
 
 ## Decisões estratégicas
 
