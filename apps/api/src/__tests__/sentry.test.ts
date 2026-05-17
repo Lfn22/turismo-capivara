@@ -79,9 +79,13 @@ describe('Sentry integration', () => {
     const savedDsn = process.env.SENTRY_DSN
     delete process.env.SENTRY_DSN
 
-    // initSentry will be created in sentry.ts (Task 2)
+    // Reset module registry so sentry.ts re-evaluates with the mutated env
+    vi.resetModules()
     const { initSentry } = await import('../shared/sentry')
     expect(() => initSentry()).not.toThrow()
+
+    // Sentry.init must NOT have been called when DSN is absent
+    expect(Sentry.init).not.toHaveBeenCalled()
 
     if (savedDsn !== undefined) {
       process.env.SENTRY_DSN = savedDsn
