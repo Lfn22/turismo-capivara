@@ -1,4 +1,9 @@
 import 'dotenv/config'
+import { initSentry, Sentry } from './shared/sentry'
+
+// Must be called before Fastify is created (per D-08 / Sentry docs)
+initSentry()
+
 import Fastify from 'fastify'
 import rawBody from 'fastify-raw-body'
 import jwt from '@fastify/jwt'
@@ -16,6 +21,10 @@ import { destinationsRoutes } from './modules/destinations/destinations.routes'
 import { AppError } from './shared/errors/AppError'
 
 const app = Fastify({ logger: true, trustProxy: true })
+
+// Sentry MUST be registered before custom setErrorHandler (per D-08)
+// This adds Sentry as an outer error handler in the Fastify lifecycle.
+Sentry.setupFastifyErrorHandler(app)
 
 app.register(rawBody, {
   global: false,
@@ -64,10 +73,20 @@ app.register(guidesRoutes)
 app.register(webhooksRoutes)
 app.register(destinationsRoutes)
 
-app.setErrorHandler((err, _request, reply) => {
+app.setErrorHandler((err, request, reply) => {
   if (err instanceof AppError) {
+    // Business error — expected, do NOT send to Sentry (per D-07)
     return reply.status(err.statusCode).send({ message: err.message })
   }
+  // Unexpected error — capture with tenant/user context (per D-06)
+  Sentry.withScope((scope) => {
+    const params = request.params as Record<string, string>
+    if (params?.slug) scope.setTag('tenant_slug', params.slug)
+    const user = (request as any).user as { sub?: string } | undefined
+    if (user?.sub) scope.setUser({ id: user.sub })
+    scope.setTag('route', `${request.method} ${request.url}`)
+    Sentry.captureException(err)
+  })
   app.log.error(err)
   reply.status(500).send({ message: 'Erro interno do servidor' })
 })
