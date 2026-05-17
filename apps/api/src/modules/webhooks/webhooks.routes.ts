@@ -60,10 +60,13 @@ export async function webhooksRoutes(app: FastifyInstance) {
       config: { rawBody: true, rateLimit: false }, // rawBody: fastify-raw-body; rateLimit: exempt webhook from global limit
     },
     async (request, reply) => {
-      // 1. Validate x-signature header present
+      // 1. Validate x-signature header present.
+      // Return 200 (not 400) regardless of why validation fails — a 400 here
+      // would leak that the endpoint inspects headers, enabling enumeration.
       const signatureHeader = request.headers['x-signature']
       if (!signatureHeader || typeof signatureHeader !== 'string') {
-        return reply.status(400).send({ message: 'Assinatura ausente' })
+        app.log.warn('Webhook recebido sem cabeçalho x-signature')
+        return reply.status(200).send({ message: 'ok' })
       }
 
       // 2. Parse body for data.id (payment ID)
@@ -71,7 +74,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
       const paymentId = body?.data?.id
 
       if (!paymentId) {
-        return reply.status(400).send({ message: 'ID de pagamento ausente' })
+        return reply.status(200).send({ message: 'ok' })
       }
 
       // 3. Validate HMAC-SHA256 signature using manifest: "id:<paymentId>;request-date:<ts>;"
