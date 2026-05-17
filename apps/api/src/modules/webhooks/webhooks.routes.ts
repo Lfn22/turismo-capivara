@@ -57,7 +57,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
   app.post(
     '/webhooks/mercadopago',
     {
-      config: { rawBody: true }, // Required: fastify-raw-body registered with global: false
+      config: { rawBody: true, rateLimit: false }, // rawBody: fastify-raw-body; rateLimit: exempt webhook from global limit
     },
     async (request, reply) => {
       // 1. Validate x-signature header present

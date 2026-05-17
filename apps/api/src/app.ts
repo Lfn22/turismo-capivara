@@ -4,6 +4,7 @@ import rawBody from 'fastify-raw-body'
 import jwt from '@fastify/jwt'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
+import rateLimit from '@fastify/rate-limit'
 import { tenantsRoutes } from './modules/tenants/tenants.routes'
 import { packagesRoutes } from './modules/packages/packages.routes'
 import { bookingsRoutes } from './modules/bookings/bookings.routes'
@@ -14,7 +15,7 @@ import { webhooksRoutes } from './modules/webhooks/webhooks.routes'
 import { destinationsRoutes } from './modules/destinations/destinations.routes'
 import { AppError } from './shared/errors/AppError'
 
-const app = Fastify({ logger: true })
+const app = Fastify({ logger: true, trustProxy: true })
 
 app.register(rawBody, {
   global: false,
@@ -29,6 +30,19 @@ app.register(cors, {
 
 app.register(helmet)
 
+app.register(rateLimit, {
+  global: true,
+  max: 20,
+  timeWindow: '1 minute',
+  addHeaders: {
+    'x-ratelimit-limit': true,
+    'x-ratelimit-remaining': true,
+    'x-ratelimit-reset': true,
+    'retry-after': true,
+  },
+  // In-memory LRU — Redis deferred (post-MVP, multi-instance scenario)
+})
+
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required')
 }
@@ -37,7 +51,7 @@ app.register(jwt, {
   secret: process.env.JWT_SECRET,
 })
 
-app.get('/health', async () => {
+app.get('/health', { config: { rateLimit: false } }, async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }
 })
 

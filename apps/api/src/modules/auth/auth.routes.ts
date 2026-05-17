@@ -40,7 +40,7 @@ const registerBodySchema = z.discriminatedUnion('role', [
 ])
 
 export async function authRoutes(app: FastifyInstance) {
-  app.post('/auth/login', async (request, reply) => {
+  app.post('/auth/login', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     let body
     try {
       body = loginBodySchema.parse(request.body)
@@ -97,7 +97,7 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.status(200).send({ token })
   })
 
-  app.post('/tenants/:slug/auth/register', async (request, reply) => {
+  app.post('/tenants/:slug/auth/register', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     let params
     try {
       params = slugParamsSchema.parse(request.params)

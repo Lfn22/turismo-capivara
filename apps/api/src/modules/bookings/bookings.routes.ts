@@ -35,7 +35,7 @@ function zodError400(err: ZodError) {
 }
 
 export async function bookingsRoutes(app: FastifyInstance) {
-  app.post('/tenants/:slug/bookings', async (request, reply) => {
+  app.post('/tenants/:slug/bookings', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (request, reply) => {
     let params
     try {
       params = slugParamsSchema.parse(request.params)
