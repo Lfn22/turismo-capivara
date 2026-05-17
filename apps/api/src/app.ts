@@ -1,7 +1,12 @@
 import 'dotenv/config'
 import { initSentry, Sentry } from './shared/sentry'
 
-// Must be called before Fastify is created (per D-08 / Sentry docs)
+// NOTE: This project uses CommonJS (no "type":"module" in package.json).
+// In CJS, `require()` calls are executed in order — static `import` statements
+// at the top are NOT hoisted past runtime code, unlike ESM.
+// Therefore, `initSentry()` here runs before Fastify is instantiated, satisfying
+// the Sentry SDK requirement (D-08): SDK must be initialized before any
+// instrumented framework is created.
 initSentry()
 
 import Fastify from 'fastify'
