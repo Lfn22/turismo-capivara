@@ -40,7 +40,7 @@ v1.0 MVP ended at Phase 6. v1.1 starts at Phase 7.
 **Plans:** 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Rate limiting: trustProxy, @fastify/rate-limit global, overrides por rota (auth 20/min, booking 60/min), webhook isento
+- [x] 07-01-PLAN.md — Rate limiting: trustProxy, @fastify/rate-limit global, overrides por rota (auth 20/min, booking 60/min), webhook isento
 - [ ] 07-02-PLAN.md — Sentry: initSentry(), setupFastifyErrorHandler, filtro AppError, contexto tenant/usuário
 
 ---
