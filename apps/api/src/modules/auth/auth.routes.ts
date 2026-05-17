@@ -190,7 +190,10 @@ export async function authRoutes(app: FastifyInstance) {
   })
 
   // GET /auth/me — returns verified JWT claims without exposing raw token to client
-  app.get('/auth/me', { preHandler: [authenticate] }, async (request, reply) => {
+  // Higher rate limit: this endpoint is called on every authenticated page-load,
+  // so the global 20/min cap would block normal usage. 120/min (2/s) is generous
+  // yet still protects against credential-stuffing enumeration.
+  app.get('/auth/me', { preHandler: [authenticate], config: { rateLimit: { max: 120, timeWindow: '1 minute' } } }, async (request, reply) => {
     const user = request.user as { sub: string; role: string; tenantId: string }
     return reply.status(200).send({
       id: user.sub,
