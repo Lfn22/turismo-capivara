@@ -19,7 +19,7 @@ v1.0 MVP ended at Phase 6. v1.1 starts at Phase 7.
 
 ## Phases
 
-- [ ] **Phase 7: Platform Hardening** — Rate limiting + Sentry protegem e monitoram produção
+- [x] **Phase 7: Platform Hardening** — Rate limiting + Sentry protegem e monitoram produção
 - [ ] **Phase 8: Operator Onboarding** — Operadoras se registram sem intervenção manual do dev
 - [ ] **Phase 9: Booking Lifecycle Automation** — Expiração automática + emails transacionais em todo o ciclo
 - [ ] **Phase 10: Tourist Self-Service** — Turista consulta e cancela reserva via email + código, sem conta
@@ -41,7 +41,7 @@ v1.0 MVP ended at Phase 6. v1.1 starts at Phase 7.
 
 Plans:
 - [x] 07-01-PLAN.md — Rate limiting: trustProxy, @fastify/rate-limit global, overrides por rota (auth 20/min, booking 60/min), webhook isento
-- [ ] 07-02-PLAN.md — Sentry: initSentry(), setupFastifyErrorHandler, filtro AppError, contexto tenant/usuário
+- [x] 07-02-PLAN.md — Sentry: initSentry(), setupFastifyErrorHandler, filtro AppError, contexto tenant/usuário
 
 ---
 

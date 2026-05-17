@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: Launch Readiness
 status: in_progress
 stopped_at: ""
-last_updated: "2026-05-15T21:15:00-03:00"
-last_activity: 2026-05-15
+last_updated: "2026-05-17T10:41:00-03:00"
+last_activity: 2026-05-17
 progress:
   total_phases: 4
   completed_phases: 0
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 7 (not started)
-Plan: —
-Status: Roadmap complete — ready to plan Phase 7
+Phase: 7 (complete)
+Plan: 02 (complete)
+Status: Phase 7 complete — 2/2 plans done
 Last activity: 2026-05-15 — v1.1 roadmap created (Phases 7–10)
 
 ## Decisões estratégicas
@@ -73,6 +73,7 @@ Last activity: 2026-05-15 — v1.1 roadmap created (Phases 7–10)
 - Rejeitar flow usa modal com textarea obrigatório; Aprovar é PATCH direto sem confirmação
 - portfolioPhotos aceito como string[] com validação de URL no schema Zod
 - Badge "Guia Verificado" condicionado a approvalStatus === APPROVED via /auth/me
+- Sentry DSN lido de process.env.SENTRY_DSN — initSentry() no-op quando ausente; AppError filtrada antes de captureException (D-07)
 
 ## Fase 2 — Contexto de execução
 
