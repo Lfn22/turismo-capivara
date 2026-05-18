@@ -54,7 +54,12 @@ Plans:
   2. Após signup bem-sucedido, operadora vê checklist pós-cadastro: completar perfil, criar 1º guia, aguardar aprovação do sistema
   3. Super-admin pode aprovar ou rejeitar a operadora em painel central antes de ela ficar ativa no marketplace; operadora rejeitada não aparece em listagens públicas
   4. Nenhum CPF em plaintext existe na tabela `Booking` após a migração — lookup por email + código de reserva funciona corretamente com CPF hasheado
-**Plans:** TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Schema migration, shared hashCpf utility, Wave 0 test stubs, DB push + seed
+- [ ] 08-02-PLAN.md — API endpoints: signup, check-slug, pending list, approve, reject + email templates
+- [ ] 08-03-PLAN.md — Web: middleware, onboarding form, aguardando checklist, super-admin panel
 **UI hint**: yes
 
 ---
