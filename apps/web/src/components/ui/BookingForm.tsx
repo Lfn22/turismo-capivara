@@ -61,7 +61,8 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
     setError(null);
 
     try {
-      const res = await fetch(`/api/tenants/${slug}/bookings`, {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333';
+      const res = await fetch(`${apiBase}/tenants/${slug}/bookings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -80,13 +81,14 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
       }
 
       const data = await res.json();
-      const checkoutUrl: string | undefined = data?.checkoutUrl ?? data?.init_point ?? data?.data?.checkoutUrl;
-
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl;
-      } else {
-        router.push(`/${slug}/confirmacao?bookingId=${data?.id ?? data?.data?.id ?? ''}`);
+      const bookingId: string = data?.id ?? data?.data?.id ?? '';
+      // CR-01: validate bookingId is a UUID before using in navigation
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE.test(bookingId)) {
+        throw new Error('Resposta inválida do servidor. Tente novamente.');
       }
+      setLoading(false); // WR-03: unlock form before navigation
+      router.push(`/${slug}/checkout?bookingId=${bookingId}&email=${encodeURIComponent(form.email)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado.');
       setLoading(false);
@@ -155,6 +157,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           name="pax"
           type="number"
           min={1}
+          max={20}
           required
           value={form.pax}
           onChange={handleChange}

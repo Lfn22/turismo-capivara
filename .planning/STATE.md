@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 7 (complete)
-Plan: 02 (complete)
-Status: Phase 7 complete — 2/2 plans done
-Last activity: 2026-05-15 — v1.1 roadmap created (Phases 7–10)
+Phase: 8 (planned — ready to execute)
+Plan: 00 (not started)
+Status: Phase 8 planned — 3 plans ready (08-01, 08-02, 08-03)
+Last activity: 2026-05-18 — Phase 8 planning complete
 
 ## Decisões estratégicas
 

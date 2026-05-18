@@ -33,6 +33,8 @@ Turista encontra, compara e reserva um guia para seu roteiro desejado — tudo e
 - ✓ API Fastify 5 + Prisma 7 + PostgreSQL — existente
 - ✓ Frontend Next.js 16 + React 19 — existente
 - ✓ Deploy via Railway com variáveis de ambiente — existente
+- ✓ Rate limiting por IP (OPS-02) — validado em Phase 7: auth 20/min, booking 60/min, webhook isento
+- ✓ Monitoramento de erros com Sentry (OPS-03) — validado em Phase 7: filtro AppError, contexto tenant/user
 
 ### Active
 
@@ -109,4 +111,4 @@ Este documento evolui a cada transição de fase e marco de milestone.
 4. Atualizar Context com estado atual
 
 ---
-*Last updated: 2026-04-17 após inicialização do projeto*
+*Last updated: 2026-05-17 — Phase 7 complete: rate limiting + Sentry ativos em produção*

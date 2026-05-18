@@ -9,7 +9,7 @@ interface GuideData {
   especialidades: string[]
   regioes: string[]
   portfolioPhotos: string[]
-  user: { id: string; name: string }
+  user: { id: string; name: string; approvalStatus: string }
 }
 
 interface DepartureSlot {
@@ -118,9 +118,34 @@ export default async function GuideProfilePage({
         </div>
 
         <div>
-          <h1 style={{ margin: '0 0 0.5rem', fontSize: '1.5rem', fontWeight: 700, color: '#1c1917' }}>
-            {guide.user.name}
-          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#1c1917' }}>
+              {guide.user.name}
+            </h1>
+            {guide.user.approvalStatus === 'APPROVED' && (
+              <span
+                title="Guia verificado"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  backgroundColor: '#f0fdf4',
+                  color: '#15803d',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '999px',
+                  border: '1px solid #bbf7d0',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                Verificado
+              </span>
+            )}
+          </div>
 
           {guide.especialidades.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.75rem' }}>
