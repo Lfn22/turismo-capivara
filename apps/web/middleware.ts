@@ -34,7 +34,7 @@ export default withAuth(
     }
 
     if (pathname.startsWith('/super-admin') && token?.role !== 'SUPER_ADMIN') {
-      return NextResponse.redirect(new URL('/login?error=forbidden', req.url))
+      return NextResponse.redirect(new URL('/', req.url))
     }
 
     return NextResponse.next()
