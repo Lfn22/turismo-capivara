@@ -1,7 +1,13 @@
 import 'dotenv/config'
+import { createHmac } from 'crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 import { hashSync } from 'bcryptjs'
+
+function hashCpf(cpf: string): string {
+  const secret = process.env.CPF_SECRET ?? 'dev-seed-secret'
+  return createHmac('sha256', secret).update(cpf).digest('hex')
+}
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -25,6 +31,7 @@ async function main() {
     data: {
       name: 'Receptivo Serra Viva',
       slug: 'serra-viva',
+      approvalStatus: 'APPROVED',
     },
   })
 
@@ -32,6 +39,7 @@ async function main() {
     data: {
       name: 'Agencia Capivara Turismo',
       slug: 'capivara-turismo',
+      approvalStatus: 'APPROVED',
     },
   })
 
@@ -177,7 +185,7 @@ async function main() {
         customerName: 'Maria Turista',
         customerEmail: 'maria@teste.com',
         customerPhone: '86999990000',
-        customerCpf: '11122233344',
+        customerCpfHash: hashCpf('11122233344'),
         pax: 2,
         status: 'PENDING',
       },
@@ -189,13 +197,35 @@ async function main() {
     })
   }
 
+  console.log('Criando plataforma e super admin...')
+
+  const platformTenant = await prisma.tenant.create({
+    data: {
+      name: 'CAPI Platform',
+      slug: 'capi-platform',
+      approvalStatus: 'APPROVED',
+    },
+  })
+
+  await prisma.user.create({
+    data: {
+      tenantId: platformTenant.id,
+      name: 'Super Admin',
+      email: process.env.SUPER_ADMIN_EMAIL ?? 'superadmin@capi.turismo',
+      password: hashSync(process.env.SUPER_ADMIN_PASSWORD ?? 'superadmin123', 10),
+      role: 'SUPER_ADMIN',
+      approvalStatus: 'APPROVED',
+    },
+  })
+
   console.log('Seed concluido!')
-  console.log('Tenants: serra-viva | capivara-turismo')
+  console.log('Tenants: serra-viva | capivara-turismo | capi-platform')
   console.log('Usuarios:')
   console.log('  ADMIN: carlos@serraviva.com / senha123')
   console.log('  CONDUTOR (APPROVED): ana@serraviva.com / senha123')
   console.log('  CONDUTOR (PENDING): joao@serraviva.com / senha123')
   console.log('  ADMIN (tenant2): pedro@capivaraturismo.com / senha123')
+  console.log('  SUPER_ADMIN: superadmin@capi.turismo / superadmin123')
 }
 
 main()
