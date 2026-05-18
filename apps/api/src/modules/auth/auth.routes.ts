@@ -1,17 +1,11 @@
 import { FastifyInstance } from 'fastify'
-import { createHmac } from 'crypto'
 import { compareSync, hashSync } from 'bcryptjs'
 import { z, ZodError } from 'zod'
 import { Prisma } from '@prisma/client'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
-
-function hashCpf(cpf: string): string {
-  const secret = process.env.CPF_SECRET
-  if (!secret) throw new Error('CPF_SECRET environment variable is required')
-  return createHmac('sha256', secret).update(cpf).digest('hex')
-}
+import { hashCpf } from '../../shared/utils/hash'
 
 const loginBodySchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),

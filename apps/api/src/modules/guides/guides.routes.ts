@@ -289,7 +289,7 @@ export async function guidesRoutes(app: FastifyInstance) {
       orderBy: { createdAt: 'desc' },
     })
 
-    const safeBookings = bookings.map(({ customerCpf, customerPhone, ...b }) => b)
+    const safeBookings = bookings.map(({ customerCpfHash, customerPhone, ...b }) => b)
     return reply.status(200).send({ bookings: safeBookings })
   })
 

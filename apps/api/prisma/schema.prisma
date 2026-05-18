@@ -24,12 +24,14 @@ model Destination {
 }
 
 model Tenant {
-  id            String   @id @default(cuid())
-  name          String
-  slug          String   @unique
-  destinationId String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String               @id @default(cuid())
+  name            String
+  slug            String               @unique
+  destinationId   String?
+  approvalStatus  TenantApprovalStatus @default(PENDING)
+  rejectionReason String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
   destination  Destination?  @relation(fields: [destinationId], references: [id])
   users        User[]
@@ -114,7 +116,7 @@ model Booking {
   customerEmail String
   customerPhone String
   pax           Int
-  customerCpf   String?
+  customerCpfHash String?
   paymentId     String?
   paymentUrl    String?
   expiresAt     DateTime?
@@ -143,6 +145,7 @@ enum Role {
   ATENDENTE
   CONDUTOR
   CLIENTE
+  SUPER_ADMIN
 }
 
 enum ApprovalStatus {
@@ -172,4 +175,10 @@ enum Difficulty {
   EASY
   MODERATE
   HARD
+}
+
+enum TenantApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

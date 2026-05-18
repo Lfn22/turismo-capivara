@@ -5,13 +5,14 @@ import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { AppError } from '../../shared/errors/AppError'
 import { createPixPayment } from '../../services/payment.service'
+import { hashCpf } from '../../shared/utils/hash'
 
 const createBookingBodySchema = z.object({
   slotId: z.string().min(1, { message: 'slotId obrigatório' }),
   customerName: z.string().min(1, { message: 'Nome do cliente obrigatório' }),
   customerEmail: z.string().email({ message: 'Email do cliente inválido' }),
   customerPhone: z.string().min(1, { message: 'Telefone do cliente obrigatório' }),
-  customerCpf: z.string().min(11, { message: 'CPF do cliente obrigatório' }),
+  customerCpf: z.string().regex(/^\d{11}$/, { message: 'CPF deve conter 11 dígitos numéricos' }),
   pax: z.number().int().positive({ message: 'Número de participantes deve ser inteiro positivo' }),
 })
 
@@ -111,7 +112,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
           customerName,
           customerEmail,
           customerPhone,
-          customerCpf,
+          customerCpfHash: hashCpf(customerCpf),
           pax,
           status: 'PENDING',
         },
@@ -234,7 +235,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
         throw new AppError('Reserva não encontrada', 404)
       }
 
-      const { customerCpf, customerPhone, ...safeBooking } = booking
+      const { customerCpfHash, customerPhone, ...safeBooking } = booking
       return safeBooking
     }
   )
@@ -305,7 +306,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
         })
       })
 
-      const { customerCpf, customerPhone, ...safeBooking } = updated
+      const { customerCpfHash, customerPhone, ...safeBooking } = updated
       return safeBooking
     }
   )
@@ -354,7 +355,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
         data: { status: 'CONFIRMED' },
       })
 
-      const { customerCpf, customerPhone, ...safeBooking } = updated
+      const { customerCpfHash, customerPhone, ...safeBooking } = updated
       return safeBooking
     }
   )
