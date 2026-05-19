@@ -124,6 +124,10 @@ export async function tenantsRoutes(app: FastifyInstance) {
       })
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const target = err.meta?.target as string[] | undefined
+        if (target?.includes('email')) {
+          throw new AppError('Email já cadastrado', 409)
+        }
         throw new AppError('Slug já em uso', 409)
       }
       throw err
@@ -187,6 +191,9 @@ export async function tenantsRoutes(app: FastifyInstance) {
       include: { users: { where: { role: 'ADMIN' }, select: { email: true, name: true } } },
     })
     if (!tenant) throw new AppError('Operadora não encontrada', 404)
+    if (tenant.approvalStatus !== 'PENDING') {
+      throw new AppError('Operadora já foi processada', 409)
+    }
 
     await prisma.tenant.update({
       where: { id: params.id },
@@ -224,6 +231,9 @@ export async function tenantsRoutes(app: FastifyInstance) {
       include: { users: { where: { role: 'ADMIN' }, select: { email: true, name: true } } },
     })
     if (!tenant) throw new AppError('Operadora não encontrada', 404)
+    if (tenant.approvalStatus !== 'PENDING') {
+      throw new AppError('Operadora já foi processada', 409)
+    }
 
     await prisma.tenant.update({
       where: { id: params.id },
