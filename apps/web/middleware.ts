@@ -21,7 +21,11 @@ export default withAuth(
       )
     }
 
-    if (pathname.includes("/painel") && token?.role !== "CONDUTOR") {
+    if (
+      pathname.includes("/painel") &&
+      !pathname.startsWith('/super-admin') &&
+      token?.role !== "CONDUTOR"
+    ) {
       return NextResponse.redirect(
         new URL(`/${slug}/login?error=forbidden`, req.url)
       )
