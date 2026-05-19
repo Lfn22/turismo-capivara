@@ -63,7 +63,7 @@ async function main() {
       email: 'ana@serraviva.com',
       password: hashSync('senha123', 10),
       role: 'CONDUTOR',
-      cpf: '12345678901',
+      cpf: hashCpf('12345678901'),
       approvalStatus: 'APPROVED',
     },
   })
@@ -85,7 +85,7 @@ async function main() {
       email: 'joao@serraviva.com',
       password: hashSync('senha123', 10),
       role: 'CONDUTOR',
-      cpf: '98765432100',
+      cpf: hashCpf('98765432100'),
       approvalStatus: 'PENDING',
     },
   })
