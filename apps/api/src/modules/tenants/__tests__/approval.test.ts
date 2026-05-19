@@ -126,4 +126,31 @@ describe('Tenant approval', () => {
       }),
     )
   })
+
+  it('PATCH /tenants/:id/approve on already-approved tenant returns 409', async () => {
+    prismaMock.tenant.findUnique.mockResolvedValue({
+      ...mockTenant,
+      approvalStatus: 'APPROVED',
+    })
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/tenants/tenant-abc/approve',
+      headers: { Authorization: `Bearer ${superAdminToken}` },
+    })
+    expect(res.statusCode).toBe(409)
+  })
+
+  it('PATCH /tenants/:id/reject on already-rejected tenant returns 409', async () => {
+    prismaMock.tenant.findUnique.mockResolvedValue({
+      ...mockTenant,
+      approvalStatus: 'REJECTED',
+    })
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/tenants/tenant-abc/reject',
+      headers: { Authorization: `Bearer ${superAdminToken}` },
+      payload: { reason: 'Motivo qualquer' },
+    })
+    expect(res.statusCode).toBe(409)
+  })
 })
