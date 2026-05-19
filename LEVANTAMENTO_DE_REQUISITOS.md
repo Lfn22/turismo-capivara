@@ -196,6 +196,7 @@ Comparação de guias: múltiplos guias oferecem o mesmo roteiro com preços dis
 
 ---
 
+
 ## 6. Requisitos do Sistema (Infraestrutura)
 
 | Componente | Tecnologia |

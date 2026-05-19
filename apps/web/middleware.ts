@@ -14,7 +14,7 @@ export default withAuth(
     // Exceto para /super-admin que não tem slug-based login
     if (!token) {
       if (pathname.startsWith('/super-admin')) {
-        return NextResponse.redirect(new URL('/', req.url))
+        return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(req.url)}`, req.url))
       }
       return NextResponse.redirect(
         new URL(`/${slug}/login?callbackUrl=${encodeURIComponent(req.url)}`, req.url)
@@ -34,7 +34,7 @@ export default withAuth(
     }
 
     if (pathname.startsWith('/super-admin') && token?.role !== 'SUPER_ADMIN') {
-      return NextResponse.redirect(new URL('/', req.url))
+      return NextResponse.redirect(new URL('/login?error=forbidden', req.url))
     }
 
     return NextResponse.next()
