@@ -19,12 +19,12 @@ const tenantIdParamsSchema = z.object({
 })
 
 const signupBodySchema = z.object({
-  name: z.string().min(2, { message: 'Nome deve ter no mínimo 2 caracteres' }),
+  name: z.string().min(2, { message: 'Nome deve ter no mínimo 2 caracteres' }).trim(),
   slug: z
     .string()
     .min(3, { message: 'Slug deve ter no mínimo 3 caracteres' })
     .max(50, { message: 'Slug deve ter no máximo 50 caracteres' })
-    .regex(/^[a-z0-9-]+$/, { message: 'Slug deve conter apenas letras minúsculas, números e hífens' }),
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: 'Slug deve começar e terminar com letras ou números' }),
   email: z.string().email({ message: 'Email inválido' }),
   password: z.string().min(8, { message: 'Senha deve ter no mínimo 8 caracteres' }),
 })
@@ -86,7 +86,11 @@ export async function tenantsRoutes(app: FastifyInstance) {
       throw new AppError('Tenant não encontrado', 404)
     }
 
-    return tenant
+    return reply.send({
+      id: tenant.id,
+      name: tenant.name,
+      slug: tenant.slug,
+    })
   })
 
   // ---------------------------------------------------------------------------
@@ -202,12 +206,17 @@ export async function tenantsRoutes(app: FastifyInstance) {
 
     const resend = getResend()
     if (resend && tenant.users[0]) {
-      await resend.emails.send({
-        from: 'CAPI <noreply@capi.turismo>',
-        to: [tenant.users[0].email],
-        subject: 'Sua operadora foi aprovada no CAPI',
-        text: approvalEmailText({ operatorName: tenant.users[0].name, slug: tenant.slug }),
-      })
+      try {
+        await resend.emails.send({
+          from: 'CAPI <noreply@capi.turismo>',
+          to: [tenant.users[0].email],
+          subject: 'Sua operadora foi aprovada no CAPI',
+          text: approvalEmailText({ operatorName: tenant.users[0].name, slug: tenant.slug }),
+        })
+      } catch (emailErr) {
+        // Log but don't fail — DB state is authoritative
+        app.log.warn({ err: emailErr }, '[email] Failed to send approval notification')
+      }
     }
 
     return reply.send({ message: 'Operadora aprovada com sucesso' })
@@ -242,12 +251,17 @@ export async function tenantsRoutes(app: FastifyInstance) {
 
     const resend = getResend()
     if (resend && tenant.users[0]) {
-      await resend.emails.send({
-        from: 'CAPI <noreply@capi.turismo>',
-        to: [tenant.users[0].email],
-        subject: 'Atualização sobre seu cadastro no CAPI',
-        text: rejectionEmailText({ operatorName: tenant.users[0].name, rejectionReason: body.reason }),
-      })
+      try {
+        await resend.emails.send({
+          from: 'CAPI <noreply@capi.turismo>',
+          to: [tenant.users[0].email],
+          subject: 'Atualização sobre seu cadastro no CAPI',
+          text: rejectionEmailText({ operatorName: tenant.users[0].name, rejectionReason: body.reason }),
+        })
+      } catch (emailErr) {
+        // Log but don't fail — DB state is authoritative
+        app.log.warn({ err: emailErr }, '[email] Failed to send rejection notification')
+      }
     }
 
     return reply.send({ message: 'Operadora rejeitada' })

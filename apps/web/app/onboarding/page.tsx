@@ -78,6 +78,10 @@ export default function OnboardingPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (slugStatus === 'unavailable' || slugStatus === 'invalid-format' || slugStatus === 'checking') {
+      setError('Corrija o slug antes de enviar.')
+      return
+    }
     setError(null)
     setLoading(true)
     try {
