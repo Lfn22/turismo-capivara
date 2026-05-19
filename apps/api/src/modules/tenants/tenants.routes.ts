@@ -55,8 +55,12 @@ export async function tenantsRoutes(app: FastifyInstance) {
 
   app.get('/tenants', {
     preHandler: [authenticate, authorize(['ADMIN'])],
-  }, async () => {
-    const tenants = await prisma.tenant.findMany()
+  }, async (request) => {
+    const user = request.user as { tenantId: string }
+    const tenants = await prisma.tenant.findMany({
+      where: { id: user.tenantId },
+      select: { id: true, name: true, slug: true },
+    })
     return tenants
   })
 
