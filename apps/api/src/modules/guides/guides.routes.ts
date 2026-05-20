@@ -1,9 +1,11 @@
 import { FastifyInstance } from 'fastify'
+import { Resend } from 'resend'
 import { z, ZodError } from 'zod'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
+import { guideApprovedEmailText, guideApprovedSubject } from '../bookings/emails/guide-approved-email'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -29,6 +31,14 @@ const updateProfileBodySchema = z.object({
   regioes: z.array(z.string()).optional(),
   portfolioPhotos: z.array(z.string().url({ message: 'URL inválida' })).optional(),
 })
+
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[email] RESEND_API_KEY not set — skipping email delivery')
+    return null
+  }
+  return new Resend(process.env.RESEND_API_KEY)
+}
 
 function zodError(err: ZodError) {
   return {
@@ -194,7 +204,10 @@ export async function guidesRoutes(app: FastifyInstance) {
           role: 'CONDUTOR',
         },
       },
-      select: { userId: true },
+      select: {
+        userId: true,
+        user: { select: { name: true, email: true } },
+      },
     })
 
     if (!guideProfile) throw new AppError('Guia não encontrado', 404)
@@ -203,6 +216,21 @@ export async function guidesRoutes(app: FastifyInstance) {
       where: { id: guideProfile.userId },
       data: { approvalStatus: 'APPROVED', rejectionReason: null },
     })
+
+    // NOTIF-03: Notify guide of account approval (fire-and-forget, D-12)
+    const resend = getResend()
+    if (resend && guideProfile.user.email) {
+      resend.emails
+        .send({
+          from: 'CAPI <noreply@capi.turismo>',
+          to: guideProfile.user.email,
+          subject: guideApprovedSubject,
+          text: guideApprovedEmailText({ guideName: guideProfile.user.name ?? 'Guia', slug: params.slug }),
+        })
+        .catch((emailErr: unknown) => {
+          app.log.warn({ err: emailErr, guideId: params.id }, '[email] Failed to send guide-approved email')
+        })
+    }
 
     return reply.status(200).send({ message: 'Guia aprovado com sucesso' })
   })
