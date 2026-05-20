@@ -20,7 +20,7 @@ v1.0 MVP ended at Phase 6. v1.1 starts at Phase 7.
 ## Phases
 
 - [x] **Phase 7: Platform Hardening** — Rate limiting + Sentry protegem e monitoram produção
-- [ ] **Phase 8: Operator Onboarding** — Operadoras se registram sem intervenção manual do dev
+- [x] **Phase 8: Operator Onboarding** — Operadoras se registram sem intervenção manual do dev
 - [ ] **Phase 9: Booking Lifecycle Automation** — Expiração automática + emails transacionais em todo o ciclo
 - [ ] **Phase 10: Tourist Self-Service** — Turista consulta e cancela reserva via email + código, sem conta
 
@@ -96,8 +96,8 @@ Plans:
 
 | Phase | Nome | Plans Complete | Status | Concluída |
 |-------|------|----------------|--------|-----------|
-| 7 | Platform Hardening | 0/2 | In progress | - |
-| 8 | Operator Onboarding | 0/? | Not started | - |
+| 7 | Platform Hardening | 2/2 | Complete | 2026-05-17 |
+| 8 | Operator Onboarding | 3/3 | Complete | 2026-05-19 |
 | 9 | Booking Lifecycle Automation | 0/? | Not started | - |
 | 10 | Tourist Self-Service | 0/? | Not started | - |
 

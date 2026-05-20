@@ -4,14 +4,14 @@ milestone: v1.1
 milestone_name: Launch Readiness
 status: in_progress
 stopped_at: ""
-last_updated: "2026-05-17T10:41:00-03:00"
-last_activity: 2026-05-17
+last_updated: "2026-05-19T21:09:00-03:00"
+last_activity: 2026-05-19
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 2
+  total_plans: 5
+  completed_plans: 5
+  percent: 50
 ---
 
 # STATE.md — Turismo Capivara
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 8 (planned — ready to execute)
+Phase: 9 (next — ready to discuss/plan)
 Plan: 00 (not started)
-Status: Phase 8 planned — 3 plans ready (08-01, 08-02, 08-03)
-Last activity: 2026-05-18 — Phase 8 planning complete
+Status: Phase 8 complete — UAT, code review e fixes aplicados
+Last activity: 2026-05-19 — Phase 8 completa (3/3 plans, UAT ok, WR-01..04 corrigidos)
 
 ## Decisões estratégicas
 
