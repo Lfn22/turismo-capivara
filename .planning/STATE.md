@@ -4,14 +4,14 @@ milestone: v1.1
 milestone_name: milestone
 status: executing
 stopped_at: 05-06 complete — Perfil do Guia + Aprovacao Admin + 6 bug fixes de auditoria
-last_updated: "2026-05-20T11:30:39.155Z"
-last_activity: 2026-05-20 — Phase 9 Plan 05 complete (NOTIF-03 guide approval email wired)
+last_updated: "2026-05-20T14:40:00.000Z"
+last_activity: 2026-05-20 — Phase 9 complete (5/5 must-haves verified — all transactional emails wired + booking expiry cron)
 progress:
   total_phases: 4
-  completed_phases: 2
-  total_plans: 9
-  completed_plans: 9
-  percent: 100
+  completed_phases: 3
+  total_plans: 14
+  completed_plans: 14
+  percent: 75
 ---
 
 # STATE.md — Turismo Capivara
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 9
-Plan: 05 (complete)
-Status: Phase 9 in progress — Plan 05 complete (NOTIF-03 guide approval email wired in guides.routes.ts)
-Last activity: 2026-05-20 — Phase 9 Plan 05 complete (fire-and-forget Resend email on guide approval)
+Phase: 10
+Plan: — (not started)
+Status: Phase 9 complete — advancing to Phase 10: Tourist Self-Service
+Last activity: 2026-05-20 — Phase 9 complete (5/5 verified: OPS-01, NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04)
 
 ## Decisões estratégicas
 

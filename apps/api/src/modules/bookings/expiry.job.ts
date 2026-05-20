@@ -67,16 +67,23 @@ export function createBookingExpiryJob(app: FastifyInstance) {
                 data: { status: 'EXPIRED' },
               })
 
-              const currentSlot = await tx.departureSlot.findUnique({
-                where: { id: booking.slotId },
-              })
-              const newBooked = Math.max(0, (currentSlot?.booked ?? booking.pax) - booking.pax)
+              const [currentSlot] = await tx.$queryRaw<Array<{
+                id: string; booked: number; capacity: number; status: string
+              }>>`
+                SELECT id, booked, capacity, status
+                FROM "DepartureSlot"
+                WHERE id = ${booking.slotId}
+                FOR UPDATE
+              `
+              if (!currentSlot) return // slot deleted — skip status update
+
+              const newBooked = Math.max(0, currentSlot.booked - booking.pax)
               await tx.departureSlot.update({
                 where: { id: booking.slotId },
                 data: {
                   booked: { decrement: booking.pax },
-                  ...(currentSlot?.status !== 'CANCELLED' && currentSlot?.status !== 'COMPLETED'
-                    ? { status: newBooked < (currentSlot?.capacity ?? 1) ? 'OPEN' : 'FULL' }
+                  ...(currentSlot.status !== 'CANCELLED' && currentSlot.status !== 'COMPLETED'
+                    ? { status: newBooked < currentSlot.capacity ? 'OPEN' : 'FULL' }
                     : {}),
                 },
               })
@@ -111,8 +118,12 @@ export function createBookingExpiryJob(app: FastifyInstance) {
           }
         }
       } finally {
-        // Always release the advisory lock
-        await prisma.$queryRaw`SELECT pg_advisory_unlock(${BOOKING_EXPIRY_LOCK_ID})`
+        // Always release the advisory lock — catch to prevent cron fiber crash on DB disconnect
+        try {
+          await prisma.$queryRaw`SELECT pg_advisory_unlock(${BOOKING_EXPIRY_LOCK_ID})`
+        } catch (unlockErr) {
+          app.log.error({ err: unlockErr }, '[cron:expiry] Failed to release advisory lock')
+        }
       }
     },
     start: true,
