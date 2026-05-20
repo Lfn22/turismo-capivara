@@ -24,6 +24,7 @@ import { usersRoutes } from './modules/users/users.routes'
 import { guidesRoutes } from './modules/guides/guides.routes'
 import { webhooksRoutes } from './modules/webhooks/webhooks.routes'
 import { destinationsRoutes } from './modules/destinations/destinations.routes'
+import { createBookingExpiryJob } from './modules/bookings/expiry.job'
 import { AppError } from './shared/errors/AppError'
 
 const app = Fastify({ logger: true, trustProxy: true })
@@ -66,7 +67,9 @@ app.register(jwt, {
   secret: process.env.JWT_SECRET,
 })
 
-app.register(fastifyCron, { jobs: [] })
+app.register(fastifyCron, {
+  jobs: [createBookingExpiryJob(app)],
+})
 
 app.get('/health', { config: { rateLimit: false } }, async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }
