@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: 05-06 complete — Perfil do Guia + Aprovacao Admin + 6 bug fixes de auditoria
 last_updated: "2026-05-20T11:30:39.155Z"
-last_activity: 2026-05-20 — Phase 9 Plan 04 complete (NOTIF-01 + NOTIF-02 transactional emails)
+last_activity: 2026-05-20 — Phase 9 Plan 05 complete (NOTIF-03 guide approval email wired)
 progress:
   total_phases: 4
   completed_phases: 2
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 9
-Plan: 04 (complete)
-Status: Phase 9 in progress — Plan 04 complete (NOTIF-01 + NOTIF-02 email notifications wired)
-Last activity: 2026-05-20 — Phase 9 Plan 04 complete (transactional emails on booking creation and payment confirmation)
+Plan: 05 (complete)
+Status: Phase 9 in progress — Plan 05 complete (NOTIF-03 guide approval email wired in guides.routes.ts)
+Last activity: 2026-05-20 — Phase 9 Plan 05 complete (fire-and-forget Resend email on guide approval)
 
 ## Decisões estratégicas
 
