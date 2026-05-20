@@ -98,7 +98,7 @@ Plans:
 |-------|------|----------------|--------|-----------|
 | 7 | Platform Hardening | 2/2 | Complete | 2026-05-17 |
 | 8 | Operator Onboarding | 3/3 | Complete | 2026-05-19 |
-| 9 | Booking Lifecycle Automation | 0/? | Not started | - |
+| 9 | Booking Lifecycle Automation | 1/? | In progress | - |
 | 10 | Tourist Self-Service | 0/? | Not started | - |
 
 **v1.0 MVP (Phases 1–6): 6/6 complete**

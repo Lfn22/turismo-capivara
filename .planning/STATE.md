@@ -10,8 +10,8 @@ progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 5
-  completed_plans: 5
-  percent: 50
+  completed_plans: 6
+  percent: 55
 ---
 
 # STATE.md — Turismo Capivara
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 ## Current Position
 
-Phase: 9 (next — ready to discuss/plan)
-Plan: 00 (not started)
-Status: Phase 8 complete — UAT, code review e fixes aplicados
-Last activity: 2026-05-19 — Phase 8 completa (3/3 plans, UAT ok, WR-01..04 corrigidos)
+Phase: 9
+Plan: 01 (complete)
+Status: Phase 9 in progress — Plan 01 complete (fastify-cron installed and registered)
+Last activity: 2026-05-20 — Phase 9 Plan 01 complete (fastify-cron infrastructure)
 
 ## Decisões estratégicas
 
