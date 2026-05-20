@@ -4,14 +4,14 @@ milestone: v1.1
 milestone_name: Launch Readiness
 status: in_progress
 stopped_at: ""
-last_updated: "2026-05-19T21:09:00-03:00"
-last_activity: 2026-05-19
+last_updated: "2026-05-20T11:25:00-03:00"
+last_activity: 2026-05-20
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 5
-  completed_plans: 6
-  percent: 55
+  completed_plans: 7
+  percent: 58
 ---
 
 # STATE.md — Turismo Capivara
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 9
-Plan: 01 (complete)
-Status: Phase 9 in progress — Plan 01 complete (fastify-cron installed and registered)
-Last activity: 2026-05-20 — Phase 9 Plan 01 complete (fastify-cron infrastructure)
+Plan: 02 (complete)
+Status: Phase 9 in progress — Plan 02 complete (four email template modules created)
+Last activity: 2026-05-20 — Phase 9 Plan 02 complete (booking lifecycle email templates)
 
 ## Decisões estratégicas
 
