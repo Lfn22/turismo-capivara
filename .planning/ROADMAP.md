@@ -74,7 +74,7 @@ Plans:
   3. Turista recebe email de confirmação quando pagamento PIX é aprovado (status CONFIRMED via webhook Mercado Pago)
   4. Turista recebe email de aviso quando booking expira — PIX não pago dentro do prazo
   5. CONDUTOR recebe email quando admin aprova sua conta de guia
-**Plans:** 09-01 (fastify-cron infrastructure) ✓, 09-02 (email templates) ✓, 09-03 (booking expiry cron job) ✓, 09-04 pending, 09-05 pending
+**Plans:** 09-01 (fastify-cron infrastructure) ✓, 09-02 (email templates) ✓, 09-03 (booking expiry cron job) ✓, 09-04 (NOTIF-01 + NOTIF-02 wired) ✓, 09-05 pending
 
 ---
 
@@ -98,7 +98,7 @@ Plans:
 |-------|------|----------------|--------|-----------|
 | 7 | Platform Hardening | 2/2 | Complete | 2026-05-17 |
 | 8 | Operator Onboarding | 3/3 | Complete | 2026-05-19 |
-| 9 | Booking Lifecycle Automation | 1/? | In progress | - |
+| 9 | Booking Lifecycle Automation | 4/? | In progress | - |
 | 10 | Tourist Self-Service | 0/? | Not started | - |
 
 **v1.0 MVP (Phases 1–6): 6/6 complete**
@@ -113,4 +113,4 @@ Plans:
 | 6 | Interface do Turista | 4/4 | Complete | 2026-05-13 |
 | 7 | Platform Hardening | 3/3 | Complete | 2026-05-17 |
 | 8 | Operator Onboarding | 3/3 | Complete | 2026-05-19 |
-| 9 | Booking Lifecycle Automation | 2/5 | In Progress | — |
+| 9 | Booking Lifecycle Automation | 4/5 | In Progress | — |
