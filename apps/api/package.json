@@ -21,6 +21,7 @@
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.3.1",
     "fastify": "^5.8.2",
+    "fastify-cron": "^1.4.0",
     "fastify-raw-body": "^5.0.0",
     "mercadopago": "^2.12.0",
     "pg": "^8.20.0",
