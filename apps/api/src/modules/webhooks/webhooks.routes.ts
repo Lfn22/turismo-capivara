@@ -1,7 +1,9 @@
 import { FastifyInstance } from 'fastify'
 import crypto from 'node:crypto'
+import { Resend } from 'resend'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
 import prisma from '../../database'
+import { bookingConfirmedEmailText, bookingConfirmedSubject } from '../bookings/emails/booking-confirmed-email'
 
 if (!process.env.MP_ACCESS_TOKEN) {
   throw new Error('MP_ACCESS_TOKEN environment variable is required')
@@ -51,6 +53,14 @@ function validateMpSignature(
     // Buffers of different lengths — invalid signature
     return false
   }
+}
+
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[email] RESEND_API_KEY not set — skipping email delivery')
+    return null
+  }
+  return new Resend(process.env.RESEND_API_KEY)
 }
 
 export async function webhooksRoutes(app: FastifyInstance) {
@@ -108,6 +118,18 @@ export async function webhooksRoutes(app: FastifyInstance) {
       //    paymentId is stored in booking (per D-03 / prior wave design)
       const booking = await prisma.booking.findFirst({
         where: { id: externalReference },
+        include: {
+          slot: {
+            include: {
+              package: {
+                select: {
+                  name: true,
+                  conductor: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
       })
 
       if (!booking) {
@@ -128,6 +150,28 @@ export async function webhooksRoutes(app: FastifyInstance) {
           where: { id: booking.id, status: 'PENDING' },
           data: { status: 'CONFIRMED' },
         })
+
+        // NOTIF-02: Notify customer of confirmed booking (fire-and-forget, D-12)
+        const resend = getResend()
+        if (resend && booking.customerEmail) {
+          resend.emails
+            .send({
+              from: 'CAPI <noreply@capi.turismo>',
+              to: [booking.customerEmail],
+              subject: bookingConfirmedSubject,
+              text: bookingConfirmedEmailText({
+                bookingId: booking.id,
+                customerName: booking.customerName,
+                packageName: booking.slot?.package?.name ?? 'Passeio',
+                guideName: booking.slot?.package?.conductor?.name ?? 'Guia',
+                startsAt: booking.slot?.startsAt ?? new Date(),
+                meetingPoint: null,
+              }),
+            })
+            .catch((emailErr: unknown) => {
+              app.log.warn({ err: emailErr, bookingId: booking.id }, '[email] Failed to send booking-confirmed email')
+            })
+        }
       } else if (status === 'cancelled' || status === 'rejected') {
         // PENDING → EXPIRED + release slot inside $transaction (per D-04)
         await prisma.$transaction(async (tx) => {
