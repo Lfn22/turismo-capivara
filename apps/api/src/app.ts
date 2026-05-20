@@ -15,6 +15,7 @@ import jwt from '@fastify/jwt'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
+import fastifyCron from 'fastify-cron'
 import { tenantsRoutes } from './modules/tenants/tenants.routes'
 import { packagesRoutes } from './modules/packages/packages.routes'
 import { bookingsRoutes } from './modules/bookings/bookings.routes'
@@ -64,6 +65,8 @@ if (!process.env.JWT_SECRET) {
 app.register(jwt, {
   secret: process.env.JWT_SECRET,
 })
+
+app.register(fastifyCron, { jobs: [] })
 
 app.get('/health', { config: { rateLimit: false } }, async () => {
   return { status: 'ok', timestamp: new Date().toISOString() }
