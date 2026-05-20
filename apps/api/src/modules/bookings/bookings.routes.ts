@@ -1,11 +1,13 @@
 import { FastifyInstance } from 'fastify'
 import { z, ZodError } from 'zod'
+import { Resend } from 'resend'
 import prisma from '../../database'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { AppError } from '../../shared/errors/AppError'
 import { createPixPayment } from '../../services/payment.service'
 import { hashCpf } from '../../shared/utils/hash'
+import { bookingCreatedEmailText, bookingCreatedSubject } from './emails/booking-created-email'
 
 const createBookingBodySchema = z.object({
   slotId: z.string().min(1, { message: 'slotId obrigatório' }),
@@ -35,6 +37,14 @@ function zodError400(err: ZodError) {
   }
 }
 
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[email] RESEND_API_KEY not set — skipping email delivery')
+    return null
+  }
+  return new Resend(process.env.RESEND_API_KEY)
+}
+
 export async function bookingsRoutes(app: FastifyInstance) {
   app.post('/tenants/:slug/bookings', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (request, reply) => {
     let params
@@ -55,6 +65,8 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
     const { slug } = params
     const { slotId, customerName, customerEmail, customerPhone, customerCpf, pax } = body
+
+    const expiryMinutes = Number(process.env.BOOKING_EXPIRY_MINUTES ?? '30')
 
     const tenant = await prisma.tenant.findUnique({
       where: { slug },
@@ -115,6 +127,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
           customerCpfHash: hashCpf(customerCpf),
           pax,
           status: 'PENDING',
+          expiresAt: new Date(Date.now() + expiryMinutes * 60_000),
         },
       })
     })
@@ -171,9 +184,29 @@ export async function bookingsRoutes(app: FastifyInstance) {
       data: {
         paymentId: paymentResult.paymentId,
         paymentUrl: paymentResult.paymentUrl,
-        expiresAt: paymentResult.expiresAt,
       },
     })
+
+    // NOTIF-01: Notify customer of pending booking with PIX details (fire-and-forget)
+    const resend = getResend()
+    if (resend) {
+      resend.emails
+        .send({
+          from: 'CAPI <noreply@capi.turismo>',
+          to: [customerEmail],
+          subject: bookingCreatedSubject,
+          text: bookingCreatedEmailText({
+            bookingId: updatedBooking.id,
+            customerName,
+            qrCode: paymentResult.qrCode,
+            paymentUrl: paymentResult.paymentUrl ?? '',
+            expiresAt: updatedBooking.expiresAt ?? new Date(),
+          }),
+        })
+        .catch((emailErr: unknown) => {
+          app.log.warn({ err: emailErr }, '[email] Failed to send booking-created email')
+        })
+    }
 
     return reply.status(201).send({
       id: updatedBooking.id,
