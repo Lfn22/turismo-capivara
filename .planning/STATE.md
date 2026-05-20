@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: Launch Readiness
-status: in_progress
-stopped_at: ""
-last_updated: "2026-05-20T11:25:00-03:00"
-last_activity: 2026-05-20
+milestone_name: milestone
+status: executing
+stopped_at: 05-06 complete — Perfil do Guia + Aprovacao Admin + 6 bug fixes de auditoria
+last_updated: "2026-05-20T11:30:39.155Z"
+last_activity: 2026-05-20 — Phase 9 Plan 03 complete (booking expiry cron job with advisory lock)
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 7
-  percent: 58
+  total_plans: 9
+  completed_plans: 9
+  percent: 100
 ---
 
 # STATE.md — Turismo Capivara
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 9
-Plan: 02 (complete)
-Status: Phase 9 in progress — Plan 02 complete (four email template modules created)
-Last activity: 2026-05-20 — Phase 9 Plan 02 complete (booking lifecycle email templates)
+Plan: 03 (complete)
+Status: Phase 9 in progress — Plan 03 complete (booking expiry cron job wired)
+Last activity: 2026-05-20 — Phase 9 Plan 03 complete (booking expiry cron job with advisory lock)
 
 ## Decisões estratégicas
 
@@ -78,10 +78,12 @@ Last activity: 2026-05-20 — Phase 9 Plan 02 complete (booking lifecycle email 
 ## Fase 2 — Contexto de execução
 
 Dois planos já escritos (não executados):
+
 - `02-01-PLAN.md`: extensão do schema Prisma (approvalStatus, cpf, bio, photo, specialties, regions, rejectionReason ao User)
 - `02-02-PLAN.md`: POST /auth/register diferenciando CLIENTE vs CONDUTOR
 
 Planos ainda a escrever para completar a Fase 2:
+
 - Admin: GET + PATCH de aprovação de guias
 - Perfil público: GET /tenants/:slug/guides e GET /tenants/:slug/guides/:id
 - Perfil próprio: PUT /tenants/:slug/guides/me
@@ -107,6 +109,7 @@ Planos ainda a escrever para completar a Fase 2:
 ## Accumulated Context
 
 ### Roadmap Evolution
+
 - Phase 6 added: Interface do Turista (2026-05-12) — already defined in ROADMAP.md; planning directory created
 
 ## Session Continuity
