@@ -114,9 +114,9 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-05-12T18:21:00Z
-Stopped at: 05-06 complete — Perfil do Guia + Aprovacao Admin + 6 bug fixes de auditoria
-Resume file: None — Phase 5 completa
+Last session: 2026-05-20T20:27:00-03:00
+Stopped at: Phase 10 UI-SPEC approved — typography fixed (400+700), checker PASS
+Resume file: .planning/phases/10-tourist-self-service/10-UI-SPEC.md
 
 ### Quick Tasks Completed
 
