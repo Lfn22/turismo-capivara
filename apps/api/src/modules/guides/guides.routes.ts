@@ -1,10 +1,10 @@
 import { FastifyInstance } from 'fastify'
-import { Resend } from 'resend'
 import { z, ZodError } from 'zod'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
+import { getResend } from '../../shared/email'
 import { guideApprovedEmailText, guideApprovedSubject } from '../bookings/emails/guide-approved-email'
 
 const slugParamsSchema = z.object({
@@ -31,14 +31,6 @@ const updateProfileBodySchema = z.object({
   regioes: z.array(z.string()).optional(),
   portfolioPhotos: z.array(z.string().url({ message: 'URL inválida' })).optional(),
 })
-
-function getResend(): Resend | null {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[email] RESEND_API_KEY not set — skipping email delivery')
-    return null
-  }
-  return new Resend(process.env.RESEND_API_KEY)
-}
 
 function zodError(err: ZodError) {
   return {

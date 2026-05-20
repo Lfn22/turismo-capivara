@@ -1,17 +1,9 @@
 import { FastifyInstance } from 'fastify'
-import { Resend } from 'resend'
 import prisma from '../../database'
+import { getResend } from '../../shared/email'
 import { bookingExpiredEmailText, bookingExpiredSubject } from './emails/booking-expired-email'
 
 const BOOKING_EXPIRY_LOCK_ID = 1_234_567_890
-
-function getResend(): Resend | null {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[email] RESEND_API_KEY not set — skipping expiry email delivery')
-    return null
-  }
-  return new Resend(process.env.RESEND_API_KEY)
-}
 
 export function createBookingExpiryJob(app: FastifyInstance) {
   return {

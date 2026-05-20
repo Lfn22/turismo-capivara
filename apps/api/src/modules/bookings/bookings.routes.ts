@@ -1,12 +1,12 @@
 import { FastifyInstance } from 'fastify'
 import { z, ZodError } from 'zod'
-import { Resend } from 'resend'
 import prisma from '../../database'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { AppError } from '../../shared/errors/AppError'
 import { createPixPayment } from '../../services/payment.service'
 import { hashCpf } from '../../shared/utils/hash'
+import { getResend } from '../../shared/email'
 import { bookingCreatedEmailText, bookingCreatedSubject } from './emails/booking-created-email'
 
 const createBookingBodySchema = z.object({
@@ -35,14 +35,6 @@ function zodError400(err: ZodError) {
       message: e.message,
     })),
   }
-}
-
-function getResend(): Resend | null {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[email] RESEND_API_KEY not set — skipping email delivery')
-    return null
-  }
-  return new Resend(process.env.RESEND_API_KEY)
 }
 
 export async function bookingsRoutes(app: FastifyInstance) {
