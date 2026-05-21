@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 
 Phase: 10
 Plan: 03
-Status: executing — Phase 10 Plan 02 complete, advancing to Plan 03
-Last activity: 2026-05-21 — Plan 10-02 complete (3 public endpoints: lookup, cancel-self, repay — 43 tests passing)
+Status: executing — Phase 10 Plan 03 complete, advancing to Plan 04
+Last activity: 2026-05-21 — Plan 10-03 complete (MinhaReservaClient.tsx 4-state machine + minha-reserva/page.tsx + react-qr-code)
 
 ## Decisões estratégicas
 
@@ -67,6 +67,8 @@ Last activity: 2026-05-21 — Plan 10-02 complete (3 public endpoints: lookup, c
 - next-auth@4.24.14 escolhido para autenticação do painel — NEXTAUTH_SECRET em .env.local (gitignored)
 - react-calendar@6.0.1 instalado para tela de disponibilidade (Phase 5 Plan 05)
 - react-calendar v6 não tem prop tileStyle — usar tileContent com elemento div para indicadores de cor por tile
+- MinhaReservaClient envia code em lowercase para API — API usa endsWith(code.toLowerCase()) no Prisma
+- react-qr-code ^2.0.21 instalado em apps/web para renderizar PIX copia-e-cola como SVG QR code no browser
 - Providers wrapper pattern: providers.tsx Client Component wraps SessionProvider; layout.tsx stays Server Component
 - Middleware uses withAuth from next-auth/middleware — role guard via token?.role check on JWT-signed claims
 - signIn pages config set to /login (fallback); real tenant login at /[slug]/login
@@ -117,9 +119,9 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-05-21T19:40:00-03:00
-Stopped at: Phase 10 Plan 02 complete — 3 self-service endpoints committed, 43 tests passing
-Resume file: .planning/phases/10-tourist-self-service/10-03-PLAN.md
+Last session: 2026-05-21T19:55:00-03:00
+Stopped at: Phase 10 Plan 03 complete — MinhaReservaClient.tsx + minha-reserva/page.tsx committed
+Resume file: .planning/phases/10-tourist-self-service/10-04-PLAN.md
 
 ### Quick Tasks Completed
 
