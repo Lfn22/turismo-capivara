@@ -30,6 +30,7 @@ model Tenant {
   destinationId   String?
   approvalStatus  TenantApprovalStatus @default(PENDING)
   rejectionReason String?
+  whatsapp        String?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
@@ -119,6 +120,7 @@ model Booking {
   customerCpfHash String?
   paymentId     String?
   paymentUrl    String?
+  qrCode        String?
   expiresAt     DateTime?
   status        BookingStatus @default(PENDING)
   createdAt     DateTime      @default(now())
