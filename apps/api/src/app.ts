@@ -16,6 +16,7 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import fastifyCron from 'fastify-cron'
+import Redis from 'ioredis'
 import { tenantsRoutes } from './modules/tenants/tenants.routes'
 import { packagesRoutes } from './modules/packages/packages.routes'
 import { bookingsRoutes } from './modules/bookings/bookings.routes'
@@ -46,6 +47,10 @@ app.register(cors, {
 
 app.register(helmet)
 
+const redisClient = process.env.REDIS_URL
+  ? new Redis(process.env.REDIS_URL)
+  : null
+
 app.register(rateLimit, {
   global: true,
   max: 20,
@@ -56,7 +61,14 @@ app.register(rateLimit, {
     'x-ratelimit-reset': true,
     'retry-after': true,
   },
-  // In-memory LRU — Redis deferred (post-MVP, multi-instance scenario)
+  ...(redisClient
+    ? { redis: redisClient }
+    : {}),
+  errorResponseBuilder: (_req, context) => ({
+    statusCode: 429,
+    error: 'Too Many Requests',
+    message: `Muitas requisições — tente novamente em ${Math.ceil(context.ttl / 1000)}s`,
+  }),
 })
 
 if (!process.env.JWT_SECRET) {
