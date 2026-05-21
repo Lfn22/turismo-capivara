@@ -8,6 +8,9 @@ import { createPixPayment } from '../../services/payment.service'
 import { hashCpf } from '../../shared/utils/hash'
 import { getResend } from '../../shared/email'
 import { bookingCreatedEmailText, bookingCreatedSubject } from './emails/booking-created-email'
+import { selfServiceBodySchema, type SelfServiceBody } from './bookings.schemas'
+import { bookingCancelledEmailText } from './emails/booking-cancelled-email'
+import * as paymentService from '../../services/payment.service'
 
 const createBookingBodySchema = z.object({
   slotId: z.string().min(1, { message: 'slotId obrigatório' }),
@@ -216,6 +219,229 @@ export async function bookingsRoutes(app: FastifyInstance) {
       qrCode: paymentResult.qrCode,
     })
   })
+
+  // POST /tenants/:slug/bookings/lookup — public, no JWT
+  app.post<{ Params: { slug: string }; Body: SelfServiceBody }>(
+    '/tenants/:slug/bookings/lookup',
+    {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '15 minutes',
+          keyGenerator: (req) =>
+            `lookup:email:${((req.body as { email?: string })?.email || '').trim().toLowerCase()}`,
+        },
+      },
+    },
+    async (request, reply) => {
+      const parsed = selfServiceBodySchema.safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
+      }
+      const { slug } = request.params
+      const { email, code } = parsed.data
+
+      const tenant = await prisma.tenant.findUnique({ where: { slug } })
+      if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+      const normalizedEmail = email.trim().toLowerCase()
+
+      const booking = await prisma.booking.findFirst({
+        where: {
+          id: { endsWith: code.toLowerCase() },
+          tenantId: tenant.id,
+        },
+        include: {
+          slot: {
+            select: {
+              startsAt: true,
+              package: { select: { name: true, description: true } },
+            },
+          },
+        },
+      })
+
+      // Opaque error — never reveal which field failed (D-13)
+      if (!booking || booking.customerEmail.toLowerCase() !== normalizedEmail) {
+        throw new AppError('Reserva não encontrada ou dados inválidos', 404)
+      }
+
+      return reply.status(200).send({
+        id: booking.id,
+        status: booking.status,
+        customerName: booking.customerName,
+        pax: booking.pax,
+        qrCode: booking.qrCode ?? null,
+        paymentUrl: booking.paymentUrl ?? null,
+        expiresAt: booking.expiresAt ?? null,
+        tenantWhatsapp: tenant.whatsapp ?? null,
+        slot: {
+          startsAt: booking.slot.startsAt,
+          packageName: booking.slot.package.name,
+        },
+      })
+    }
+  )
+
+  // POST /tenants/:slug/bookings/cancel-self — public, no JWT
+  app.post<{ Params: { slug: string }; Body: SelfServiceBody }>(
+    '/tenants/:slug/bookings/cancel-self',
+    {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '15 minutes',
+          keyGenerator: (req) =>
+            `lookup:email:${((req.body as { email?: string })?.email || '').trim().toLowerCase()}`,
+        },
+      },
+    },
+    async (request, reply) => {
+      const parsed = selfServiceBodySchema.safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
+      }
+      const { slug } = request.params
+      const { email, code } = parsed.data
+
+      const tenant = await prisma.tenant.findUnique({ where: { slug } })
+      if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+      const normalizedEmail = email.trim().toLowerCase()
+
+      const booking = await prisma.booking.findFirst({
+        where: { id: { endsWith: code.toLowerCase() }, tenantId: tenant.id },
+        include: {
+          slot: { select: { startsAt: true, package: { select: { name: true } } } },
+        },
+      })
+
+      if (!booking || booking.customerEmail.toLowerCase() !== normalizedEmail) {
+        throw new AppError('Reserva não encontrada ou dados inválidos', 404)
+      }
+
+      // 24h cutoff check (D-04)
+      const cutoffMs = 24 * 60 * 60 * 1000
+      if (booking.slot.startsAt.getTime() - Date.now() < cutoffMs) {
+        throw new AppError('Cancelamento não permitido — menos de 24h até a partida', 422)
+      }
+
+      if (!['PENDING', 'CONFIRMED'].includes(booking.status)) {
+        throw new AppError('Reserva não pode ser cancelada neste status', 422)
+      }
+
+      // Atomic cancel + slot release (D-04)
+      await prisma.$transaction(async (tx) => {
+        await tx.booking.update({
+          where: { id: booking.id },
+          data: { status: 'CANCELLED' },
+        })
+        await tx.departureSlot.update({
+          where: { id: booking.slotId },
+          data: { booked: { decrement: booking.pax } },
+        })
+      })
+
+      // Fire-and-forget cancellation email (D-07)
+      const resend = getResend()
+      if (resend) {
+        resend.emails
+          .send({
+            from: 'CAPI <noreply@capi.turismo>',
+            to: [booking.customerEmail],
+            subject: 'Cancelamento confirmado — CAPI',
+            text: bookingCancelledEmailText({
+              customerName: booking.customerName,
+              packageName: booking.slot.package.name,
+              startsAt: booking.slot.startsAt,
+            }),
+          })
+          .catch((emailErr: unknown) => {
+            app.log.warn({ err: emailErr }, '[email] Failed to send cancellation email')
+          })
+      }
+
+      return reply.status(200).send({ message: 'Reserva cancelada com sucesso' })
+    }
+  )
+
+  // POST /tenants/:slug/bookings/repay — public, no JWT — EXPIRED bookings only
+  app.post<{ Params: { slug: string }; Body: SelfServiceBody }>(
+    '/tenants/:slug/bookings/repay',
+    {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '15 minutes',
+          keyGenerator: (req) =>
+            `lookup:email:${((req.body as { email?: string })?.email || '').trim().toLowerCase()}`,
+        },
+      },
+    },
+    async (request, reply) => {
+      const parsed = selfServiceBodySchema.safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
+      }
+      const { slug } = request.params
+      const { email, code } = parsed.data
+
+      const tenant = await prisma.tenant.findUnique({ where: { slug } })
+      if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+      const normalizedEmail = email.trim().toLowerCase()
+
+      const booking = await prisma.booking.findFirst({
+        where: { id: { endsWith: code.toLowerCase() }, tenantId: tenant.id },
+        include: {
+          slot: {
+            select: {
+              startsAt: true,
+              package: { select: { name: true, price: true } },
+            },
+          },
+        },
+      })
+
+      if (!booking || booking.customerEmail.toLowerCase() !== normalizedEmail) {
+        throw new AppError('Reserva não encontrada ou dados inválidos', 404)
+      }
+
+      if (booking.status !== 'EXPIRED') {
+        throw new AppError('Novo pagamento só é possível para reservas expiradas', 422)
+      }
+
+      // Create new MP payment
+      // CPF not stored after hash — repay uses empty string (no CPF validation on repay)
+      const transactionAmount = Number(booking.slot.package.price) * booking.pax
+      const paymentResult = await paymentService.createPixPayment({
+        bookingId: booking.id,
+        transactionAmount,
+        description: `Reserva #${booking.id} — ${booking.slot.package.name}`,
+        customerEmail: booking.customerEmail,
+        customerCpf: '',
+        slug,
+      })
+
+      // Update booking with new payment fields + reset to PENDING
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: {
+          paymentId: paymentResult.paymentId,
+          paymentUrl: paymentResult.paymentUrl,
+          qrCode: paymentResult.qrCode,
+          expiresAt: paymentResult.expiresAt,
+          status: 'PENDING',
+        },
+      })
+
+      return reply.status(200).send({
+        qrCode: paymentResult.qrCode,
+        paymentUrl: paymentResult.paymentUrl,
+        expiresAt: paymentResult.expiresAt,
+      })
+    }
+  )
 
   app.get(
     '/tenants/:slug/bookings/:id',
