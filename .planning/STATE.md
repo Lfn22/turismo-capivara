@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-04-17)
 ## Current Position
 
 Phase: 10
-Plan: — (not started)
-Status: Phase 9 complete — advancing to Phase 10: Tourist Self-Service
-Last activity: 2026-05-20 — Phase 9 complete (5/5 verified: OPS-01, NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04)
+Plan: 03
+Status: executing — Phase 10 Plan 02 complete, advancing to Plan 03
+Last activity: 2026-05-21 — Plan 10-02 complete (3 public endpoints: lookup, cancel-self, repay — 43 tests passing)
 
 ## Decisões estratégicas
 
@@ -61,6 +61,9 @@ Last activity: 2026-05-20 — Phase 9 complete (5/5 verified: OPS-01, NOTIF-01, 
 - Return 200 em falha do MP API — evita flood de retentativas
 - EXPIRED transition: prisma.$transaction envolve booking.update + departureSlot.booked decrement atomicamente
 - Phase 5 guide endpoints: conductorId sempre do JWT.sub — nunca de params de URL (T-05-02 mitigação)
+- Self-service endpoints (10-02): Zod safeParse manual no handler — não usar schema.body (Fastify 5 sem type-provider-zod rejeita Zod diretamente)
+- Repay usa customerCpf='' pois CPF não armazenado após hash — aceitável para retry de pagamento PIX
+- Lookup response não inclui totalPrice — campo não existe no schema Booking; preço vem de package.price
 - next-auth@4.24.14 escolhido para autenticação do painel — NEXTAUTH_SECRET em .env.local (gitignored)
 - react-calendar@6.0.1 instalado para tela de disponibilidade (Phase 5 Plan 05)
 - react-calendar v6 não tem prop tileStyle — usar tileContent com elemento div para indicadores de cor por tile
@@ -114,9 +117,9 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-05-20T20:27:00-03:00
-Stopped at: Phase 10 UI-SPEC approved — typography fixed (400+700), checker PASS
-Resume file: .planning/phases/10-tourist-self-service/10-UI-SPEC.md
+Last session: 2026-05-21T19:40:00-03:00
+Stopped at: Phase 10 Plan 02 complete — 3 self-service endpoints committed, 43 tests passing
+Resume file: .planning/phases/10-tourist-self-service/10-03-PLAN.md
 
 ### Quick Tasks Completed
 
