@@ -176,6 +176,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
       data: {
         paymentId: paymentResult.paymentId,
         paymentUrl: paymentResult.paymentUrl,
+        qrCode: paymentResult.qrCode,
       },
     })
 
