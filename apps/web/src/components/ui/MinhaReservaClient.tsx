@@ -295,7 +295,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
             >
               <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
               <circle cx="20" cy="20" r="16" fill="none" stroke="#E7E5E4" strokeWidth="4" />
-              <path d="M20 4 A16 16 0 0 1 36 20" fill="none" stroke="${OCHRE}" strokeWidth="4" strokeLinecap="round" />
+              <path d="M20 4 A16 16 0 0 1 36 20" fill="none" stroke={OCHRE} strokeWidth="4" strokeLinecap="round" />
             </svg>
           </div>
           <p style={{ textAlign: 'center', fontSize: '14px', color: '#78716C', margin: 0 }}>
