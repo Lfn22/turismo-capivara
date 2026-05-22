@@ -336,9 +336,17 @@ export async function bookingsRoutes(app: FastifyInstance) {
           where: { id: booking.id },
           data: { status: 'CANCELLED' },
         })
+        const currentSlot = await tx.departureSlot.findUnique({
+          where: { id: booking.slotId },
+          select: { booked: true, status: true },
+        })
+        const newBooked = Math.max(0, (currentSlot?.booked ?? booking.pax) - booking.pax)
         await tx.departureSlot.update({
           where: { id: booking.slotId },
-          data: { booked: { decrement: booking.pax } },
+          data: {
+            booked: newBooked,
+            ...(currentSlot?.status === 'FULL' ? { status: 'OPEN' } : {}),
+          },
         })
       })
 
