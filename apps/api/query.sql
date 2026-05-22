@@ -1,0 +1,1 @@
+SELECT id, status FROM "Booking" WHERE "customerEmail" = 'maria@teste.com';

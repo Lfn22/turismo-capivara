@@ -1,0 +1,1 @@
+UPDATE "Booking" SET status = 'EXPIRED' WHERE "customerEmail" = 'maria@teste.com';
