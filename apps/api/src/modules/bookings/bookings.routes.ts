@@ -251,6 +251,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
           id: { endsWith: code.toLowerCase() },
           tenantId: tenant.id,
         },
+        orderBy: { createdAt: 'desc' },
         include: {
           slot: {
             select: {
@@ -311,6 +312,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
       const booking = await prisma.booking.findFirst({
         where: { id: { endsWith: code.toLowerCase() }, tenantId: tenant.id },
+        orderBy: { createdAt: 'desc' },
         include: {
           slot: { select: { startsAt: true, package: { select: { name: true } } } },
         },
@@ -401,6 +403,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
       const booking = await prisma.booking.findFirst({
         where: { id: { endsWith: code.toLowerCase() }, tenantId: tenant.id },
+        orderBy: { createdAt: 'desc' },
         include: {
           slot: {
             select: {
