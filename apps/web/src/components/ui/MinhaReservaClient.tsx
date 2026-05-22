@@ -107,6 +107,11 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
         body: JSON.stringify({ email, code: code.trim().toLowerCase() }),
       })
       const data = await res.json()
+      if (res.status === 429) {
+        setErrorMsg('Muitas tentativas. Tente novamente em alguns minutos.')
+        setUiState('ERROR')
+        return
+      }
       if (!res.ok) {
         setErrorMsg(data.message ?? data.error ?? 'Não foi possível gerar novo pagamento.')
         setUiState('ERROR')
