@@ -175,3 +175,97 @@ describe('Rate Limiting', () => {
     expect(responses.every((s) => s !== 429)).toBe(true)
   })
 })
+
+describe('Self-Service per-email rate limiting (max 5 / 15 min)', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env.JWT_SECRET = TEST_JWT_SECRET
+    process.env.CPF_SECRET = 'test-cpf-secret-32-chars-xxxxxxxxx'
+    process.env.MP_ACCESS_TOKEN = 'TEST_ACCESS_TOKEN'
+    process.env.MP_WEBHOOK_SECRET = 'test-webhook-secret'
+    app = await buildRateLimitApp()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  it('blocks 6th POST /tenants/:slug/bookings/lookup for the same email', async () => {
+    const payload = { email: 'turista-lookup@example.com', code: 'abc123' }
+    // First 5 requests — any status is fine (Prisma not mocked), counter increments
+    for (let i = 0; i < 5; i++) {
+      await app.inject({
+        method: 'POST',
+        url: '/tenants/test-tenant/bookings/lookup',
+        payload,
+        headers: { 'x-forwarded-for': '10.2.0.1' },
+      })
+    }
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/test-tenant/bookings/lookup',
+      payload,
+      headers: { 'x-forwarded-for': '10.2.0.1' },
+    })
+    expect(res.statusCode).toBe(429)
+  })
+
+  it('blocks 6th POST /tenants/:slug/bookings/cancel-self for the same email', async () => {
+    const payload = { email: 'turista-cancel@example.com', code: 'abc123' }
+    for (let i = 0; i < 5; i++) {
+      await app.inject({
+        method: 'POST',
+        url: '/tenants/test-tenant/bookings/cancel-self',
+        payload,
+        headers: { 'x-forwarded-for': '10.2.0.2' },
+      })
+    }
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/test-tenant/bookings/cancel-self',
+      payload,
+      headers: { 'x-forwarded-for': '10.2.0.2' },
+    })
+    expect(res.statusCode).toBe(429)
+  })
+
+  it('blocks 6th POST /tenants/:slug/bookings/repay for the same email', async () => {
+    const payload = { email: 'turista-repay@example.com', code: 'abc123' }
+    for (let i = 0; i < 5; i++) {
+      await app.inject({
+        method: 'POST',
+        url: '/tenants/test-tenant/bookings/repay',
+        payload,
+        headers: { 'x-forwarded-for': '10.2.0.3' },
+      })
+    }
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/test-tenant/bookings/repay',
+      payload,
+      headers: { 'x-forwarded-for': '10.2.0.3' },
+    })
+    expect(res.statusCode).toBe(429)
+  })
+
+  it('429 response on /lookup includes Retry-After header', async () => {
+    const payload = { email: 'turista-retry-after@example.com', code: 'abc123' }
+    for (let i = 0; i < 5; i++) {
+      await app.inject({
+        method: 'POST',
+        url: '/tenants/test-tenant/bookings/lookup',
+        payload,
+        headers: { 'x-forwarded-for': '10.2.0.4' },
+      })
+    }
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/test-tenant/bookings/lookup',
+      payload,
+      headers: { 'x-forwarded-for': '10.2.0.4' },
+    })
+    expect(res.statusCode).toBe(429)
+    expect(res.headers['retry-after']).toBeDefined()
+  })
+})
