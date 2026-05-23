@@ -36,6 +36,9 @@ function validateMpSignature(
 
   if (!ts || !v1) return false
 
+  const tsAge = Math.abs(Date.now() / 1000 - Number(ts))
+  if (tsAge > 300) return false
+
   // Manifest format per MP 2024+ docs: "id:<paymentId>;request-date:<ts>;"
   const manifest = `id:${paymentId};request-date:${ts};`
 
