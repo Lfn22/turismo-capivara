@@ -73,7 +73,8 @@
       "Bash(pnpm dev:*)",
       "Skill(gsd-new-milestone)",
       "Skill(gsd-ui-phase)",
-      "Skill(gsd-audit-milestone)"
+      "Skill(gsd-audit-milestone)",
+      "Skill(gsd-validate-phase)"
     ]
   }
 }

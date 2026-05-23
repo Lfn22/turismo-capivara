@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: 05-06 complete — Perfil do Guia + Aprovacao Admin + 6 bug fixes de auditoria
-last_updated: "2026-05-20T14:40:00.000Z"
-last_activity: 2026-05-20 — Phase 9 complete (5/5 must-haves verified — all transactional emails wired + booking expiry cron)
+stopped_at: v1.1 milestone re-audit complete — gaps_found (signup 500 bug + ONBOARD-01 CNPJ spec delta + Phase 10 VALIDATION draft)
+last_updated: "2026-05-22T23:30:00.000Z"
+last_activity: 2026-05-22 — Re-audit ran; 12/13 reqs satisfied; 2 blockers: signup 500 bug (ONBOARD-01) + CNPJ missing from form/API; Phase 10 needs /gsd-validate-phase 10
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 14
   completed_plans: 14
-  percent: 75
+  percent: 100
 ---
 
 # STATE.md — Turismo Capivara
@@ -119,9 +119,9 @@ Planos ainda a escrever para completar a Fase 2:
 
 ## Session Continuity
 
-Last session: 2026-05-21T19:55:00-03:00
-Stopped at: Phase 10 Plan 03 complete — MinhaReservaClient.tsx + minha-reserva/page.tsx committed
-Resume file: .planning/phases/10-tourist-self-service/10-04-PLAN.md
+Last session: 2026-05-22T14:45:00-03:00
+Stopped at: Milestone audit complete — gaps_found; Phase 08 VERIFICATION.md missing is the blocker
+Resume file: .planning/v1.1-MILESTONE-AUDIT.md
 
 ### Quick Tasks Completed
 
