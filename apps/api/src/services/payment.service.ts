@@ -49,7 +49,7 @@ async function attemptCreatePayment(
   }
 
   // 2. Execução Real com a API do Mercado Pago
-  const client = new MercadoPagoConfig({ accessToken: token })
+  const client = new MercadoPagoConfig({ accessToken: token, options: { timeout: 8000 } })
   const backUrls = buildBackUrls(input.slug, input.bookingId, input.customerEmail)
 
   const response = await new Payment(client).create({
