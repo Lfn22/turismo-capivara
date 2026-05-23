@@ -61,7 +61,7 @@ export default async function RoteirDetalhe({
 
   try {
     const res = await fetch(`${API_URL}/tenants/${slug}/packages/${packageId}`, {
-      cache: 'no-store',
+      next: { revalidate: 300 },
     })
     if (res.ok) pkg = await res.json()
   } catch {
@@ -111,7 +111,7 @@ export default async function RoteirDetalhe({
     try {
       const res = await fetch(
         `${API_URL}/tenants/${slug}/guides/${pkg.conductorId}`,
-        { cache: 'no-store' }
+        { next: { revalidate: 300 } }
       )
       if (res.ok) guide = await res.json()
     } catch {
