@@ -27,6 +27,7 @@ const signupBodySchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: 'Slug deve começar e terminar com letras ou números' }),
   email: z.string().email({ message: 'Email inválido' }),
   password: z.string().min(8, { message: 'Senha deve ter no mínimo 8 caracteres' }),
+  cnpj: z.string().min(14, { message: 'CNPJ inválido' }).max(18, { message: 'CNPJ inválido' }),
 })
 
 const rejectBodySchema = z.object({
@@ -117,7 +118,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
     try {
       await prisma.$transaction(async (tx) => {
         const tenant = await tx.tenant.create({
-          data: { name: body.name, slug: body.slug, approvalStatus: 'PENDING' },
+          data: { name: body.name, slug: body.slug, cnpj: body.cnpj, approvalStatus: 'PENDING' },
         })
         await tx.user.create({
           data: {

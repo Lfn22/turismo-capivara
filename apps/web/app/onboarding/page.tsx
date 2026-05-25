@@ -21,6 +21,7 @@ export default function OnboardingPage() {
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
   const [email, setEmail] = useState("")
+  const [cnpj, setCnpj] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -88,7 +89,7 @@ export default function OnboardingPage() {
       const res = await fetch(`${API_URL}/tenants/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, slug, email, password }),
+        body: JSON.stringify({ name, slug, email, password, cnpj }),
       })
       if (res.ok) {
         router.push("/onboarding/aguardando")
@@ -247,6 +248,35 @@ export default function OnboardingPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                border: "1px solid var(--stone-200)",
+                borderRadius: "4px",
+                fontSize: "16px",
+                fontFamily: "var(--font-body)",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          {/* CNPJ */}
+          <div style={{ marginBottom: "20px" }}>
+            <label
+              htmlFor="cnpj"
+              style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--stone-700)", marginBottom: "6px" }}
+            >
+              CNPJ
+            </label>
+            <input
+              id="cnpj"
+              type="text"
+              required
+              placeholder="XX.XXX.XXX/XXXX-XX"
+              minLength={14}
+              maxLength={18}
+              value={cnpj}
+              onChange={(e) => setCnpj(e.target.value)}
               style={{
                 width: "100%",
                 padding: "10px 12px",
