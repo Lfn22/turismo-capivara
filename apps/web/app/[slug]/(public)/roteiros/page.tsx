@@ -52,7 +52,7 @@ export default async function RoteirosPage({
 
   let packages: TourPackage[] = []
   try {
-    const res = await fetch(`${API_URL}/tenants/${slug}/packages`, { cache: 'no-store' })
+    const res = await fetch(`${API_URL}/tenants/${slug}/packages`, { next: { revalidate: 3600 } })
     if (res.ok) packages = await res.json()
   } catch {
     // fallback: empty list

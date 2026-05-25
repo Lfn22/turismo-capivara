@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import { validateEnv } from './shared/env'
 import { initSentry, Sentry } from './shared/sentry'
 
 // NOTE: This project uses CommonJS (no "type":"module" in package.json).
@@ -7,6 +8,7 @@ import { initSentry, Sentry } from './shared/sentry'
 // Therefore, `initSentry()` here runs before Fastify is instantiated, satisfying
 // the Sentry SDK requirement (D-08): SDK must be initialized before any
 // instrumented framework is created.
+validateEnv()
 initSentry()
 
 import Fastify from 'fastify'

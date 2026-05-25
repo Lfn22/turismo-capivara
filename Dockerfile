@@ -14,6 +14,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY apps/api ./apps/api
 
+RUN pnpm --filter @turismo/api exec prisma generate
 RUN pnpm --filter @turismo/api build
 
 WORKDIR /app/apps/api
