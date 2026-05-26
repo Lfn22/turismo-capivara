@@ -77,6 +77,7 @@ describe('POST /tenants/signup', () => {
         slug: 'capivara-tours',
         email: 'admin@capivara.com',
         password: 'senha123',
+        cnpj: '12.345.678/0001-99',
       },
     })
 
@@ -101,6 +102,7 @@ describe('POST /tenants/signup', () => {
         slug: 'existing-slug',
         email: 'admin@capivara.com',
         password: 'senha123',
+        cnpj: '12.345.678/0001-99',
       },
     })
 

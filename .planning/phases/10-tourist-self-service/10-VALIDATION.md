@@ -95,3 +95,15 @@ signed_off: 2026-05-22
 **Gap resolved:** 10-01-04 — per-email keyGenerator 429 test added to `rate-limit.test.ts` (4 new tests). All Wave 0 files existed on disk; VALIDATION.md was stale documentation debt from phase execution.
 
 **Suite result:** 67/67 tests passing (63 pre-existing + 4 new), 13 test files, 2.59s.
+
+## Validation Audit 2026-05-26
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 1 |
+| Resolved | 1 |
+| Escalated | 0 |
+
+**Gap resolved:** `signup.test.ts` — 2 tests failing with 400 after commit `12eff0a` added required `cnpj` field to `signupBodySchema`. Added `cnpj: '12.345.678/0001-99'` to valid payloads in "returns 201" and "returns 409" tests.
+
+**Suite result:** 67/67 tests passing, 13 test files, 4.07s.
