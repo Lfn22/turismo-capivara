@@ -1,5 +1,5 @@
 "use client"
-import { signIn } from "next-auth/react"
+import { signIn, getSession } from "next-auth/react"
 import { useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 
@@ -26,8 +26,15 @@ export default function LoginPage() {
         setError("Credenciais inválidas. Verifique seu email e senha.")
         return
       }
-      // middleware redireciona por role — fallback para dashboard
-      router.push(`/${params.slug}/painel/dashboard`)
+      const session = await getSession()
+      const role = (session?.user as { role?: string })?.role
+      if (role === "ADMIN") {
+        router.push(`/${params.slug}/admin/guias`)
+      } else if (role === "SUPER_ADMIN") {
+        router.push(`/super-admin/operadoras`)
+      } else {
+        router.push(`/${params.slug}/painel/dashboard`)
+      }
     } finally {
       setLoading(false)
     }
