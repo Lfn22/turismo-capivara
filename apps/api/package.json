@@ -5,6 +5,9 @@
   "engines": {
     "node": ">=22.12.0"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@prisma/client", "prisma"]
+  },
   "scripts": {
     "dev": "tsx watch src/app.ts",
     "build": "tsc",
