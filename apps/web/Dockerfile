@@ -18,4 +18,4 @@ RUN pnpm build
 EXPOSE 8080
 ENV PORT=8080
 
-CMD ["pnpm", "start"]
+CMD ["pnpm", "--filter", "@turismo/web", "start"]
