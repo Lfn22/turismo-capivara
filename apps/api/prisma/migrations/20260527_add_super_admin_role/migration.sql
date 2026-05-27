@@ -1,0 +1,2 @@
+-- Migration: Add SUPER_ADMIN value to Role enum
+ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'SUPER_ADMIN';
