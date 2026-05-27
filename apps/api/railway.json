@@ -1,11 +1,10 @@
 {
   "$schema": "https://railway.app/railway-schema.json",
   "build": {
-    "builder": "RAILPACK",
-    "buildCommand": "corepack enable && corepack prepare pnpm@10.32.1 --activate && pnpm install --no-frozen-lockfile && pnpm exec prisma generate && pnpm --filter @turismo/api build"
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "npx prisma migrate deploy && node dist/app.js",
     "healthcheckPath": "/health",
     "restartPolicyType": "ON_FAILURE"
   }
