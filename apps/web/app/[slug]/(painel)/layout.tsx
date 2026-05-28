@@ -22,18 +22,31 @@ export default async function PainelLayout({
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      <SidebarNav slug={slug} />
-      <main
-        style={{
-          flex: 1,
-          background: "var(--stone-50)",
-          padding: "32px 24px",
-          minWidth: 0, // evita overflow horizontal
-        }}
-      >
-        {children}
-      </main>
-    </div>
+    <>
+      <style>{`
+        @media (max-width: 767px) {
+          .painel-main {
+            padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+            padding-top: 24px !important;
+          }
+        }
+      `}</style>
+      <div style={{ display: "flex", minHeight: "100dvh" }}>
+        <SidebarNav slug={slug} />
+        <main
+          className="painel-main"
+          style={{
+            flex: 1,
+            background: "var(--stone-50)",
+            padding: "32px 24px",
+            minWidth: 0,
+          }}
+        >
+          {children}
+        </main>
+      </div>
+    </>
   )
 }
