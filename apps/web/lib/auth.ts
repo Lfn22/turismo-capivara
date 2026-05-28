@@ -14,30 +14,39 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password || !credentials?.tenantSlug) {
           return null
         }
-        const res = await fetch(`${process.env.API_URL}/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const apiUrl = process.env.API_URL
+        console.log('[auth] API_URL:', apiUrl)
+        try {
+          const res = await fetch(`${apiUrl}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+              tenantSlug: credentials.tenantSlug,
+            }),
+          })
+          console.log('[auth] login status:', res.status)
+          if (!res.ok) return null
+          const { token } = await res.json()
+          // Verify claims server-side via /auth/me (avoids client-side JWT decode without sig check)
+          const meRes = await fetch(`${apiUrl}/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          console.log('[auth] me status:', meRes.status)
+          if (!meRes.ok) return null
+          const { id, role, tenantId } = await meRes.json()
+          return {
+            id,
+            name: credentials.email,
             email: credentials.email,
-            password: credentials.password,
-            tenantSlug: credentials.tenantSlug,
-          }),
-        })
-        if (!res.ok) return null
-        const { token } = await res.json()
-        // Verify claims server-side via /auth/me (avoids client-side JWT decode without sig check)
-        const meRes = await fetch(`${process.env.API_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (!meRes.ok) return null
-        const { id, role, tenantId } = await meRes.json()
-        return {
-          id,
-          name: credentials.email,
-          email: credentials.email,
-          role,
-          tenantId,
-          token,
+            role,
+            tenantId,
+            token,
+          }
+        } catch (err) {
+          console.error('[auth] authorize error:', err)
+          return null
         }
       },
     }),
