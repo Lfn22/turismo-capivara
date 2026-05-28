@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Launch Readiness
-status: complete
-stopped_at: v1.1 milestone complete — 13/13 requirements satisfied, all 4 phases Nyquist-compliant
-last_updated: "2026-05-26T09:21:00.000Z"
-last_activity: 2026-05-26 — Milestone v1.1 archived, tag v1.1 created
+milestone: v1.2
+milestone_name: Polish & Reliability
+status: planning
+stopped_at: —
+last_updated: "2026-05-27T09:56:00.000Z"
+last_activity: 2026-05-27 — Milestone v1.2 started, defining requirements
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # STATE.md — Turismo Capivara
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-26)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Milestone v1.1 shipped — pronto para `/gsd-new-milestone`
+**Current focus:** Milestone v1.2 Polish & Reliability — definindo requirements
 
 ## Current Position
 
-Phase: —
+Phase: Not started (defining requirements)
 Plan: —
-Status: idle — Milestone v1.1 complete. Use `/gsd-new-milestone` para iniciar v1.2.
-Last activity: 2026-05-26 — v1.1 archived (13/13 reqs, 4 phases, 13 plans)
+Status: Defining requirements — milestone v1.2 Polish & Reliability
+Last activity: 2026-05-27 — Milestone v1.2 started
 
 ## Decisões estratégicas
 

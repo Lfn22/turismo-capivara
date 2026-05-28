@@ -1,20 +1,17 @@
 # Turismo Capivara
 
-## Current State: v1.1 Shipped — 2026-05-26
+## Current Milestone: v1.2 Polish & Reliability
 
-**Versão:** v1.1 Launch Readiness — ✅ Completo
-**Próximo passo:** `/gsd-new-milestone` para definir v1.2
+**Goal:** Transformar o frontend de funcionalmente correto para produção-grade — sem bugs visíveis, com observabilidade, resiliência em falhas de rede, UX fluida em qualquer dispositivo e base de código sustentável.
 
-**O que está em produção:**
-- Auth multi-tenant com roles (ADMIN, CONDUTOR, CLIENTE) + JWT
-- Onboarding autônomo de operadoras via `/onboarding` com aprovação do super-admin
-- Roteiros com slots de disponibilidade + reservas com anti-overbooking
-- Pagamento PIX via Mercado Pago com webhook HMAC-validado
-- Expiração automática de bookings não pagos (fastify-cron + advisory lock)
-- Emails transacionais em todo o ciclo via Resend
-- Self-service do turista em `/minha-reserva` (sem conta)
-- Rate limiting global + Sentry com contexto tenant/usuário
-- CPF hasheado HMAC-SHA256 em bookings (LGPD)
+**Target features:**
+- Bugs críticos: env var Railway, `<a>`→`<Link>`, hydration QR Code, SlotPicker debounce
+- UX & Interação: spinners, nav mobile, mensagens de erro descritivas, máscara telefone
+- Observabilidade: Sentry frontend, analytics de funil, Web Vitals reporting
+- Performance: font loading, lazy load, CLS skeleton dimensions
+- Resiliência: ErrorBoundary, retry automático, timeout + feedback
+- Empty States & Responsividade: empty states, mobile audit 320–430px, skeleton screens
+- Arquitetura: lib/api.ts com API_BASE, consolidar CSS
 
 <details>
 <summary>v1.1 Milestone Context (arquivado)</summary>

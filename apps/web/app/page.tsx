@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import DestinationCard from '@/src/components/ui/DestinationCard';
 
+// Force SSR — build container cannot reach the API at build time
+export const dynamic = 'force-dynamic';
+
 // ── Data layer ────────────────────────────────────────────────────────────────
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3333';
