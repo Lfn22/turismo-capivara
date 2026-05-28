@@ -18,16 +18,14 @@ interface DestinationSummary {
   heroImageBlurDataUrl: string | null;
 }
 
-async function fetchDestinations(): Promise<DestinationSummary[]> {
+async function fetchDestinations(): Promise<DestinationSummary[] | null> {
   try {
-    const res = await fetch(`${API_URL}/destinations`, {
-      next: { revalidate: 3600 },
-    });
+    const res = await fetch(`${API_URL}/destinations`, { cache: 'no-store' });
     if (res.ok) return res.json();
+    return null; // API respondeu com erro (4xx/5xx)
   } catch {
-    // fallback to empty
+    return null; // rede inacessível
   }
-  return [];
 }
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
@@ -138,7 +136,14 @@ export default async function DestinosPage() {
 
         {/* Body */}
         <main className="destinos__body">
-          {destinations.length > 0 ? (
+          {destinations === null ? (
+            <div className="destinos__empty" role="status">
+              <p className="destinos__empty-title">Erro ao carregar destinos</p>
+              <p className="destinos__empty-sub">
+                Não foi possível conectar ao servidor. Tente novamente em instantes.
+              </p>
+            </div>
+          ) : destinations.length > 0 ? (
             <div className="destinos__grid">
               {destinations.map((destination) => (
                 <DestinationCard
@@ -155,7 +160,7 @@ export default async function DestinosPage() {
             </div>
           ) : (
             <div className="destinos__empty" role="status">
-              <p className="destinos__empty-title">Destinos em breve</p>
+              <p className="destinos__empty-title">Nenhum destino cadastrado</p>
               <p className="destinos__empty-sub">
                 Novos destinos serão adicionados em breve.
               </p>

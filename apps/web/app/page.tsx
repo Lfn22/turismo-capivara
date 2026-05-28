@@ -19,16 +19,14 @@ interface DestinationSummary {
   heroImageBlurDataUrl: string | null;
 }
 
-async function fetchDestinations(): Promise<DestinationSummary[]> {
+async function fetchDestinations(): Promise<DestinationSummary[] | null> {
   try {
-    const res = await fetch(`${API_URL}/destinations`, {
-      next: { revalidate: 3600 },
-    });
+    const res = await fetch(`${API_URL}/destinations`, { cache: 'no-store' });
     if (res.ok) return res.json();
+    return null; // API respondeu com erro (4xx/5xx)
   } catch {
-    // fallback to empty — page still renders without catalog
+    return null; // rede inacessível
   }
-  return [];
 }
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
@@ -48,9 +46,9 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const destinations = await fetchDestinations();
-  const firstSlug = destinations[0]?.slug ?? null;
+  const firstSlug = destinations?.[0]?.slug ?? null;
   const guiasHref = firstSlug ? `/destinos/${firstSlug}/guias` : '/destinos';
-  const previewDestinations = destinations.slice(0, 3);
+  const previewDestinations = destinations?.slice(0, 3) ?? [];
 
   return (
     <>
@@ -391,7 +389,11 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        {previewDestinations.length > 0 ? (
+        {destinations === null ? (
+          <div className="home-catalog__empty" role="status">
+            Não foi possível carregar os destinos. Tente novamente em instantes.
+          </div>
+        ) : previewDestinations.length > 0 ? (
           <div className="home-catalog__grid">
             {previewDestinations.map((destination) => (
               <DestinationCard
@@ -408,7 +410,7 @@ export default async function HomePage() {
           </div>
         ) : (
           <div className="home-catalog__empty" role="status">
-            Destinos em breve — volte em alguns instantes.
+            Nenhum destino cadastrado ainda.
           </div>
         )}
       </section>
