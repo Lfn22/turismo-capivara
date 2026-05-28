@@ -2,7 +2,7 @@ FROM node:22.12.0-alpine
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+RUN npm install -g pnpm
 
 COPY package.json ./
 
