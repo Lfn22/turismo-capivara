@@ -1,17 +1,18 @@
 # Turismo Capivara
 
-## Current Milestone: v1.2 Polish & Reliability
+## Current Milestone: v1.2 UI/UX Polish + Guia Experience
 
-**Goal:** Transformar o frontend de funcionalmente correto para produção-grade — sem bugs visíveis, com observabilidade, resiliência em falhas de rede, UX fluida em qualquer dispositivo e base de código sustentável.
+**Goal:** Entregar um app mobile-first com login global sem slug, UI/estilos unificados, painel do guia totalmente responsivo, e gestão de conteúdo de roteiros e destinos.
 
 **Target features:**
-- Bugs críticos: env var Railway, `<a>`→`<Link>`, hydration QR Code, SlotPicker debounce
-- UX & Interação: spinners, nav mobile, mensagens de erro descritivas, máscara telefone
-- Observabilidade: Sentry frontend, analytics de funil, Web Vitals reporting
-- Performance: font loading, lazy load, CLS skeleton dimensions
-- Resiliência: ErrorBoundary, retry automático, timeout + feedback
-- Empty States & Responsividade: empty states, mobile audit 320–430px, skeleton screens
-- Arquitetura: lib/api.ts com API_BASE, consolidar CSS
+- Login global (/login) — email lookup sem slug, "Painel" na nav → /login, cadastrar abaixo do form
+- Mobile-first painel — tabelas → card layout, touch targets 44px, 16px inputs (iOS), modal slide-up
+- Toast + empty states — feedback visual em todas as ações, estados vazios com CTA
+- Back button universal — todas as páginas exceto homepage
+- Unificação de estilos — 161 hex hardcoded → tokens CSS, 3 paradigmas → globals.css, fluidez entre páginas
+- UI/UX audit fixes — ErrorBoundary, cancel dialog, ConversionAnchor real, links mortos, CAPI brand
+- Cadastro de destinos — guia cria novo destino com fotos e descrição (painel)
+- Enriquecimento de roteiros — adicionar fotos e experiências a roteiros existentes (painel)
 
 <details>
 <summary>v1.1 Milestone Context (arquivado)</summary>
@@ -64,6 +65,23 @@ Turista encontra, compara e reserva um guia para seu roteiro desejado — tudo e
 - [ ] Operadora pode ter grupo de guias vinculados sob sua marca
 - [ ] Plataforma cobra comissão % por reserva confirmada
 - [ ] Guia pode assinar plano premium para aparecer no topo das listas
+- [ ] Login global em /login sem slug — email lookup resolve a agência automaticamente
+- [ ] Botão "Painel" na nav pública aponta para /login (não onboarding)
+- [ ] Abaixo do form de login, botão "Cadastrar agência ou guia"
+- [ ] Painel do guia totalmente responsivo — tabelas viram card layout em mobile
+- [ ] Touch targets mínimos 44px e inputs 16px (evita zoom iOS) no painel
+- [ ] Sistema de toast/notificação para feedback de todas as ações
+- [ ] Empty states com CTA em todas as listas do painel (reservas, roteiros)
+- [ ] Back button em todas as páginas exceto homepage
+- [ ] Tokens CSS consolidados — nenhum hex hardcoded, tudo via globals.css
+- [ ] Três paradigmas CSS (inline, BEM, Tailwind) unificados no sistema de tokens
+- [ ] ErrorBoundary com mensagem útil e botão de retry
+- [ ] Dialog de confirmação antes de cancelar reserva
+- [ ] ConversionAnchor conecta na API real (não mais setTimeout fake)
+- [ ] Links mortos removidos da navegação pública
+- [ ] Nome "CAPI" unificado em todos os títulos e metadados do browser
+- [ ] Guia pode criar novo destino com fotos e descrição (painel)
+- [ ] Guia pode enriquecer roteiro existente com fotos e experiências (painel)
 
 ### Out of Scope
 
@@ -79,7 +97,7 @@ Turista encontra, compara e reserva um guia para seu roteiro desejado — tudo e
 
 **Codebase:** Monorepo pnpm + Turborepo com `apps/api` (Fastify 5, Prisma 7) e `apps/web` (Next.js 16.2). v1.1 entregou onboarding autônomo de tenants, automatização do ciclo de booking, e observabilidade em produção.
 
-**Estado atual:** Plataforma operacional com segurança hardened — rate limiting, Sentry, LGPD-compliant. Pronta para primeiros usuários reais.
+**Estado atual:** Plataforma operacional com segurança hardened — rate limiting, Sentry, LGPD-compliant. Pronta para primeiros usuários reais. UI/UX auditada (score 17/24) — v1.2 foca em elevar qualidade visual, experiência mobile do guia, e novos fluxos de login e gestão de conteúdo.
 
 **Débitos técnicos pendentes (não-bloqueadores):**
 - `getResend()` duplicado em `tenants.routes.ts` — cosmético (import de `shared/email.ts`)
@@ -110,10 +128,12 @@ Turista encontra, compara e reserva um guia para seu roteiro desejado — tudo e
 | CPF hasheado em bookings (LGPD) | Compliance obrigatório — lookup por email+código funciona sem CPF plaintext | ✓ Validado em v1.1 |
 | fastify-cron para expiração de bookings | Simplicidade — sem Redis/BullMQ para volume inicial | ✓ Validado em v1.1 |
 | Self-service sem conta (email+código) | Reduz fricção do turista — não precisa criar conta para ver reserva | ✓ Validado em v1.1 |
+| Login global sem slug (/login) | UX mobile-first — guia no celular não sabe o slug da sua agência | Definido em v1.2 |
+| Destinos e roteiros com gestão de conteúdo | Guia precisa de controle total sobre seu produto sem depender de admin | Definido em v1.2 |
 
 ## Evolution
 
-*Last updated: 2026-05-26 — v1.1 milestone complete: rate limiting, Sentry, onboarding autônomo, booking lifecycle automation, tourist self-service*
+*Last updated: 2026-05-28 — v1.2 milestone started: UI/UX Polish + Guia Experience*
 
 Este documento evolui a cada transição de fase e marco de milestone.
 

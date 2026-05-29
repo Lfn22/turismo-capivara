@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.2
-milestone_name: Polish & Reliability
+milestone_name: UI/UX Polish + Guia Experience
 status: planning
 stopped_at: —
-last_updated: "2026-05-27T09:56:00.000Z"
-last_activity: 2026-05-27 — Milestone v1.2 started, defining requirements
+last_updated: "2026-05-28T21:37:00.000Z"
+last_activity: 2026-05-28 — Milestone v1.2 redefined: UI/UX + login global + gestão de conteúdo
 progress:
   total_phases: 0
   completed_phases: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-26)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Milestone v1.2 Polish & Reliability — definindo requirements
+**Current focus:** Milestone v1.2 UI/UX Polish + Guia Experience — requirements definidos, roadmap pendente
 
 ## Current Position
 
 Phase: Not started (defining requirements)
 Plan: —
-Status: Defining requirements — milestone v1.2 Polish & Reliability
-Last activity: 2026-05-27 — Milestone v1.2 started
+Status: Requirements definidos — aguardando roadmap
+Last activity: 2026-05-28 — v1.2 scope definido: login global, mobile painel, toast/empty states, unificação CSS, gestão de conteúdo
 
 ## Decisões estratégicas
 
