@@ -16,8 +16,8 @@ const sourceSans = Source_Sans_3({
 })
 
 export const metadata: Metadata = {
-  title: "Serra da Capivara — Patrimônio Mundial UNESCO",
-  description: "Explore os sítios arqueológicos mais antigos das Américas com condutores credenciados pelo ICMBio.",
+  title: { template: '%s | CAPI', default: 'CAPI' },
+  description: 'Encontre guias certificados, compare roteiros e reserve com PIX.',
 }
 
 export default function RootLayout({
@@ -26,8 +26,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className={`${playfair.variable} ${sourceSans.variable}`}>
-      <body className="antialiased"><Providers>{children}</Providers></body>
+    <html lang="pt-BR" className={`${playfair.variable} ${sourceSans.variable}`} style={{ backgroundColor: 'var(--stone-50)' }}>
+      <body className="antialiased" style={{ backgroundColor: 'var(--stone-50)' }}><Providers>{children}</Providers></body>
     </html>
   )
 }
