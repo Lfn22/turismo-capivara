@@ -24,7 +24,6 @@ const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }
   CANCELLED: { bg: '#FEF2F2', color: '#DC2626', label: 'Cancelada' },
 }
 
-const OCHRE = '#C4852A'
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
 
 export default function MinhaReservaClient({ slug }: { slug: string }) {
@@ -142,7 +141,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
     minHeight: '100dvh',
     padding: 'clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 1.5rem)',
     fontFamily: 'var(--font-source-sans-3, sans-serif)',
-    backgroundColor: '#FAFAF9',
+    backgroundColor: 'var(--stone-50)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -151,7 +150,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
   const cardStyle: React.CSSProperties = {
     width: '100%',
     maxWidth: '520px',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'var(--stone-50)',
     borderRadius: '12px',
     padding: 'clamp(1.5rem, 5vw, 2.5rem)',
     boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
@@ -161,7 +160,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
     fontFamily: 'var(--font-playfair, serif)',
     fontSize: 'clamp(22px, 6vw, 28px)',
     fontWeight: 700,
-    color: '#1C1917',
+    color: 'var(--stone-900)',
     marginBottom: '0.5rem',
     marginTop: 0,
   }
@@ -170,7 +169,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
     fontFamily: 'var(--font-playfair, serif)',
     fontSize: '20px',
     fontWeight: 700,
-    color: '#1C1917',
+    color: 'var(--stone-900)',
     marginBottom: 0,
     marginTop: 0,
   }
@@ -180,27 +179,27 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
     fontSize: '16px',
     fontWeight: 700,
     marginBottom: '0.5rem',
-    color: '#1C1917',
+    color: 'var(--stone-900)',
   }
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '12px 16px',
     borderRadius: '8px',
-    border: '1px solid #D6D3D1',
+    border: '1px solid var(--stone-300)',
     fontSize: '16px',
     fontWeight: 400,
     outline: 'none',
     boxSizing: 'border-box',
     minHeight: '44px',
-    backgroundColor: '#FFFFFF',
-    color: '#1C1917',
+    backgroundColor: 'var(--stone-50)',
+    color: 'var(--stone-900)',
   }
 
   const primaryButtonStyle: React.CSSProperties = {
     width: '100%',
-    backgroundColor: OCHRE,
-    color: '#FFFFFF',
+    backgroundColor: 'var(--ochre)',
+    color: 'var(--stone-50)',
     border: 'none',
     borderRadius: '8px',
     padding: '14px 24px',
@@ -226,7 +225,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
   }
 
   const dividerStyle: React.CSSProperties = {
-    borderBottom: '1px solid #F5F5F4',
+    borderBottom: '1px solid var(--stone-100)',
     paddingBottom: '1rem',
     marginBottom: '1rem',
   }
@@ -237,7 +236,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
       <div style={containerStyle}>
         <div style={cardStyle}>
           <h1 style={displayHeadingStyle}>Minha Reserva</h1>
-          <p style={{ fontSize: '14px', color: '#78716C', marginBottom: '1.5rem', marginTop: 0 }}>
+          <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginBottom: '1.5rem', marginTop: 0 }}>
             Digite seu e-mail e o código da reserva para consultar o status.
           </p>
           <form onSubmit={handleLookup}>
@@ -271,7 +270,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
                 autoCapitalize="characters"
                 aria-describedby="mr-code-hint"
               />
-              <p id="mr-code-hint" style={{ fontSize: '12px', color: '#A8A29E', marginTop: '0.25rem', marginBottom: 0 }}>
+              <p id="mr-code-hint" style={{ fontSize: '12px', color: 'var(--stone-400)', marginTop: '0.25rem', marginBottom: 0 }}>
                 Últimos 6 caracteres do código enviado por e-mail
               </p>
             </div>
@@ -299,11 +298,11 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
               role="img"
             >
               <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-              <circle cx="20" cy="20" r="16" fill="none" stroke="#E7E5E4" strokeWidth="4" />
-              <path d="M20 4 A16 16 0 0 1 36 20" fill="none" stroke={OCHRE} strokeWidth="4" strokeLinecap="round" />
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--stone-200)" strokeWidth="4" />
+              <path d="M20 4 A16 16 0 0 1 36 20" fill="none" stroke="var(--ochre)" strokeWidth="4" strokeLinecap="round" />
             </svg>
           </div>
-          <p style={{ textAlign: 'center', fontSize: '14px', color: '#78716C', margin: 0 }}>
+          <p style={{ textAlign: 'center', fontSize: '14px', color: 'var(--stone-500)', margin: 0 }}>
             Consultando sua reserva...
           </p>
         </div>
@@ -373,15 +372,15 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
 
         {/* Detail rows */}
         <div style={dividerStyle}>
-          <p style={{ fontSize: '14px', color: '#78716C', margin: '0 0 0.25rem' }}>Roteiro</p>
+          <p style={{ fontSize: '14px', color: 'var(--stone-500)', margin: '0 0 0.25rem' }}>Roteiro</p>
           <p style={{ fontSize: '16px', fontWeight: 700, color: '#1C1917', margin: 0 }}>{booking.slot.packageName}</p>
         </div>
         <div style={dividerStyle}>
-          <p style={{ fontSize: '14px', color: '#78716C', margin: '0 0 0.25rem' }}>Data</p>
+          <p style={{ fontSize: '14px', color: 'var(--stone-500)', margin: '0 0 0.25rem' }}>Data</p>
           <p style={{ fontSize: '16px', fontWeight: 700, color: '#1C1917', margin: 0 }}>{formattedDate}</p>
         </div>
         <div style={{ ...dividerStyle, marginBottom: '1.5rem' }}>
-          <p style={{ fontSize: '14px', color: '#78716C', margin: '0 0 0.25rem' }}>Pessoas</p>
+          <p style={{ fontSize: '14px', color: 'var(--stone-500)', margin: '0 0 0.25rem' }}>Pessoas</p>
           <p style={{ fontSize: '16px', fontWeight: 700, color: '#1C1917', margin: 0 }}>
             {booking.pax} {booking.pax === 1 ? 'pessoa' : 'pessoas'}
           </p>
@@ -390,7 +389,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
         {/* ── PENDING section ── */}
         {booking.status === 'PENDING' && (
           <div style={{ marginBottom: '1.5rem' }}>
-            <p style={{ fontSize: '14px', color: '#78716C', marginBottom: '1rem', marginTop: 0 }}>
+            <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginBottom: '1rem', marginTop: 0 }}>
               Escaneie o QR code com o app do seu banco ou copie a chave PIX abaixo.
             </p>
             {booking.qrCode ? (
@@ -398,9 +397,9 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
                 <div style={{
                   display: 'inline-block',
                   padding: '16px',
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: 'var(--stone-50)',
                   borderRadius: '8px',
-                  border: '1px solid #E7E5E4',
+                  border: '1px solid var(--stone-200)',
                 }}>
                   <QRCode
                     value={booking.qrCode}
@@ -410,15 +409,15 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
                   />
                 </div>
                 <div style={{ marginTop: '1rem' }}>
-                  <p style={{ fontSize: '14px', color: '#78716C', marginBottom: '0.5rem', marginTop: 0 }}>
+                  <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginBottom: '0.5rem', marginTop: 0 }}>
                     Chave PIX (copia e cola):
                   </p>
                   <div
                     style={{
                       fontFamily: 'monospace',
                       fontSize: '12px',
-                      color: '#44403C',
-                      backgroundColor: '#F5F5F4',
+                      color: 'var(--stone-700)',
+                      backgroundColor: 'var(--stone-100)',
                       borderRadius: '6px',
                       padding: '8px 12px',
                       overflow: 'hidden',
@@ -440,7 +439,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
                     onClick={handleCopyPix}
                     style={{
                       ...primaryButtonStyle,
-                      backgroundColor: copiedPix ? '#15803D' : OCHRE,
+                      backgroundColor: copiedPix ? '#15803D' : 'var(--ochre)',
                       marginTop: '0.5rem',
                     }}
                   >
@@ -449,7 +448,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
                 </div>
               </div>
             ) : (
-              <p style={{ fontSize: '14px', color: '#78716C' }}>QR code não disponível.</p>
+              <p style={{ fontSize: '14px', color: 'var(--stone-500)' }}>QR code não disponível.</p>
             )}
             <button onClick={() => setShowCancelModal(true)} style={cancelButtonStyle}>
               Cancelar reserva
@@ -488,7 +487,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
                 Falar com o guia via WhatsApp
               </a>
             ) : (
-              <p style={{ fontSize: '14px', color: '#78716C', marginBottom: '0.75rem' }}>
+              <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginBottom: '0.75rem' }}>
                 Precisa de ajuda? Entre em contato com a operadora.
               </p>
             )}
@@ -545,7 +544,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
                 Suporte via WhatsApp
               </a>
             ) : (
-              <p style={{ fontSize: '14px', color: '#78716C' }}>
+              <p style={{ fontSize: '14px', color: 'var(--stone-500)' }}>
                 Entre em contato com o suporte da operadora.
               </p>
             )}
@@ -557,7 +556,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
           onClick={() => { setUiState('LOOKUP'); setBooking(null) }}
           style={{
             fontSize: '14px',
-            color: '#78716C',
+            color: 'var(--stone-500)',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
@@ -575,7 +574,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(31,14,8,0.6)',
+            backgroundColor: 'rgba(0,0,0,0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -588,7 +587,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
         >
           <div
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: 'var(--stone-50)',
               borderRadius: '12px',
               padding: 'clamp(1.5rem, 5vw, 2rem)',
               width: '100%',
@@ -601,7 +600,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
             >
               Cancelar reserva
             </h2>
-            <p style={{ fontSize: '14px', color: '#78716C', marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginBottom: '1.5rem' }}>
               Tem certeza que deseja cancelar esta reserva? Esta ação não pode ser desfeita.
             </p>
             {/* Mobile: destructive first (thumb reach); Desktop: back left, destructive right */}
@@ -632,14 +631,14 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
                 width: '100%',
                 padding: '12px',
                 borderRadius: '8px',
-                border: '1px solid #D6D3D1',
-                backgroundColor: '#FFFFFF',
+                border: '1px solid var(--stone-300)',
+                backgroundColor: 'var(--stone-50)',
                 fontSize: '16px',
                 fontWeight: 700,
                 cursor: cancelLoading ? 'not-allowed' : 'pointer',
                 minHeight: '44px',
                 marginTop: '0.5rem',
-                color: '#1C1917',
+                color: 'var(--stone-900)',
               }}
             >
               Voltar
