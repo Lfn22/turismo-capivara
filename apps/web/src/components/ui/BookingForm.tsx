@@ -16,25 +16,6 @@ interface FormState {
   pax: number;
 }
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '0.625rem 0.75rem',
-  fontSize: '0.95rem',
-  border: '1px solid #d6d3d1',
-  borderRadius: '8px',
-  outline: 'none',
-  boxSizing: 'border-box',
-  color: '#1c1917',
-  backgroundColor: '#ffffff',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  marginBottom: '0.3rem',
-  fontSize: '0.875rem',
-  fontWeight: 500,
-  color: '#44403c',
-};
 
 export default function BookingForm({ slotId, packageId, slug }: BookingFormProps) {
   const router = useRouter();
@@ -98,7 +79,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div>
-        <label htmlFor="guestName" style={labelStyle}>
+        <label htmlFor="guestName" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
           Nome completo
         </label>
         <input
@@ -109,13 +90,18 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           value={form.guestName}
           onChange={handleChange}
           placeholder="Seu nome"
-          style={inputStyle}
+          className="w-full px-3 py-2.5 text-[0.95rem] rounded-lg outline-none box-border"
+          style={{
+            border: '1px solid var(--stone-300)',
+            color: 'var(--stone-900)',
+            backgroundColor: 'var(--stone-50)',
+          }}
           disabled={loading}
         />
       </div>
 
       <div>
-        <label htmlFor="email" style={labelStyle}>
+        <label htmlFor="email" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
           E-mail
         </label>
         <input
@@ -126,13 +112,18 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           value={form.email}
           onChange={handleChange}
           placeholder="seu@email.com"
-          style={inputStyle}
+          className="w-full px-3 py-2.5 text-[0.95rem] rounded-lg outline-none box-border"
+          style={{
+            border: '1px solid var(--stone-300)',
+            color: 'var(--stone-900)',
+            backgroundColor: 'var(--stone-50)',
+          }}
           disabled={loading}
         />
       </div>
 
       <div>
-        <label htmlFor="phone" style={labelStyle}>
+        <label htmlFor="phone" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
           Telefone / WhatsApp
         </label>
         <input
@@ -143,13 +134,18 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           value={form.phone}
           onChange={handleChange}
           placeholder="(11) 99999-9999"
-          style={inputStyle}
+          className="w-full px-3 py-2.5 text-[0.95rem] rounded-lg outline-none box-border"
+          style={{
+            border: '1px solid var(--stone-300)',
+            color: 'var(--stone-900)',
+            backgroundColor: 'var(--stone-50)',
+          }}
           disabled={loading}
         />
       </div>
 
       <div>
-        <label htmlFor="pax" style={labelStyle}>
+        <label htmlFor="pax" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
           Número de pessoas
         </label>
         <input
@@ -161,20 +157,23 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           required
           value={form.pax}
           onChange={handleChange}
-          style={{ ...inputStyle, width: '100px' }}
+          className="px-3 py-2.5 text-[0.95rem] rounded-lg outline-none box-border"
+          style={{
+            width: '100px',
+            border: '1px solid var(--stone-300)',
+            color: 'var(--stone-900)',
+            backgroundColor: 'var(--stone-50)',
+          }}
           disabled={loading}
         />
       </div>
 
       {error && (
         <p
+          className="m-0 px-3 py-2.5 rounded-lg text-sm"
           style={{
-            margin: 0,
-            padding: '0.625rem 0.75rem',
             backgroundColor: '#fef2f2',
             color: '#b91c1c',
-            borderRadius: '8px',
-            fontSize: '0.875rem',
           }}
         >
           {error}
@@ -184,16 +183,12 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
       <button
         type="submit"
         disabled={loading}
+        className="px-6 py-3 rounded-[10px] font-semibold text-base transition-colors"
         style={{
-          backgroundColor: loading ? '#a8a29e' : '#d97706',
-          color: '#ffffff',
+          backgroundColor: loading ? 'var(--stone-400)' : 'var(--ochre)',
+          color: 'var(--stone-50)',
           border: 'none',
-          borderRadius: '10px',
-          padding: '0.75rem 1.5rem',
-          fontSize: '1rem',
-          fontWeight: 600,
           cursor: loading ? 'not-allowed' : 'pointer',
-          transition: 'background-color 0.15s',
         }}
       >
         {loading ? 'Processando...' : 'Confirmar reserva'}
