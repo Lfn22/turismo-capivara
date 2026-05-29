@@ -138,7 +138,7 @@ export default function StickyDestinationNav({
           padding: 0.5rem 0;
         }
 
-        .snav__back:hover { color: #fff; }
+        .snav__back:hover { color: var(--stone-50); }
 
         /* Separador vertical */
         .snav__sep {
