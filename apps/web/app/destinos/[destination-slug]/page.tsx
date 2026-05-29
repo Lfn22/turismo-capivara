@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import DestinationHero from '@/src/components/ui/DestinationHero';
 import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
+import BackButton from '@/components/ui/BackButton';
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 
@@ -474,6 +475,8 @@ export default async function DestinationPage({ params }: Props) {
           }
         }
       `}</style>
+
+      <BackButton />
 
       {/* ── Nav sticky ─────────────────────────────────────────── */}
       <StickyDestinationNav

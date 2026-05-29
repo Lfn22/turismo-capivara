@@ -1,4 +1,5 @@
 import SlotPicker from '@/src/components/ui/SlotPicker'
+import BackButton from '@/components/ui/BackButton'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 
@@ -138,6 +139,7 @@ export default async function RoteirDetalhe({
         padding: 'clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 2rem)',
       }}
     >
+      <BackButton />
       {/* Breadcrumb */}
       <nav style={{ marginBottom: '1.5rem' }}>
         <a

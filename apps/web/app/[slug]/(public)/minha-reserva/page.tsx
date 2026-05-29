@@ -1,4 +1,5 @@
 import MinhaReservaClient from '@/src/components/ui/MinhaReservaClient'
+import BackButton from '@/components/ui/BackButton'
 
 export default async function MinhaReservaPage({
   params,
@@ -9,6 +10,7 @@ export default async function MinhaReservaPage({
 
   return (
     <main>
+      <BackButton />
       <MinhaReservaClient slug={slug} />
     </main>
   )

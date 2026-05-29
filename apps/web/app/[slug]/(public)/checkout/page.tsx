@@ -1,4 +1,5 @@
 import CheckoutClient from '@/src/components/ui/CheckoutClient'
+import BackButton from '@/components/ui/BackButton'
 
 export default async function CheckoutPage({
   params,
@@ -12,6 +13,7 @@ export default async function CheckoutPage({
 
   return (
     <main>
+      <BackButton />
       <CheckoutClient slug={slug} bookingId={bookingId} email={email} />
     </main>
   )
