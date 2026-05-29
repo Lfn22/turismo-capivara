@@ -32,7 +32,12 @@
   3. Transições entre rotas ocorrem sem flash branco visível
   4. Nenhum link na navegação pública aponta para página inexistente — Blog e links de redes sociais removidos ou desabilitados
   5. ConversionAnchor envia email para API real — "Cadastrado com sucesso" aparece somente após gravação confirmada
-**Plans**: TBD
+**Plans**: 5 plans
+- [ ] 11-01-PLAN.md — globals.css fixes + root layout CAPI title + delete legacy pages
+- [ ] 11-02-PLAN.md — BackButton component + placement on detail/sub-pages
+- [ ] 11-03-PLAN.md — Resend install + waitlist Server Action + BEM hex cleanup
+- [ ] 11-04-PLAN.md — PublicNav/BookingForm inline→Tailwind + hex→token cleanup
+- [ ] 11-05-PLAN.md — loading.tsx flash fix files + human visual verification
 **UI hint**: yes
 
 ### Phase 12: Login Global
