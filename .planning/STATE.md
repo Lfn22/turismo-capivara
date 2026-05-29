@@ -5,13 +5,13 @@ milestone_name: UI/UX Polish + Guia Experience
 status: in_progress
 stopped_at: —
 last_updated: "2026-05-29T22:57:00.000Z"
-last_activity: 2026-05-29 — Completed 11-02-PLAN (BackButton navigation component)
+last_activity: 2026-05-29 — Completed 11-03-PLAN (Waitlist Server Action + hex cleanup)
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 5
-  completed_plans: 1
-  percent: 20
+  completed_plans: 2
+  percent: 40
 ---
 
 # STATE.md — Turismo Capivara
