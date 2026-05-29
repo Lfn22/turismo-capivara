@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { submitWaitlist } from '@/app/actions/waitlist';
 
 export interface ConversionAnchorProps {
   destinationName: string;
@@ -14,6 +15,7 @@ export default function ConversionAnchor({
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const hasGuides = guideCount > 0;
 
@@ -21,9 +23,13 @@ export default function ConversionAnchor({
     e.preventDefault();
     if (!email.trim()) return;
     setLoading(true);
-    // TODO: conectar ao endpoint de waitlist
-    await new Promise((r) => setTimeout(r, 800));
-    setSubmitted(true);
+    setFormError(null);
+    const result = await submitWaitlist(email);
+    if (result.ok) {
+      setSubmitted(true);
+    } else {
+      setFormError(result.error ?? 'Não conseguimos registrar seu email. Tente novamente.');
+    }
     setLoading(false);
   }
 
@@ -147,7 +153,7 @@ export default function ConversionAnchor({
           border: 1px solid var(--stone-300);
           border-radius: 2px;
           overflow: hidden;
-          background: #fff;
+          background: var(--stone-50);
           min-width: clamp(240px, 38vw, 360px);
         }
 
@@ -177,7 +183,7 @@ export default function ConversionAnchor({
           letter-spacing: 0.1em;
           text-transform: uppercase;
           background: var(--stone-900);
-          color: #fff;
+          color: var(--stone-50);
           border: none;
           cursor: pointer;
           transition: background 0.2s;
@@ -212,7 +218,7 @@ export default function ConversionAnchor({
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          color: #fff;
+          color: var(--stone-50);
         }
 
         /* Mobile */
@@ -283,30 +289,37 @@ export default function ConversionAnchor({
                 <span>Avisaremos quando houver guias disponíveis.</span>
               </div>
             ) : (
-              <form
-                className="conv-anchor__form"
-                onSubmit={handleSubmit}
-                aria-label="Cadastro para lista de espera"
-              >
-                <input
-                  className="conv-anchor__input"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  aria-label="Seu e-mail"
-                  autoComplete="email"
-                />
-                <button
-                  type="submit"
-                  className="conv-anchor__submit"
-                  disabled={loading}
-                  aria-label="Entrar na lista de espera"
+              <div>
+                <form
+                  className="conv-anchor__form"
+                  onSubmit={handleSubmit}
+                  aria-label="Cadastro para lista de espera"
                 >
-                  {loading ? 'Enviando…' : 'Me avise'}
-                </button>
-              </form>
+                  <input
+                    className="conv-anchor__input"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="seu@email.com"
+                    aria-label="Seu e-mail"
+                    autoComplete="email"
+                  />
+                  <button
+                    type="submit"
+                    className="conv-anchor__submit"
+                    disabled={loading}
+                    aria-label="Entrar na lista de espera"
+                  >
+                    {loading ? 'Enviando…' : 'Me avise'}
+                  </button>
+                </form>
+                {formError && (
+                  <p aria-live="polite" style={{ color: 'var(--stone-700)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                    {formError}
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
