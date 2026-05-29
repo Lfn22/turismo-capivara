@@ -41,15 +41,15 @@ function statusColor(status: string): string {
     CANCELLED: '#dc2626',
     COMPLETED: '#2563eb',
   };
-  return map[status] ?? '#44403c';
+  return map[status] ?? 'var(--stone-700)';
 }
 
 export default function ConfirmationCard({ booking }: ConfirmationCardProps) {
   return (
     <div
       style={{
-        backgroundColor: '#ffffff',
-        border: '1px solid #e7e5e4',
+        backgroundColor: 'var(--stone-50)',
+        border: '1px solid var(--stone-200)',
         borderRadius: '16px',
         padding: '2rem',
         maxWidth: '480px',
@@ -90,7 +90,7 @@ export default function ConfirmationCard({ booking }: ConfirmationCardProps) {
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#1c1917' }}>
+        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--stone-900)' }}>
           Reserva recebida
         </h2>
         <p
@@ -128,13 +128,13 @@ function Row({ label, value }: { label: string; value: string }) {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        borderBottom: '1px solid #f5f5f4',
+        borderBottom: '1px solid var(--stone-100)',
         paddingBottom: '0.625rem',
         gap: '1rem',
       }}
     >
-      <span style={{ fontSize: '0.85rem', color: '#78716c', flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#1c1917', textAlign: 'right' }}>
+      <span style={{ fontSize: '0.85rem', color: 'var(--stone-500)', flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--stone-900)', textAlign: 'right' }}>
         {value}
       </span>
     </div>
