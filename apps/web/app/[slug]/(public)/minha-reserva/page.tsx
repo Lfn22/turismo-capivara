@@ -1,5 +1,5 @@
 import MinhaReservaClient from '@/src/components/ui/MinhaReservaClient'
-import BackButton from '@/components/ui/BackButton'
+import BackButton from '@/src/components/ui/BackButton'
 
 export default async function MinhaReservaPage({
   params,

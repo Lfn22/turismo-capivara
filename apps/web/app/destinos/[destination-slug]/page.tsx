@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import DestinationHero from '@/src/components/ui/DestinationHero';
 import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
-import BackButton from '@/components/ui/BackButton';
+import BackButton from '@/src/components/ui/BackButton';
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 

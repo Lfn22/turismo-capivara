@@ -1,5 +1,5 @@
 import SlotPicker from '@/src/components/ui/SlotPicker'
-import BackButton from '@/components/ui/BackButton'
+import BackButton from '@/src/components/ui/BackButton'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 

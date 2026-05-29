@@ -2,7 +2,7 @@
 import { use, useState, useEffect } from "react"
 import Calendar from "react-calendar"
 import { Modal } from "@/components/ui/Modal"
-import BackButton from "@/components/ui/BackButton"
+import BackButton from "@/src/components/ui/BackButton"
 
 interface Slot {
   id: string

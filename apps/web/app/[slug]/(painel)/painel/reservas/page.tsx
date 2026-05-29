@@ -1,7 +1,7 @@
 "use client"
 import { use, useState, useEffect } from "react"
 import { StatusBadge } from "@/components/ui/StatusBadge"
-import BackButton from "@/components/ui/BackButton"
+import BackButton from "@/src/components/ui/BackButton"
 
 interface Booking {
   id: string

@@ -1,5 +1,5 @@
 import CheckoutClient from '@/src/components/ui/CheckoutClient'
-import BackButton from '@/components/ui/BackButton'
+import BackButton from '@/src/components/ui/BackButton'
 
 export default async function CheckoutPage({
   params,

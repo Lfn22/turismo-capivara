@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import BackButton from "@/components/ui/BackButton"
+import BackButton from "@/src/components/ui/BackButton"
 
 interface GuideProfileData {
   id: string
