@@ -32,9 +32,17 @@ body {
 }
 
 h1, h2, h3, h4 {
-  font-family: var(--font-display), Georgia, serif;
+  font-family: var(--font-display, Georgia, serif);
   line-height: 1.2;
   letter-spacing: -0.02em;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+  font-size: 16px;
 }
 
 /* ── Hero entrance animation ─────────────────────────────────── */
