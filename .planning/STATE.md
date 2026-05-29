@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: UI/UX Polish + Guia Experience
-status: ready_to_execute
+status: in_progress
 stopped_at: —
-last_updated: "2026-05-29T08:30:00.000Z"
-last_activity: 2026-05-29 — Phase 11 planejada: 5 planos em 3 waves (NAV-01–02, STYLE-01–05, AUDIT-01–05)
+last_updated: "2026-05-29T22:57:00.000Z"
+last_activity: 2026-05-29 — Completed 11-02-PLAN (BackButton navigation component)
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 5
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 20
 ---
 
 # STATE.md — Turismo Capivara
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 
 ## Current Position
 
-Phase: Phase 11 (not started)
-Plan: —
-Status: Roadmap aprovado — pronto para /gsd-plan-phase 11
+Phase: Phase 11 (in progress — 1 of 5 plans complete)
+Plan: 11-02 (completed)
+Status: Wave 1 complete: BackButton component created and integrated
 Last activity: 2026-05-28 — Roadmap v1.2 criado: 4 fases, 34 requirements, 100% coverage
 
 ## Decisões estratégicas
