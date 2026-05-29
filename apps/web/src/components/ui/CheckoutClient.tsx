@@ -132,9 +132,9 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
 
   if (!bookingId || !email) {
     return (
-      <div style={{ textAlign: 'center', padding: '4rem 1rem', color: '#78716c' }}>
+      <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--stone-500)' }}>
         <p>Parâmetros inválidos. Volte ao roteiro e tente novamente.</p>
-        <a href={`/${slug}/roteiros`} style={{ color: '#C4852A', textDecoration: 'none', fontWeight: 600 }}>
+        <a href={`/${slug}/roteiros`} style={{ color: 'var(--ochre)', textDecoration: 'none', fontWeight: 600 }}>
           Ver roteiros
         </a>
       </div>
@@ -151,15 +151,15 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
           justifyContent: 'center',
           minHeight: '50dvh',
           gap: '1rem',
-          color: '#78716c',
+          color: 'var(--stone-500)',
         }}
       >
         <div
           style={{
             width: '32px',
             height: '32px',
-            border: '3px solid #e7e5e4',
-            borderTopColor: '#C4852A',
+            border: '3px solid var(--stone-200)',
+            borderTopColor: 'var(--ochre)',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }}
@@ -174,7 +174,7 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
     return (
       <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
         <p style={{ color: '#991b1b', marginBottom: '1rem' }}>{error ?? 'Reserva não encontrada.'}</p>
-        <a href={`/${slug}/roteiros`} style={{ color: '#C4852A', textDecoration: 'none', fontWeight: 600 }}>
+        <a href={`/${slug}/roteiros`} style={{ color: 'var(--ochre)', textDecoration: 'none', fontWeight: 600 }}>
           ← Ver roteiros
         </a>
       </div>
@@ -260,15 +260,15 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
         {/* Booking summary */}
         <div
           style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e7e5e4',
+            backgroundColor: 'var(--stone-50)',
+            border: '1px solid var(--stone-200)',
             borderRadius: '12px',
             overflow: 'hidden',
             marginBottom: '1.5rem',
           }}
         >
-          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f5f5f4' }}>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--stone-100)' }}>
+            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--stone-500)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
               Resumo da reserva
             </p>
           </div>
@@ -288,18 +288,18 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
         {isPending && !isExpired && booking.qrCode && (
           <div
             style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid #e7e5e4',
+              backgroundColor: 'var(--stone-50)',
+              border: '1px solid var(--stone-200)',
               borderRadius: '12px',
               overflow: 'hidden',
               marginBottom: '1.5rem',
             }}
           >
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f5f5f4' }}>
-              <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: '#1c1917' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--stone-100)' }}>
+              <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--stone-900)' }}>
                 Pague via PIX
               </p>
-              <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#78716c' }}>
+              <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--stone-500)' }}>
                 Copie o código abaixo e cole no app do seu banco
               </p>
             </div>
@@ -307,13 +307,13 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
               {/* PIX code display */}
               <div
                 style={{
-                  backgroundColor: '#fafaf7',
-                  border: '1px solid #e7e5e4',
+                  backgroundColor: 'var(--stone-50)',
+                  border: '1px solid var(--stone-200)',
                   borderRadius: '8px',
                   padding: '0.75rem',
                   fontSize: '0.7rem',
                   fontFamily: 'monospace',
-                  color: '#44403c',
+                  color: 'var(--stone-700)',
                   wordBreak: 'break-all',
                   lineHeight: 1.6,
                   marginBottom: '0.75rem',
@@ -329,8 +329,8 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  backgroundColor: copied ? '#166534' : '#C4852A',
-                  color: '#ffffff',
+                  backgroundColor: copied ? '#166534' : 'var(--ochre)',
+                  color: 'var(--stone-50)',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: '0.9rem',
@@ -372,10 +372,10 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
                     marginTop: '0.75rem',
                     textAlign: 'center',
                     fontSize: '0.85rem',
-                    color: '#78716c',
+                    color: 'var(--stone-500)',
                     textDecoration: 'none',
                     padding: '0.5rem',
-                    border: '1px solid #e7e5e4',
+                    border: '1px solid var(--stone-200)',
                     borderRadius: '8px',
                   }}
                 >
@@ -387,7 +387,7 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
                 style={{
                   margin: '0.75rem 0 0',
                   fontSize: '0.75rem',
-                  color: '#a8a29e',
+                  color: 'var(--stone-400)',
                   textAlign: 'center',
                   animation: 'pulse 2s ease-in-out infinite',
                 }}
@@ -406,8 +406,8 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
               style={{
                 display: 'inline-block',
                 padding: '0.75rem 1.5rem',
-                backgroundColor: '#C4852A',
-                color: '#ffffff',
+                backgroundColor: 'var(--ochre)',
+                color: 'var(--stone-50)',
                 textDecoration: 'none',
                 borderRadius: '10px',
                 fontWeight: 600,
@@ -434,8 +434,8 @@ function Row({
 }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-      <span style={{ fontSize: '0.8rem', color: '#78716c', flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: '0.875rem', color: '#1c1917', textAlign: 'right', ...valueStyle }}>
+      <span style={{ fontSize: '0.8rem', color: 'var(--stone-500)', flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: '0.875rem', color: 'var(--stone-900)', textAlign: 'right', ...valueStyle }}>
         {value}
       </span>
     </div>
