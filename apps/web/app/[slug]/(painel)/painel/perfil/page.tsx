@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
+import BackButton from "@/components/ui/BackButton"
 
 interface GuideProfileData {
   id: string
@@ -177,6 +178,7 @@ export default function PerfilPage({
 
   return (
     <>
+      <BackButton />
       {/* Page header */}
       <div style={{ marginBottom: "32px" }}>
         <p

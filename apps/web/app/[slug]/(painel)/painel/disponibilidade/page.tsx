@@ -2,6 +2,7 @@
 import { use, useState, useEffect } from "react"
 import Calendar from "react-calendar"
 import { Modal } from "@/components/ui/Modal"
+import BackButton from "@/components/ui/BackButton"
 
 interface Slot {
   id: string
@@ -232,6 +233,7 @@ export default function DisponibilidadePage({
 
   return (
     <>
+      <BackButton />
       {/* Page header */}
       <div style={{ marginBottom: "24px" }}>
         <p

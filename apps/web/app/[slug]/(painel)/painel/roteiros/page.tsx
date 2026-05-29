@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { authOptions } from "@/lib/auth"
 import { apiFetch } from "@/lib/api/client"
 import Link from "next/link"
+import BackButton from "@/components/ui/BackButton"
 
 interface Package {
   id: string
@@ -54,6 +55,7 @@ export default async function RoteirosPage({
 
   return (
     <>
+      <BackButton />
       {/* Page header */}
       <div
         style={{

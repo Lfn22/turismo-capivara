@@ -2,6 +2,7 @@ import { getToken } from "next-auth/jwt"
 import { headers } from "next/headers"
 import { apiFetch } from "@/lib/api/client"
 import { StatusBadge } from "@/components/ui/StatusBadge"
+import BackButton from "@/components/ui/BackButton"
 
 interface Booking {
   id: string
@@ -91,6 +92,7 @@ export default async function DashboardPage({
 
   return (
     <>
+      <BackButton />
       {/* Page header */}
       <div style={{ marginBottom: "32px" }}>
         <p

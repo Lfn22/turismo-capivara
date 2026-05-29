@@ -1,6 +1,7 @@
 "use client"
 import { use, useState, useEffect } from "react"
 import { StatusBadge } from "@/components/ui/StatusBadge"
+import BackButton from "@/components/ui/BackButton"
 
 interface Booking {
   id: string
@@ -117,6 +118,7 @@ export default function ReservasPage({
 
   return (
     <>
+      <BackButton />
       {/* Page header */}
       <div
         style={{
