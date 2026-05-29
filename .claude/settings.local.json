@@ -75,7 +75,8 @@
       "Skill(gsd-ui-phase)",
       "Skill(gsd-audit-milestone)",
       "Skill(gsd-validate-phase)",
-      "mcp__plugin_context-mode_context-mode__ctx_fetch_and_index"
+      "mcp__plugin_context-mode_context-mode__ctx_fetch_and_index",
+      "Skill(gsd-ui-review)"
     ]
   }
 }
