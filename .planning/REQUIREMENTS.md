@@ -76,24 +76,51 @@
 
 ## Traceability
 
-Populado após criação do roadmap.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LOGIN-01–05 | — | Pending |
-| MOBILE-01–05 | — | Pending |
-| FEEDBACK-01–05 | — | Pending |
-| NAV-01–02 | — | Pending |
-| STYLE-01–05 | — | Pending |
-| AUDIT-01–05 | — | Pending |
-| DEST-01–04 | — | Pending |
-| ROT-01–03 | — | Pending |
+| LOGIN-01 | Phase 12 | Pending |
+| LOGIN-02 | Phase 12 | Pending |
+| LOGIN-03 | Phase 12 | Pending |
+| LOGIN-04 | Phase 12 | Pending |
+| LOGIN-05 | Phase 12 | Pending |
+| MOBILE-01 | Phase 13 | Pending |
+| MOBILE-02 | Phase 13 | Pending |
+| MOBILE-03 | Phase 13 | Pending |
+| MOBILE-04 | Phase 13 | Pending |
+| MOBILE-05 | Phase 13 | Pending |
+| FEEDBACK-01 | Phase 13 | Pending |
+| FEEDBACK-02 | Phase 13 | Pending |
+| FEEDBACK-03 | Phase 13 | Pending |
+| FEEDBACK-04 | Phase 13 | Pending |
+| FEEDBACK-05 | Phase 13 | Pending |
+| NAV-01 | Phase 11 | Pending |
+| NAV-02 | Phase 11 | Pending |
+| STYLE-01 | Phase 11 | Pending |
+| STYLE-02 | Phase 11 | Pending |
+| STYLE-03 | Phase 11 | Pending |
+| STYLE-04 | Phase 11 | Pending |
+| STYLE-05 | Phase 11 | Pending |
+| AUDIT-01 | Phase 11 | Pending |
+| AUDIT-02 | Phase 11 | Pending |
+| AUDIT-03 | Phase 11 | Pending |
+| AUDIT-04 | Phase 11 | Pending |
+| AUDIT-05 | Phase 11 | Pending |
+| DEST-01 | Phase 14 | Pending |
+| DEST-02 | Phase 14 | Pending |
+| DEST-03 | Phase 14 | Pending |
+| DEST-04 | Phase 14 | Pending |
+| ROT-01 | Phase 14 | Pending |
+| ROT-02 | Phase 14 | Pending |
+| ROT-03 | Phase 14 | Pending |
 
 **Coverage:**
-- v1.2 requirements: 32 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 32 ⚠️
+- v1.2 requirements: 34 total
+- Mapped to phases: 34/34 ✓
+- Phase 11 (Frontend Polish): NAV-01–02, STYLE-01–05, AUDIT-01–05 = 12 requirements
+- Phase 12 (Login Global): LOGIN-01–05 = 5 requirements
+- Phase 13 (Painel Mobile + Feedback): MOBILE-01–05, FEEDBACK-01–05 = 10 requirements
+- Phase 14 (Gestao de Conteudo): DEST-01–04, ROT-01–03 = 7 requirements
 
 ---
 *Requirements defined: 2026-05-28*
-*Last updated: 2026-05-28 — initial definition*
+*Last updated: 2026-05-28 — roadmap created, traceability populated*

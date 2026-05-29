@@ -4,10 +4,10 @@ milestone: v1.2
 milestone_name: UI/UX Polish + Guia Experience
 status: planning
 stopped_at: —
-last_updated: "2026-05-28T21:37:00.000Z"
-last_activity: 2026-05-28 — Milestone v1.2 redefined: UI/UX + login global + gestão de conteúdo
+last_updated: "2026-05-28T21:42:00.000Z"
+last_activity: 2026-05-28 — Roadmap criado: 4 fases (11–14), 34 requirements mapeados
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-26)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Milestone v1.2 UI/UX Polish + Guia Experience — requirements definidos, roadmap pendente
+**Current focus:** Milestone v1.2 UI/UX Polish + Guia Experience — roadmap definido, pronto para Phase 11
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Phase 11 (not started)
 Plan: —
-Status: Requirements definidos — aguardando roadmap
-Last activity: 2026-05-28 — v1.2 scope definido: login global, mobile painel, toast/empty states, unificação CSS, gestão de conteúdo
+Status: Roadmap aprovado — pronto para /gsd-plan-phase 11
+Last activity: 2026-05-28 — Roadmap v1.2 criado: 4 fases, 34 requirements, 100% coverage
 
 ## Decisões estratégicas
 
@@ -92,12 +92,13 @@ Last activity: 2026-05-28 — v1.2 scope definido: login global, mobile painel, 
 
 - Phase 6 added: Interface do Turista (2026-05-12) — already defined in ROADMAP.md; planning directory created
 - v1.1 milestone complete (2026-05-26) — Phases 7–10, 13 plans, 13/13 requirements
+- v1.2 roadmap created (2026-05-28) — Phases 11–14, 34 requirements, 100% coverage
 
 ## Session Continuity
 
-Last session: 2026-05-26T09:21:00-03:00
-Stopped at: Milestone v1.1 complete — archived, tagged, REQUIREMENTS.md deleted
-Resume file: .planning/MILESTONES.md
+Last session: 2026-05-28T21:42:00-03:00
+Stopped at: Roadmap v1.2 criado — pronto para /gsd-plan-phase 11
+Resume file: .planning/ROADMAP.md
 
 ### Quick Tasks Completed
 
