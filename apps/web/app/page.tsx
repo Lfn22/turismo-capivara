@@ -114,6 +114,7 @@ export default async function HomePage() {
           display: flex;
           flex-direction: column;
           justify-content: center;
+          align-items: center;
           padding: clamp(24px, 5vw, 56px) clamp(16px, 7vw, 80px);
           position: relative;
           overflow: hidden;
@@ -128,6 +129,7 @@ export default async function HomePage() {
         .home-hero__inner {
           max-width: 900px;
           position: relative;
+          text-align: center;
         }
         .home-hero__eyebrow {
           font-size: 11px;
@@ -277,12 +279,11 @@ export default async function HomePage() {
           max-width: 1280px;
           margin: 0 auto;
           display: flex;
+          flex-direction: column;
           align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
           gap: 24px;
         }
-        .home-footer__brand { flex: 1; }
+        .home-footer__brand { display: flex; justify-content: center; }
         .home-footer__wordmark {
           font-family: var(--font-display, Georgia, serif);
           font-size: 18px;
@@ -335,15 +336,12 @@ export default async function HomePage() {
           }
           .home-catalog__grid { grid-template-columns: 1fr; }
           .home-catalog__header { flex-direction: column; gap: 8px; }
-          .home-footer__inner { flex-direction: column; align-items: flex-start; }
+          .home-footer__inner { flex-direction: column; align-items: center; }
         }
       `}</style>
 
       {/* Nav */}
       <nav className="home-nav">
-        <Link href="/" className="home-nav__wordmark" aria-label="CAPI — página inicial">
-          <Image src="/images/logo.png" alt="CAPI" width={80} height={72} style={{ filter: 'brightness(0) invert(1)', display: 'block' }} />
-        </Link>
         <div className="home-nav__links">
           <Link href="/destinos" className="home-nav__link">Destinos</Link>
           <Link href={guiasHref} className="home-nav__link">Guias</Link>
@@ -356,7 +354,7 @@ export default async function HomePage() {
         <div className="home-hero__inner">
           <p className="home-hero__eyebrow">Marketplace de turismo</p>
           <h1 className="home-hero__wordmark">
-            <Image src="/images/logo.png" alt="CAPI — caminho entre quem explora e quem opera" width={260} height={235} style={{ filter: 'brightness(0) invert(1)', display: 'block' }} />
+            <Image src="/images/logo.png" alt="CAPI — caminho entre quem explora e quem opera" width={260} height={235} style={{ filter: 'brightness(0) invert(1)', display: 'block', margin: '0 auto' }} />
           </h1>
           <p className="home-hero__tagline">
             caminho entre quem explora e quem opera
