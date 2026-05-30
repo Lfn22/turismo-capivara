@@ -4,14 +4,14 @@ milestone: v1.2
 milestone_name: UI/UX Polish + Guia Experience
 status: in_progress
 stopped_at: —
-last_updated: "2026-05-29T22:57:00.000Z"
-last_activity: 2026-05-29 — Completed 11-03-PLAN (Waitlist Server Action + hex cleanup)
+last_updated: "2026-05-30T09:10:00.000Z"
+last_activity: 2026-05-30 — Completed 11-04-PLAN (inline style → Tailwind + token migration)
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 5
-  completed_plans: 2
-  percent: 40
+  completed_plans: 4
+  percent: 80
 ---
 
 # STATE.md — Turismo Capivara
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 ## Current Position
 
 Phase: Phase 11 (in progress — 1 of 5 plans complete)
-Plan: 11-02 (completed)
-Status: Wave 1 complete: BackButton component created and integrated
+Plan: 11-04 (completed)
+Status: Wave 2 in progress: hex→token migration complete across 5 components, 1 plan remaining (11-05)
 Last activity: 2026-05-28 — Roadmap v1.2 criado: 4 fases, 34 requirements, 100% coverage
 
 ## Decisões estratégicas
@@ -96,8 +96,8 @@ Last activity: 2026-05-28 — Roadmap v1.2 criado: 4 fases, 34 requirements, 100
 
 ## Session Continuity
 
-Last session: 2026-05-29T14:07:00-03:00
-Stopped at: Session resumed — pronto para /gsd-execute-phase 11
+Last session: 2026-05-30T09:10:00-03:00
+Stopped at: 11-04-SUMMARY criado, STATE atualizado — pronto para executar 11-05
 Resume file: .planning/phases/11-frontend-polish/
 
 ### Quick Tasks Completed
