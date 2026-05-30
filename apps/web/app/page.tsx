@@ -38,7 +38,6 @@ export const metadata: Metadata = {
     'Encontre guias certificados, compare roteiros e reserve com PIX. O marketplace de turismo que conecta viajantes e condutores locais.',
   openGraph: {
     title: 'CAPI',
-    description: 'caminho entre quem explora e quem opera',
     locale: 'pt_BR',
   },
 };
