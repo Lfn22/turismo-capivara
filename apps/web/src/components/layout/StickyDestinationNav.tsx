@@ -192,6 +192,17 @@ export default function StickyDestinationNav({
           transform: translateY(-1px);
         }
 
+        .snav__logo {
+          font-family: var(--font-display);
+          font-size: 0.9rem;
+          font-weight: 700;
+          letter-spacing: 0.05em;
+          color: var(--ochre);
+          text-decoration: none;
+          flex-shrink: 0;
+        }
+        .snav__logo:hover { color: var(--ochre-dark, #a07010); }
+
         /* Mobile: esconde o CTA em telas muito pequenas */
         @media (max-width: 360px) {
           .snav__cta { display: none; }
@@ -201,6 +212,8 @@ export default function StickyDestinationNav({
 
       <nav ref={navRef} className="snav" aria-label="Navegação do destino">
         <div className="snav__left">
+          <Link href="/" className="snav__logo" aria-label="Página inicial">CAPI</Link>
+          <div className="snav__sep" aria-hidden="true" />
           <Link href="/destinos" className="snav__back" aria-label="Voltar para destinos">
             <svg
               width="14" height="14" viewBox="0 0 24 24" fill="none"
