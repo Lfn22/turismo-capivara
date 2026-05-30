@@ -4,19 +4,60 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+type Mode = 'slug' | 'email'
+type Tenant = { slug: string; name: string }
+
 export default function AcessoPage() {
-  const [slug, setSlug] = useState('')
+  const [mode, setMode] = useState<Mode>('slug')
+  const [value, setValue] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [tenants, setTenants] = useState<Tenant[]>([])
   const router = useRouter()
 
-  function handleSubmit(e: React.FormEvent) {
+  function reset() {
+    setValue('')
+    setError('')
+    setTenants([])
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const value = slug.trim().toLowerCase()
-    if (!value) {
-      setError('Informe o identificador da sua conta.')
+    const trimmed = value.trim()
+    if (!trimmed) {
+      setError(mode === 'slug' ? 'Informe o identificador da sua conta.' : 'Informe seu email.')
       return
     }
-    router.push(`/${value}/login`)
+
+    if (mode === 'slug') {
+      router.push(`/${trimmed.toLowerCase()}/login`)
+      return
+    }
+
+    // email mode
+    setLoading(true)
+    setError('')
+    setTenants([])
+    try {
+      const res = await fetch(`/api/tenant-lookup?email=${encodeURIComponent(trimmed)}`)
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.message ?? 'Erro ao buscar conta.')
+        return
+      }
+      const found: Tenant[] = data.tenants ?? []
+      if (found.length === 0) {
+        setError('Nenhuma conta encontrada com este email.')
+      } else if (found.length === 1) {
+        router.push(`/${found[0].slug}/login`)
+      } else {
+        setTenants(found)
+      }
+    } catch {
+      setError('Serviço indisponível. Tente novamente.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -57,15 +98,34 @@ export default function AcessoPage() {
           font-size: 1.5rem;
           font-weight: 700;
           color: var(--stone-900, #1c1917);
-          margin-bottom: 0.4rem;
+          margin-bottom: 1.5rem;
         }
 
-        .acesso__sub {
+        .acesso__tabs {
+          display: flex;
+          gap: 0;
+          border: 1px solid var(--stone-200, #e7e5e4);
+          border-radius: 3px;
+          overflow: hidden;
+          margin-bottom: 1.5rem;
+        }
+
+        .acesso__tab {
+          flex: 1;
+          padding: 0.55rem 0.75rem;
           font-family: var(--font-body);
-          font-size: 0.9rem;
+          font-size: 0.85rem;
+          font-weight: 500;
           color: var(--stone-500, #78716c);
-          margin-bottom: 2rem;
-          line-height: 1.5;
+          background: none;
+          border: none;
+          cursor: pointer;
+          transition: background 0.15s, color 0.15s;
+        }
+
+        .acesso__tab--active {
+          background: var(--stone-900, #1c1917);
+          color: #fff;
         }
 
         .acesso__label {
@@ -93,9 +153,7 @@ export default function AcessoPage() {
           transition: border-color 0.15s;
         }
 
-        .acesso__input:focus {
-          border-color: var(--ochre);
-        }
+        .acesso__input:focus { border-color: var(--ochre); }
 
         .acesso__hint {
           font-family: var(--font-body);
@@ -108,7 +166,7 @@ export default function AcessoPage() {
           font-family: var(--font-body);
           font-size: 0.82rem;
           color: #b91c1c;
-          margin-top: 0.35rem;
+          margin-top: 0.5rem;
         }
 
         .acesso__btn {
@@ -127,8 +185,42 @@ export default function AcessoPage() {
           transition: background 0.2s;
         }
 
-        .acesso__btn:hover {
-          background: var(--ochre-dark, #a07010);
+        .acesso__btn:hover:not(:disabled) { background: var(--ochre-dark, #a07010); }
+        .acesso__btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .acesso__tenants {
+          margin-top: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .acesso__tenant-btn {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          padding: 0.75rem 1rem;
+          font-family: var(--font-body);
+          font-size: 0.95rem;
+          font-weight: 500;
+          color: var(--stone-900, #1c1917);
+          background: var(--stone-50, #fafaf9);
+          border: 1px solid var(--stone-200, #e7e5e4);
+          border-radius: 3px;
+          cursor: pointer;
+          text-align: left;
+          transition: border-color 0.15s, background 0.15s;
+        }
+
+        .acesso__tenant-btn:hover {
+          border-color: var(--ochre);
+          background: #fff;
+        }
+
+        .acesso__tenant-slug {
+          font-size: 0.78rem;
+          color: var(--stone-400, #a8a29e);
         }
 
         .acesso__divider {
@@ -150,42 +242,103 @@ export default function AcessoPage() {
           text-decoration: none;
         }
 
-        .acesso__signup a:hover {
-          text-decoration: underline;
-        }
+        .acesso__signup a:hover { text-decoration: underline; }
       `}</style>
 
       <main className="acesso">
         <div className="acesso__card">
           <p className="acesso__wordmark">CAPI</p>
-
           <h1 className="acesso__title">Acessar painel</h1>
-          <p className="acesso__sub">
-            Digite o identificador da sua conta para continuar.
-          </p>
 
-          <form onSubmit={handleSubmit}>
-            <label htmlFor="slug" className="acesso__label">Identificador da conta</label>
-            <input
-              id="slug"
-              className="acesso__input"
-              type="text"
-              value={slug}
-              onChange={(e) => { setSlug(e.target.value); setError('') }}
-              placeholder="ex: serra-viva"
-              autoComplete="off"
-              autoFocus
-            />
-            <p className="acesso__hint">Fornecido no e-mail de boas-vindas.</p>
-            {error && <p className="acesso__error">{error}</p>}
-
-            <button type="submit" className="acesso__btn">
-              Continuar
+          <div className="acesso__tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'slug'}
+              className={`acesso__tab${mode === 'slug' ? ' acesso__tab--active' : ''}`}
+              onClick={() => { setMode('slug'); reset() }}
+            >
+              Identificador
             </button>
-          </form>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === 'email'}
+              className={`acesso__tab${mode === 'email' ? ' acesso__tab--active' : ''}`}
+              onClick={() => { setMode('email'); reset() }}
+            >
+              Email
+            </button>
+          </div>
+
+          {tenants.length > 0 ? (
+            <>
+              <p className="acesso__hint" style={{ marginBottom: '0.25rem' }}>
+                Encontramos {tenants.length} contas com este email. Escolha uma:
+              </p>
+              <div className="acesso__tenants">
+                {tenants.map((t) => (
+                  <button
+                    key={t.slug}
+                    type="button"
+                    className="acesso__tenant-btn"
+                    onClick={() => router.push(`/${t.slug}/login`)}
+                  >
+                    <span>{t.name}</span>
+                    <span className="acesso__tenant-slug">{t.slug}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="acesso__btn"
+                style={{ marginTop: '1rem', background: 'none', color: 'var(--stone-500)', border: '1px solid var(--stone-200)' }}
+                onClick={() => reset()}
+              >
+                ← Voltar
+              </button>
+            </>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              {mode === 'slug' ? (
+                <>
+                  <label htmlFor="slug" className="acesso__label">Identificador da conta</label>
+                  <input
+                    id="slug"
+                    className="acesso__input"
+                    type="text"
+                    value={value}
+                    onChange={(e) => { setValue(e.target.value); setError('') }}
+                    placeholder="ex: serra-viva"
+                    autoComplete="off"
+                    autoFocus
+                  />
+                  <p className="acesso__hint">Fornecido no e-mail de boas-vindas.</p>
+                </>
+              ) : (
+                <>
+                  <label htmlFor="email" className="acesso__label">Email de cadastro</label>
+                  <input
+                    id="email"
+                    className="acesso__input"
+                    type="email"
+                    value={value}
+                    onChange={(e) => { setValue(e.target.value); setError('') }}
+                    placeholder="seu@email.com"
+                    autoComplete="email"
+                    autoFocus
+                  />
+                  <p className="acesso__hint">Email usado no cadastro da operadora.</p>
+                </>
+              )}
+              {error && <p className="acesso__error">{error}</p>}
+              <button type="submit" className="acesso__btn" disabled={loading}>
+                {loading ? 'Buscando...' : 'Continuar'}
+              </button>
+            </form>
+          )}
 
           <hr className="acesso__divider" />
-
           <p className="acesso__signup">
             Ainda não tem conta?{' '}
             <Link href="/onboarding">Cadastrar operadora</Link>

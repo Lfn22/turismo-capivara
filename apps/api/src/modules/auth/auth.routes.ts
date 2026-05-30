@@ -183,6 +183,21 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.status(201).send({ message: 'Conta criada com sucesso' })
   })
 
+  // GET /auth/tenant-lookup — returns tenant slugs for a given email
+  // Public: helps users who forgot their slug find which tenant(s) they belong to.
+  // Returns empty array for unknown emails (avoids enumeration confirmation).
+  app.get('/auth/tenant-lookup', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const query = z.object({ email: z.string().email({ message: 'Email inválido' }) }).safeParse(request.query)
+    if (!query.success) {
+      return reply.status(400).send({ message: 'Email inválido' })
+    }
+    const users = await prisma.user.findMany({
+      where: { email: query.data.email.toLowerCase() },
+      select: { tenant: { select: { slug: true, name: true } } },
+    })
+    return reply.status(200).send({ tenants: users.map((u) => u.tenant) })
+  })
+
   // GET /auth/me — returns verified JWT claims without exposing raw token to client
   // Higher rate limit: this endpoint is called on every authenticated page-load,
   // so the global 20/min cap would block normal usage. 120/min (2/s) is generous
