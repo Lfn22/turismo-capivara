@@ -65,7 +65,7 @@ function LoginForm() {
             marginBottom: "8px",
           }}
         >
-          CAPI · Plataforma
+          <a href="/" style={{ color: 'inherit', textDecoration: 'none' }}>CAPI</a> · Plataforma
         </p>
         <h1
           style={{

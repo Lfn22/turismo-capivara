@@ -4,9 +4,8 @@ import GuideCard, { GuideCardGuide } from '@/src/components/ui/GuideCard';
 import ConversionAnchor from '@/src/components/ui/ConversionAnchor';
 
 // ── Data layer ────────────────────────────────────────────────────────────────
-// TODO (Task 12): replace stubs with real fetch calls to
-//   GET /api/destinations/:slug        → destinationTitle
-//   GET /api/destinations/:slug/guides → guides[]
+
+const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 
 interface DestinationGuides {
   destinationTitle: string;
@@ -14,9 +13,20 @@ interface DestinationGuides {
 }
 
 async function fetchDestinationGuides(slug: string): Promise<DestinationGuides> {
-  // Stub — returns empty until API exists
-  void slug;
-  return { destinationTitle: slug, guides: [] };
+  try {
+    const [destRes, guidesRes] = await Promise.all([
+      fetch(`${API_URL}/destinations/${slug}`, { next: { revalidate: 3600 } }),
+      fetch(`${API_URL}/destinations/${slug}/guides`, { next: { revalidate: 300 } }),
+    ])
+    const destination = destRes.ok ? await destRes.json() : null
+    const guides: GuideCardGuide[] = guidesRes.ok ? await guidesRes.json() : []
+    return {
+      destinationTitle: destination?.title ?? slug,
+      guides: Array.isArray(guides) ? guides : [],
+    }
+  } catch {
+    return { destinationTitle: slug, guides: [] }
+  }
 }
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
@@ -133,6 +143,7 @@ export default async function DestinationGuiasPage({ params }: Props) {
       <div className="dguias">
         {/* Header */}
         <header className="dguias__header">
+          <Link href="/" style={{ display: 'inline-block', color: 'var(--ochre)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.06em', textDecoration: 'none', marginBottom: '12px' }}>CAPI</Link>
           <Link href={`/destinos/${slug}`} className="dguias__breadcrumb">
             <svg
               width="14"
