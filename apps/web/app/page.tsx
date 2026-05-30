@@ -422,7 +422,7 @@ export default async function HomePage() {
             <p className="home-footer__wordmark">CAPI</p>
             <p className="home-footer__tagline">caminho entre quem explora e quem opera</p>
           </div>
-          <Link href="/onboarding" className="home-footer__panel-btn">
+          <Link href="/acesso" className="home-footer__panel-btn">
             Acessar painel
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2"

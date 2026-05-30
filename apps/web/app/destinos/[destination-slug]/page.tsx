@@ -476,8 +476,6 @@ export default async function DestinationPage({ params }: Props) {
         }
       `}</style>
 
-      <BackButton />
-
       {/* ── Nav sticky ─────────────────────────────────────────── */}
       <StickyDestinationNav
         destinationName={destination.title}
@@ -493,6 +491,11 @@ export default async function DestinationPage({ params }: Props) {
         heroImageUrl={destination.heroImageUrl}
         heroImageBlurDataUrl={destination.heroImageBlurDataUrl}
       />
+
+      {/* ── Back navigation ─────────────────────────────────────── */}
+      <div style={{ padding: '1.25rem clamp(1.5rem, 5vw, 3.5rem) 0', background: 'var(--stone-50)' }}>
+        <BackButton />
+      </div>
 
       {/* ── 2. Storytelling ─────────────────────────────────────── */}
       {(descriptionParagraphs.length > 0 || highlights.length > 0) && (
