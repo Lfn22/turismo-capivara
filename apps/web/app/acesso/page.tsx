@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 
 type Mode = 'slug' | 'email'
 type Tenant = { slug: string; name: string }
@@ -247,7 +248,9 @@ export default function AcessoPage() {
 
       <main className="acesso">
         <div className="acesso__card">
-          <p className="acesso__wordmark">CAPI</p>
+          <Link href="/" style={{ display: 'inline-block', marginBottom: '1.75rem' }}>
+            <Image src="/images/logo.png" alt="CAPI" width={120} height={108} style={{ display: 'block' }} />
+          </Link>
           <h1 className="acesso__title">Acessar painel</h1>
 
           <div className="acesso__tabs" role="tablist">

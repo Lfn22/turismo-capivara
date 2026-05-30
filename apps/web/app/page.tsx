@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import DestinationCard from '@/src/components/ui/DestinationCard';
 
 // Force SSR — build container cannot reach the API at build time
@@ -340,7 +341,9 @@ export default async function HomePage() {
 
       {/* Nav */}
       <nav className="home-nav">
-        <Link href="/" className="home-nav__wordmark">CAPI</Link>
+        <Link href="/" className="home-nav__wordmark" aria-label="CAPI — página inicial">
+          <Image src="/images/logo.png" alt="CAPI" width={80} height={72} style={{ filter: 'brightness(0) invert(1)', display: 'block' }} />
+        </Link>
         <div className="home-nav__links">
           <Link href="/destinos" className="home-nav__link">Destinos</Link>
           <Link href={guiasHref} className="home-nav__link">Guias</Link>
@@ -352,7 +355,9 @@ export default async function HomePage() {
       <section className="home-hero">
         <div className="home-hero__inner">
           <p className="home-hero__eyebrow">Marketplace de turismo</p>
-          <h1 className="home-hero__wordmark">CAPI</h1>
+          <h1 className="home-hero__wordmark">
+            <Image src="/images/logo.png" alt="CAPI — caminho entre quem explora e quem opera" width={260} height={235} style={{ filter: 'brightness(0) invert(1)', display: 'block' }} />
+          </h1>
           <p className="home-hero__tagline">
             caminho entre quem explora e quem opera
           </p>
@@ -419,8 +424,7 @@ export default async function HomePage() {
       <footer className="home-footer">
         <div className="home-footer__inner">
           <div className="home-footer__brand">
-            <p className="home-footer__wordmark">CAPI</p>
-            <p className="home-footer__tagline">caminho entre quem explora e quem opera</p>
+            <Image src="/images/logo.png" alt="CAPI" width={110} height={99} style={{ filter: 'brightness(0) invert(1)', display: 'block' }} />
           </div>
           <Link href="/acesso" className="home-footer__panel-btn">
             Acessar painel

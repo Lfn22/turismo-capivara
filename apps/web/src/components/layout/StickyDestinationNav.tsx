@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export interface StickyDestinationNavProps {
   destinationName: string;
@@ -212,7 +213,7 @@ export default function StickyDestinationNav({
 
       <nav ref={navRef} className="snav" aria-label="Navegação do destino">
         <div className="snav__left">
-          <Link href="/" className="snav__logo" aria-label="Página inicial">CAPI</Link>
+          <Link href="/" className="snav__logo" aria-label="Página inicial"><Image src="/images/logo.png" alt="CAPI" width={64} height={58} style={{ filter: 'brightness(0) invert(1)' }} /></Link>
           <div className="snav__sep" aria-hidden="true" />
           <Link href="/destinos" className="snav__back" aria-label="Voltar para destinos">
             <svg

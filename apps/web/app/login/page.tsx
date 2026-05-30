@@ -3,6 +3,8 @@ import { signIn } from "next-auth/react"
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
+import Image from "next/image"
+import Link from "next/link"
 
 function LoginForm() {
   const [email, setEmail] = useState("")
@@ -56,17 +58,9 @@ function LoginForm() {
           maxWidth: "400px",
         }}
       >
-        <p
-          style={{
-            fontSize: "11px",
-            color: "var(--ochre)",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            marginBottom: "8px",
-          }}
-        >
-          <a href="/" style={{ color: 'inherit', textDecoration: 'none' }}>CAPI</a> · Plataforma
-        </p>
+        <Link href="/" style={{ display: 'inline-block', marginBottom: '16px' }}>
+          <Image src="/images/logo.png" alt="CAPI" width={100} height={90} style={{ display: 'block' }} />
+        </Link>
         <h1
           style={{
             fontFamily: "var(--font-display)",
