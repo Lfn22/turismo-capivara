@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import DestinationCard from '@/src/components/ui/DestinationCard';
 
 // Force SSR — build container cannot reach the API at build time
@@ -127,7 +128,7 @@ export default async function DestinosPage() {
       <div className="destinos">
         {/* Header */}
         <header className="destinos__header">
-          <Link href="/" style={{ display: 'inline-block', color: 'var(--ochre)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.06em', textDecoration: 'none', marginBottom: '1rem' }}>CAPI</Link>
+          <Link href="/" style={{ display: 'inline-block', marginBottom: '1rem' }}><Image src="/images/logo.png" alt="CAPI" width={90} height={81} style={{ filter: 'brightness(0) invert(1)', display: 'block' }} /></Link>
           <p className="destinos__eyebrow">Destinos</p>
           <h1 className="destinos__title">Onde você quer explorar?</h1>
           <p className="destinos__subtitle">

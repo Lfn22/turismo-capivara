@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface PublicNavProps {
   tenantName: string;
@@ -12,8 +13,8 @@ export default function PublicNav({ tenantName, backHref }: PublicNavProps) {
       style={{ backgroundColor: 'var(--stone-900)', color: 'var(--stone-50)' }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-        <Link href="/" className="font-bold text-sm tracking-widest no-underline" style={{ color: 'var(--ochre)' }}>
-          CAPI
+        <Link href="/" aria-label="CAPI — página inicial" style={{ display: 'flex', alignItems: 'center' }}>
+          <Image src="/images/logo.png" alt="CAPI" width={64} height={58} style={{ filter: 'brightness(0) invert(1)' }} />
         </Link>
         <span style={{ color: 'var(--stone-500)', fontSize: '0.75rem' }}>·</span>
         <span className="font-bold text-base tracking-tight">{tenantName}</span>

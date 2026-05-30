@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import GuideCard, { GuideCardGuide } from '@/src/components/ui/GuideCard';
 import ConversionAnchor from '@/src/components/ui/ConversionAnchor';
 
@@ -143,7 +144,7 @@ export default async function DestinationGuiasPage({ params }: Props) {
       <div className="dguias">
         {/* Header */}
         <header className="dguias__header">
-          <Link href="/" style={{ display: 'inline-block', color: 'var(--ochre)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.85rem', letterSpacing: '0.06em', textDecoration: 'none', marginBottom: '12px' }}>CAPI</Link>
+          <Link href="/" style={{ display: 'inline-block', marginBottom: '12px' }}><Image src="/images/logo.png" alt="CAPI" width={90} height={81} style={{ filter: 'brightness(0) invert(1)', display: 'block' }} /></Link>
           <Link href={`/destinos/${slug}`} className="dguias__breadcrumb">
             <svg
               width="14"
