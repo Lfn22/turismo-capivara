@@ -253,7 +253,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
           ...(body.photos !== undefined && { photos: body.photos }),
           ...(body.title !== undefined && { title: body.title }),
           ...(body.subtitle !== undefined && { subtitle: body.subtitle }),
-          ...(body.description !== undefined && { description: body.description }),
+          ...(body.description != null && { description: body.description }),
           ...(body.highlights !== undefined && { highlights: body.highlights }),
           ...(body.tagline !== undefined && { tagline: body.tagline }),
         },
