@@ -79,7 +79,8 @@
       "Skill(gsd-ui-review)",
       "Bash(pnpm --filter web build)",
       "Bash(python -c \"from PIL import Image; img = Image.open\\('C:/projetos/turismo-capivara/apps/web/public/images/logo.png'\\); print\\(img.size, img.mode\\)\")",
-      "Bash(identify \"C:/projetos/turismo-capivara/apps/web/public/images/logo.png\")"
+      "Bash(identify \"C:/projetos/turismo-capivara/apps/web/public/images/logo.png\")",
+      "Bash(grep:*)"
     ]
   }
 }

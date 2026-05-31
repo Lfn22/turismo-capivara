@@ -96,7 +96,7 @@ export default async function GuideProfilePage({ params }: Props) {
   const guide = await fetchGuideProfile(dSlug, gId);
   if (!guide) notFound();
 
-  const bookingBase = `/${guide.tenantSlug}/reservar`;
+  const roteiroBase = `/${guide.tenantSlug}/roteiros`;
   const firstPackage = guide.packages[0];
 
   return (
@@ -557,7 +557,7 @@ export default async function GuideProfilePage({ params }: Props) {
                     </div>
 
                     <Link
-                      href={`${bookingBase}?package=${pkg.id}`}
+                      href={`${roteiroBase}/${pkg.id}`}
                       className="gprofile__pkg-cta"
                     >
                       Reservar este roteiro
@@ -581,7 +581,7 @@ export default async function GuideProfilePage({ params }: Props) {
               Ainda em dúvida? Acesse o perfil completo do guia.
             </p>
             <Link
-              href={firstPackage ? `${bookingBase}?package=${firstPackage.id}` : bookingBase}
+              href={firstPackage ? `${roteiroBase}/${firstPackage.id}` : roteiroBase}
               className="gprofile__cta-strip-btn"
             >
               Ver disponibilidade
