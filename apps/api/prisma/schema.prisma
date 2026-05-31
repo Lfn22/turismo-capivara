@@ -14,6 +14,8 @@ model Destination {
   description          String
   heroImageUrl         String?
   heroImageBlurDataUrl String?
+  photos               String[]
+  tagline              String?
   state                String
   highlights           String[]
   active               Boolean  @default(true)

@@ -2,6 +2,8 @@ import { FastifyInstance } from 'fastify'
 import { z, ZodError } from 'zod'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
+import { authenticate } from '../../shared/middlewares/authenticate'
+import { authorize } from '../../shared/middlewares/authorize'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -27,6 +29,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
         state: true,
         heroImageUrl: true,
         heroImageBlurDataUrl: true,
+        photos: true,
       },
       orderBy: { title: 'asc' },
     })
@@ -56,6 +59,8 @@ export async function destinationsRoutes(app: FastifyInstance) {
         highlights: true,
         heroImageUrl: true,
         heroImageBlurDataUrl: true,
+        photos: true,
+        tagline: true,
       },
     })
 
@@ -198,4 +203,68 @@ export async function destinationsRoutes(app: FastifyInstance) {
       })),
     })
   })
+
+  // PATCH /destinations/:destinationSlug — atualiza fotos (ADMIN/SUPER_ADMIN)
+  app.patch(
+    '/destinations/:destinationSlug',
+    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
+    async (request, reply) => {
+      const destinationParamsSchema = z.object({
+        destinationSlug: z.string().min(1, { message: 'Slug obrigatório' }),
+      })
+      let params
+      try {
+        const raw = destinationParamsSchema.parse(request.params)
+        params = { slug: raw.destinationSlug }
+      } catch (err) {
+        if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+        throw err
+      }
+
+      const bodySchema = z.object({
+        heroImageUrl: z.string().url().nullable().optional(),
+        photos: z.array(z.string().url()).max(5).optional(),
+        title: z.string().min(1).optional(),
+        subtitle: z.string().nullable().optional(),
+        description: z.string().nullable().optional(),
+        highlights: z.array(z.string().min(1)).optional(),
+        tagline: z.string().nullable().optional(),
+      })
+
+      let body
+      try {
+        body = bodySchema.parse(request.body)
+      } catch (err) {
+        if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+        throw err
+      }
+
+      const destination = await prisma.destination.findUnique({
+        where: { slug: params.slug },
+        select: { id: true },
+      })
+
+      if (!destination) throw new AppError('Destino não encontrado', 404)
+
+      const updated = await prisma.destination.update({
+        where: { slug: params.slug },
+        data: {
+          ...(body.heroImageUrl !== undefined && { heroImageUrl: body.heroImageUrl }),
+          ...(body.photos !== undefined && { photos: body.photos }),
+          ...(body.title !== undefined && { title: body.title }),
+          ...(body.subtitle !== undefined && { subtitle: body.subtitle }),
+          ...(body.description !== undefined && { description: body.description }),
+          ...(body.highlights !== undefined && { highlights: body.highlights }),
+          ...(body.tagline !== undefined && { tagline: body.tagline }),
+        },
+        select: {
+          slug: true,
+          heroImageUrl: true,
+          photos: true,
+        },
+      })
+
+      return reply.status(200).send(updated)
+    },
+  )
 }

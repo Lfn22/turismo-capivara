@@ -4,6 +4,7 @@ import Link from 'next/link';
 import DestinationHero from '@/src/components/ui/DestinationHero';
 import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
 import BackButton from '@/src/components/ui/BackButton';
+import DestinationPhotoEditor from '@/components/ui/DestinationPhotoEditor';
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,8 @@ interface Destination {
   highlights: string[];
   heroImageUrl: string | null;
   heroImageBlurDataUrl: string | null;
+  photos: string[];
+  tagline: string | null;
 }
 
 async function fetchDestination(slug: string): Promise<Destination | null> {
@@ -96,6 +99,7 @@ export default async function DestinationPage({ params }: Props) {
 
   const guidesHref = `/destinos/${slug}/guias`;
   const highlights = destination.highlights ?? [];
+  const photos = destination.photos ?? [];
 
   // Texto descritivo: split em parágrafos (separa por \n\n ou usa como único §)
   const descriptionParagraphs = destination.description
@@ -505,7 +509,7 @@ export default async function DestinationPage({ params }: Props) {
             <div>
               <p className="story-label">Sobre o destino</p>
               <h2 className="story-heading">
-                Um lugar que <em>transforma</em> quem visita
+                {destination.tagline ?? <>Um lugar que <em>transforma</em> quem visita</>}
               </h2>
               {descriptionParagraphs.length > 0 ? (
                 <div className="story-text">
@@ -564,7 +568,9 @@ export default async function DestinationPage({ params }: Props) {
               <div key={highlight} className="highlight-card">
                 <div
                   className="highlight-card-bg"
-                  style={{ background: HIGHLIGHT_GRADIENTS[i % HIGHLIGHT_GRADIENTS.length] }}
+                  style={photos[i]
+                    ? { backgroundImage: `url(${photos[i]})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                    : { background: HIGHLIGHT_GRADIENTS[i % HIGHLIGHT_GRADIENTS.length] }}
                 />
                 <div className="highlight-card-overlay" />
                 <div className="highlight-card-content">
@@ -605,6 +611,16 @@ export default async function DestinationPage({ params }: Props) {
           </Link>
         </div>
       </section>
+      <DestinationPhotoEditor
+        slug={slug}
+        heroImageUrl={destination.heroImageUrl}
+        photos={photos}
+        title={destination.title}
+        subtitle={destination.subtitle}
+        description={destination.description}
+        highlights={highlights}
+        tagline={destination.tagline}
+      />
     </>
   );
 }
