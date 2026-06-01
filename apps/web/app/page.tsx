@@ -46,7 +46,6 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const destinations = await fetchDestinations();
-  const firstSlug = destinations?.[0]?.slug ?? null;
   const guiasHref = '/destinos';
   const previewDestinations = destinations?.slice(0, 3) ?? [];
 
