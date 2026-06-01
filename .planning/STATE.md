@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 
 ## Current Position
 
-Phase: Phase 11 (in progress — 1 of 5 plans complete)
-Plan: 11-04 (completed)
-Status: Wave 2 in progress: hex→token migration complete across 5 components, 1 plan remaining (11-05)
-Last activity: 2026-05-28 — Roadmap v1.2 criado: 4 fases, 34 requirements, 100% coverage
+Phase: Phase 11 (complete — 5/5 plans)
+Plan: 11-05 (completed)
+Status: Phase 11 verified and complete — all gaps closed, verification passed 2026-06-01. Next: Phase 12.
+Last activity: 2026-06-01 — Phase 11 Frontend Polish complete
 
 ## Decisões estratégicas
 

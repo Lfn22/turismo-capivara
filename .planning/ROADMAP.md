@@ -13,7 +13,7 @@
 
 ### Phases
 
-- [ ] **Phase 11: Frontend Polish** — Navegação, tokens CSS consolidados, dead links removidos, brand CAPI unificada
+- [x] **Phase 11: Frontend Polish** — Navegação, tokens CSS consolidados, dead links removidos, brand CAPI unificada (2026-06-01)
 - [ ] **Phase 12: Login Global** — Portal `/login` sem slug com email lookup automático de tenant
 - [ ] **Phase 13: Painel Mobile + Feedback** — Card layout responsivo, touch targets, toasts, empty states, dialogs de confirmação
 - [ ] **Phase 14: Gestao de Conteudo** — Guia cria/edita destinos com fotos e enriquece roteiros com galeria e experiências
@@ -33,11 +33,11 @@
   4. Nenhum link na navegação pública aponta para página inexistente — Blog e links de redes sociais removidos ou desabilitados
   5. ConversionAnchor envia email para API real — "Cadastrado com sucesso" aparece somente após gravação confirmada
 **Plans**: 5 plans
-- [ ] 11-01-PLAN.md — globals.css fixes + root layout CAPI title + delete legacy pages
-- [ ] 11-02-PLAN.md — BackButton component + placement on detail/sub-pages
-- [ ] 11-03-PLAN.md — Resend install + waitlist Server Action + BEM hex cleanup
-- [ ] 11-04-PLAN.md — PublicNav/BookingForm inline→Tailwind + hex→token cleanup
-- [ ] 11-05-PLAN.md — loading.tsx flash fix files + human visual verification
+- [x] 11-01-PLAN.md — globals.css fixes + root layout CAPI title + delete legacy pages
+- [x] 11-02-PLAN.md — BackButton component + placement on detail/sub-pages
+- [x] 11-03-PLAN.md — Resend install + waitlist Server Action + BEM hex cleanup
+- [x] 11-04-PLAN.md — PublicNav/BookingForm inline→Tailwind + hex→token cleanup
+- [x] 11-05-PLAN.md — loading.tsx flash fix files + human visual verification
 **UI hint**: yes
 
 ### Phase 12: Login Global
@@ -83,7 +83,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 11. Frontend Polish | 0/? | Not started | - |
+| 11. Frontend Polish | 5/5 | Complete | 2026-06-01 |
 | 12. Login Global | 0/? | Not started | - |
 | 13. Painel Mobile + Feedback | 0/? | Not started | - |
 | 14. Gestao de Conteudo | 0/? | Not started | - |
