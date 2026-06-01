@@ -65,13 +65,13 @@ export default function StickyDestinationNav({
       if (Math.abs(delta) < THRESHOLD) return;
 
       if (delta > 0) {
-        // Scroll down → mostra nav (se hero já saiu do viewport)
+        // Scroll down → hide nav
         if (!heroVisible.current) {
-          nav.classList.remove('snav--hidden');
+          nav.classList.add('snav--hidden');
         }
       } else {
-        // Scroll up → esconde nav
-        nav.classList.add('snav--hidden');
+        // Scroll up → show nav
+        nav.classList.remove('snav--hidden');
       }
 
       lastScrollY.current = currentY;
