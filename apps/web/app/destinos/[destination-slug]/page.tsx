@@ -6,6 +6,10 @@ import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
 import BackButton from '@/src/components/ui/BackButton';
 import DestinationPhotoEditor from '@/components/ui/DestinationPhotoEditor';
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const safePhotoUrl = (url: string) => /^https?:\/\//.test(url) ? url : null
+
 // ── Data layer ────────────────────────────────────────────────────────────────
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3333';
@@ -568,8 +572,8 @@ export default async function DestinationPage({ params }: Props) {
               <div key={highlight} className="highlight-card">
                 <div
                   className="highlight-card-bg"
-                  style={photos[i]
-                    ? { backgroundImage: `url(${photos[i]})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                  style={safePhotoUrl(photos[i])
+                    ? { backgroundImage: `url(${safePhotoUrl(photos[i])})`, backgroundSize: 'cover', backgroundPosition: 'center' }
                     : { background: HIGHLIGHT_GRADIENTS[i % HIGHLIGHT_GRADIENTS.length] }}
                 />
                 <div className="highlight-card-overlay" />
