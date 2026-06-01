@@ -3,7 +3,8 @@
 import { Resend } from 'resend'
 
 export async function submitWaitlist(email: string): Promise<{ ok: boolean; error?: string }> {
-  if (!email || !email.includes('@')) {
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!email || !EMAIL_RE.test(email)) {
     return { ok: false, error: 'Email inválido' }
   }
 
@@ -13,6 +14,7 @@ export async function submitWaitlist(email: string): Promise<{ ok: boolean; erro
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY)
+  const safeEmail = email.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
   try {
     await Promise.all([
@@ -28,7 +30,7 @@ export async function submitWaitlist(email: string): Promise<{ ok: boolean; erro
               from: 'CAPI <noreply@capi.com.br>',
               to: process.env.WAITLIST_NOTIFY_EMAIL,
               subject: `Nova entrada na waitlist: ${email}`,
-              html: `<p>Email: ${email}</p><p>Data: ${new Date().toISOString()}</p>`,
+              html: `<p>Email: ${safeEmail}</p><p>Data: ${new Date().toISOString()}</p>`,
             }),
           ]
         : []),
