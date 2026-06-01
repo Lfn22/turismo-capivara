@@ -25,7 +25,7 @@
 }
 
 body {
-  font-family: var(--font-body), Georgia, serif;
+  font-family: var(--font-body, Georgia, serif);
   background-color: var(--stone-50);
   color: var(--stone-800);
   line-height: 1.6;

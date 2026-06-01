@@ -373,15 +373,15 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
         {/* Detail rows */}
         <div style={dividerStyle}>
           <p style={{ fontSize: '14px', color: 'var(--stone-500)', margin: '0 0 0.25rem' }}>Roteiro</p>
-          <p style={{ fontSize: '16px', fontWeight: 700, color: '#1C1917', margin: 0 }}>{booking.slot.packageName}</p>
+          <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--stone-900)', margin: 0 }}>{booking.slot.packageName}</p>
         </div>
         <div style={dividerStyle}>
           <p style={{ fontSize: '14px', color: 'var(--stone-500)', margin: '0 0 0.25rem' }}>Data</p>
-          <p style={{ fontSize: '16px', fontWeight: 700, color: '#1C1917', margin: 0 }}>{formattedDate}</p>
+          <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--stone-900)', margin: 0 }}>{formattedDate}</p>
         </div>
         <div style={{ ...dividerStyle, marginBottom: '1.5rem' }}>
           <p style={{ fontSize: '14px', color: 'var(--stone-500)', margin: '0 0 0.25rem' }}>Pessoas</p>
-          <p style={{ fontSize: '16px', fontWeight: 700, color: '#1C1917', margin: 0 }}>
+          <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--stone-900)', margin: 0 }}>
             {booking.pax} {booking.pax === 1 ? 'pessoa' : 'pessoas'}
           </p>
         </div>
@@ -596,7 +596,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
           >
             <h2
               id="cancel-modal-title"
-              style={{ fontFamily: 'var(--font-playfair, serif)', fontSize: '20px', fontWeight: 700, marginBottom: '1rem', color: '#1C1917', marginTop: 0 }}
+              style={{ fontFamily: 'var(--font-playfair, serif)', fontSize: '20px', fontWeight: 700, marginBottom: '1rem', color: 'var(--stone-900)', marginTop: 0 }}
             >
               Cancelar reserva
             </h2>
