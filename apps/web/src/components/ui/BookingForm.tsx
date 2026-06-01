@@ -42,8 +42,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
     setError(null);
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333';
-      const res = await fetch(`${apiBase}/tenants/${slug}/bookings`, {
+      const res = await fetch(`/api/${slug}/bookings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
