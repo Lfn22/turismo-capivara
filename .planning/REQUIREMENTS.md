@@ -7,11 +7,11 @@
 
 ### Login Global
 
-- [ ] **LOGIN-01**: Botão "Painel" na PublicNav aponta para `/login` (não para onboarding)
-- [ ] **LOGIN-02**: Página `/login` sem slug — um único portal de acesso para guias, agências e admins
+- [x] **LOGIN-01**: Botão "Painel" na PublicNav aponta para `/login` (não para onboarding)
+- [x] **LOGIN-02**: Página `/login` sem slug — um único portal de acesso para guias, agências e admins
 - [ ] **LOGIN-03**: Email lookup resolve automaticamente a qual agência/tenant o usuário pertence
-- [ ] **LOGIN-04**: Abaixo do form de login, botão "Cadastrar agência ou guia" redireciona para onboarding
-- [ ] **LOGIN-05**: Fluxo de forgot password básico com envio de link por email
+- [x] **LOGIN-04**: Abaixo do form de login, botão "Cadastrar agência ou guia" redireciona para onboarding
+- [x] **LOGIN-05**: Fluxo de forgot password básico com envio de link por email
 
 ### Mobile UX — Painel do Guia
 
@@ -78,11 +78,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LOGIN-01 | Phase 12 | Pending |
-| LOGIN-02 | Phase 12 | Pending |
+| LOGIN-01 | Phase 12 | Complete |
+| LOGIN-02 | Phase 12 | Complete |
 | LOGIN-03 | Phase 12 | Pending |
-| LOGIN-04 | Phase 12 | Pending |
-| LOGIN-05 | Phase 12 | Pending |
+| LOGIN-04 | Phase 12 | Complete |
+| LOGIN-05 | Phase 12 | Complete |
 | MOBILE-01 | Phase 13 | Pending |
 | MOBILE-02 | Phase 13 | Pending |
 | MOBILE-03 | Phase 13 | Pending |

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
-status: verifying
-stopped_at: Session resumed, proceeding to Phase 12 (Login Global)
-last_updated: "2026-06-02T18:12:09.516Z"
-last_activity: 2026-06-01 — Phase 11 Frontend Polish complete
+status: executing
+stopped_at: "Phase 12 Plan 01 complete — checkpoint:human-verify"
+last_updated: "2026-06-02T19:06:30.902Z"
+last_activity: "2026-06-02 — Phase 12 Plan 02: lookup-tenant, request-password-reset, reset-password routes"
 progress:
-  total_phases: 4
-  completed_phases: 1
+  total_phases: 5
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 6
-  percent: 75
+  completed_plans: 8
+  percent: 100
 ---
 
 # STATE.md — Turismo Capivara
@@ -97,7 +97,7 @@ Last activity: 2026-06-02 — Phase 12 Plan 02: lookup-tenant, request-password-
 
 ## Session Continuity
 
-Last session: 2026-06-02T18:12:00.000Z
+Last session: 2026-06-02T19:06:30.897Z
 Stopped at: Phase 12 Plan 01 complete — checkpoint:human-verify
 Resume file: None
 

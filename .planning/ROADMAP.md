@@ -14,7 +14,7 @@
 ### Phases
 
 - [x] **Phase 11: Frontend Polish** — Navegação, tokens CSS consolidados, dead links removidos, brand CAPI unificada (2026-06-01)
-- [ ] **Phase 12: Login Global** — Portal `/login` sem slug com email lookup automático de tenant
+- [x] **Phase 12: Login Global** — Portal `/login` sem slug com email lookup automático de tenant (completed 2026-06-02)
 - [ ] **Phase 12.1: Pre-Launch Hardening** — Idempotência em bookings, connection pool, smoke test PIX, onboarding de early adopters (INSERTED)
 - [ ] **Phase 13: Painel Mobile + Feedback** — Card layout responsivo, touch targets, toasts, empty states, dialogs de confirmação
 - [ ] **Phase 14: Gestao de Conteudo** — Guia cria/edita destinos com fotos e enriquece roteiros com galeria e experiências
@@ -96,7 +96,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 11. Frontend Polish | 5/5 | Complete | 2026-06-01 |
-| 12. Login Global | 2/4 | In progress | - |
+| 12. Login Global | 3/3 | Complete   | 2026-06-02 |
 | 12.1. Pre-Launch Hardening | 0/? | Not started | - |
 | 13. Painel Mobile + Feedback | 0/? | Not started | - |
 | 14. Gestao de Conteudo | 0/? | Not started | - |
