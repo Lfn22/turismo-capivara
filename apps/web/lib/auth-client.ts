@@ -18,9 +18,9 @@ export async function lookupTenant(
   }
 
   const data = await res.json()
-  if (!data.tenantSlug) return null
+  if (!data.tenant) return null
 
-  return { tenantName: data.tenantName, tenantSlug: data.tenantSlug }
+  return { tenantName: data.tenant.tenantName, tenantSlug: data.tenant.tenantSlug }
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
