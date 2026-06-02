@@ -15,6 +15,7 @@
 
 - [x] **Phase 11: Frontend Polish** — Navegação, tokens CSS consolidados, dead links removidos, brand CAPI unificada (2026-06-01)
 - [ ] **Phase 12: Login Global** — Portal `/login` sem slug com email lookup automático de tenant
+- [ ] **Phase 12.1: Pre-Launch Hardening** — Idempotência em bookings, connection pool, smoke test PIX, onboarding de early adopters (INSERTED)
 - [ ] **Phase 13: Painel Mobile + Feedback** — Card layout responsivo, touch targets, toasts, empty states, dialogs de confirmação
 - [ ] **Phase 14: Gestao de Conteudo** — Guia cria/edita destinos com fotos e enriquece roteiros com galeria e experiências
 
@@ -52,6 +53,17 @@
   5. Usuário que esqueceu senha recebe link de redefinição por email e consegue criar nova senha
 **Plans**: TBD
 
+### Phase 12.1: Pre-Launch Hardening (INSERTED)
+**Goal**: Blindar o produto contra 4 falhas conhecidas identificadas na auditoria antes de liberar acesso aos early adopters
+**Depends on**: Phase 12
+**Requirements**: HARDENING-01, HARDENING-02, HARDENING-03, HARDENING-04
+**Success Criteria** (what must be TRUE):
+  1. POST /bookings rejeita requisição duplicada com mesma idempotency key — retorna 200 com booking existente em vez de criar segundo booking
+  2. DATABASE_URL no Railway inclui `?connection_limit=10&pool_timeout=2` — Prisma não excede limite de conexões sob carga simultânea
+  3. Smoke test completo do fluxo PIX executado em produção: booking criado → QR gerado → webhook MP simulado → status CONFIRMED → email recebido
+  4. Documento de boas-vindas para early adopters publicado: limitações conhecidas, política de cancelamento/reembolso e contato de suporte — disponível antes do primeiro acesso real
+**Plans**: TBD
+
 ### Phase 13: Painel Mobile + Feedback
 **Goal**: O painel do guia é completamente utilizável em celular — sem tabelas que cortam, com feedback claro para cada ação
 **Depends on**: Phase 11
@@ -84,7 +96,8 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 11. Frontend Polish | 5/5 | Complete | 2026-06-01 |
-| 12. Login Global | 0/? | Not started | - |
+| 12. Login Global | 2/4 | In progress | - |
+| 12.1. Pre-Launch Hardening | 0/? | Not started | - |
 | 13. Painel Mobile + Feedback | 0/? | Not started | - |
 | 14. Gestao de Conteudo | 0/? | Not started | - |
 

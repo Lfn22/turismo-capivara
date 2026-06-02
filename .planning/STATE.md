@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 
 ## Current Position
 
-Phase: Phase 12 (in progress — 1/4 plans)
-Plan: 12-01 (completed)
-Status: Phase 12 in progress — Plan 01 (schema migration) complete. Next: Plan 02 (API routes).
-Last activity: 2026-06-02 — Phase 12 Plan 01: email globally unique + PasswordResetToken schema applied
+Phase: Phase 12 (in progress — 2/4 plans)
+Plan: 12-02 (completed)
+Status: Phase 12 in progress — Plans 01-02 complete. Next: Plan 03 (Frontend).
+Last activity: 2026-06-02 — Phase 12 Plan 02: lookup-tenant, request-password-reset, reset-password routes
 
 ## Decisões estratégicas
 
@@ -93,6 +93,7 @@ Last activity: 2026-06-02 — Phase 12 Plan 01: email globally unique + Password
 - Phase 6 added: Interface do Turista (2026-05-12) — already defined in ROADMAP.md; planning directory created
 - v1.1 milestone complete (2026-05-26) — Phases 7–10, 13 plans, 13/13 requirements
 - v1.2 roadmap created (2026-05-28) — Phases 11–14, 34 requirements, 100% coverage
+- Phase 12.1 inserted after Phase 12 (2026-06-02): Pre-Launch Hardening — idempotência bookings, connection pool, smoke test PIX, doc early adopters (URGENT)
 
 ## Session Continuity
 
