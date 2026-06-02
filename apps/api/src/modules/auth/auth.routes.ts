@@ -6,6 +6,9 @@ import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { hashCpf } from '../../shared/utils/hash'
+import { lookupTenantRoute } from './routes/lookup-tenant'
+import { requestPasswordResetRoute } from './routes/request-password-reset'
+import { resetPasswordRoute } from './routes/reset-password'
 
 const loginBodySchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
@@ -210,4 +213,8 @@ export async function authRoutes(app: FastifyInstance) {
       tenantId: user.tenantId,
     })
   })
+
+  await app.register(lookupTenantRoute)
+  await app.register(requestPasswordResetRoute)
+  await app.register(resetPasswordRoute)
 }
