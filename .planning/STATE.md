@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
-status: executing
-stopped_at: context exhaustion at 91% (2026-05-30)
-last_updated: "2026-05-30T13:03:40.614Z"
-last_activity: "2026-05-28 — Roadmap v1.2 criado: 4 fases, 34 requirements, 100% coverage"
+status: verifying
+stopped_at: Session resumed, proceeding to Phase 12 (Login Global)
+last_updated: "2026-06-02T18:12:09.516Z"
+last_activity: 2026-06-01 — Phase 11 Frontend Polish complete
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 5
-  completed_plans: 4
-  percent: 80
+  completed_phases: 1
+  total_plans: 8
+  completed_plans: 6
+  percent: 75
 ---
 
 # STATE.md — Turismo Capivara
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 
 ## Current Position
 
-Phase: Phase 11 (complete — 5/5 plans)
-Plan: 11-05 (completed)
-Status: Phase 11 verified and complete — all gaps closed, verification passed 2026-06-01. Next: Phase 12.
-Last activity: 2026-06-01 — Phase 11 Frontend Polish complete
+Phase: Phase 12 (in progress — 1/4 plans)
+Plan: 12-01 (completed)
+Status: Phase 12 in progress — Plan 01 (schema migration) complete. Next: Plan 02 (API routes).
+Last activity: 2026-06-02 — Phase 12 Plan 01: email globally unique + PasswordResetToken schema applied
 
 ## Decisões estratégicas
 
@@ -96,8 +96,8 @@ Last activity: 2026-06-01 — Phase 11 Frontend Polish complete
 
 ## Session Continuity
 
-Last session: 2026-06-01T16:39:00.000Z
-Stopped at: Session resumed, proceeding to Phase 12 (Login Global)
+Last session: 2026-06-02T18:12:00.000Z
+Stopped at: Phase 12 Plan 01 complete — checkpoint:human-verify
 Resume file: None
 
 ### Quick Tasks Completed
