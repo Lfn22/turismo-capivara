@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-06-02T17:09:02-03:00",
+  "phase": "12.1",
+  "phase_name": "Pre-Launch Hardening",
+  "phase_dir": ".planning/phases/12.1-pre-launch-hardening",
+  "plan": 0,
+  "task": 0,
+  "status": "not_started",
+  "completed_this_session": [
+    "12-01: Schema — User.email globalmente único, PasswordResetToken model",
+    "12-02: API — lookup-tenant, request-password-reset, reset-password",
+    "12-03: Frontend — /login two-step, /reset-password, /login/esqueci-a-senha, PublicNav",
+    "fix(12-03): auth-client response shape (data.tenant.tenantSlug)",
+    "Phase 12 verificada pelo usuário e marcada completa"
+  ],
+  "remaining_tasks": [
+    {"id": 1, "name": "HARDENING-01: Idempotência em POST /bookings", "status": "not_started"},
+    {"id": 2, "name": "HARDENING-02: Connection pool config no Railway DATABASE_URL", "status": "not_started"},
+    {"id": 3, "name": "HARDENING-03: Smoke test PIX em produção", "status": "not_started"},
+    {"id": 4, "name": "HARDENING-04: Early adopter onboarding docs", "status": "not_started"}
+  ],
+  "blockers": [],
+  "human_actions_pending": [],
+  "next_action": "/gsd-plan-phase 12.1"
+}

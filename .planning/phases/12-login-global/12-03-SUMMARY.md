@@ -42,6 +42,16 @@ Two-step global login page at `/login` (email lookup via `lookupTenant` → `sig
 - [x] auth-client.ts has lookupTenant, requestPasswordReset, resetPassword
 - [x] pnpm --filter web build passes (all routes compiled, no TS errors)
 
-## Self-Check: PASSED
+## Post-Checkpoint Fixes
 
-Commit af793ce present in git log. All four files exist at correct paths. Build output shows `/login` and `/reset-password` as compiled routes.
+**fix(12-03) — auth-client response shape** (`3c2feb5`)
+- `lookupTenant` was reading `data.tenantSlug` but API returns `data.tenant.tenantSlug` (nested)
+- Fixed to `data.tenant?.tenantSlug` / `data.tenant.tenantName`
+
+**feat(12-03) — /login/esqueci-a-senha page** (`6a55719`)
+- Link "Esqueceu a senha?" in login page pointed to `/login/esqueci-a-senha` (404)
+- Created `apps/web/app/login/esqueci-a-senha/page.tsx`: email input → calls `requestPasswordReset` → generic success message (no enumeration)
+
+## User Verification: PASSED
+
+Login flow manually verified by user: email lookup (Step 1), tenant name display + password (Step 2), redirect on success. "Esqueceu a senha?" flow confirmed working.
