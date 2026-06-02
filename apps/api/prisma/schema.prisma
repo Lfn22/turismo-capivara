@@ -47,20 +47,19 @@ model User {
   id              String         @id @default(cuid())
   tenantId        String
   name            String
-  email           String
+  email           String         @unique
   password        String
   role            Role
-  cpf             String?   @unique
+  cpf             String?        @unique
   approvalStatus  ApprovalStatus @default(PENDING)
   rejectionReason String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  tenant       Tenant        @relation(fields: [tenantId], references: [id])
-  guideProfile GuideProfile?
-  tourPackages TourPackage[] @relation("ConductorPackages")
-
-  @@unique([email, tenantId])
+  tenant              Tenant               @relation(fields: [tenantId], references: [id])
+  guideProfile        GuideProfile?
+  tourPackages        TourPackage[]        @relation("ConductorPackages")
+  passwordResetTokens PasswordResetToken[]
 }
 
 model GuideProfile {
@@ -143,6 +142,18 @@ model Voucher {
   createdAt DateTime @default(now())
 
   booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+model PasswordResetToken {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hashedToken String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
 }
 
 enum Role {
