@@ -19,15 +19,31 @@ export default function PublicNav({ tenantName, backHref }: PublicNavProps) {
         <span style={{ color: 'var(--stone-500)', fontSize: '0.75rem' }}>·</span>
         <span className="font-bold text-base tracking-tight">{tenantName}</span>
       </div>
-      {backHref && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {backHref && (
+          <Link
+            href={backHref}
+            className="text-sm font-medium no-underline"
+            style={{ color: 'var(--ochre)' }}
+          >
+            ← Voltar
+          </Link>
+        )}
         <Link
-          href={backHref}
-          className="text-sm font-medium no-underline"
-          style={{ color: 'var(--ochre)' }}
+          href="/login"
+          style={{
+            fontSize: '14px',
+            fontWeight: 600,
+            color: 'var(--stone-900)',
+            background: 'var(--ochre)',
+            padding: '8px 16px',
+            borderRadius: '2px',
+            textDecoration: 'none',
+          }}
         >
-          ← Voltar
+          Painel
         </Link>
-      )}
+      </div>
     </nav>
   );
 }
