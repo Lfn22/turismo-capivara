@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
 status: executing
-stopped_at: "Phase 12 Plan 01 complete — checkpoint:human-verify"
-last_updated: "2026-06-02T19:06:30.902Z"
-last_activity: "2026-06-02 — Phase 12 Plan 02: lookup-tenant, request-password-reset, reset-password routes"
+stopped_at: "Phase 12 complete — user verified end-to-end login flow"
+last_updated: "2026-06-02T20:00:00.000Z"
+last_activity: "2026-06-02 — Phase 12 complete: global /login two-step flow, password reset, PublicNav Painel button"
 progress:
   total_phases: 5
-  completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
+  completed_phases: 3
+  total_plans: 11
+  completed_plans: 11
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-26)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Milestone v1.2 UI/UX Polish + Guia Experience — roadmap definido, pronto para Phase 11
+**Current focus:** Milestone v1.2 UI/UX Polish + Guia Experience — Phase 12 complete, next: Phase 12.1 Pre-Launch Hardening
 
 ## Current Position
 
-Phase: Phase 12 (in progress — 2/4 plans)
-Plan: 12-02 (completed)
-Status: Phase 12 in progress — Plans 01-02 complete. Next: Plan 03 (Frontend).
-Last activity: 2026-06-02 — Phase 12 Plan 02: lookup-tenant, request-password-reset, reset-password routes
+Phase: Phase 12 (complete — 3/3 plans)
+Plan: 12-03 (completed)
+Status: Phase 12 complete — all plans done, user verified end-to-end login flow working.
+Last activity: 2026-06-02 — Phase 12 complete: /login two-step flow, /reset-password, /login/esqueci-a-senha, auth-client.ts
 
 ## Decisões estratégicas
 
@@ -63,6 +63,9 @@ Last activity: 2026-06-02 — Phase 12 Plan 02: lookup-tenant, request-password-
 - `TenantApprovalStatus` enum: `PENDING | APPROVED | REJECTED` — migration `20260523_add_tenant_approval_status`
 - CNPJ: `String?` no Prisma schema, required no Zod `signupBodySchema` — consistência intencional
 - Perfil próprio: PUT /tenants/:slug/guides/me
+- Login global: email-first two-step — POST /auth/lookup-tenant descobre tenant pelo email, sem slug na URL
+- Password reset: PasswordResetToken model, POST /auth/request-password-reset + PUT /auth/reset-password
+- auth-client.ts: response shape `data.tenant.tenantSlug` no lookup-tenant
 
 ## Performance histórica
 
@@ -94,11 +97,12 @@ Last activity: 2026-06-02 — Phase 12 Plan 02: lookup-tenant, request-password-
 - v1.1 milestone complete (2026-05-26) — Phases 7–10, 13 plans, 13/13 requirements
 - v1.2 roadmap created (2026-05-28) — Phases 11–14, 34 requirements, 100% coverage
 - Phase 12.1 inserted after Phase 12 (2026-06-02): Pre-Launch Hardening — idempotência bookings, connection pool, smoke test PIX, doc early adopters (URGENT)
+- Phase 12 complete (2026-06-02): Login Global — /login two-step, password reset flow, user verified end-to-end
 
 ## Session Continuity
 
-Last session: 2026-06-02T19:06:30.897Z
-Stopped at: Phase 12 Plan 01 complete — checkpoint:human-verify
+Last session: 2026-06-02T20:00:00.000Z
+Stopped at: Phase 12 complete — user verified end-to-end login flow
 Resume file: None
 
 ### Quick Tasks Completed
