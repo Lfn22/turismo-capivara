@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
 status: executing
-stopped_at: "Phase 12.1 Plan 02 complete — Prisma connection pool hardening"
-last_updated: "2026-06-03T12:25:00Z"
-last_activity: "2026-06-03 — Phase 12.1 Plan 02: directUrl em prisma.config.ts + DATABASE_URL com pool params no Railway"
+stopped_at: "Phase 12.1 complete — todos os 3 planos executados"
+last_updated: "2026-06-03T17:45:00Z"
+last_activity: "2026-06-03 — Phase 12.1 Plan 03: página /acesso publicada + smoke test PIX 4/6 etapas PASS (sandbox limitation documentada)"
 progress:
   total_phases: 5
   completed_phases: 3
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-05-26)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Milestone v1.2 UI/UX Polish + Guia Experience — Phase 12 complete, next: Phase 12.1 Pre-Launch Hardening
+**Current focus:** Milestone v1.2 UI/UX Polish + Guia Experience — Phase 12.1 complete, next: Phase 13 Painel Mobile + Feedback
 
 ## Current Position
 
-Phase: Phase 12.1 (in progress — 2/3 plans complete)
-Plan: 12.1-02 (completed)
-Status: Plan 12.1-02 complete — Prisma connection pool hardened; DATABASE_URL com pool params no Railway, DIRECT_URL para migrations.
-Last activity: 2026-06-03 — Phase 12.1 Plan 02: directUrl em prisma.config.ts + DATABASE_URL com connection_limit=10&pool_timeout=2 no Railway
+Phase: Phase 12.1 (complete — 3/3 plans complete)
+Plan: 12.1-03 (completed)
+Status: Phase 12.1 complete — idempotência em bookings, connection pool hardened, página /acesso publicada, smoke test PIX 4/6 PASS (sandbox limitation não-bloqueante documentada).
+Last activity: 2026-06-03 — Phase 12.1 Plan 03: página /acesso early adopters + smoke test PIX em produção
 
 ## Decisões estratégicas
 
@@ -99,6 +99,7 @@ Last activity: 2026-06-03 — Phase 12.1 Plan 02: directUrl em prisma.config.ts 
 - v1.2 roadmap created (2026-05-28) — Phases 11–14, 34 requirements, 100% coverage
 - Phase 12.1 inserted after Phase 12 (2026-06-02): Pre-Launch Hardening — idempotência bookings, connection pool, smoke test PIX, doc early adopters (URGENT)
 - Phase 12 complete (2026-06-02): Login Global — /login two-step, password reset flow, user verified end-to-end
+- Phase 12.1 complete (2026-06-03): Pre-Launch Hardening — idempotência bookings (Idempotency-Key header), connection pool Railway, página /acesso, smoke test PIX 4/6 PASS
 
 ## Session Continuity
 

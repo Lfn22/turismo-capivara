@@ -15,7 +15,7 @@
 
 - [x] **Phase 11: Frontend Polish** — Navegação, tokens CSS consolidados, dead links removidos, brand CAPI unificada (2026-06-01)
 - [x] **Phase 12: Login Global** — Portal `/login` sem slug com email lookup automático de tenant (completed 2026-06-02)
-- [ ] **Phase 12.1: Pre-Launch Hardening** — Idempotência em bookings, connection pool, smoke test PIX, onboarding de early adopters (INSERTED)
+- [x] **Phase 12.1: Pre-Launch Hardening** — Idempotência em bookings, connection pool, smoke test PIX, onboarding de early adopters (completed 2026-06-03)
 - [ ] **Phase 13: Painel Mobile + Feedback** — Card layout responsivo, touch targets, toasts, empty states, dialogs de confirmação
 - [ ] **Phase 14: Gestao de Conteudo** — Guia cria/edita destinos com fotos e enriquece roteiros com galeria e experiências
 
@@ -66,7 +66,7 @@
 Plans:
 - [x] 12.1-01-PLAN.md — Idempotência em POST /bookings (schema migration + lógica de dedup)
 - [x] 12.1-02-PLAN.md — Connection pool DATABASE_URL no Railway (schema + config env)
-- [ ] 12.1-03-PLAN.md — Smoke test PIX em produção + página /acesso para early adopters
+- [x] 12.1-03-PLAN.md — Smoke test PIX em produção + página /acesso para early adopters
 
 ### Phase 13: Painel Mobile + Feedback
 **Goal**: O painel do guia é completamente utilizável em celular — sem tabelas que cortam, com feedback claro para cada ação
@@ -101,7 +101,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 11. Frontend Polish | 5/5 | Complete | 2026-06-01 |
 | 12. Login Global | 3/3 | Complete   | 2026-06-02 |
-| 12.1. Pre-Launch Hardening | 2/3 | In progress | - |
+| 12.1. Pre-Launch Hardening | 3/3 | Complete | 2026-06-03 |
 | 13. Painel Mobile + Feedback | 0/? | Not started | - |
 | 14. Gestao de Conteudo | 0/? | Not started | - |
 
