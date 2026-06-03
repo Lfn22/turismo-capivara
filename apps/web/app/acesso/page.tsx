@@ -1,351 +1,294 @@
-'use client'
-
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
 
-type Mode = 'slug' | 'email'
-type Tenant = { slug: string; name: string }
+export const metadata: Metadata = {
+  title: 'Bem-vindo | CAPI',
+  description: 'Tudo que você precisa saber antes de começar a usar o CAPI.',
+}
 
 export default function AcessoPage() {
-  const [mode, setMode] = useState<Mode>('slug')
-  const [value, setValue] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [tenants, setTenants] = useState<Tenant[]>([])
-  const router = useRouter()
-
-  function reset() {
-    setValue('')
-    setError('')
-    setTenants([])
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const trimmed = value.trim()
-    if (!trimmed) {
-      setError(mode === 'slug' ? 'Informe o identificador da sua conta.' : 'Informe seu email.')
-      return
-    }
-
-    if (mode === 'slug') {
-      router.push(`/${trimmed.toLowerCase()}/login`)
-      return
-    }
-
-    // email mode
-    setLoading(true)
-    setError('')
-    setTenants([])
-    try {
-      const res = await fetch(`/api/tenant-lookup?email=${encodeURIComponent(trimmed)}`)
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.message ?? 'Erro ao buscar conta.')
-        return
-      }
-      const found: Tenant[] = data.tenants ?? []
-      if (found.length === 0) {
-        setError('Nenhuma conta encontrada com este email.')
-      } else if (found.length === 1) {
-        router.push(`/${found[0].slug}/login`)
-      } else {
-        setTenants(found)
-      }
-    } catch {
-      setError('Serviço indisponível. Tente novamente.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <>
       <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; }
 
-        .acesso {
+        .acesso-page {
           min-height: 100dvh;
           background: var(--stone-50);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
           padding: clamp(2rem, 8vw, 5rem) 1.5rem;
         }
 
-        .acesso__card {
-          width: 100%;
-          max-width: 420px;
-          background: #fff;
-          border: 1px solid var(--stone-200, #e7e5e4);
-          border-radius: 4px;
-          padding: clamp(2rem, 6vw, 3rem) clamp(1.5rem, 5vw, 2.5rem);
+        .acesso-page__inner {
+          max-width: 42rem;
+          margin: 0 auto;
         }
 
-        .acesso__wordmark {
+        .acesso-page__wordmark {
           font-family: var(--font-display);
-          font-size: 1.25rem;
+          font-size: clamp(1.5rem, 4vw, 2rem);
           font-weight: 700;
           color: var(--ochre);
-          letter-spacing: 0.04em;
-          margin-bottom: 1.75rem;
+          letter-spacing: 0.06em;
+          margin-bottom: 0.25rem;
         }
 
-        .acesso__title {
+        .acesso-page__tagline {
+          font-family: var(--font-body);
+          font-size: clamp(0.9rem, 2.5vw, 1rem);
+          color: var(--stone-500);
+          font-style: italic;
+          margin-bottom: 2.5rem;
+        }
+
+        .acesso-page__section {
+          margin-bottom: 2.5rem;
+          padding-bottom: 2.5rem;
+          border-bottom: 1px solid var(--stone-200);
+        }
+
+        .acesso-page__section:last-of-type {
+          border-bottom: none;
+        }
+
+        .acesso-page__section-title {
           font-family: var(--font-display);
-          font-size: 1.5rem;
+          font-size: clamp(1.1rem, 3vw, 1.35rem);
           font-weight: 700;
-          color: var(--stone-900, #1c1917);
-          margin-bottom: 1.5rem;
+          color: var(--stone-900);
+          margin-bottom: 0.75rem;
         }
 
-        .acesso__tabs {
+        .acesso-page__body {
+          font-family: var(--font-body);
+          font-size: clamp(0.95rem, 2.5vw, 1rem);
+          color: var(--stone-700);
+          line-height: 1.65;
+          margin-bottom: 0.75rem;
+        }
+
+        .acesso-page__list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
           display: flex;
+          flex-direction: column;
+          gap: 0.6rem;
+        }
+
+        .acesso-page__list li {
+          font-family: var(--font-body);
+          font-size: clamp(0.95rem, 2.5vw, 1rem);
+          color: var(--stone-700);
+          line-height: 1.55;
+          padding-left: 1.25rem;
+          position: relative;
+        }
+
+        .acesso-page__list li::before {
+          content: '—';
+          position: absolute;
+          left: 0;
+          color: var(--ochre);
+          font-weight: 700;
+        }
+
+        .acesso-page__flow {
+          display: flex;
+          flex-direction: column;
           gap: 0;
-          border: 1px solid var(--stone-200, #e7e5e4);
-          border-radius: 3px;
-          overflow: hidden;
-          margin-bottom: 1.5rem;
         }
 
-        .acesso__tab {
-          flex: 1;
-          padding: 0.55rem 0.75rem;
-          font-family: var(--font-body);
-          font-size: 0.85rem;
-          font-weight: 500;
-          color: var(--stone-500, #78716c);
-          background: none;
-          border: none;
-          cursor: pointer;
-          transition: background 0.15s, color 0.15s;
+        .acesso-page__step {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
         }
 
-        .acesso__tab--active {
-          background: var(--stone-900, #1c1917);
+        .acesso-page__step-num {
+          flex-shrink: 0;
+          width: 1.75rem;
+          height: 1.75rem;
+          border-radius: 50%;
+          background: var(--ochre);
           color: #fff;
-        }
-
-        .acesso__label {
-          display: block;
-          font-family: var(--font-body);
+          font-family: var(--font-display);
           font-size: 0.8rem;
-          font-weight: 600;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-          color: var(--stone-600, #57534e);
-          margin-bottom: 0.4rem;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-top: 0.1rem;
         }
 
-        .acesso__input {
-          display: block;
-          width: 100%;
+        .acesso-page__step-text {
           font-family: var(--font-body);
-          font-size: 1rem;
-          color: var(--stone-900, #1c1917);
-          background: var(--stone-50, #fafaf9);
-          border: 1px solid var(--stone-300, #d6d3d1);
-          border-radius: 3px;
-          padding: 0.75rem 1rem;
-          outline: none;
-          transition: border-color 0.15s;
+          font-size: clamp(0.95rem, 2.5vw, 1rem);
+          color: var(--stone-700);
+          line-height: 1.55;
+          padding-top: 0.2rem;
         }
 
-        .acesso__input:focus { border-color: var(--ochre); }
-
-        .acesso__hint {
-          font-family: var(--font-body);
-          font-size: 0.78rem;
-          color: var(--stone-400, #a8a29e);
-          margin-top: 0.35rem;
+        .acesso-page__step-connector {
+          width: 1px;
+          height: 1.25rem;
+          background: var(--stone-300);
+          margin-left: calc(1.75rem / 2);
         }
 
-        .acesso__error {
-          font-family: var(--font-body);
-          font-size: 0.82rem;
-          color: #b91c1c;
-          margin-top: 0.5rem;
-        }
-
-        .acesso__btn {
-          display: block;
-          width: 100%;
-          margin-top: 1.5rem;
-          padding: 0.85rem 1.5rem;
+        .acesso-page__cta {
+          display: inline-block;
+          margin-top: 1.25rem;
+          padding: 0.75rem 1.5rem;
           font-family: var(--font-body);
           font-size: 1rem;
           font-weight: 600;
           color: #fff;
           background: var(--ochre);
-          border: none;
           border-radius: 3px;
-          cursor: pointer;
+          text-decoration: none;
           transition: background 0.2s;
         }
 
-        .acesso__btn:hover:not(:disabled) { background: var(--ochre-dark, #a07010); }
-        .acesso__btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .acesso__tenants {
-          margin-top: 1.25rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
+        .acesso-page__cta:hover {
+          background: var(--ochre-dark);
         }
 
-        .acesso__tenant-btn {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          width: 100%;
-          padding: 0.75rem 1rem;
+        .acesso-page__contact-email {
           font-family: var(--font-body);
-          font-size: 0.95rem;
-          font-weight: 500;
-          color: var(--stone-900, #1c1917);
-          background: var(--stone-50, #fafaf9);
-          border: 1px solid var(--stone-200, #e7e5e4);
-          border-radius: 3px;
-          cursor: pointer;
-          text-align: left;
-          transition: border-color 0.15s, background 0.15s;
-        }
-
-        .acesso__tenant-btn:hover {
-          border-color: var(--ochre);
-          background: #fff;
-        }
-
-        .acesso__tenant-slug {
-          font-size: 0.78rem;
-          color: var(--stone-400, #a8a29e);
-        }
-
-        .acesso__divider {
-          margin: 1.75rem 0 1.25rem;
-          border: none;
-          border-top: 1px solid var(--stone-200, #e7e5e4);
-        }
-
-        .acesso__signup {
-          font-family: var(--font-body);
-          font-size: 0.88rem;
-          color: var(--stone-500, #78716c);
-          text-align: center;
-        }
-
-        .acesso__signup a {
+          font-size: clamp(0.95rem, 2.5vw, 1rem);
           color: var(--ochre);
           font-weight: 600;
           text-decoration: none;
         }
 
-        .acesso__signup a:hover { text-decoration: underline; }
+        .acesso-page__contact-email:hover {
+          text-decoration: underline;
+        }
+
+        .acesso-page__badge {
+          display: inline-block;
+          padding: 0.2rem 0.5rem;
+          background: var(--stone-100);
+          border: 1px solid var(--stone-300);
+          border-radius: 2px;
+          font-family: var(--font-body);
+          font-size: 0.78rem;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: var(--stone-600);
+          margin-bottom: 1rem;
+        }
       `}</style>
 
-      <main className="acesso">
-        <div className="acesso__card">
-          <Link href="/" style={{ display: 'inline-block', marginBottom: '1.75rem' }}>
-            <Image src="/images/logo.png" alt="CAPI" width={120} height={108} style={{ display: 'block' }} />
-          </Link>
-          <h1 className="acesso__title">Acessar painel</h1>
+      <main className="acesso-page">
+        <div className="acesso-page__inner">
 
-          <div className="acesso__tabs" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'slug'}
-              className={`acesso__tab${mode === 'slug' ? ' acesso__tab--active' : ''}`}
-              onClick={() => { setMode('slug'); reset() }}
-            >
-              Identificador
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === 'email'}
-              className={`acesso__tab${mode === 'email' ? ' acesso__tab--active' : ''}`}
-              onClick={() => { setMode('email'); reset() }}
-            >
-              Email
-            </button>
-          </div>
+          {/* Seção 1 — Boas-vindas */}
+          <header className="acesso-page__section">
+            <span className="acesso-page__badge">Early Adopter</span>
+            <h1 className="acesso-page__wordmark">CAPI</h1>
+            <p className="acesso-page__tagline">caminho entre quem explora e quem opera</p>
+            <p className="acesso-page__body">
+              Obrigado por ser um dos primeiros a usar o CAPI. Você está ajudando a conectar turistas a guias certificados de Serra da Capivara — e sua experiência vai moldar o produto.
+            </p>
+            <p className="acesso-page__body">
+              Antes de começar, leia esta página. Ela descreve como o CAPI funciona, o que ainda está em desenvolvimento e como nos contatar caso precise de ajuda.
+            </p>
+          </header>
 
-          {tenants.length > 0 ? (
-            <>
-              <p className="acesso__hint" style={{ marginBottom: '0.25rem' }}>
-                Encontramos {tenants.length} contas com este email. Escolha uma:
-              </p>
-              <div className="acesso__tenants">
-                {tenants.map((t) => (
-                  <button
-                    key={t.slug}
-                    type="button"
-                    className="acesso__tenant-btn"
-                    onClick={() => router.push(`/${t.slug}/login`)}
-                  >
-                    <span>{t.name}</span>
-                    <span className="acesso__tenant-slug">{t.slug}</span>
-                  </button>
-                ))}
+          {/* Seção 2 — Como funciona */}
+          <section className="acesso-page__section">
+            <h2 className="acesso-page__section-title">Como funciona</h2>
+            <p className="acesso-page__body">O fluxo completo de uma reserva:</p>
+            <div className="acesso-page__flow">
+              <div className="acesso-page__step">
+                <span className="acesso-page__step-num">1</span>
+                <span className="acesso-page__step-text">
+                  <strong>Escolha o roteiro</strong> — navegue pelos roteiros disponíveis e selecione o guia com o horário que preferir.
+                </span>
               </div>
-              <button
-                type="button"
-                className="acesso__btn"
-                style={{ marginTop: '1rem', background: 'none', color: 'var(--stone-500)', border: '1px solid var(--stone-200)' }}
-                onClick={() => reset()}
-              >
-                ← Voltar
-              </button>
-            </>
-          ) : (
-            <form onSubmit={handleSubmit}>
-              {mode === 'slug' ? (
-                <>
-                  <label htmlFor="slug" className="acesso__label">Identificador da conta</label>
-                  <input
-                    id="slug"
-                    className="acesso__input"
-                    type="text"
-                    value={value}
-                    onChange={(e) => { setValue(e.target.value); setError('') }}
-                    placeholder="ex: serra-viva"
-                    autoComplete="off"
-                    autoFocus
-                  />
-                  <p className="acesso__hint">Fornecido no e-mail de boas-vindas.</p>
-                </>
-              ) : (
-                <>
-                  <label htmlFor="email" className="acesso__label">Email de cadastro</label>
-                  <input
-                    id="email"
-                    className="acesso__input"
-                    type="email"
-                    value={value}
-                    onChange={(e) => { setValue(e.target.value); setError('') }}
-                    placeholder="seu@email.com"
-                    autoComplete="email"
-                    autoFocus
-                  />
-                  <p className="acesso__hint">Email usado no cadastro da operadora.</p>
-                </>
-              )}
-              {error && <p className="acesso__error">{error}</p>}
-              <button type="submit" className="acesso__btn" disabled={loading}>
-                {loading ? 'Buscando...' : 'Continuar'}
-              </button>
-            </form>
-          )}
+              <div className="acesso-page__step-connector" />
+              <div className="acesso-page__step">
+                <span className="acesso-page__step-num">2</span>
+                <span className="acesso-page__step-text">
+                  <strong>Reserve com PIX</strong> — informe seus dados e efetue o pagamento via QR Code PIX. Nenhum cadastro necessário.
+                </span>
+              </div>
+              <div className="acesso-page__step-connector" />
+              <div className="acesso-page__step">
+                <span className="acesso-page__step-num">3</span>
+                <span className="acesso-page__step-text">
+                  <strong>Aguarde a confirmação</strong> — após o PIX ser processado (normalmente em minutos), você recebe um email de confirmação com os detalhes da reserva.
+                </span>
+              </div>
+              <div className="acesso-page__step-connector" />
+              <div className="acesso-page__step">
+                <span className="acesso-page__step-num">4</span>
+                <span className="acesso-page__step-text">
+                  <strong>Encontre seu guia</strong> — no dia combinado, apresente o email de confirmação ao guia. Aproveite o roteiro.
+                </span>
+              </div>
+            </div>
+          </section>
 
-          <hr className="acesso__divider" />
-          <p className="acesso__signup">
-            Ainda não tem conta?{' '}
-            <Link href="/onboarding">Cadastrar operadora</Link>
-          </p>
+          {/* Seção 3 — Limitações conhecidas */}
+          <section className="acesso-page__section">
+            <h2 className="acesso-page__section-title">Limitações conhecidas (fase beta)</h2>
+            <p className="acesso-page__body">
+              O CAPI está em fase beta. Algumas funcionalidades ainda não estão disponíveis:
+            </p>
+            <ul className="acesso-page__list">
+              <li>Pagamento somente via PIX — cartão de crédito estará disponível em breve</li>
+              <li>Cancelamento deve ser solicitado por email ao suporte — autoatendimento está em desenvolvimento</li>
+              <li>Reservas ficam com status <strong>pendente</strong> por até 30 minutos enquanto aguardam a confirmação do PIX</li>
+              <li>Em caso de falha no pagamento, a reserva expira automaticamente — basta criar uma nova reserva e tentar novamente</li>
+              <li>Eventuais instabilidades são esperadas — comunicaremos qualquer interrupção por email</li>
+            </ul>
+          </section>
+
+          {/* Seção 4 — Cancelamento e reembolso */}
+          <section className="acesso-page__section">
+            <h2 className="acesso-page__section-title">Cancelamento e reembolso</h2>
+            <ul className="acesso-page__list">
+              <li>
+                <strong>Cancelamento com mais de 48h de antecedência:</strong> reembolso integral em até 5 dias úteis
+              </li>
+              <li>
+                <strong>Cancelamento com menos de 48h:</strong> sem reembolso, exceto em caso de falha técnica comprovada da plataforma
+              </li>
+              <li>
+                <strong>Falha técnica da plataforma:</strong> reembolso integral independente do prazo — basta descrever o ocorrido por email
+              </li>
+              <li>
+                Reembolsos são processados via PIX para o CPF informado na reserva
+              </li>
+            </ul>
+            <p className="acesso-page__body" style={{ marginTop: '0.75rem' }}>
+              Para solicitar cancelamento, envie email ao suporte com o número da reserva no assunto.
+            </p>
+          </section>
+
+          {/* Seção 5 — Contato / Suporte */}
+          <section className="acesso-page__section">
+            <h2 className="acesso-page__section-title">Suporte</h2>
+            <p className="acesso-page__body">
+              Email:{' '}
+              <a href="mailto:suporte@capi.turismo" className="acesso-page__contact-email">
+                suporte@capi.turismo
+              </a>
+            </p>
+            <p className="acesso-page__body">
+              Tempo de resposta: até 24 horas em dias úteis.
+            </p>
+            <p className="acesso-page__body">
+              Para cancelamentos urgentes, inclua o número da reserva no assunto do email.
+            </p>
+            <Link href="/destinos" className="acesso-page__cta">
+              Explorar roteiros
+            </Link>
+          </section>
+
         </div>
       </main>
     </>
