@@ -181,7 +181,6 @@ export async function bookingsRoutes(app: FastifyInstance) {
         description: `Reserva #${booking.id} — ${pkg.name}`,
         customerEmail,
         customerCpf,
-        slug,
       })
     } catch (err) {
       // Compensation: delete booking and restore slot atomically (per D-02)
@@ -457,7 +456,6 @@ export async function bookingsRoutes(app: FastifyInstance) {
         description: `Reserva #${booking.id} — ${booking.slot.package.name}`,
         customerEmail: booking.customerEmail,
         customerCpf: '',
-        slug,
       })
 
       // Update booking with new payment fields + reset to PENDING

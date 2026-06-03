@@ -14,22 +14,12 @@ interface CreatePixPaymentInput {
   description: string
   customerEmail: string
   customerCpf: string
-  slug: string
 }
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-function buildBackUrls(slug: string, bookingId: string, email: string) {
-  const webUrl = process.env.WEB_URL ?? 'http://localhost:3000'
-  const base = `${webUrl}/${slug}/confirmacao?bookingId=${bookingId}&email=${encodeURIComponent(email)}`
-  return {
-    success: `${base}&status=paid`,
-    pending: `${base}&status=pending`,
-    failure: `${base}&status=failed`,
-  }
-}
 
 async function attemptCreatePayment(
   input: CreatePixPaymentInput
@@ -50,8 +40,6 @@ async function attemptCreatePayment(
 
   // 2. Execução Real com a API do Mercado Pago
   const client = new MercadoPagoConfig({ accessToken: token, options: { timeout: 8000 } })
-  const backUrls = buildBackUrls(input.slug, input.bookingId, input.customerEmail)
-
   const response = await new Payment(client).create({
     body: {
       transaction_amount: input.transactionAmount,
@@ -66,11 +54,6 @@ async function attemptCreatePayment(
         },
       },
       external_reference: input.bookingId,
-      // back_urls são usados em fluxos de checkout redirect (cartão/boleto).
-      // Para PIX, o retorno ocorre via webhook + redirecionamento manual.
-      callback_url: backUrls.success,
-      // @ts-expect-error — back_urls not typed in SDK Payment body but supported by MP API
-      back_urls: backUrls,
     },
   })
 
