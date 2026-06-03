@@ -447,6 +447,15 @@ export async function bookingsRoutes(app: FastifyInstance) {
         throw new AppError('Novo pagamento só é possível para reservas expiradas', 422)
       }
 
+      // Verify slot is still OPEN before creating a new payment
+      const slot = await prisma.departureSlot.findUnique({
+        where: { id: booking.slotId },
+        select: { status: true },
+      })
+      if (!slot || slot.status !== 'OPEN') {
+        throw new AppError('Slot indisponível para novo pagamento', 422)
+      }
+
       // Create new MP payment
       // CPF not stored after hash — repay uses empty string (no CPF validation on repay)
       const transactionAmount = Number(booking.slot.package.price) * booking.pax
