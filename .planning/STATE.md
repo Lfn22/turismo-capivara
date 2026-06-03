@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
 status: executing
-stopped_at: "Phase 12.1 Plan 01 complete — idempotency key for POST /bookings"
-last_updated: "2026-06-03T11:41:50Z"
-last_activity: "2026-06-03 — Phase 12.1 Plan 01: idempotencyKey field + dedup logic in POST /bookings"
+stopped_at: "Phase 12.1 Plan 02 complete — Prisma connection pool hardening"
+last_updated: "2026-06-03T12:25:00Z"
+last_activity: "2026-06-03 — Phase 12.1 Plan 02: directUrl em prisma.config.ts + DATABASE_URL com pool params no Railway"
 progress:
   total_phases: 5
   completed_phases: 3
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 
 ## Current Position
 
-Phase: Phase 12.1 (in progress — 1/3 plans complete)
-Plan: 12.1-01 (completed)
-Status: Plan 12.1-01 complete — idempotencyKey field + dedup logic deployed to Railway PostgreSQL.
-Last activity: 2026-06-03 — Phase 12.1 Plan 01: idempotencyKey in Booking model, POST /bookings dedup via Idempotency-Key header
+Phase: Phase 12.1 (in progress — 2/3 plans complete)
+Plan: 12.1-02 (completed)
+Status: Plan 12.1-02 complete — Prisma connection pool hardened; DATABASE_URL com pool params no Railway, DIRECT_URL para migrations.
+Last activity: 2026-06-03 — Phase 12.1 Plan 02: directUrl em prisma.config.ts + DATABASE_URL com connection_limit=10&pool_timeout=2 no Railway
 
 ## Decisões estratégicas
 
@@ -67,6 +67,7 @@ Last activity: 2026-06-03 — Phase 12.1 Plan 01: idempotencyKey in Booking mode
 - Password reset: PasswordResetToken model, POST /auth/request-password-reset + PUT /auth/reset-password
 - auth-client.ts: response shape `data.tenant.tenantSlug` no lookup-tenant
 - Idempotency: header `Idempotency-Key` em POST /bookings — lookup por `idempotencyKey` ANTES do $transaction, escopado por tenant
+- Connection pool: Prisma 7 usa `prisma.config.ts` para `url`/`directUrl` — schema.prisma não precisa desses campos; DATABASE_URL com `?connection_limit=10&pool_timeout=2`, DIRECT_URL sem params para migrations
 
 ## Performance histórica
 

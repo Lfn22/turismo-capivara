@@ -64,8 +64,8 @@
   4. Documento de boas-vindas para early adopters publicado: limitações conhecidas, política de cancelamento/reembolso e contato de suporte — disponível antes do primeiro acesso real
 **Plans**: 3 plans
 Plans:
-- [ ] 12.1-01-PLAN.md — Idempotência em POST /bookings (schema migration + lógica de dedup)
-- [ ] 12.1-02-PLAN.md — Connection pool DATABASE_URL no Railway (schema + config env)
+- [x] 12.1-01-PLAN.md — Idempotência em POST /bookings (schema migration + lógica de dedup)
+- [x] 12.1-02-PLAN.md — Connection pool DATABASE_URL no Railway (schema + config env)
 - [ ] 12.1-03-PLAN.md — Smoke test PIX em produção + página /acesso para early adopters
 
 ### Phase 13: Painel Mobile + Feedback
@@ -101,7 +101,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 11. Frontend Polish | 5/5 | Complete | 2026-06-01 |
 | 12. Login Global | 3/3 | Complete   | 2026-06-02 |
-| 12.1. Pre-Launch Hardening | 0/3 | Not started | - |
+| 12.1. Pre-Launch Hardening | 2/3 | In progress | - |
 | 13. Painel Mobile + Feedback | 0/? | Not started | - |
 | 14. Gestao de Conteudo | 0/? | Not started | - |
 
