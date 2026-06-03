@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
 status: executing
-stopped_at: "Phase 12 complete — user verified end-to-end login flow"
-last_updated: "2026-06-02T20:00:00.000Z"
-last_activity: "2026-06-02 — Phase 12 complete: global /login two-step flow, password reset, PublicNav Painel button"
+stopped_at: "Phase 12.1 Plan 01 complete — idempotency key for POST /bookings"
+last_updated: "2026-06-03T11:41:50Z"
+last_activity: "2026-06-03 — Phase 12.1 Plan 01: idempotencyKey field + dedup logic in POST /bookings"
 progress:
   total_phases: 5
   completed_phases: 3
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 
 ## Current Position
 
-Phase: Phase 12 (complete — 3/3 plans)
-Plan: 12-03 (completed)
-Status: Phase 12 complete — all plans done, user verified end-to-end login flow working.
-Last activity: 2026-06-02 — Phase 12 complete: /login two-step flow, /reset-password, /login/esqueci-a-senha, auth-client.ts
+Phase: Phase 12.1 (in progress — 1/3 plans complete)
+Plan: 12.1-01 (completed)
+Status: Plan 12.1-01 complete — idempotencyKey field + dedup logic deployed to Railway PostgreSQL.
+Last activity: 2026-06-03 — Phase 12.1 Plan 01: idempotencyKey in Booking model, POST /bookings dedup via Idempotency-Key header
 
 ## Decisões estratégicas
 
@@ -66,6 +66,7 @@ Last activity: 2026-06-02 — Phase 12 complete: /login two-step flow, /reset-pa
 - Login global: email-first two-step — POST /auth/lookup-tenant descobre tenant pelo email, sem slug na URL
 - Password reset: PasswordResetToken model, POST /auth/request-password-reset + PUT /auth/reset-password
 - auth-client.ts: response shape `data.tenant.tenantSlug` no lookup-tenant
+- Idempotency: header `Idempotency-Key` em POST /bookings — lookup por `idempotencyKey` ANTES do $transaction, escopado por tenant
 
 ## Performance histórica
 
@@ -87,7 +88,6 @@ Last activity: 2026-06-02 — Phase 12 complete: /login two-step flow, /reset-pa
 - Queue de email com retry via BullMQ/Redis (OPS-04)
 - Verificação de email no signup (ONBOARD-04)
 - Links de recuperação com token por email (TOURIST-03)
-- Chave de idempotência em POST /bookings (SEC-06)
 
 ## Accumulated Context
 
