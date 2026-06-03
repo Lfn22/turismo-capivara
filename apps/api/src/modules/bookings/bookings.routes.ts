@@ -71,6 +71,31 @@ export async function bookingsRoutes(app: FastifyInstance) {
       throw new AppError('Tenant não encontrado', 404)
     }
 
+    // HARDENING-01: Idempotency check — deve vir ANTES do $transaction
+    const idempotencyKey = (request.headers['idempotency-key'] as string | undefined)?.trim() || undefined
+
+    if (idempotencyKey) {
+      const existing = await prisma.booking.findUnique({
+        where: { idempotencyKey },
+      })
+      if (existing && existing.tenantId === tenant.id) {
+        return reply.status(200).send({
+          id: existing.id,
+          tenantId: existing.tenantId,
+          slotId: existing.slotId,
+          customerName: existing.customerName,
+          customerEmail: existing.customerEmail,
+          pax: existing.pax,
+          status: existing.status,
+          paymentId: existing.paymentId,
+          paymentUrl: existing.paymentUrl,
+          expiresAt: existing.expiresAt,
+          createdAt: existing.createdAt,
+          qrCode: existing.qrCode,
+        })
+      }
+    }
+
     const booking = await prisma.$transaction(async (tx) => {
       // Lock the slot row to prevent concurrent overbooking (WR-04)
       const [slot] = await tx.$queryRaw<Array<{
@@ -123,6 +148,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
           pax,
           status: 'PENDING',
           expiresAt: new Date(Date.now() + expiryMinutes * 60_000),
+          idempotencyKey: idempotencyKey ?? null,
         },
       })
     })
