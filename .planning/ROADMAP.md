@@ -62,7 +62,11 @@
   2. DATABASE_URL no Railway inclui `?connection_limit=10&pool_timeout=2` — Prisma não excede limite de conexões sob carga simultânea
   3. Smoke test completo do fluxo PIX executado em produção: booking criado → QR gerado → webhook MP simulado → status CONFIRMED → email recebido
   4. Documento de boas-vindas para early adopters publicado: limitações conhecidas, política de cancelamento/reembolso e contato de suporte — disponível antes do primeiro acesso real
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 12.1-01-PLAN.md — Idempotência em POST /bookings (schema migration + lógica de dedup)
+- [ ] 12.1-02-PLAN.md — Connection pool DATABASE_URL no Railway (schema + config env)
+- [ ] 12.1-03-PLAN.md — Smoke test PIX em produção + página /acesso para early adopters
 
 ### Phase 13: Painel Mobile + Feedback
 **Goal**: O painel do guia é completamente utilizável em celular — sem tabelas que cortam, com feedback claro para cada ação
@@ -97,7 +101,7 @@
 |-------|----------------|--------|-----------|
 | 11. Frontend Polish | 5/5 | Complete | 2026-06-01 |
 | 12. Login Global | 3/3 | Complete   | 2026-06-02 |
-| 12.1. Pre-Launch Hardening | 0/? | Not started | - |
+| 12.1. Pre-Launch Hardening | 0/3 | Not started | - |
 | 13. Painel Mobile + Feedback | 0/? | Not started | - |
 | 14. Gestao de Conteudo | 0/? | Not started | - |
 
