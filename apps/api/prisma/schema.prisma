@@ -125,13 +125,15 @@ model Booking {
   qrCode        String?
   expiresAt     DateTime?
   status         BookingStatus @default(PENDING)
-  idempotencyKey String?       @unique
+  idempotencyKey String?
   createdAt      DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   tenant  Tenant        @relation(fields: [tenantId], references: [id])
   slot    DepartureSlot @relation(fields: [slotId], references: [id])
   voucher Voucher?
+
+  @@unique([tenantId, idempotencyKey])
 }
 
 model Voucher {

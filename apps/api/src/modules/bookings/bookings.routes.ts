@@ -76,7 +76,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
     if (idempotencyKey) {
       const existing = await prisma.booking.findUnique({
-        where: { idempotencyKey },
+        where: { tenantId_idempotencyKey: { tenantId: tenant.id, idempotencyKey } },
       })
       if (existing && existing.tenantId === tenant.id) {
         return reply.status(200).send({
