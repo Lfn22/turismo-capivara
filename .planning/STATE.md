@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
 status: executing
-stopped_at: "Phase 12.1 complete — todos os 3 planos executados"
+stopped_at: "Phase 13 context gathered — ready for planning"
 last_updated: "2026-06-03T17:45:00Z"
 last_activity: "2026-06-03 — Phase 12.1 Plan 03: página /acesso publicada + smoke test PIX 4/6 etapas PASS (sandbox limitation documentada)"
 progress:
@@ -103,8 +103,8 @@ Last activity: 2026-06-03 — Phase 12.1 Plan 03: página /acesso early adopters
 
 ## Session Continuity
 
-Last session: 2026-06-02T20:00:00.000Z
-Stopped at: Phase 12 complete — user verified end-to-end login flow
+Last session: 2026-06-03T23:41:00-03:00
+Stopped at: Phase 13 context gathered — ready for planning
 Resume file: None
 
 ### Quick Tasks Completed
