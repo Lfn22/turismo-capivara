@@ -241,7 +241,7 @@ export default function AcessoPage() {
             <ul className="acesso-page__list">
               <li>Pagamento somente via PIX — cartão de crédito estará disponível em breve</li>
               <li>Cancelamento deve ser solicitado por email ao suporte — autoatendimento está em desenvolvimento</li>
-              <li>Reservas ficam com status <strong>pendente</strong> por até 30 minutos enquanto aguardam a confirmação do PIX</li>
+              <li>Reservas ficam com status <strong>pendente</strong> por até 30 minutos — o QR Code PIX tem validade de 24 horas para pagamento</li>
               <li>Em caso de falha no pagamento, a reserva expira automaticamente — basta criar uma nova reserva e tentar novamente</li>
               <li>Eventuais instabilidades são esperadas — comunicaremos qualquer interrupção por email</li>
             </ul>
