@@ -577,22 +577,12 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
       const updated = await prisma.$transaction(async (tx) => {
         const currentSlot = await tx.departureSlot.findUnique({ where: { id: booking.slotId } })
-        const newBooked = Math.max(0, (currentSlot?.booked ?? booking.pax) - booking.pax)
-        const remainingActive = await tx.booking.count({
-          where: {
-            slotId: booking.slotId,
-            status: { in: ['PENDING', 'CONFIRMED'] },
-            id: { not: id },
-          },
-        })
         await tx.departureSlot.update({
           where: { id: booking.slotId },
           data: {
             booked: { decrement: booking.pax },
-            // Only recalculate status for OPEN/FULL slots — preserve CANCELLED/COMPLETED
-            ...(currentSlot?.status !== 'CANCELLED' && currentSlot?.status !== 'COMPLETED' ? {
-              status: remainingActive === 0 && newBooked < (currentSlot?.capacity ?? 1) ? 'OPEN' : (newBooked >= (currentSlot?.capacity ?? 1) ? 'FULL' : 'OPEN'),
-            } : {}),
+            // Restore to OPEN if slot was FULL — preserve CANCELLED/COMPLETED
+            ...(currentSlot?.status === 'FULL' ? { status: 'OPEN' } : {}),
           },
         })
 
