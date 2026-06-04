@@ -1,7 +1,10 @@
 "use client"
 import { use, useState, useEffect } from "react"
+import { toast } from "sonner"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 import BackButton from "@/src/components/ui/BackButton"
+import CancelDialog from "@/src/components/ui/CancelDialog"
+import EmptyState from "@/src/components/ui/EmptyState"
 
 interface Booking {
   id: string
@@ -37,8 +40,9 @@ export default function ReservasPage({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>("ALL")
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
+  const [pendingCancelId, setPendingCancelId] = useState<string | null>(null)
 
   function loadBookings() {
     setLoading(true)
@@ -60,9 +64,7 @@ export default function ReservasPage({
 
   async function handleConfirm(id: string) {
     setActionLoading(id)
-    setActionError(null)
-    const prevBooking = bookings.find((b) => b.id === id)
-    // Optimistic update
+    const prevBookings = bookings
     setBookings((prev) =>
       prev.map((b) => (b.id === id ? { ...b, status: "CONFIRMED" } : b))
     )
@@ -72,24 +74,27 @@ export default function ReservasPage({
         headers: { "Content-Type": "application/json" },
       })
       if (!res.ok) throw new Error()
+      toast.success("Reserva confirmada.")
     } catch {
-      // Revert on error
-      setBookings((prev) =>
-        prev.map((b) =>
-          b.id === id ? { ...b, status: prevBooking?.status ?? "PENDING" } : b
-        )
-      )
-      setActionError("Não foi possível realizar a ação. Tente novamente.")
+      setBookings(prevBookings)
+      toast.error("Erro ao processar.")
     } finally {
       setActionLoading(null)
     }
   }
 
-  async function handleCancel(id: string) {
+  function handleCancel(id: string) {
+    setPendingCancelId(id)
+    setCancelDialogOpen(true)
+  }
+
+  async function executeCancel() {
+    if (!pendingCancelId) return
+    const id = pendingCancelId
+    setCancelDialogOpen(false)
+    setPendingCancelId(null)
     setActionLoading(id)
-    setActionError(null)
-    const prevBooking = bookings.find((b) => b.id === id)
-    // Optimistic update
+    const prevBookings = bookings
     setBookings((prev) =>
       prev.map((b) => (b.id === id ? { ...b, status: "CANCELLED" } : b))
     )
@@ -99,13 +104,10 @@ export default function ReservasPage({
         headers: { "Content-Type": "application/json" },
       })
       if (!res.ok) throw new Error()
+      toast.success("Reserva cancelada.")
     } catch {
-      setBookings((prev) =>
-        prev.map((b) =>
-          b.id === id ? { ...b, status: prevBooking?.status ?? "CONFIRMED" } : b
-        )
-      )
-      setActionError("Não foi possível realizar a ação. Tente novamente.")
+      setBookings(prevBookings)
+      toast.error("Erro ao processar.")
     } finally {
       setActionLoading(null)
     }
@@ -119,6 +121,7 @@ export default function ReservasPage({
   return (
     <>
       <BackButton />
+
       {/* Page header */}
       <div
         style={{
@@ -178,24 +181,7 @@ export default function ReservasPage({
         </select>
       </div>
 
-      {actionError && (
-        <p
-          role="alert"
-          aria-live="assertive"
-          style={{
-            fontSize: "14px",
-            color: "#DC2626",
-            marginBottom: "16px",
-            padding: "8px 12px",
-            background: "#FEF2F2",
-            borderRadius: "4px",
-          }}
-        >
-          {actionError}
-        </p>
-      )}
-
-      {/* Table */}
+      {/* Content */}
       <div
         style={{
           background: "white",
@@ -246,109 +232,227 @@ export default function ReservasPage({
             </button>
           </p>
         ) : filtered.length === 0 ? (
-          <p
-            style={{
-              textAlign: "center",
-              padding: "48px 24px",
-              fontSize: "16px",
-              color: "var(--stone-500)",
-              margin: 0,
+          <EmptyState
+            title="Nenhuma reserva encontrada"
+            ctaLabel="Copiar link"
+            onCtaClick={() => {
+              navigator.clipboard.writeText(window.location.origin + "/" + slug)
+              toast.success("Link copiado!")
             }}
-          >
-            Nenhuma reserva encontrada.
-          </p>
+          />
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-            <thead>
-              <tr style={{ background: "var(--stone-100)" }}>
-                {["Data/hora", "Turista", "Roteiro", "Pax", "Status", "Ações"].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "12px 16px",
-                      textAlign: "left",
-                      fontWeight: 600,
-                      color: "var(--stone-700)",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((b, i) => (
-                <tr
+          <>
+            {/* Mobile card list — visible below 640px */}
+            <ul
+              className="reservas-card-list"
+              style={{ listStyle: "none", margin: 0, padding: "16px", display: "none" }}
+            >
+              {filtered.map((b) => (
+                <li
                   key={b.id}
                   style={{
-                    background: i % 2 === 0 ? "white" : "var(--stone-50)",
-                    borderBottom: "1px solid var(--stone-200)",
+                    background: "white",
+                    border: "1px solid var(--stone-200)",
+                    borderRadius: "8px",
+                    padding: "16px",
+                    marginBottom: "12px",
                   }}
                 >
-                  <td style={{ padding: "12px 16px" }}>{formatDate(b.slot?.startsAt)}</td>
-                  <td style={{ padding: "12px 16px" }}>{b.customerName}</td>
-                  <td style={{ padding: "12px 16px" }}>{b.slot?.package?.name}</td>
-                  <td style={{ padding: "12px 16px" }}>{b.pax}</td>
-                  <td style={{ padding: "12px 16px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "15px",
+                        fontWeight: 600,
+                        color: "var(--stone-900)",
+                      }}
+                    >
+                      {b.customerName}
+                    </span>
                     <StatusBadge status={b.status} />
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      {b.status === "PENDING" && (
-                        <button
-                          onClick={() => handleConfirm(b.id)}
-                          disabled={actionLoading === b.id}
-                          aria-label={`Confirmar reserva de ${b.customerName}`}
-                          style={{
-                            background: "var(--ochre)",
-                            color: "white",
-                            padding: "6px 12px",
-                            borderRadius: "4px",
-                            fontSize: "14px",
-                            fontWeight: 600,
-                            letterSpacing: "0.04em",
-                            textTransform: "uppercase",
-                            border: "none",
-                            cursor: actionLoading === b.id ? "not-allowed" : "pointer",
-                            opacity: actionLoading === b.id ? 0.7 : 1,
-                          }}
-                        >
-                          {actionLoading === b.id ? "..." : "Confirmar"}
-                        </button>
-                      )}
-                      {(b.status === "PENDING" || b.status === "CONFIRMED") && (
-                        <button
-                          onClick={() => handleCancel(b.id)}
-                          disabled={actionLoading === b.id}
-                          aria-label={`Cancelar reserva de ${b.customerName}`}
-                          style={{
-                            background: "#DC2626",
-                            color: "white",
-                            padding: "6px 12px",
-                            borderRadius: "4px",
-                            fontSize: "14px",
-                            fontWeight: 600,
-                            border: "none",
-                            cursor: actionLoading === b.id ? "not-allowed" : "pointer",
-                            opacity: actionLoading === b.id ? 0.7 : 1,
-                          }}
-                        >
-                          {actionLoading === b.id ? "..." : "Cancelar Reserva"}
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      color: "var(--stone-600)",
+                      margin: "0 0 4px",
+                    }}
+                  >
+                    {b.slot?.package?.name}
+                  </p>
+                  <p
+                    style={{
+                      fontSize: "13px",
+                      color: "var(--stone-500)",
+                      margin: "0 0 12px",
+                    }}
+                  >
+                    {formatDate(b.slot?.startsAt)} &middot; {b.pax} pax
+                  </p>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    {b.status === "PENDING" && (
+                      <button
+                        onClick={() => handleConfirm(b.id)}
+                        disabled={actionLoading === b.id}
+                        aria-label={`Confirmar reserva de ${b.customerName}`}
+                        style={{
+                          background: "var(--ochre)",
+                          color: "white",
+                          padding: "8px 16px",
+                          borderRadius: "4px",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          textTransform: "uppercase",
+                          border: "none",
+                          cursor: actionLoading === b.id ? "not-allowed" : "pointer",
+                          opacity: actionLoading === b.id ? 0.7 : 1,
+                          minHeight: "44px",
+                        }}
+                      >
+                        {actionLoading === b.id ? "..." : "Confirmar"}
+                      </button>
+                    )}
+                    {(b.status === "PENDING" || b.status === "CONFIRMED") && (
+                      <button
+                        onClick={() => handleCancel(b.id)}
+                        disabled={actionLoading === b.id}
+                        aria-label={`Cancelar reserva de ${b.customerName}`}
+                        style={{
+                          background: "#DC2626",
+                          color: "white",
+                          padding: "8px 16px",
+                          borderRadius: "4px",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          border: "none",
+                          cursor: actionLoading === b.id ? "not-allowed" : "pointer",
+                          opacity: actionLoading === b.id ? 0.7 : 1,
+                          minHeight: "44px",
+                        }}
+                      >
+                        {actionLoading === b.id ? "..." : "Cancelar"}
+                      </button>
+                    )}
+                  </div>
+                </li>
               ))}
-            </tbody>
-          </table>
+            </ul>
+
+            {/* Desktop table — visible at 640px and above */}
+            <table
+              className="reservas-table"
+              style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}
+            >
+              <thead>
+                <tr style={{ background: "var(--stone-100)" }}>
+                  {["Data/hora", "Turista", "Roteiro", "Pax", "Status", "Ações"].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        padding: "12px 16px",
+                        textAlign: "left",
+                        fontWeight: 600,
+                        color: "var(--stone-700)",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((b, i) => (
+                  <tr
+                    key={b.id}
+                    style={{
+                      background: i % 2 === 0 ? "white" : "var(--stone-50)",
+                      borderBottom: "1px solid var(--stone-200)",
+                    }}
+                  >
+                    <td style={{ padding: "12px 16px" }}>{formatDate(b.slot?.startsAt)}</td>
+                    <td style={{ padding: "12px 16px" }}>{b.customerName}</td>
+                    <td style={{ padding: "12px 16px" }}>{b.slot?.package?.name}</td>
+                    <td style={{ padding: "12px 16px" }}>{b.pax}</td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <StatusBadge status={b.status} />
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        {b.status === "PENDING" && (
+                          <button
+                            onClick={() => handleConfirm(b.id)}
+                            disabled={actionLoading === b.id}
+                            aria-label={`Confirmar reserva de ${b.customerName}`}
+                            style={{
+                              background: "var(--ochre)",
+                              color: "white",
+                              padding: "6px 12px",
+                              borderRadius: "4px",
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              letterSpacing: "0.04em",
+                              textTransform: "uppercase",
+                              border: "none",
+                              cursor: actionLoading === b.id ? "not-allowed" : "pointer",
+                              opacity: actionLoading === b.id ? 0.7 : 1,
+                            }}
+                          >
+                            {actionLoading === b.id ? "..." : "Confirmar"}
+                          </button>
+                        )}
+                        {(b.status === "PENDING" || b.status === "CONFIRMED") && (
+                          <button
+                            onClick={() => handleCancel(b.id)}
+                            disabled={actionLoading === b.id}
+                            aria-label={`Cancelar reserva de ${b.customerName}`}
+                            style={{
+                              background: "#DC2626",
+                              color: "white",
+                              padding: "6px 12px",
+                              borderRadius: "4px",
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              border: "none",
+                              cursor: actionLoading === b.id ? "not-allowed" : "pointer",
+                              opacity: actionLoading === b.id ? 0.7 : 1,
+                            }}
+                          >
+                            {actionLoading === b.id ? "..." : "Cancelar Reserva"}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
+
+      {/* Cancel confirmation dialog */}
+      <CancelDialog
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        onConfirm={executeCancel}
+        loading={actionLoading === pendingCancelId}
+      />
 
       <style>{`
         @keyframes shimmer {
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
+        }
+        @media (max-width: 639px) {
+          .reservas-card-list { display: block !important; }
+          .reservas-table { display: none !important; }
         }
       `}</style>
     </>
