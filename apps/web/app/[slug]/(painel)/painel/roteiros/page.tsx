@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth"
 import { apiFetch } from "@/lib/api/client"
 import Link from "next/link"
 import BackButton from "@/src/components/ui/BackButton"
+import EmptyState from "@/src/components/ui/EmptyState"
 
 interface Package {
   id: string
@@ -124,35 +125,12 @@ export default async function RoteirosPage({
           Erro ao carregar dados. Tente novamente.
         </p>
       ) : packages.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "64px 24px" }}>
-          <p
-            style={{
-              fontSize: "16px",
-              color: "var(--stone-500)",
-              marginBottom: "24px",
-            }}
-          >
-            Você ainda não tem roteiros. Crie seu primeiro roteiro.
-          </p>
-          <Link
-            href={`/${slug}/painel/roteiros/novo`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              background: "var(--ochre)",
-              color: "white",
-              padding: "8px 20px",
-              borderRadius: "4px",
-              fontSize: "14px",
-              fontWeight: 600,
-              letterSpacing: "0.04em",
-              textTransform: "uppercase",
-              textDecoration: "none",
-            }}
-          >
-            Novo Roteiro
-          </Link>
-        </div>
+        <EmptyState
+          title="Nenhum roteiro cadastrado"
+          description="Crie seu primeiro roteiro para começar a receber reservas."
+          ctaLabel="Criar roteiro"
+          ctaHref={`/${slug}/painel/roteiros/novo`}
+        />
       ) : (
         <div
           style={{
@@ -261,7 +239,9 @@ export default async function RoteirosPage({
                 <Link
                   href={`/${slug}/painel/disponibilidade`}
                   style={{
-                    display: "block",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     textAlign: "center",
                     padding: "8px 16px",
                     border: "1px solid var(--stone-300)",
@@ -271,6 +251,7 @@ export default async function RoteirosPage({
                     color: "var(--stone-700)",
                     textDecoration: "none",
                     background: "transparent",
+                    minHeight: "44px",
                   }}
                 >
                   Gerenciar Slots
