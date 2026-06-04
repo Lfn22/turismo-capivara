@@ -14,6 +14,7 @@
   --ochre: #C4852A;
   --ochre-light: #E8A84A;
   --ochre-dark: #9C6318;
+  --brand: #C4852A;
   --font-display: var(--font-playfair);
   --font-body: var(--font-source);
 }
