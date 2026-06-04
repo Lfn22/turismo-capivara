@@ -3,6 +3,7 @@ import { use, useState, useEffect } from "react"
 import Calendar from "react-calendar"
 import { Modal } from "@/components/ui/Modal"
 import BackButton from "@/src/components/ui/BackButton"
+import { toast } from "sonner"
 
 interface Slot {
   id: string
@@ -139,8 +140,10 @@ export default function DisponibilidadePage({
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setAllSlots((prev) => prev.map((s) => (s.id === slot.id ? { ...s, status: "CANCELLED" as const } : s)))
+      toast.success("Slot fechado.")
     } catch {
       setCloseError("Erro ao cancelar slot. Tente novamente.")
+      toast.error("Erro ao fechar slot.")
     } finally {
       setClosingSlot(null)
     }
@@ -189,12 +192,14 @@ export default function DisponibilidadePage({
       setFormEndTime("")
       setFormVagas(1)
       setFormErrors({})
+      toast.success("Slot criado com sucesso.")
     } catch (err: unknown) {
       setFormApiError(
         err instanceof Error
           ? err.message
           : "Não foi possível criar o slot. Tente novamente."
       )
+      toast.error("Erro ao criar slot.")
     } finally {
       setFormSubmitting(false)
     }
