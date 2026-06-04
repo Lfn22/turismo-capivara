@@ -2,6 +2,8 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { SidebarNav } from "@/components/sidebar/SidebarNav"
+import { Toaster } from "sonner"
+import ErrorBoundary from "@/src/components/ui/ErrorBoundary"
 
 export default async function PainelLayout({
   children,
@@ -33,20 +35,23 @@ export default async function PainelLayout({
           }
         }
       `}</style>
-      <div style={{ display: "flex", minHeight: "100dvh" }}>
-        <SidebarNav slug={slug} />
-        <main
-          className="painel-main"
-          style={{
-            flex: 1,
-            background: "var(--stone-50)",
-            padding: "32px 24px",
-            minWidth: 0,
-          }}
-        >
-          {children}
-        </main>
-      </div>
+      <ErrorBoundary>
+        <Toaster position="top-right" richColors />
+        <div style={{ display: "flex", minHeight: "100dvh" }}>
+          <SidebarNav slug={slug} />
+          <main
+            className="painel-main"
+            style={{
+              flex: 1,
+              background: "var(--stone-50)",
+              padding: "32px 24px",
+              minWidth: 0,
+            }}
+          >
+            {children}
+          </main>
+        </div>
+      </ErrorBoundary>
     </>
   )
 }
