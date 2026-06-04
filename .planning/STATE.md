@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
 status: executing
-stopped_at: "Phase 13 context gathered — ready for planning"
-last_updated: "2026-06-03T17:45:00Z"
-last_activity: "2026-06-03 — Phase 12.1 Plan 03: página /acesso publicada + smoke test PIX 4/6 etapas PASS (sandbox limitation documentada)"
+stopped_at: "Phase 13 executing — Wave 0 complete, ready for Wave 1"
+last_updated: "2026-06-04T09:56:00-03:00"
+last_activity: "2026-06-04 — Phase 13 Plan 01 complete: installed sonner + @radix-ui/react-dialog"
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 11
-  completed_plans: 11
-  percent: 100
+  total_plans: 16
+  completed_plans: 12
+  percent: 75
 ---
 
 # STATE.md — Turismo Capivara
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 
 ## Current Position
 
-Phase: Phase 12.1 (complete — 3/3 plans complete)
-Plan: 12.1-03 (completed)
-Status: Phase 12.1 complete — idempotência em bookings, connection pool hardened, página /acesso publicada, smoke test PIX 4/6 PASS (sandbox limitation não-bloqueante documentada).
-Last activity: 2026-06-03 — Phase 12.1 Plan 03: página /acesso early adopters + smoke test PIX em produção
+Phase: Phase 13 (executing — 1/5 plans complete)
+Plan: 13-02 (next)
+Status: Phase 13 Painel Mobile + Feedback — Wave 0 completa. 13-01 instalou sonner + @radix-ui/react-dialog.
+Last activity: 2026-06-04 — Phase 13 Plan 01 complete (6559143)
 
 ## Decisões estratégicas
 
