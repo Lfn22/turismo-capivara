@@ -149,6 +149,12 @@ async function main() {
       subtitle: 'Arte rupestre e patrimônio mundial',
       description:
         'O Parque Nacional Serra da Capivara é um dos maiores acervos de arte rupestre do mundo, com mais de 30 mil anos de história humana registrada nas pedras.',
+      heroImageUrl: 'https://picsum.photos/seed/serra-capivara/1200/600',
+      photos: [
+        'https://picsum.photos/seed/capivara-1/800/600',
+        'https://picsum.photos/seed/capivara-2/800/600',
+        'https://picsum.photos/seed/capivara-3/800/600',
+      ],
       state: 'PI',
       highlights: ['Arte Rupestre', 'Patrimônio UNESCO', 'Trilhas', 'Arqueologia'],
     },
@@ -161,6 +167,12 @@ async function main() {
       subtitle: 'Dunas, fervedouros e cerrado intocado',
       description:
         'O Jalapão é um dos destinos mais selvagens do Brasil, com fervedouros de água cristalina, dunas de areia dourada e paisagens do cerrado preservadas.',
+      heroImageUrl: 'https://picsum.photos/seed/jalapao/1200/600',
+      photos: [
+        'https://picsum.photos/seed/jalapao-1/800/600',
+        'https://picsum.photos/seed/jalapao-2/800/600',
+        'https://picsum.photos/seed/jalapao-3/800/600',
+      ],
       state: 'TO',
       highlights: ['Fervedouros', 'Dunas', 'Cerrado', 'Cachoeiras'],
     },
@@ -173,6 +185,12 @@ async function main() {
       subtitle: 'Vale do São Francisco e turismo do vinho',
       description:
         'Petrolina surpreende com o turismo gastronômico e vinícola às margens do Rio São Francisco, além de passeios de barco e culinária típica nordestina.',
+      heroImageUrl: 'https://picsum.photos/seed/petrolina/1200/600',
+      photos: [
+        'https://picsum.photos/seed/petrolina-1/800/600',
+        'https://picsum.photos/seed/petrolina-2/800/600',
+        'https://picsum.photos/seed/petrolina-3/800/600',
+      ],
       state: 'PE',
       highlights: ['Vinícolas', 'Rio São Francisco', 'Gastronomia', 'Passeios de Barco'],
     },
