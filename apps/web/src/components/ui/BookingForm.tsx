@@ -13,6 +13,7 @@ interface FormState {
   guestName: string;
   email: string;
   phone: string;
+  cpf: string;
   pax: number;
 }
 
@@ -23,6 +24,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
     guestName: '',
     email: '',
     phone: '',
+    cpf: '',
     pax: 1,
   });
   const [loading, setLoading] = useState(false);
@@ -47,10 +49,10 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           slotId,
-          packageId,
-          guestName: form.guestName,
-          email: form.email,
-          phone: form.phone,
+          customerName: form.guestName,
+          customerEmail: form.email,
+          customerPhone: form.phone,
+          customerCpf: form.cpf.replace(/\D/g, ''),
           pax: form.pax,
         }),
       });
@@ -133,6 +135,30 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           value={form.phone}
           onChange={handleChange}
           placeholder="(11) 99999-9999"
+          className="w-full px-3 py-2.5 text-[0.95rem] rounded-lg outline-none box-border"
+          style={{
+            border: '1px solid var(--stone-300)',
+            color: 'var(--stone-900)',
+            backgroundColor: 'var(--stone-50)',
+          }}
+          disabled={loading}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="cpf" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
+          CPF
+        </label>
+        <input
+          id="cpf"
+          name="cpf"
+          type="text"
+          required
+          inputMode="numeric"
+          maxLength={14}
+          value={form.cpf}
+          onChange={handleChange}
+          placeholder="000.000.000-00"
           className="w-full px-3 py-2.5 text-[0.95rem] rounded-lg outline-none box-border"
           style={{
             border: '1px solid var(--stone-300)',
