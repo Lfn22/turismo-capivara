@@ -467,16 +467,27 @@ export async function bookingsRoutes(app: FastifyInstance) {
         customerCpf: '',
       })
 
-      // Update booking with new payment fields + reset to PENDING
-      await prisma.booking.update({
-        where: { id: booking.id },
-        data: {
-          paymentId: paymentResult.paymentId,
-          paymentUrl: paymentResult.paymentUrl,
-          qrCode: paymentResult.qrCode,
-          expiresAt: paymentResult.expiresAt,
-          status: 'PENDING',
-        },
+      // Lock slot and update booking atomically to prevent race condition
+      await prisma.$transaction(async (tx) => {
+        const [slotRow] = await tx.$queryRaw<Array<{ status: string }>>`
+          SELECT status FROM "DepartureSlot"
+          WHERE id = ${booking.slotId}
+          FOR UPDATE
+        `
+        if (!slotRow || slotRow.status !== 'OPEN') {
+          // MP payment was created but slot is gone — log for manual reconciliation
+          throw new AppError('Slot indisponível para novo pagamento', 422)
+        }
+        await tx.booking.update({
+          where: { id: booking.id },
+          data: {
+            paymentId: paymentResult.paymentId,
+            paymentUrl: paymentResult.paymentUrl,
+            qrCode: paymentResult.qrCode,
+            expiresAt: paymentResult.expiresAt,
+            status: 'PENDING',
+          },
+        })
       })
 
       return reply.status(200).send({
