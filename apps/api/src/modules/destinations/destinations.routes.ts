@@ -204,10 +204,11 @@ export async function destinationsRoutes(app: FastifyInstance) {
     })
   })
 
-  // PATCH /destinations/:destinationSlug — atualiza fotos (ADMIN/SUPER_ADMIN)
+  // PATCH /destinations/:destinationSlug — atualiza fotos (ADMIN/SUPER_ADMIN/CONDUTOR)
+  // CONDUTOR só pode editar o destino vinculado ao seu próprio tenant
   app.patch(
     '/destinations/:destinationSlug',
-    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN', 'CONDUTOR'])] },
     async (request, reply) => {
       const destinationParamsSchema = z.object({
         destinationSlug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -219,6 +220,17 @@ export async function destinationsRoutes(app: FastifyInstance) {
       } catch (err) {
         if (err instanceof ZodError) return reply.status(400).send(zodError(err))
         throw err
+      }
+
+      // Escopo de tenant: CONDUTOR só edita o destino do seu próprio tenant
+      if (request.user.role === 'CONDUTOR') {
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: request.user.tenantId },
+          select: { destination: { select: { slug: true } } },
+        })
+        if (tenant?.destination?.slug !== params.slug) {
+          throw new AppError('Acesso negado a este destino', 403)
+        }
       }
 
       const bodySchema = z.object({

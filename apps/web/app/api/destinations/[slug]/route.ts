@@ -12,7 +12,7 @@ export async function PATCH(
   if (!jwt?.apiToken) {
     return NextResponse.json({ message: "Não autenticado" }, { status: 401 })
   }
-  if (jwt.role !== "ADMIN" && jwt.role !== "SUPER_ADMIN") {
+  if (jwt.role !== "ADMIN" && jwt.role !== "SUPER_ADMIN" && jwt.role !== "CONDUTOR") {
     return NextResponse.json({ message: "Acesso negado" }, { status: 403 })
   }
 
