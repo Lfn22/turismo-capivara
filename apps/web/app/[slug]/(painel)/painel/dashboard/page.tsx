@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { getToken } from "next-auth/jwt"
 import { headers } from "next/headers"
 import { apiFetch } from "@/lib/api/client"
@@ -124,6 +125,42 @@ export default async function DashboardPage({
         </h1>
       </div>
 
+      {/* Onboarding banner — só exibe quando não há roteiros cadastrados */}
+      {activePackages.length === 0 && (
+        <div
+          style={{
+            background: "var(--ochre)",
+            borderRadius: "8px",
+            padding: "20px 24px",
+            marginBottom: "24px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "16px",
+            flexWrap: "wrap",
+          }}
+        >
+          <p style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: "#1c1917" }}>
+            Você ainda não tem roteiros cadastrados. Crie o primeiro para começar a receber reservas.
+          </p>
+          <Link
+            href={`/${slug}/painel/roteiros`}
+            style={{
+              fontSize: "13px",
+              fontWeight: 700,
+              color: "#1c1917",
+              background: "rgba(0,0,0,0.12)",
+              padding: "8px 16px",
+              borderRadius: "4px",
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Criar roteiro →
+          </Link>
+        </div>
+      )}
+
       {/* Stat cards */}
       <div
         style={{
@@ -191,17 +228,26 @@ export default async function DashboardPage({
         </div>
 
         {recentBookings.length === 0 ? (
-          <p
-            style={{
-              textAlign: "center",
-              padding: "48px 24px",
-              fontSize: "16px",
-              color: "var(--stone-500)",
-              margin: 0,
-            }}
-          >
-            Nenhuma reserva ainda. Crie um roteiro para começar.
-          </p>
+          <div style={{ textAlign: "center", padding: "48px 24px" }}>
+            <p style={{ fontSize: "16px", color: "var(--stone-500)", margin: "0 0 16px" }}>
+              Nenhuma reserva ainda.
+            </p>
+            <Link
+              href={`/${slug}/painel/roteiros`}
+              style={{
+                display: "inline-block",
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "var(--stone-900)",
+                background: "var(--ochre)",
+                padding: "10px 20px",
+                borderRadius: "4px",
+                textDecoration: "none",
+              }}
+            >
+              Criar primeiro roteiro →
+            </Link>
+          </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>

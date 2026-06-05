@@ -15,7 +15,19 @@ function hashToken(token: string): string {
 export async function requestPasswordResetRoute(app: FastifyInstance) {
   app.post(
     '/auth/request-password-reset',
-    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: '1 minute',
+          keyGenerator: (request) => {
+            const body = request.body as { email?: string }
+            const email = (body?.email ?? '').toLowerCase().trim()
+            return `pwd-reset:${email}:${request.ip}`
+          },
+        },
+      },
+    },
     async (request, reply) => {
       let body
       try {

@@ -83,7 +83,8 @@
       "Bash(grep:*)",
       "Skill(gsd-insert-phase)",
       "Bash(pnpm:*)",
-      "Skill(gsd-audit-uat)"
+      "Skill(gsd-audit-uat)",
+      "Bash(cat -n /c/projetos/turismo-capivara/apps/api/src/modules/users/*.ts)"
     ]
   }
 }

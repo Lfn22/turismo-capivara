@@ -53,16 +53,21 @@ export async function resetPasswordRoute(app: FastifyInstance) {
 
       const hashedPassword = hashSync(body.newPassword, 10)
 
-      await prisma.$transaction([
-        prisma.user.update({
+      await prisma.$transaction(async (tx) => {
+        // Atomic: marca como usado só se ainda não foi usado — elimina race condition
+        // onde dois requests concorrentes leem usedAt: null antes de qualquer commit
+        const marked = await tx.passwordResetToken.updateMany({
+          where: { id: resetToken.id, usedAt: null },
+          data: { usedAt: new Date() },
+        })
+        if (marked.count === 0) {
+          throw new AppError('Token já utilizado', 400)
+        }
+        await tx.user.update({
           where: { id: resetToken.userId },
           data: { password: hashedPassword },
-        }),
-        prisma.passwordResetToken.update({
-          where: { id: resetToken.id },
-          data: { usedAt: new Date() },
-        }),
-      ])
+        })
+      })
 
       return reply.status(200).send({ message: 'Senha redefinida com sucesso' })
     }

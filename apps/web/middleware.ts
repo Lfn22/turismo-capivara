@@ -21,10 +21,11 @@ export default withAuth(
       )
     }
 
+    const PAINEL_ROLES = ["CONDUTOR", "ADMIN", "ATENDENTE"]
     if (
       pathname.includes("/painel") &&
       !pathname.startsWith('/super-admin') &&
-      token?.role !== "CONDUTOR"
+      !PAINEL_ROLES.includes(token?.role as string)
     ) {
       return NextResponse.redirect(
         new URL(`/${slug}/login?error=forbidden`, req.url)

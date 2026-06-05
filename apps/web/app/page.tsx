@@ -46,7 +46,6 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const destinations = await fetchDestinations();
-  const guiasHref = '/destinos';
   const previewDestinations = destinations?.slice(0, 3) ?? [];
 
   return (
@@ -340,9 +339,9 @@ export default async function HomePage() {
 
       {/* Nav */}
       <nav className="home-nav">
+        <Link href="/" className="home-nav__wordmark">CAPI</Link>
         <div className="home-nav__links">
           <Link href="/destinos" className="home-nav__link">Destinos</Link>
-          <Link href={guiasHref} className="home-nav__link">Guias</Link>
           <Link href="/destinos" className="home-nav__cta">Explorar</Link>
         </div>
       </nav>
@@ -365,9 +364,6 @@ export default async function HomePage() {
                 strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
-            </Link>
-            <Link href={guiasHref} className="home-hero__btn home-hero__btn--ghost">
-              Ver guias
             </Link>
           </div>
         </div>
@@ -432,6 +428,12 @@ export default async function HomePage() {
               <rect x="3" y="14" width="7" height="7" rx="1" />
               <rect x="14" y="14" width="7" height="7" rx="1" />
             </svg>
+          </Link>
+          <Link
+            href="/onboarding"
+            style={{ fontSize: '12px', color: 'var(--stone-500, #78716c)', textDecoration: 'none' }}
+          >
+            Cadastre sua operadora →
           </Link>
           <p className="home-footer__copy">© {new Date().getFullYear()} CAPI</p>
         </div>

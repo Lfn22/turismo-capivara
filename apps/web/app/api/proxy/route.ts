@@ -24,10 +24,18 @@ async function handler(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url)
-  const path = searchParams.get("path")
+  const rawPath = searchParams.get("path")
+
+  // Normaliza o path para eliminar sequências de path traversal (/../)
+  let path: string
+  try {
+    path = new URL(rawPath ?? "", "http://internal").pathname
+  } catch {
+    return NextResponse.json({ message: "Parâmetro 'path' inválido" }, { status: 400 })
+  }
 
   const ALLOWED_PATH = /^\/tenants\/[^/\s]+\//
-  if (!path || !ALLOWED_PATH.test(path)) {
+  if (!rawPath || !ALLOWED_PATH.test(path)) {
     return NextResponse.json({ message: "Parâmetro 'path' inválido" }, { status: 400 })
   }
 

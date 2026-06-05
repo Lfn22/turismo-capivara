@@ -9,7 +9,19 @@ const bodySchema = z.object({
 export async function lookupTenantRoute(app: FastifyInstance) {
   app.post(
     '/auth/lookup-tenant',
-    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    {
+      config: {
+        rateLimit: {
+          max: 3,
+          timeWindow: '1 minute',
+          keyGenerator: (request) => {
+            const body = request.body as { email?: string }
+            const email = (body?.email ?? '').toLowerCase().trim()
+            return `lookup:${email}:${request.ip}`
+          },
+        },
+      },
+    },
     async (request, reply) => {
       let body
       try {
@@ -24,10 +36,14 @@ export async function lookupTenantRoute(app: FastifyInstance) {
         throw err
       }
 
-      const user = await prisma.user.findUnique({
-        where: { email: body.email.toLowerCase() },
-        select: { tenant: { select: { name: true, slug: true } } },
-      })
+      // Tempo de resposta constante para eliminar timing attack
+      const [user] = await Promise.all([
+        prisma.user.findUnique({
+          where: { email: body.email.toLowerCase() },
+          select: { tenant: { select: { name: true, slug: true } } },
+        }),
+        new Promise((res) => setTimeout(res, 80 + Math.floor(Math.random() * 40))),
+      ])
 
       // Always return same shape — no user enumeration
       if (!user) {
