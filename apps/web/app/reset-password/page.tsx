@@ -54,7 +54,6 @@ const alertStyle: React.CSSProperties = {
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams()
-  const userId = searchParams.get("userId")
   const token = searchParams.get("token")
 
   const [newPassword, setNewPassword] = useState("")
@@ -63,7 +62,7 @@ function ResetPasswordForm() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const tokenMissing = !userId || !token
+  const tokenMissing = !token
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -81,7 +80,7 @@ function ResetPasswordForm() {
 
     setLoading(true)
     try {
-      await resetPassword(userId!, token!, newPassword)
+      await resetPassword(token!, newPassword)
       setSuccess(true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : ""

@@ -37,14 +37,13 @@ export async function requestPasswordReset(email: string): Promise<void> {
 }
 
 export async function resetPassword(
-  userId: string,
   token: string,
   newPassword: string
 ): Promise<void> {
   const res = await fetch(`${API_URL}/auth/reset-password`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, token, newPassword }),
+    body: JSON.stringify({ token, newPassword }),
   })
 
   if (!res.ok) {
