@@ -197,18 +197,13 @@ function ResetPasswordForm() {
           <form onSubmit={handleSubmit}>
             {error && (
               <div role="alert" aria-live="polite" style={alertStyle}>
-                {error}
-                {error.includes("expirou") && (
-                  <>
-                    {" "}
-                    <Link
-                      href="/login/esqueci-a-senha"
-                      style={{ color: "#DC2626", fontWeight: 600, textDecoration: "underline" }}
-                    >
-                      Solicitar novo link →
-                    </Link>
-                  </>
-                )}
+                {error}{" "}
+                <Link
+                  href="/login/esqueci-a-senha"
+                  style={{ color: "#DC2626", fontWeight: 600, textDecoration: "underline" }}
+                >
+                  Solicitar novo link →
+                </Link>
               </div>
             )}
 
