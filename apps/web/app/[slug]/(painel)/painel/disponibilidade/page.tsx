@@ -1,5 +1,6 @@
 "use client"
 import { use, useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import Calendar from "react-calendar"
 import { Modal } from "@/components/ui/Modal"
 import BackButton from "@/src/components/ui/BackButton"
@@ -39,6 +40,8 @@ export default function DisponibilidadePage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = use(params)
+  const { data: session } = useSession()
+  const userId = (session?.user as any)?.id ?? ""
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [allSlots, setAllSlots] = useState<Slot[]>([])
@@ -59,9 +62,10 @@ export default function DisponibilidadePage({
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [formApiError, setFormApiError] = useState<string | null>(null)
 
-  // Load packages for dropdown
+  // Load packages for dropdown (filtered to current conductor)
   useEffect(() => {
-    fetch(`/api/proxy?path=/tenants/${slug}/packages`)
+    if (!userId) return
+    fetch(`/api/proxy?path=/tenants/${slug}/packages?conductorId=${encodeURIComponent(userId)}`)
       .then((r) => r.json())
       .then((data) => {
         const pkgs: Package[] = Array.isArray(data) ? data : (data.packages ?? [])
@@ -69,7 +73,7 @@ export default function DisponibilidadePage({
         if (pkgs.length > 0) setFormPackageId(pkgs[0].id)
       })
       .catch(() => {})
-  }, [slug])
+  }, [slug, userId])
 
   // Load all slots for calendar tile coloring (fetched when packages are ready)
   useEffect(() => {
