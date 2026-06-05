@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import GuideCard, { GuideCardGuide } from '@/src/components/ui/GuideCard';
-import ConversionAnchor from '@/src/components/ui/ConversionAnchor';
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 
@@ -187,10 +186,14 @@ export default async function DestinationGuiasPage({ params }: Props) {
               </div>
             </>
           ) : (
-            <ConversionAnchor
-              destinationName={destinationTitle}
-              guideCount={0}
-            />
+            <div style={{ textAlign: 'center', padding: '64px 24px' }}>
+              <p style={{ fontSize: '16px', color: 'var(--stone-500)', marginBottom: '8px' }}>
+                Nenhum guia cadastrado em {destinationTitle} ainda.
+              </p>
+              <p style={{ fontSize: '14px', color: 'var(--stone-400)' }}>
+                Em breve novos condutores estarão disponíveis neste destino.
+              </p>
+            </div>
           )}
         </main>
       </div>
