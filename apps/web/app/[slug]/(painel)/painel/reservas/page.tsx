@@ -450,7 +450,7 @@ export default function ReservasPage({
         open={cancelDialogOpen}
         onOpenChange={setCancelDialogOpen}
         onConfirm={executeCancel}
-        loading={actionLoading === pendingCancelId}
+        loading={false}
       />
 
       <style>{`
