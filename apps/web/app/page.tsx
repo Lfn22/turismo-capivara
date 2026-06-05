@@ -422,7 +422,7 @@ export default async function HomePage() {
           <div className="home-footer__brand">
             <Image src="/images/logo.png" alt="CAPI" width={110} height={99} style={{ filter: 'brightness(0) invert(1)', display: 'block' }} />
           </div>
-          <Link href="/acesso" className="home-footer__panel-btn">
+          <Link href="/login" className="home-footer__panel-btn">
             Acessar painel
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2"
