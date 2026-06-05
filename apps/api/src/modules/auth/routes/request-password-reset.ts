@@ -51,6 +51,10 @@ export async function requestPasswordResetRoute(app: FastifyInstance) {
       const hashedToken = hashToken(rawToken)
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
 
+      await prisma.passwordResetToken.deleteMany({
+        where: { userId: user.id, usedAt: null },
+      })
+
       await prisma.passwordResetToken.create({
         data: {
           userId: user.id,
