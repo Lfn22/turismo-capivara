@@ -31,7 +31,7 @@ export default async function PublicLayout({
         backgroundColor: '#fafaf9',
       }}
     >
-      <PublicNav tenantName={tenantName} />
+      <PublicNav tenantName={tenantName} slug={slug} />
       <main style={{ flex: 1 }}>{children}</main>
     </div>
   )

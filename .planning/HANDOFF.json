@@ -1,26 +1,63 @@
 {
   "version": "1.0",
-  "timestamp": "2026-06-02T17:09:02-03:00",
-  "phase": "12.1",
-  "phase_name": "Pre-Launch Hardening",
-  "phase_dir": ".planning/phases/12.1-pre-launch-hardening",
-  "plan": 0,
+  "timestamp": "2026-06-04T15:17:00-03:00",
+  "phase": "13",
+  "phase_name": "Painel Mobile + Feedback",
+  "phase_dir": ".planning/phases/13-painel-mobile-feedback",
+  "plan": 5,
   "task": 0,
-  "status": "not_started",
-  "completed_this_session": [
-    "12-01: Schema — User.email globalmente único, PasswordResetToken model",
-    "12-02: API — lookup-tenant, request-password-reset, reset-password",
-    "12-03: Frontend — /login two-step, /reset-password, /login/esqueci-a-senha, PublicNav",
-    "fix(12-03): auth-client response shape (data.tenant.tenantSlug)",
-    "Phase 12 verificada pelo usuário e marcada completa"
+  "total_tasks": 0,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "13-01 a 13-05: todos os planos executados e commitados", "status": "done", "commit": "b938604"},
+    {"id": 2, "name": "UAT fase 13 iniciado (13-UAT.md criado, teste 1 bloqueado)", "status": "done"},
+    {"id": 3, "name": "Code review deep fases 12, 12.1 e 13 — REVIEW.md gerados", "status": "done"}
   ],
   "remaining_tasks": [
-    {"id": 1, "name": "HARDENING-01: Idempotência em POST /bookings", "status": "not_started"},
-    {"id": 2, "name": "HARDENING-02: Connection pool config no Railway DATABASE_URL", "status": "not_started"},
-    {"id": 3, "name": "HARDENING-03: Smoke test PIX em produção", "status": "not_started"},
-    {"id": 4, "name": "HARDENING-04: Early adopter onboarding docs", "status": "not_started"}
+    {"id": 4, "name": "Corrigir findings phase 12 (/gsd-code-review-fix 12) — 2 críticos + 4 warnings", "status": "not_started"},
+    {"id": 5, "name": "Corrigir findings phase 12.1 (/gsd-code-review-fix 12.1) — 2 warnings", "status": "not_started"},
+    {"id": 6, "name": "Corrigir findings phase 13 (/gsd-code-review-fix 13) — 4 warnings", "status": "not_started"},
+    {"id": 7, "name": "Fix seed.ts: adicionar heroImageUrl e photos[] aos destinos", "status": "not_started"},
+    {"id": 8, "name": "Re-run UAT phase 13 após fixes", "status": "not_started"},
+    {"id": 9, "name": "Planejar Phase 14 (Gestão de Conteúdo)", "status": "not_started"}
   ],
-  "blockers": [],
-  "human_actions_pending": [],
-  "next_action": "/gsd-plan-phase 12.1"
+  "blockers": [
+    {
+      "description": "UAT phase 13 bloqueado: ADMIN/ATENDENTE não conseguem entrar no painel (layout.tsx:22 role check errado — WR-01 phase 13)",
+      "type": "technical",
+      "workaround": "Fix WR-01 phase 13 primeiro, depois re-rodar UAT"
+    },
+    {
+      "description": "Fotos dos destinos vazias: seed.ts não popula heroImageUrl nem photos[]",
+      "type": "technical",
+      "workaround": "Adicionar ao seed ou re-adicionar manualmente via DestinationPhotoEditor"
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Após fix CR-01 (reset de senha): testar fluxo completo — solicitar reset, verificar email, clicar link, redefinir senha",
+      "context": "CR-01 fase 12 — link de reset nunca inclui userId, todo user vê 'link inválido'",
+      "blocking": true
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Root cause do erro de reservas: layout.tsx:22 bloqueia ADMIN/ATENDENTE com role !== CONDUTOR",
+      "rationale": "Encontrado via code review deep fase 13 (WR-01)",
+      "phase": "13"
+    },
+    {
+      "decision": "Fotos sumiram porque seed.ts não inclui heroImageUrl/photos (String[] default vazio após deleteMany)",
+      "rationale": "DestinationPhotoEditor existe para adicionar manualmente; seed precisa ser atualizado",
+      "phase": "13"
+    },
+    {
+      "decision": "Fix CR-02 (auth-client.ts bypass proxy): mover request-password-reset e reset-password para route handlers Next.js server-side",
+      "rationale": "Pattern correto já existe em apps/web/app/api/tenant-lookup/route.ts",
+      "phase": "12"
+    }
+  ],
+  "uncommitted_files": [],
+  "next_action": "/gsd-code-review-fix 12 — corrigir CR-01 (reset senha quebrado) e CR-02 (token leak) primeiro",
+  "context_notes": "Fase 13 tecnicamente completa (5/5 planos). UAT bloqueado por bug de role no layout.tsx e fotos ausentes no seed. Code reviews deep concluídos: 2 críticos na fase 12 (reset senha + token no browser), 2 warnings na 12.1 (email case-sensitive + race condition no repay), 4 warnings na fase 13 (role block + spinner morto + grid sem mobile + packages sem filtro). Prioridade: fixes das 3 fases em ordem (12 → 12.1 → 13), depois re-UAT, depois fase 14."
 }

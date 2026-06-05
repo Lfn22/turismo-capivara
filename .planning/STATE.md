@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
 status: executing
-stopped_at: "Phase 13 all plans complete — pending verification"
-last_updated: "2026-06-04T10:20:00-03:00"
-last_activity: "2026-06-04 — Phase 13 Plan 05 complete: painel polish wave 3 done"
+stopped_at: "Phase 13 fixes pending — code review complete, 2 críticos fase 12 + 9 warnings fases 12.1/13"
+last_updated: "2026-06-04T16:17:00-03:00"
+last_activity: "2026-06-04 — Code review deep fases 12/12.1/13 completo; 13-REVIEW.md, 12-REVIEW.md, 12.1-REVIEW.md gerados"
 progress:
   total_phases: 5
   completed_phases: 3

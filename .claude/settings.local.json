@@ -82,7 +82,8 @@
       "Bash(identify \"C:/projetos/turismo-capivara/apps/web/public/images/logo.png\")",
       "Bash(grep:*)",
       "Skill(gsd-insert-phase)",
-      "Bash(pnpm:*)"
+      "Bash(pnpm:*)",
+      "Skill(gsd-audit-uat)"
     ]
   }
 }

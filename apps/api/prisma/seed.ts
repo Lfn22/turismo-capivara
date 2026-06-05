@@ -137,60 +137,75 @@ async function main() {
   await prisma.guideProfile.deleteMany()
   await prisma.user.deleteMany()
   await prisma.tenant.deleteMany()
-  await prisma.destination.deleteMany()
+  // destinations NÃO são deletadas — upsert preserva heroImageUrl e photos existentes
 
   // ── Destinations ──────────────────────────────────────────────────────────
-  console.log('Criando destinations...')
+  console.log('Criando/atualizando destinations...')
 
-  const destSerraCapivara = await prisma.destination.create({
-    data: {
+  const destSerraCapivara = await prisma.destination.upsert({
+    where: { slug: 'serra-da-capivara' },
+    update: {
+      title: 'Serra da Capivara',
+      subtitle: 'Arte rupestre e patrimônio mundial',
+      description:
+        'O Parque Nacional Serra da Capivara é um dos maiores acervos de arte rupestre do mundo, com mais de 30 mil anos de história humana registrada nas pedras.',
+      state: 'PI',
+      highlights: ['Arte Rupestre', 'Patrimônio UNESCO', 'Trilhas', 'Arqueologia'],
+    },
+    create: {
       slug: 'serra-da-capivara',
       title: 'Serra da Capivara',
       subtitle: 'Arte rupestre e patrimônio mundial',
       description:
         'O Parque Nacional Serra da Capivara é um dos maiores acervos de arte rupestre do mundo, com mais de 30 mil anos de história humana registrada nas pedras.',
-      heroImageUrl: 'https://picsum.photos/seed/serra-capivara/1200/600',
-      photos: [
-        'https://picsum.photos/seed/capivara-1/800/600',
-        'https://picsum.photos/seed/capivara-2/800/600',
-        'https://picsum.photos/seed/capivara-3/800/600',
-      ],
+      heroImageUrl: null,
+      photos: [],
       state: 'PI',
       highlights: ['Arte Rupestre', 'Patrimônio UNESCO', 'Trilhas', 'Arqueologia'],
     },
   })
 
-  const destJalapao = await prisma.destination.create({
-    data: {
+  const destJalapao = await prisma.destination.upsert({
+    where: { slug: 'jalapao' },
+    update: {
+      title: 'Jalapão',
+      subtitle: 'Dunas, fervedouros e cerrado intocado',
+      description:
+        'O Jalapão é um dos destinos mais selvagens do Brasil, com fervedouros de água cristalina, dunas de areia dourada e paisagens do cerrado preservadas.',
+      state: 'TO',
+      highlights: ['Fervedouros', 'Dunas', 'Cerrado', 'Cachoeiras'],
+    },
+    create: {
       slug: 'jalapao',
       title: 'Jalapão',
       subtitle: 'Dunas, fervedouros e cerrado intocado',
       description:
         'O Jalapão é um dos destinos mais selvagens do Brasil, com fervedouros de água cristalina, dunas de areia dourada e paisagens do cerrado preservadas.',
-      heroImageUrl: 'https://picsum.photos/seed/jalapao/1200/600',
-      photos: [
-        'https://picsum.photos/seed/jalapao-1/800/600',
-        'https://picsum.photos/seed/jalapao-2/800/600',
-        'https://picsum.photos/seed/jalapao-3/800/600',
-      ],
+      heroImageUrl: null,
+      photos: [],
       state: 'TO',
       highlights: ['Fervedouros', 'Dunas', 'Cerrado', 'Cachoeiras'],
     },
   })
 
-  const destPetrolina = await prisma.destination.create({
-    data: {
+  const destPetrolina = await prisma.destination.upsert({
+    where: { slug: 'petrolina' },
+    update: {
+      title: 'Petrolina',
+      subtitle: 'Vale do São Francisco e turismo do vinho',
+      description:
+        'Petrolina surpreende com o turismo gastronômico e vinícola às margens do Rio São Francisco, além de passeios de barco e culinária típica nordestina.',
+      state: 'PE',
+      highlights: ['Vinícolas', 'Rio São Francisco', 'Gastronomia', 'Passeios de Barco'],
+    },
+    create: {
       slug: 'petrolina',
       title: 'Petrolina',
       subtitle: 'Vale do São Francisco e turismo do vinho',
       description:
         'Petrolina surpreende com o turismo gastronômico e vinícola às margens do Rio São Francisco, além de passeios de barco e culinária típica nordestina.',
-      heroImageUrl: 'https://picsum.photos/seed/petrolina/1200/600',
-      photos: [
-        'https://picsum.photos/seed/petrolina-1/800/600',
-        'https://picsum.photos/seed/petrolina-2/800/600',
-        'https://picsum.photos/seed/petrolina-3/800/600',
-      ],
+      heroImageUrl: null,
+      photos: [],
       state: 'PE',
       highlights: ['Vinícolas', 'Rio São Francisco', 'Gastronomia', 'Passeios de Barco'],
     },

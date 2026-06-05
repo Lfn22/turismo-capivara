@@ -44,7 +44,7 @@ export default function DestinationPhotoEditor({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') return null;
+  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN' && role !== 'CONDUTOR') return null;
 
   function setPhoto(index: number, value: string) {
     setPhotoInputs((prev) => { const n = [...prev]; n[index] = value; return n; });

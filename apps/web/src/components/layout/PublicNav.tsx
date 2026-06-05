@@ -3,10 +3,11 @@ import Image from 'next/image';
 
 interface PublicNavProps {
   tenantName: string;
+  slug: string;
   backHref?: string;
 }
 
-export default function PublicNav({ tenantName, backHref }: PublicNavProps) {
+export default function PublicNav({ tenantName, slug, backHref }: PublicNavProps) {
   return (
     <nav
       className="sticky top-0 z-[100] flex items-center justify-between px-6 h-14"
@@ -30,7 +31,7 @@ export default function PublicNav({ tenantName, backHref }: PublicNavProps) {
           </Link>
         )}
         <Link
-          href="/login"
+          href={`/${slug}/login`}
           style={{
             fontSize: '14px',
             fontWeight: 600,
