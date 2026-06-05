@@ -303,7 +303,13 @@ export default function DisponibilidadePage({
       )}
 
       {/* Two-column layout: calendar + slots panel */}
+      <style>{`
+        @media (max-width: 639px) {
+          .disponibilidade-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       <div
+        className="disponibilidade-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "3fr 2fr",
