@@ -352,7 +352,7 @@ export default async function HomePage() {
         <div className="home-hero__inner">
           <p className="home-hero__eyebrow">Marketplace de turismo</p>
           <h1 className="home-hero__wordmark">
-            <Image src="/images/logo.png" alt="CAPI — caminho entre quem explora e quem opera" width={260} height={235} style={{ filter: 'brightness(0) invert(1)', display: 'block', margin: '0 auto' }} />
+            <Image src="/images/logo.png" alt="CAPI — caminho entre quem explora e quem opera" width={260} height={235} style={{ filter: 'brightness(0) invert(1)', display: 'block', margin: '0 auto' }} priority />
           </h1>
           <p className="home-hero__tagline">
             caminho entre quem explora e quem opera
