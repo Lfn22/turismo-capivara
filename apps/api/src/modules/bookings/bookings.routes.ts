@@ -527,7 +527,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
       })
 
       // Return 404 for both "not found" and "email mismatch" to prevent enumeration (D-08)
-      if (!booking || booking.customerEmail !== email) {
+      if (!booking || booking.customerEmail.toLowerCase() !== email.toLowerCase()) {
         throw new AppError('Reserva não encontrada', 404)
       }
 
