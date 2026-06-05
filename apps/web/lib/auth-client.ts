@@ -1,15 +1,7 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:3333"
-
 export async function lookupTenant(
   email: string
 ): Promise<{ tenantName: string; tenantSlug: string } | null> {
-  const res = await fetch(`${API_URL}/auth/lookup-tenant`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  })
+  const res = await fetch(`/api/tenant-lookup?email=${encodeURIComponent(email)}`)
 
   if (!res.ok) {
     if (res.status === 404) return null
@@ -24,7 +16,7 @@ export async function lookupTenant(
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
-  const res = await fetch(`${API_URL}/auth/request-password-reset`, {
+  const res = await fetch("/api/request-password-reset", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
@@ -40,7 +32,7 @@ export async function resetPassword(
   token: string,
   newPassword: string
 ): Promise<void> {
-  const res = await fetch(`${API_URL}/auth/reset-password`, {
+  const res = await fetch("/api/reset-password", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, newPassword }),

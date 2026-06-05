@@ -2,16 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 
-export async function GET(request: NextRequest) {
-  const email = request.nextUrl.searchParams.get('email')
-  if (!email) {
-    return NextResponse.json({ message: 'Email obrigatório' }, { status: 400 })
-  }
+export async function PUT(request: NextRequest) {
   try {
-    const res = await fetch(`${API_URL}/auth/lookup-tenant`, {
-      method: 'POST',
+    const body = await request.json()
+    const res = await fetch(`${API_URL}/auth/reset-password`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify(body),
     })
     const data = await res.json()
     return NextResponse.json(data, { status: res.status })
