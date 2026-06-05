@@ -19,7 +19,9 @@ export default async function PainelLayout({
     redirect(`/${slug}/login`)
   }
 
-  if ((session.user as any).role !== "CONDUTOR") {
+  const role = (session.user as any).role
+  const PAINEL_ROLES = ["CONDUTOR", "ADMIN", "ATENDENTE"]
+  if (!PAINEL_ROLES.includes(role)) {
     redirect(`/${slug}/login?error=forbidden`)
   }
 

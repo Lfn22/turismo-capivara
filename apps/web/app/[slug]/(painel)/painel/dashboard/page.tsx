@@ -50,14 +50,20 @@ export default async function DashboardPage({
   const { slug } = await params
   const jwt = await getToken({ req: { headers: await headers() } as any, secret: process.env.NEXTAUTH_SECRET })
   const token = (jwt?.apiToken as string) ?? ""
+  const jwtRole = (jwt?.role as string) ?? ""
 
   let bookings: Booking[] = []
   let packages: Package[] = []
   let loadError = false
 
+  const bookingsPath =
+    jwtRole === "CONDUTOR"
+      ? `/tenants/${slug}/guides/me/bookings`
+      : `/tenants/${slug}/bookings`
+
   try {
     const [bookingsData, packagesData] = await Promise.all([
-      apiFetch<{ bookings: Booking[] }>(`/tenants/${slug}/guides/me/bookings`, token),
+      apiFetch<{ bookings: Booking[] }>(bookingsPath, token),
       apiFetch<{ packages: Package[] } | Package[]>(`/tenants/${slug}/packages?conductorId=${jwt?.sub}`, token),
     ])
     bookings = bookingsData.bookings ?? []

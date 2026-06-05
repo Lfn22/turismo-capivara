@@ -1,5 +1,6 @@
 "use client"
 import { use, useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 import BackButton from "@/src/components/ui/BackButton"
@@ -35,6 +36,8 @@ export default function ReservasPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = use(params)
+  const { data: session } = useSession()
+  const role = (session?.user as any)?.role
 
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
@@ -44,10 +47,15 @@ export default function ReservasPage({
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [pendingCancelId, setPendingCancelId] = useState<string | null>(null)
 
+  const bookingsEndpoint =
+    role === "CONDUTOR"
+      ? `/tenants/${slug}/guides/me/bookings`
+      : `/tenants/${slug}/bookings`
+
   function loadBookings() {
     setLoading(true)
     setError(null)
-    fetch(`/api/proxy?path=/tenants/${slug}/guides/me/bookings`)
+    fetch(`/api/proxy?path=${bookingsEndpoint}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
