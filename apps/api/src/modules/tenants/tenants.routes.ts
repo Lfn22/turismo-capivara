@@ -278,7 +278,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
     try {
       params = slugParamsSchema.parse(request.params)
     } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+      if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
       throw err
     }
 
