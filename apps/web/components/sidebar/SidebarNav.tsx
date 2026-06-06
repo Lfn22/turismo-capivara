@@ -64,14 +64,24 @@ function IconLogout() {
   )
 }
 
+function IconDestination() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+      <circle cx="12" cy="9" r="2.5" />
+    </svg>
+  )
+}
+
 // ── Nav items — ordered by usage: Reservas > Disponibilidade > Roteiros > Dashboard > Perfil
 
 function navItems(slug: string) {
   return [
     { label: "Reservas",        labelShort: "Reservas",  href: `/${slug}/painel/reservas`,        icon: <IconBookings /> },
     { label: "Disponibilidade", labelShort: "Agenda",    href: `/${slug}/painel/disponibilidade`, icon: <IconCalendar /> },
-    { label: "Roteiros",        labelShort: "Roteiros",  href: `/${slug}/painel/roteiros`,        icon: <IconMap />      },
-    { label: "Dashboard",       labelShort: "Início",    href: `/${slug}/painel/dashboard`,       icon: <IconGrid />     },
+    { label: "Roteiros",        labelShort: "Roteiros",  href: `/${slug}/painel/roteiros`,        icon: <IconMap />         },
+    { label: "Destino",         labelShort: "Destino",   href: `/${slug}/painel/destino`,         icon: <IconDestination /> },
+    { label: "Dashboard",       labelShort: "Início",    href: `/${slug}/painel/dashboard`,       icon: <IconGrid />        },
     { label: "Perfil",          labelShort: "Perfil",    href: `/${slug}/painel/perfil`,          icon: <IconUser />     },
   ]
 }

@@ -1,63 +1,81 @@
 {
   "version": "1.0",
-  "timestamp": "2026-06-04T15:17:00-03:00",
-  "phase": "13",
-  "phase_name": "Painel Mobile + Feedback",
-  "phase_dir": ".planning/phases/13-painel-mobile-feedback",
-  "plan": 5,
-  "task": 0,
-  "total_tasks": 0,
+  "timestamp": "2026-06-05T20:22:02-03:00",
+  "phase": "audit-hotfix",
+  "phase_name": "Auditoria Pré-Lançamento + Correções P0/P1/P2",
+  "phase_dir": ".planning",
+  "plan": null,
+  "task": null,
+  "total_tasks": 13,
   "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "13-01 a 13-05: todos os planos executados e commitados", "status": "done", "commit": "b938604"},
-    {"id": 2, "name": "UAT fase 13 iniciado (13-UAT.md criado, teste 1 bloqueado)", "status": "done"},
-    {"id": 3, "name": "Code review deep fases 12, 12.1 e 13 — REVIEW.md gerados", "status": "done"}
+    {"id": 1, "name": "S-01 Role mismatch middleware.ts — ADMIN/ATENDENTE bloqueados do painel", "status": "done", "commit": "9ca0dc5"},
+    {"id": 2, "name": "S-02 Path traversal proxy/route.ts — normalização via URL API", "status": "done", "commit": "9ca0dc5"},
+    {"id": 3, "name": "S-03 Email enumeration lookup-tenant — 3/min por email+IP + timing constante", "status": "done", "commit": "9ca0dc5"},
+    {"id": 4, "name": "P-01 Remover guiasHref e botão Ver guias sem destino válido", "status": "done", "commit": "9ca0dc5"},
+    {"id": 5, "name": "P-02 Wordmark CAPI adicionado ao nav da home", "status": "done", "commit": "9ca0dc5"},
+    {"id": 6, "name": "P-04 Link /onboarding no footer da home", "status": "done", "commit": "9ca0dc5"},
+    {"id": 7, "name": "P-05 BackButton com fallbackHref e window.history.length check", "status": "done", "commit": "9ca0dc5"},
+    {"id": 8, "name": "CORS_ORIGIN obrigatório em produção via .refine no env.ts", "status": "done", "commit": "9ca0dc5"},
+    {"id": 9, "name": "S-03+ Rate limit por email+IP em request-password-reset", "status": "done", "commit": "9ca0dc5"},
+    {"id": 10, "name": "Race condition reset-password — updateMany WHERE usedAt IS NULL", "status": "done", "commit": "9ca0dc5"},
+    {"id": 11, "name": "P-06 Empty state + onboarding banner no dashboard do guia", "status": "done", "commit": "9ca0dc5"},
+    {"id": 12, "name": "Build blocker — ConversionAnchor removido de guias/page.tsx", "status": "done", "commit": "5a5b43d"},
+    {"id": 13, "name": "Acesso negado CONDUTOR editar destino — Next.js route + Fastify + tenant scope", "status": "done", "commit": "a754e2a"}
   ],
-  "remaining_tasks": [
-    {"id": 4, "name": "Corrigir findings phase 12 (/gsd-code-review-fix 12) — 2 críticos + 4 warnings", "status": "not_started"},
-    {"id": 5, "name": "Corrigir findings phase 12.1 (/gsd-code-review-fix 12.1) — 2 warnings", "status": "not_started"},
-    {"id": 6, "name": "Corrigir findings phase 13 (/gsd-code-review-fix 13) — 4 warnings", "status": "not_started"},
-    {"id": 7, "name": "Fix seed.ts: adicionar heroImageUrl e photos[] aos destinos", "status": "not_started"},
-    {"id": 8, "name": "Re-run UAT phase 13 após fixes", "status": "not_started"},
-    {"id": 9, "name": "Planejar Phase 14 (Gestão de Conteúdo)", "status": "not_started"}
-  ],
+  "remaining_tasks": [],
   "blockers": [
     {
-      "description": "UAT phase 13 bloqueado: ADMIN/ATENDENTE não conseguem entrar no painel (layout.tsx:22 role check errado — WR-01 phase 13)",
+      "description": "middleware.ts deprecation warning no Next.js 16.2 — 'use proxy instead'",
       "type": "technical",
-      "workaround": "Fix WR-01 phase 13 primeiro, depois re-rodar UAT"
+      "workaround": "Renomear middleware.ts para proxy.ts — não é bloqueante, apenas warning no build"
     },
     {
-      "description": "Fotos dos destinos vazias: seed.ts não popula heroImageUrl nem photos[]",
-      "type": "technical",
-      "workaround": "Adicionar ao seed ou re-adicionar manualmente via DestinationPhotoEditor"
+      "description": "CORS_ORIGIN deve estar definido no Railway antes do próximo deploy de produção",
+      "type": "human_action",
+      "workaround": "API falha no startup em produção intencionalmente se ausente — comportamento correto"
     }
   ],
   "human_actions_pending": [
     {
-      "action": "Após fix CR-01 (reset de senha): testar fluxo completo — solicitar reset, verificar email, clicar link, redefinir senha",
-      "context": "CR-01 fase 12 — link de reset nunca inclui userId, todo user vê 'link inválido'",
+      "action": "Definir CORS_ORIGIN no painel de variáveis do Railway",
+      "context": "env.ts agora exige CORS_ORIGIN em NODE_ENV=production — API recusa startup sem ela",
       "blocking": true
+    },
+    {
+      "action": "Testar login como CONDUTOR e edição de destinos end-to-end",
+      "context": "Múltiplas correções de auth aplicadas — validação manual necessária antes de anunciar para clientes",
+      "blocking": false
+    },
+    {
+      "action": "Decidir: renomear middleware.ts para proxy.ts para silenciar warning do Next.js 16.2",
+      "context": "Warning não quebra o build mas pode causar confusão futura",
+      "blocking": false
     }
   ],
   "decisions": [
     {
-      "decision": "Root cause do erro de reservas: layout.tsx:22 bloqueia ADMIN/ATENDENTE com role !== CONDUTOR",
-      "rationale": "Encontrado via code review deep fase 13 (WR-01)",
-      "phase": "13"
+      "decision": "CONDUTOR pode editar destinos com escopo de tenant obrigatório no Fastify",
+      "rationale": "Guia do Jalapão não pode editar Serra da Capivara — validado via tenant.destination.slug",
+      "phase": "audit-hotfix"
     },
     {
-      "decision": "Fotos sumiram porque seed.ts não inclui heroImageUrl/photos (String[] default vazio após deleteMany)",
-      "rationale": "DestinationPhotoEditor existe para adicionar manualmente; seed precisa ser atualizado",
-      "phase": "13"
+      "decision": "ConversionAnchor substituído por empty state inline — arquivo não recriado",
+      "rationale": "Componente deletado sem substituto — inlining mais simples para uso único",
+      "phase": "audit-hotfix"
     },
     {
-      "decision": "Fix CR-02 (auth-client.ts bypass proxy): mover request-password-reset e reset-password para route handlers Next.js server-side",
-      "rationale": "Pattern correto já existe em apps/web/app/api/tenant-lookup/route.ts",
-      "phase": "12"
+      "decision": "bookings.routes.ts não foi quebrado em múltiplos handlers",
+      "rationale": "Refactor de manutenção puro sem risco de segurança — adiado para sprint futuro",
+      "phase": "audit-hotfix"
+    },
+    {
+      "decision": "User.cpf @unique global mantido sem alteração",
+      "rationale": "Correto para modelo onde guia pertence a um único tenant",
+      "phase": "audit-hotfix"
     }
   ],
   "uncommitted_files": [],
-  "next_action": "/gsd-code-review-fix 12 — corrigir CR-01 (reset senha quebrado) e CR-02 (token leak) primeiro",
-  "context_notes": "Fase 13 tecnicamente completa (5/5 planos). UAT bloqueado por bug de role no layout.tsx e fotos ausentes no seed. Code reviews deep concluídos: 2 críticos na fase 12 (reset senha + token no browser), 2 warnings na 12.1 (email case-sensitive + race condition no repay), 4 warnings na fase 13 (role block + spinner morto + grid sem mobile + packages sem filtro). Prioridade: fixes das 3 fases em ordem (12 → 12.1 → 13), depois re-UAT, depois fase 14."
+  "next_action": "Testar end-to-end: login CONDUTOR → editar destino → verificar escopo de tenant. Depois definir CORS_ORIGIN no Railway e fazer deploy.",
+  "context_notes": "Sessão foi auditoria pré-lançamento completa (Fractional CTO report) seguida de execução do roadmap P0/P1/P2. Todos os 13 itens entregues e commitados automaticamente pelo usuário. App está em 'Conditional Go' para primeiros clientes após CORS_ORIGIN ser definido no Railway. A próxima fase de produto seria Phase 14 (Gestão de Conteúdo) mas ainda não foi planejada."
 }

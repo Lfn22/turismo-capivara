@@ -271,4 +271,37 @@ export async function tenantsRoutes(app: FastifyInstance) {
 
     return reply.send({ message: 'Operadora rejeitada' })
   })
+
+  // GET /tenants/:slug/destination — destino vinculado ao tenant (público)
+  app.get('/tenants/:slug/destination', async (request, reply) => {
+    let params
+    try {
+      params = slugParamsSchema.parse(request.params)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+      throw err
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug: params.slug },
+      select: {
+        destination: {
+          select: {
+            slug: true,
+            title: true,
+            subtitle: true,
+            description: true,
+            state: true,
+            highlights: true,
+            heroImageUrl: true,
+            photos: true,
+            tagline: true,
+          },
+        },
+      },
+    })
+
+    if (!tenant?.destination) throw new AppError('Destino não encontrado', 404)
+    return reply.status(200).send(tenant.destination)
+  })
 }
