@@ -4,7 +4,6 @@ import Link from 'next/link';
 import DestinationHero from '@/src/components/ui/DestinationHero';
 import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
 import BackButton from '@/src/components/ui/BackButton';
-import DestinationPhotoEditor from '@/components/ui/DestinationPhotoEditor';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -615,16 +614,6 @@ export default async function DestinationPage({ params }: Props) {
           </Link>
         </div>
       </section>
-      <DestinationPhotoEditor
-        slug={slug}
-        heroImageUrl={destination.heroImageUrl}
-        photos={photos}
-        title={destination.title}
-        subtitle={destination.subtitle}
-        description={destination.description}
-        highlights={highlights}
-        tagline={destination.tagline}
-      />
     </>
   );
 }

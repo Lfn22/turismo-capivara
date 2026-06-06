@@ -49,7 +49,7 @@ export default function DestinoPage({
     setLoading(true)
     setLoadError(false)
 
-    fetch(`/api/proxy?path=/tenants/${slug}/destination`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"}/tenants/${slug}/destination`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
