@@ -103,7 +103,7 @@ Plans:
 | 12. Login Global | 3/3 | Complete   | 2026-06-02 |
 | 12.1. Pre-Launch Hardening | 3/3 | Complete | 2026-06-03 |
 | 13. Painel Mobile + Feedback | 0/? | Not started | - |
-| 14. Gestao de Conteudo | 0/? | Not started | - |
+| 14. Gestao de Conteudo | 1/8 | In progress | - |
 
 ---
 

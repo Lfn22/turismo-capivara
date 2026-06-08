@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 
 ## Current Position
 
-Phase: Phase 13 (executing — 1/5 plans complete)
-Plan: 13-02 (next)
-Status: Phase 13 Painel Mobile + Feedback — Wave 0 completa. 13-01 instalou sonner + @radix-ui/react-dialog.
-Last activity: 2026-06-04 — Phase 13 Plan 01 complete (6559143)
+Phase: Phase 14 (executing — 1/8 plans complete)
+Plan: 14-02 (next)
+Status: Phase 14 Gestão de Conteúdo — Plan 01 complete. Schema migrations applied. Wave 1 in progress.
+Last activity: 2026-06-08 — 14-01 complete: Destination approvalStatus + createdById FK + TourPackage photos/highlights; migration applied to Railway
 
 ## Decisões estratégicas
 
@@ -61,6 +61,9 @@ Last activity: 2026-06-04 — Phase 13 Plan 01 complete (6559143)
 - Middleware: `withAuth` from `next-auth/middleware` — rotas protegidas por `matcher`
 - Super-admin: painel em `/super-admin/operadoras` usa API proxy routes Next.js com NextAuth JWT como Bearer
 - `TenantApprovalStatus` enum: `PENDING | APPROVED | REJECTED` — migration `20260523_add_tenant_approval_status`
+- `Destination.approvalStatus`: reusa enum `ApprovalStatus` (não TenantApprovalStatus) — migration `20260608174257`
+- `Destination.createdById`: FK para `User.id` com ON DELETE SET NULL — relação nomeada `DestinationCreator`
+- `TourPackage.photos` / `highlights`: `String[]` nativo PostgreSQL (não JSON) — consistente com Destination model
 - CNPJ: `String?` no Prisma schema, required no Zod `signupBodySchema` — consistência intencional
 - Perfil próprio: PUT /tenants/:slug/guides/me
 - Login global: email-first two-step — POST /auth/lookup-tenant descobre tenant pelo email, sem slug na URL
