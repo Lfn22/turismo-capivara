@@ -1,81 +1,57 @@
 {
   "version": "1.0",
-  "timestamp": "2026-06-05T20:22:02-03:00",
-  "phase": "audit-hotfix",
-  "phase_name": "Auditoria Pré-Lançamento + Correções P0/P1/P2",
-  "phase_dir": ".planning",
+  "timestamp": "2026-06-07T13:36:36-03:00",
+  "phase": "14",
+  "phase_name": "Gestao de Conteudo",
+  "phase_dir": ".planning/phases/14-gestao-de-conteudo",
   "plan": null,
   "task": null,
-  "total_tasks": 13,
-  "status": "paused",
+  "total_tasks": 0,
+  "status": "pre-planning",
   "completed_tasks": [
-    {"id": 1, "name": "S-01 Role mismatch middleware.ts — ADMIN/ATENDENTE bloqueados do painel", "status": "done", "commit": "9ca0dc5"},
-    {"id": 2, "name": "S-02 Path traversal proxy/route.ts — normalização via URL API", "status": "done", "commit": "9ca0dc5"},
-    {"id": 3, "name": "S-03 Email enumeration lookup-tenant — 3/min por email+IP + timing constante", "status": "done", "commit": "9ca0dc5"},
-    {"id": 4, "name": "P-01 Remover guiasHref e botão Ver guias sem destino válido", "status": "done", "commit": "9ca0dc5"},
-    {"id": 5, "name": "P-02 Wordmark CAPI adicionado ao nav da home", "status": "done", "commit": "9ca0dc5"},
-    {"id": 6, "name": "P-04 Link /onboarding no footer da home", "status": "done", "commit": "9ca0dc5"},
-    {"id": 7, "name": "P-05 BackButton com fallbackHref e window.history.length check", "status": "done", "commit": "9ca0dc5"},
-    {"id": 8, "name": "CORS_ORIGIN obrigatório em produção via .refine no env.ts", "status": "done", "commit": "9ca0dc5"},
-    {"id": 9, "name": "S-03+ Rate limit por email+IP em request-password-reset", "status": "done", "commit": "9ca0dc5"},
-    {"id": 10, "name": "Race condition reset-password — updateMany WHERE usedAt IS NULL", "status": "done", "commit": "9ca0dc5"},
-    {"id": 11, "name": "P-06 Empty state + onboarding banner no dashboard do guia", "status": "done", "commit": "9ca0dc5"},
-    {"id": 12, "name": "Build blocker — ConversionAnchor removido de guias/page.tsx", "status": "done", "commit": "5a5b43d"},
-    {"id": 13, "name": "Acesso negado CONDUTOR editar destino — Next.js route + Fastify + tenant scope", "status": "done", "commit": "a754e2a"}
+    {"id": 1, "name": "Phase 13 code review verificado — all_fixed, 0 critical", "status": "done", "commit": "6cb7e16"},
+    {"id": 2, "name": "WR-01 layout.tsx PAINEL_ROLES inclui ADMIN e ATENDENTE", "status": "done", "commit": "6cb7e16"},
+    {"id": 3, "name": "WR-02 disponibilidade conductorId filter", "status": "done", "commit": "6cb7e16"},
+    {"id": 4, "name": "WR-03 CancelDialog loading fix", "status": "done", "commit": "6cb7e16"},
+    {"id": 5, "name": "Phase 14 diretorio criado", "status": "done", "commit": "6cb7e16"}
   ],
-  "remaining_tasks": [],
+  "remaining_tasks": [
+    {"id": 1, "name": "/gsd-discuss-phase 14", "status": "not_started"},
+    {"id": 2, "name": "/gsd-ui-phase 14", "status": "not_started"},
+    {"id": 3, "name": "/gsd-plan-phase 14", "status": "not_started"}
+  ],
   "blockers": [
     {
-      "description": "middleware.ts deprecation warning no Next.js 16.2 — 'use proxy instead'",
-      "type": "technical",
-      "workaround": "Renomear middleware.ts para proxy.ts — não é bloqueante, apenas warning no build"
+      "description": "CORS_ORIGIN deve estar definido no Railway antes do proximo deploy de producao",
+      "type": "human_action",
+      "workaround": "API falha no startup em producao intencionalmente se ausente"
     },
     {
-      "description": "CORS_ORIGIN deve estar definido no Railway antes do próximo deploy de produção",
-      "type": "human_action",
-      "workaround": "API falha no startup em produção intencionalmente se ausente — comportamento correto"
+      "description": "middleware.ts deprecation warning no Next.js 16.2",
+      "type": "technical",
+      "workaround": "Renomear para proxy.ts — nao e bloqueante"
     }
   ],
   "human_actions_pending": [
     {
-      "action": "Definir CORS_ORIGIN no painel de variáveis do Railway",
-      "context": "env.ts agora exige CORS_ORIGIN em NODE_ENV=production — API recusa startup sem ela",
+      "action": "Definir CORS_ORIGIN no painel de variaveis do Railway",
+      "context": "env.ts exige CORS_ORIGIN em NODE_ENV=production",
       "blocking": true
-    },
-    {
-      "action": "Testar login como CONDUTOR e edição de destinos end-to-end",
-      "context": "Múltiplas correções de auth aplicadas — validação manual necessária antes de anunciar para clientes",
-      "blocking": false
-    },
-    {
-      "action": "Decidir: renomear middleware.ts para proxy.ts para silenciar warning do Next.js 16.2",
-      "context": "Warning não quebra o build mas pode causar confusão futura",
-      "blocking": false
     }
   ],
   "decisions": [
     {
-      "decision": "CONDUTOR pode editar destinos com escopo de tenant obrigatório no Fastify",
-      "rationale": "Guia do Jalapão não pode editar Serra da Capivara — validado via tenant.destination.slug",
-      "phase": "audit-hotfix"
+      "decision": "ui_safety_gate=true — /gsd-ui-phase deve rodar antes de /gsd-plan-phase 14",
+      "rationale": "Config.json define ui_safety_gate=true para fases com UI",
+      "phase": "14"
     },
     {
-      "decision": "ConversionAnchor substituído por empty state inline — arquivo não recriado",
-      "rationale": "Componente deletado sem substituto — inlining mais simples para uso único",
-      "phase": "audit-hotfix"
-    },
-    {
-      "decision": "bookings.routes.ts não foi quebrado em múltiplos handlers",
-      "rationale": "Refactor de manutenção puro sem risco de segurança — adiado para sprint futuro",
-      "phase": "audit-hotfix"
-    },
-    {
-      "decision": "User.cpf @unique global mantido sem alteração",
-      "rationale": "Correto para modelo onde guia pertence a um único tenant",
-      "phase": "audit-hotfix"
+      "decision": "discuss_mode=discuss — /gsd-discuss-phase obrigatorio antes do plan",
+      "rationale": "Configuracao do projeto em .planning/config.json",
+      "phase": "14"
     }
   ],
   "uncommitted_files": [],
-  "next_action": "Testar end-to-end: login CONDUTOR → editar destino → verificar escopo de tenant. Depois definir CORS_ORIGIN no Railway e fazer deploy.",
-  "context_notes": "Sessão foi auditoria pré-lançamento completa (Fractional CTO report) seguida de execução do roadmap P0/P1/P2. Todos os 13 itens entregues e commitados automaticamente pelo usuário. App está em 'Conditional Go' para primeiros clientes após CORS_ORIGIN ser definido no Railway. A próxima fase de produto seria Phase 14 (Gestão de Conteúdo) mas ainda não foi planejada."
+  "next_action": "/gsd-discuss-phase 14 — capturar decisoes de design sobre destinos, fotos, aprovacao admin, e enriquecimento de roteiros",
+  "context_notes": "Phase 13 concluida e code review all_fixed. Phase 14 pre-planning — sequencia obrigatoria: discuss → ui-phase → plan-phase. Nao pular etapas."
 }
