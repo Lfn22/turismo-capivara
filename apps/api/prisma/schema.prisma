@@ -18,11 +18,14 @@ model Destination {
   tagline              String?
   state                String
   highlights           String[]
-  active               Boolean  @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  active               Boolean        @default(true)
+  approvalStatus       ApprovalStatus @default(PENDING)
+  createdById          String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
-  tenants Tenant[]
+  tenants     Tenant[]
+  createdBy   User?    @relation("DestinationCreator", fields: [createdById], references: [id])
 }
 
 model Tenant {
@@ -60,6 +63,7 @@ model User {
   guideProfile        GuideProfile?
   tourPackages        TourPackage[]        @relation("ConductorPackages")
   passwordResetTokens PasswordResetToken[]
+  destinations        Destination[]        @relation("DestinationCreator")
 }
 
 model GuideProfile {
