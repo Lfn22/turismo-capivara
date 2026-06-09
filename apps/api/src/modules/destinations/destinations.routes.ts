@@ -4,11 +4,13 @@ import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
-import { CreateDestinationInput, UpdateDestinationInput } from './destinations.schemas'
+import { ApprovalUpdateInput, CreateDestinationInput, UpdateDestinationInput } from './destinations.schemas'
 import {
+  approveDestination,
   createDestination,
-  updateDestination,
   deleteDestination,
+  rejectDestination,
+  updateDestination,
 } from './destinations.service'
 
 const slugParamsSchema = z.object({
@@ -336,6 +338,72 @@ export async function destinationsRoutes(app: FastifyInstance) {
       const userId = request.user.sub
       await deleteDestination(id, userId)
       return reply.status(204).send()
+    },
+  )
+
+  // PATCH /destinations/:id/approve — super-admin aprova ou rejeita destino
+  app.patch(
+    '/destinations/:id/approve',
+    { preHandler: [authenticate, authorize(['ADMIN'])] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+
+      let input
+      try {
+        input = ApprovalUpdateInput.parse(request.body)
+      } catch (err) {
+        if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+        throw err
+      }
+
+      const destination =
+        input.approvalStatus === 'APPROVED'
+          ? await approveDestination(id)
+          : await rejectDestination(id)
+
+      return reply.status(200).send(destination)
+    },
+  )
+
+  // GET /admin/destinations/pending — fila de aprovação (ADMIN)
+  app.get(
+    '/admin/destinations/pending',
+    { preHandler: [authenticate, authorize(['ADMIN'])] },
+    async (request, reply) => {
+      const querySchema = z.object({
+        limit: z.coerce.number().int().min(1).max(100).default(50),
+        offset: z.coerce.number().int().min(0).default(0),
+      })
+
+      let query
+      try {
+        query = querySchema.parse(request.query)
+      } catch (err) {
+        if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+        throw err
+      }
+
+      const [destinations, total] = await Promise.all([
+        prisma.destination.findMany({
+          where: { approvalStatus: 'PENDING' },
+          include: {
+            createdBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                tenant: { select: { name: true, slug: true } },
+              },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+          take: query.limit,
+          skip: query.offset,
+        }),
+        prisma.destination.count({ where: { approvalStatus: 'PENDING' } }),
+      ])
+
+      return reply.status(200).send({ destinations, total, limit: query.limit, offset: query.offset })
     },
   )
 }
