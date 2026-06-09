@@ -20,6 +20,8 @@ interface TourPackage {
   difficulty: string
   conductorId: string
   departureSlots: Slot[]
+  photos?: string[]
+  highlights?: string[]
 }
 
 interface Guide {
@@ -316,6 +318,78 @@ export default async function RoteirDetalhe({
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </a>
+      )}
+
+      {/* Fotos do roteiro */}
+      {pkg.photos && pkg.photos.length > 0 && (
+        <section style={{ marginBottom: '2rem' }}>
+          <h2
+            style={{
+              fontFamily: 'var(--font-display, serif)',
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              color: '#1c1917',
+              margin: '0 0 1rem',
+            }}
+          >
+            Fotos do roteiro
+          </h2>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))',
+              gap: '12px',
+            }}
+          >
+            {pkg.photos.map((photoUrl, idx) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={idx}
+                src={photoUrl}
+                alt={`Foto ${idx + 1} do roteiro ${pkg.name}`}
+                style={{
+                  width: '100%',
+                  aspectRatio: '4/3',
+                  objectFit: 'cover',
+                  borderRadius: '8px',
+                  display: 'block',
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Experiências incluídas */}
+      {pkg.highlights && pkg.highlights.length > 0 && (
+        <section style={{ marginBottom: '2rem' }}>
+          <h2
+            style={{
+              fontFamily: 'var(--font-display, serif)',
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              color: '#1c1917',
+              margin: '0 0 1rem',
+            }}
+          >
+            Experiências incluídas
+          </h2>
+          <ul style={{ margin: 0, paddingLeft: '1.25rem', listStyle: 'disc' }}>
+            {pkg.highlights.map((highlight, idx) => (
+              <li
+                key={idx}
+                style={{
+                  fontSize: '0.95rem',
+                  color: '#44403c',
+                  lineHeight: 1.6,
+                  marginBottom: '0.375rem',
+                }}
+              >
+                {highlight}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Slot picker section */}
