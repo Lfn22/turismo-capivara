@@ -188,7 +188,13 @@ vi.mock('../../database', () => ({
 }))
 
 import prisma from '../../database'
-import { createDestination, updateDestination, deleteDestination } from './destinations.service'
+import {
+  approveDestination,
+  createDestination,
+  deleteDestination,
+  rejectDestination,
+  updateDestination,
+} from './destinations.service'
 
 const mockPrisma = prisma as any
 
@@ -384,5 +390,130 @@ describe('deleteDestination', () => {
       statusCode: 404,
       message: 'Destino não encontrado',
     })
+  })
+})
+
+describe('approveDestination', () => {
+  it('transitions PENDING → APPROVED', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({
+      id: 'dest-1',
+      approvalStatus: 'PENDING',
+    })
+    mockPrisma.destination.update.mockResolvedValue({
+      id: 'dest-1',
+      approvalStatus: 'APPROVED',
+    })
+
+    const result = await approveDestination('dest-1')
+    expect(result.approvalStatus).toBe('APPROVED')
+    expect(mockPrisma.destination.update).toHaveBeenCalledWith({
+      where: { id: 'dest-1' },
+      data: { approvalStatus: 'APPROVED' },
+    })
+  })
+
+  it('throws 400 when destination is already APPROVED', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({
+      id: 'dest-1',
+      approvalStatus: 'APPROVED',
+    })
+
+    await expect(approveDestination('dest-1')).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Destino não está pendente',
+    })
+    expect(mockPrisma.destination.update).not.toHaveBeenCalled()
+  })
+
+  it('throws 400 when destination is already REJECTED', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({
+      id: 'dest-1',
+      approvalStatus: 'REJECTED',
+    })
+
+    await expect(approveDestination('dest-1')).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Destino não está pendente',
+    })
+    expect(mockPrisma.destination.update).not.toHaveBeenCalled()
+  })
+
+  it('throws 404 when destination not found', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue(null)
+
+    await expect(approveDestination('dest-999')).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Destino não encontrado',
+    })
+  })
+})
+
+describe('rejectDestination', () => {
+  it('transitions PENDING → REJECTED', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({
+      id: 'dest-1',
+      approvalStatus: 'PENDING',
+    })
+    mockPrisma.destination.update.mockResolvedValue({
+      id: 'dest-1',
+      approvalStatus: 'REJECTED',
+    })
+
+    const result = await rejectDestination('dest-1')
+    expect(result.approvalStatus).toBe('REJECTED')
+    expect(mockPrisma.destination.update).toHaveBeenCalledWith({
+      where: { id: 'dest-1' },
+      data: { approvalStatus: 'REJECTED' },
+    })
+  })
+
+  it('throws 400 when destination is already REJECTED (REJECTED → REJECTED blocked)', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({
+      id: 'dest-1',
+      approvalStatus: 'REJECTED',
+    })
+
+    await expect(rejectDestination('dest-1')).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Destino não está pendente',
+    })
+    expect(mockPrisma.destination.update).not.toHaveBeenCalled()
+  })
+
+  it('throws 400 when destination is already APPROVED (APPROVED → REJECTED blocked)', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({
+      id: 'dest-1',
+      approvalStatus: 'APPROVED',
+    })
+
+    await expect(rejectDestination('dest-1')).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Destino não está pendente',
+    })
+    expect(mockPrisma.destination.update).not.toHaveBeenCalled()
+  })
+
+  it('throws 404 when destination not found', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue(null)
+
+    await expect(rejectDestination('dest-999')).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Destino não encontrado',
+    })
+  })
+})
+
+describe('ApprovalUpdateInput — schema validation', () => {
+  it('rejects invalid approvalStatus value', () => {
+    const result = ApprovalUpdateInput.safeParse({ approvalStatus: 'INVALID' })
+    expect(result.success).toBe(false)
+  })
+
+  it('accepts APPROVED without rejectionReason', () => {
+    const result = ApprovalUpdateInput.safeParse({ approvalStatus: 'APPROVED' })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.rejectionReason).toBeUndefined()
+    }
   })
 })
