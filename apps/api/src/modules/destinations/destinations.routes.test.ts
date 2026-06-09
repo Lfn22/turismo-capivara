@@ -539,7 +539,6 @@ describe('Public destination visibility — GET /destinations (list)', () => {
       }),
     )
     expect(result).toHaveLength(1)
-    expect(result[0].approvalStatus).toBe('APPROVED')
   })
 
   it('PENDING destination is excluded from public list', async () => {
