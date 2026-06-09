@@ -5,6 +5,7 @@ import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { Role } from '@prisma/client'
+import { updatePackagePhotos, updatePackageHighlights } from './packages.service'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -417,5 +418,57 @@ export async function packagesRoutes(app: FastifyInstance) {
     })
 
     return reply.status(200).send(result)
+  })
+
+  const patchPackageBodySchema = z
+    .object({
+      photos: z.array(z.string().url({ message: 'URL de foto inválida' })).max(5, { message: 'Máximo 5 fotos permitidas' }).optional(),
+      highlights: z
+        .array(
+          z
+            .string()
+            .min(5, { message: 'Destaque deve ter pelo menos 5 caracteres' })
+            .max(200, { message: 'Destaque deve ter no máximo 200 caracteres' }),
+        )
+        .max(10, { message: 'Máximo 10 destaques permitidos' })
+        .optional(),
+    })
+    .refine((data) => data.photos !== undefined || data.highlights !== undefined, {
+      message: 'Pelo menos um campo deve ser informado',
+    })
+
+  app.patch('/tenants/:slug/packages/:id', {
+    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
+  }, async (request, reply) => {
+    const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
+    if (error) return
+
+    let body
+    try {
+      body = patchPackageBodySchema.parse(request.body)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send({
+        message: 'Dados inválidos',
+        errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })),
+      })
+      throw err
+    }
+
+    const tenant = await prisma.tenant.findUnique({ where: { slug: params!.slug } })
+    if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+    const user = request.user as { sub: string; role: string }
+
+    let updatedPackage
+
+    if (body.photos !== undefined) {
+      updatedPackage = await updatePackagePhotos(params!.id, user.sub, body.photos)
+    }
+
+    if (body.highlights !== undefined) {
+      updatedPackage = await updatePackageHighlights(params!.id, user.sub, body.highlights)
+    }
+
+    return reply.status(200).send(updatedPackage)
   })
 }
