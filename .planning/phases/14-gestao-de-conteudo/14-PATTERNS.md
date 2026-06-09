@@ -1,36 +1,114 @@
 # Phase 14: Gestão de Conteúdo — Pattern Map
 
-**Mapped:** 2026-06-08  
-**Files analyzed:** 13 new/modified files  
-**Analogs found:** 12/13 with matches
+**Mapped:** 2026-06-08
+**Files analyzed:** 14 (novos/modificados)
+**Analogs found:** 13 / 14
+
+---
 
 ## File Classification
 
 | New/Modified File | Role | Data Flow | Closest Analog | Match Quality |
 |-------------------|------|-----------|----------------|---------------|
-| `apps/api/src/modules/destinations/destinations.service.ts` | service | CRUD | `apps/api/src/modules/guides/guides.routes.ts` (admin approval logic) | role-match |
-| `apps/api/src/modules/destinations/destinations.routes.ts` (expand) | controller | CRUD | `apps/api/src/modules/guides/guides.routes.ts` | exact |
-| `apps/api/src/modules/destinations/destinations.schemas.ts` | utility/validation | validation | `apps/api/src/modules/bookings/bookings.schemas.ts` | exact |
-| `apps/api/src/modules/uploads/uploads.service.ts` | service | file-I/O | `apps/api/src/modules/guides/guides.routes.ts` (profile update pattern) | partial |
-| `apps/api/src/modules/uploads/uploads.routes.ts` | controller | file-I/O | `apps/api/src/modules/destinations/destinations.routes.ts` | role-match |
-| `apps/api/src/modules/tours-packages/packages.service.ts` | service | CRUD | `apps/api/src/modules/destinations/destinations.routes.ts` (update logic) | partial |
-| `apps/api/src/modules/tours-packages/packages.routes.ts` (expand) | controller | CRUD | `apps/api/src/modules/guides/guides.routes.ts` | role-match |
-| `apps/api/src/modules/tours-packages/packages.schemas.ts` | utility/validation | validation | `apps/api/src/modules/bookings/bookings.schemas.ts` | exact |
-| `apps/web/app/[slug]/(painel)/painel/destino/page.tsx` | page/component | request-response | `apps/web/app/[slug]/(painel)/painel/roteiros/page.tsx` | exact |
-| `apps/web/app/super-admin/destinos/page.tsx` | page/component | request-response | `apps/web/app/super-admin/operadoras/page.tsx` | exact |
-| `prisma/migrations/[ts]_add_approval_status_destination/migration.sql` | migration | transform | (existing enum ApprovalStatus pattern) | exact |
-| `prisma/migrations/[ts]_add_created_by_destination/migration.sql` | migration | transform | (existing FK patterns in schema) | exact |
-| `prisma/migrations/[ts]_add_photos_highlights_package/migration.sql` | migration | transform | (existing String[] field patterns) | exact |
+| `apps/api/prisma/schema.prisma` (3 migrations) | migration | CRUD | schema atual — `Destination`, `TourPackage` | exact |
+| `apps/api/src/modules/destinations/destinations.routes.ts` (modificar) | route | CRUD + request-response | arquivo atual | exact |
+| `apps/api/src/modules/uploads/uploads.routes.ts` | route | file-I/O | `destinations.routes.ts` (padrão auth+preHandler) | role-match |
+| `apps/api/src/modules/uploads/uploads.service.ts` | service | file-I/O | sem analog — padrão S3 do RESEARCH.md | no-analog |
+| `apps/api/src/modules/packages/packages.routes.ts` (modificar) | route | CRUD | arquivo atual | exact |
+| `apps/web/app/api/super-admin/destinos/route.ts` | route | request-response | `app/api/super-admin/tenants/pending/route.ts` | exact |
+| `apps/web/app/api/super-admin/destinos/[id]/approve/route.ts` | route | request-response | `app/api/super-admin/tenants/[id]/approve/route.ts` | exact |
+| `apps/web/app/api/super-admin/destinos/[id]/reject/route.ts` | route | request-response | `app/api/super-admin/tenants/[id]/approve/route.ts` | role-match |
+| `apps/web/app/api/[slug]/destinos/route.ts` | route | request-response | `app/api/super-admin/tenants/pending/route.ts` | role-match |
+| `apps/web/app/api/[slug]/destinos/[id]/route.ts` | route | request-response | `app/api/super-admin/tenants/[id]/approve/route.ts` | role-match |
+| `apps/web/app/api/uploads/presigned/route.ts` | route | file-I/O | `app/api/super-admin/tenants/pending/route.ts` (proxy auth) | role-match |
+| `apps/web/app/super-admin/destinos/page.tsx` | component | request-response | `app/super-admin/operadoras/page.tsx` | exact |
+| `apps/web/app/[slug]/(painel)/painel/destinos/page.tsx` | component | CRUD | `app/[slug]/(painel)/painel/destino/page.tsx` | exact |
+| `apps/web/app/[slug]/(painel)/painel/roteiros/[id]/page.tsx` | component | CRUD | `app/[slug]/(painel)/painel/destino/page.tsx` | role-match |
 
 ---
 
 ## Pattern Assignments
 
-### `apps/api/src/modules/destinations/destinations.routes.ts` — EXPAND (controller, CRUD)
+### `apps/api/prisma/schema.prisma` — migrations (migration, CRUD)
 
-**Analog:** `apps/api/src/modules/guides/guides.routes.ts` (lines 178–230: admin approval route pattern)
+**Analog:** Schema atual (`apps/api/prisma/schema.prisma`)
 
-**Imports pattern** (from guides.routes.ts, lines 1–8):
+**Schema atual de Destination** (linhas 9–26):
+```prisma
+model Destination {
+  id                   String   @id @default(cuid())
+  slug                 String   @unique
+  title                String
+  subtitle             String?
+  description          String
+  heroImageUrl         String?
+  heroImageBlurDataUrl String?
+  photos               String[]
+  tagline              String?
+  state                String
+  highlights           String[]
+  active               Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  tenants Tenant[]
+}
+```
+
+**Schema atual de TourPackage** (linhas 79–96) — NÃO tem `photos[]` nem `highlights[]`:
+```prisma
+model TourPackage {
+  id          String   @id @default(cuid())
+  tenantId    String
+  conductorId  String?
+  name        String
+  description String
+  duration    Int
+  price       Decimal  @db.Decimal(10, 2)
+  capacity    Int
+  difficulty  Difficulty
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  conductor      User?           @relation("ConductorPackages", fields: [conductorId], references: [id])
+  departureSlots DepartureSlot[]
+}
+```
+
+**3 migrations necessárias:**
+
+Migration 1 — `approvalStatus` em Destination:
+```prisma
+enum DestinationApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+// Adicionar no model Destination:
+approvalStatus DestinationApprovalStatus @default(PENDING)
+```
+
+Migration 2 — `createdById` FK em Destination:
+```prisma
+// Adicionar no model Destination:
+createdById String?
+createdBy   User?   @relation("DestinationCreator", fields: [createdById], references: [id])
+```
+
+Migration 3 — `photos` e `highlights` em TourPackage:
+```prisma
+// Adicionar no model TourPackage:
+photos     String[]
+highlights String[]
+```
+
+---
+
+### `apps/api/src/modules/destinations/destinations.routes.ts` (route, CRUD — modificar)
+
+**Analog:** Arquivo atual (`apps/api/src/modules/destinations/destinations.routes.ts`)
+
+**Imports pattern** (linhas 1–6):
 ```typescript
 import { FastifyInstance } from 'fastify'
 import { z, ZodError } from 'zod'
@@ -40,102 +118,126 @@ import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 ```
 
-**Auth decorator pattern** (guides.routes.ts, line 178–181):
-```typescript
-app.patch('/tenants/:slug/admin/guides/:id/approve', {
-  preHandler: [authenticate, authorize(['ADMIN'])],
-}, async (request, reply) => {
-```
-
-**Error handling for Zod validation** (guides.routes.ts, lines 10–15):
+**zodError helper** (linhas 12–17 — reutilizar exato):
 ```typescript
 function zodError(err: ZodError) {
   return {
     message: 'Dados inválidos',
-    errors: err.issues.map((e) => ({
-      field: e.path.join('.'),
-      message: e.message,
-    })),
+    errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })),
   }
 }
-// Usage: return reply.status(400).send(zodError(err))
 ```
 
-**Ownership check pattern** (guides.routes.ts, lines 198–209):
+**Padrão preHandler auth** (linha 209–211):
 ```typescript
-const guideProfile = await prisma.guideProfile.findFirst({
-  where: {
-    id: params.id,
-    user: {
-      tenantId: admin.tenantId,
-      role: 'CONDUTOR',
-    },
-  },
-  select: { userId: true, user: { select: { name: true, email: true } } },
+app.patch(
+  '/destinations/:destinationSlug',
+  { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN', 'CONDUTOR'])] },
+```
+
+**Padrão de validação de body inline** (linhas 236–252):
+```typescript
+const bodySchema = z.object({
+  heroImageUrl: z.string().url().nullable().optional(),
+  photos: z.array(z.string().url()).max(5).optional(),
+  highlights: z.array(z.string().min(1)).optional(),
 })
-
-if (!guideProfile) throw new AppError('Guia não encontrado', 404)
+let body
+try {
+  body = bodySchema.parse(request.body)
+} catch (err) {
+  if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+  throw err
+}
 ```
 
-**PATCH response pattern** (guides.routes.ts, line 228):
+**Ownership check por CONDUTOR (existente)** (linhas 225–234):
 ```typescript
-return reply.status(200).send({ message: 'Guia aprovado com sucesso' })
+if (request.user.role === 'CONDUTOR') {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: request.user.tenantId },
+    select: { destination: { select: { slug: true } } },
+  })
+  if (tenant?.destination?.slug !== params.slug) {
+    throw new AppError('Acesso negado a este destino', 403)
+  }
+}
+```
+
+**Novo ownership check por `createdById`** (para rotas PATCH/DELETE de destinos criados por guias — baseado em packages.routes.ts linhas 223–226):
+```typescript
+const user = request.user as { sub: string; role: string }
+if (user.role === 'CONDUTOR' && destination.createdById !== user.sub) {
+  throw new AppError('Você pode editar apenas seus próprios destinos', 403)
+}
+```
+
+**Filtro approvalStatus no GET público** (modificar linhas 22–37):
+```typescript
+// Substituir: where: { active: true }
+// Por:
+where: { approvalStatus: 'APPROVED' }
+```
+
+**Slugify para criação de destino** (Claude's Discretion — sem analog):
+```typescript
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+// Garantir unicidade: consultar prisma antes, adicionar sufixo -2, -3 se necessário
 ```
 
 ---
 
-### `apps/api/src/modules/destinations/destinations.service.ts` — NEW (service, CRUD)
+### `apps/api/src/modules/uploads/uploads.routes.ts` (route, file-I/O)
 
-**Analog:** `apps/api/src/modules/guides/guides.routes.ts` (admin approval pattern, lines 200–215)
+**Analog:** `apps/api/src/modules/destinations/destinations.routes.ts` (padrão auth + preHandler)
 
-**Service function pattern for ownership + update:**
+**Estrutura base:**
 ```typescript
-// From guides.routes.ts, lines 207–213 (ownership check + update pattern)
-const guideProfile = await prisma.guideProfile.findFirst({
-  where: {
-    id: params.id,
-    user: { tenantId: admin.tenantId, role: 'CONDUTOR' },
-  },
-  select: { userId: true },
-})
+import { FastifyInstance } from 'fastify'
+import { z, ZodError } from 'zod'
+import { AppError } from '../../shared/errors/AppError'
+import { authenticate } from '../../shared/middlewares/authenticate'
+import { authorize } from '../../shared/middlewares/authorize'
+import { generateUploadUrl } from './uploads.service'
 
-if (!guideProfile) throw new AppError('Guia não encontrado', 404)
-
-await prisma.user.update({
-  where: { id: guideProfile.userId },
-  data: { approvalStatus: 'APPROVED', rejectionReason: null },
-})
+export async function uploadsRoutes(app: FastifyInstance) {
+  app.post(
+    '/uploads/presigned',
+    { preHandler: [authenticate, authorize(['CONDUTOR', 'ADMIN', 'SUPER_ADMIN'])] },
+    async (request, reply) => {
+      const bodySchema = z.object({
+        fileName: z.string().min(1),
+        contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+        context: z.enum(['destination', 'package']),
+        contextId: z.string().min(1),
+      })
+      let body
+      try {
+        body = bodySchema.parse(request.body)
+      } catch (err) {
+        if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+        throw err
+      }
+      const result = await generateUploadUrl(body.context, body.contextId, body.fileName, body.contentType)
+      return reply.status(200).send(result)
+    }
+  )
+}
 ```
-
-**Note:** Extract this ownership check pattern for `editDestination` and `deleteDestination` functions. Verify `createdById === currentUserId` before mutation.
 
 ---
 
-### `apps/api/src/modules/destinations/destinations.schemas.ts` — NEW (utility, validation)
+### `apps/api/src/modules/uploads/uploads.service.ts` (service, file-I/O)
 
-**Analog:** `apps/api/src/modules/bookings/bookings.schemas.ts` (lines 1–6)
+**Analog:** Nenhum no codebase. Usar padrão do RESEARCH.md.
 
-**Zod schema pattern:**
-```typescript
-import { z } from 'zod'
-
-export const selfServiceBodySchema = z.object({
-  email: z.string().email({ message: 'Email inválido' }),
-  code: z.string().length(6, { message: 'Código deve ter 6 caracteres' }),
-})
-
-export type SelfServiceBody = z.infer<typeof selfServiceBodySchema>
-```
-
-**Apply to:** POST/PATCH destination body validation. Add `photos: z.array(z.string()).max(5, { message: 'Máximo 5 fotos' })` for photo limit enforcement.
-
----
-
-### `apps/api/src/modules/uploads/uploads.service.ts` — NEW (service, file-I/O)
-
-**Analog:** guides.routes.ts doesn't have explicit upload, but AWS SDK pattern is standard. No existing R2 code found.
-
-**R2 pre-signed URL pattern** (from RESEARCH.md, lines 266–294):
 ```typescript
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
@@ -150,464 +252,644 @@ const s3 = new S3Client({
 })
 
 export async function generateUploadUrl(
-  destinationId: string,
+  context: 'destination' | 'package',
+  contextId: string,
   fileName: string,
   contentType: string
 ) {
-  const key = `destinations/${destinationId}/${Date.now()}-${fileName}`
+  const key = `${context}s/${contextId}/${Date.now()}-${fileName}`
   const command = new PutObjectCommand({
-    Bucket: 'turismo-capivara',
+    Bucket: process.env.CLOUDFLARE_R2_BUCKET!,
     Key: key,
     ContentType: contentType,
   })
-  const url = await getSignedUrl(s3, command, { expiresIn: 3600 })
-  return { url, key }
+  const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 3600 })
+  const publicUrl = `${process.env.CLOUDFLARE_R2_PUBLIC_URL}/${key}`
+  return { uploadUrl, publicUrl, key }
 }
 ```
 
----
-
-### `apps/api/src/modules/uploads/uploads.routes.ts` — NEW (controller, file-I/O)
-
-**Analog:** `apps/api/src/modules/destinations/destinations.routes.ts` (existing GET endpoints, lines 20–36)
-
-**Route structure with auth:**
-```typescript
-// From destinations.routes.ts, lines 20–36
-app.get('/destinations', async (_request, reply) => {
-  const destinations = await prisma.destination.findMany({
-    where: { active: true },
-    select: { /* fields */ },
-    orderBy: { title: 'asc' },
-  })
-  return reply.status(200).send(destinations)
-})
-
-// Apply auth decorator from guides.routes.ts, line 178:
-app.post(
-  '/destinations/:id/upload',
-  { preHandler: [authenticate, authorize(['CONDUTOR', 'ADMIN'])] },
-  async (request, reply) => { /* handler */ }
-)
-```
+**Variáveis de ambiente necessárias (novas):**
+- `CLOUDFLARE_R2_ACCESS_KEY`
+- `CLOUDFLARE_R2_SECRET_KEY`
+- `CLOUDFLARE_R2_ENDPOINT` (ex: `https://<account>.r2.cloudflarestorage.com`)
+- `CLOUDFLARE_R2_BUCKET`
+- `CLOUDFLARE_R2_PUBLIC_URL` (URL pública do bucket via CDN)
 
 ---
 
-### `apps/api/src/modules/tours-packages/packages.service.ts` — NEW (service, CRUD)
+### `apps/api/src/modules/packages/packages.routes.ts` (route, CRUD — modificar)
 
-**Analog:** guides.routes.ts PATCH pattern (lines 317–360)
+**Analog:** Arquivo atual (`apps/api/src/modules/packages/packages.routes.ts`)
 
-**Service update pattern:**
+**parseParams helper existente** (linhas 18–34 — reutilizar):
 ```typescript
-// From guides.routes.ts, lines 340–360
-const guideProfile = await prisma.guideProfile.findFirst({
-  where: { userId: request.user.sub, id: profile.id },
-})
-
-if (!guideProfile) throw new AppError('Seu perfil não foi encontrado', 404)
-
-await prisma.guideProfile.update({
-  where: { id: guideProfile.id },
-  data: {
-    bio: body.bio,
-    photoUrl: body.photoUrl,
-    especialidades: body.especialidades,
-    regioes: body.regioes,
-    portfolioPhotos: body.portfolioPhotos,
-  },
-})
-```
-
-**Apply to packages:** Update `TourPackage` with `photos: String[]` and `highlights: String[]`.
-
----
-
-### `apps/api/src/modules/tours-packages/packages.routes.ts` — NEW (controller, CRUD)
-
-**Analog:** `apps/api/src/modules/guides/guides.routes.ts` (lines 317–360: PATCH pattern)
-
-**Tenant-scoped route pattern:**
-```typescript
-// From destinations.routes.ts, lines 45–48
-app.get('/tenants/:slug/guides/:id', async (request, reply) => {
-  let params
+function parseParams<T>(schema: z.ZodType<T>, params: unknown, reply: any): { data: T; error: null } | { data: null; error: true } {
   try {
-    params = guideIdParamsSchema.parse(request.params)
+    return { data: schema.parse(params) as T, error: null }
   } catch (err) {
-    if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+    if (err instanceof ZodError) {
+      reply.status(400).send({
+        message: 'Dados inválidos',
+        errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })),
+      })
+      return { data: null, error: true }
+    }
     throw err
   }
-  // ...handler body
-})
+}
 ```
 
-**Apply to packages enrichment route:** PATCH `/tenants/:slug/packages/:id` with auth + ownership check.
-
----
-
-### `apps/api/src/modules/tours-packages/packages.schemas.ts` — NEW (utility, validation)
-
-**Analog:** `apps/api/src/modules/bookings/bookings.schemas.ts` (lines 1–8)
-
-**Schema pattern for array validation:**
+**Ownership check existente** (linhas 223–226 — copiar para nova rota enrich):
 ```typescript
-import { z } from 'zod'
-
-export const enrichPackageBodySchema = z.object({
-  photos: z.array(z.string().url()).max(5, { message: 'Máximo 5 fotos' }),
-  highlights: z.array(z.string()).max(20, { message: 'Máximo 20 experiências' }),
-})
-
-export type EnrichPackageBody = z.infer<typeof enrichPackageBodySchema>
+const user = request.user as { sub: string; role: string }
+if (user.role === 'CONDUTOR' && pkg.conductorId !== user.sub) {
+  throw new AppError('Acesso negado', 403)
+}
 ```
 
----
-
-### `apps/web/app/[slug]/(painel)/painel/destino/page.tsx` — NEW (page, request-response)
-
-**Analog:** `apps/web/app/[slug]/(painel)/painel/roteiros/page.tsx` (RSC + client component pattern)
-
-**Server component with API token extraction** (roteiros/page.tsx pattern):
+**Nova rota PATCH /enrich** (baseada no padrão PUT linhas 198–234):
 ```typescript
-import { getServerSession } from "next-auth"
-import { getToken } from "next-auth/jwt"
+app.patch('/tenants/:slug/packages/:id/enrich', {
+  preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
+}, async (request, reply) => {
+  const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
+  if (error) return
 
-export default async function DestinoPage() {
-  const session = await getServerSession()
-  const token = await getToken()
-  
-  // Fetch destinations via proxy
-  const res = await fetch(`${API_URL}/tenants/${slug}/destinations`, {
-    headers: {
-      Authorization: `Bearer ${token?.apiToken}`,
-      "Content-Type": "application/json",
+  const enrichSchema = z.object({
+    photos: z.array(z.string().url()).max(5).optional(),
+    highlights: z.array(z.string().min(1)).optional(),
+  })
+  let body
+  try {
+    body = enrichSchema.parse(request.body)
+  } catch (err) {
+    if (err instanceof ZodError) return reply.status(400).send({
+      message: 'Dados inválidos',
+      errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })),
+    })
+    throw err
+  }
+
+  const tenant = await prisma.tenant.findUnique({ where: { slug: params!.slug } })
+  if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+  const pkg = await prisma.tourPackage.findFirst({ where: { id: params!.id, tenantId: tenant.id } })
+  if (!pkg) throw new AppError('Roteiro não encontrado', 404)
+
+  const user = request.user as { sub: string; role: string }
+  if (user.role === 'CONDUTOR' && pkg.conductorId !== user.sub) throw new AppError('Acesso negado', 403)
+
+  const updated = await prisma.tourPackage.update({
+    where: { id: params!.id },
+    data: {
+      ...(body.photos !== undefined && { photos: body.photos }),
+      ...(body.highlights !== undefined && { highlights: body.highlights }),
     },
+  })
+  return reply.status(200).send(updated)
+})
+```
+
+---
+
+### `apps/web/app/api/super-admin/destinos/route.ts` (route, request-response)
+
+**Analog:** `apps/web/app/api/super-admin/tenants/pending/route.ts` (linhas 1–20 — copiar exato)
+
+```typescript
+import { getToken } from "next-auth/jwt"
+import { NextRequest, NextResponse } from "next/server"
+
+const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
+
+export async function GET(req: NextRequest) {
+  const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+  if (!jwt?.apiToken) {
+    return NextResponse.json({ message: "Não autenticado" }, { status: 401 })
+  }
+  const status = req.nextUrl.searchParams.get("status") ?? "PENDING"
+  const res = await fetch(`${API_URL}/destinations/admin?status=${status}`, {
+    headers: { Authorization: `Bearer ${jwt.apiToken}` },
     cache: "no-store",
   })
-  
-  const destinations = await res.json()
-  return <DestinoClientComponent destinations={destinations} />
+  const data = await res.text()
+  return new NextResponse(data, {
+    status: res.status,
+    headers: { "Content-Type": "application/json" },
+  })
 }
 ```
 
-**Client component pattern** (from operadoras/page.tsx, lines 28–85):
-```typescript
-"use client"
-import { useState, useEffect } from "react"
+---
 
-interface Destination {
-  id: string
-  title: string
-  state: string
-  approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
-  heroImageUrl?: string
-  createdById: string
+### `apps/web/app/api/super-admin/destinos/[id]/approve/route.ts` (route, request-response)
+
+**Analog:** `apps/web/app/api/super-admin/tenants/[id]/approve/route.ts` (linhas 1–22 — copiar quase exato)
+
+```typescript
+import { getToken } from "next-auth/jwt"
+import { NextRequest, NextResponse } from "next/server"
+
+const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+  if (!jwt?.apiToken) {
+    return NextResponse.json({ message: "Não autenticado" }, { status: 401 })
+  }
+  const { id } = await params
+  const res = await fetch(`${API_URL}/destinations/${id}/approve`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${jwt.apiToken}`, "Content-Type": "application/json" },
+    cache: "no-store",
+  })
+  const data = await res.text()
+  return new NextResponse(data, {
+    status: res.status,
+    headers: { "Content-Type": "application/json" },
+  })
+}
+```
+
+---
+
+### `apps/web/app/api/super-admin/destinos/[id]/reject/route.ts` (route, request-response)
+
+**Analog:** `apps/web/app/api/super-admin/tenants/[id]/approve/route.ts` — mesma estrutura, com body forwarding
+
+```typescript
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+  if (!jwt?.apiToken) return NextResponse.json({ message: "Não autenticado" }, { status: 401 })
+  const { id } = await params
+  const body = await req.json().catch(() => ({}))
+  const res = await fetch(`${API_URL}/destinations/${id}/reject`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${jwt.apiToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  })
+  const data = await res.text()
+  return new NextResponse(data, { status: res.status, headers: { "Content-Type": "application/json" } })
+}
+```
+
+---
+
+### `apps/web/app/api/[slug]/destinos/route.ts` (route, request-response)
+
+**Analog:** `apps/web/app/api/super-admin/tenants/pending/route.ts`
+
+**GET + POST no mesmo arquivo:**
+```typescript
+const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+  if (!jwt?.apiToken) return NextResponse.json({ message: "Não autenticado" }, { status: 401 })
+  const { slug } = await params
+  const res = await fetch(`${API_URL}/tenants/${slug}/destinations`, {
+    headers: { Authorization: `Bearer ${jwt.apiToken}` },
+    cache: "no-store",
+  })
+  const data = await res.text()
+  return new NextResponse(data, { status: res.status, headers: { "Content-Type": "application/json" } })
 }
 
-export default function DestinoClientComponent() {
-  const [destinations, setDestinations] = useState<Destination[]>([])
-  const [loading, setLoading] = useState(true)
-  
-  useEffect(() => {
-    fetch("/api/proxy?path=/tenants/" + slug + "/destinations")
-      .then(r => r.json())
-      .then(setDestinations)
-  }, [slug])
-  
-  return (
-    <div>
-      {destinations.map(d => (
-        <div key={d.id}>
-          <h3>{d.title}</h3>
-          <span style={{ 
-            background: d.approvalStatus === 'APPROVED' ? '#10b981' : '#f59e0b' 
-          }}>
-            {d.approvalStatus === 'PENDING' ? 'PENDENTE' : 'APROVADO'}
-          </span>
-        </div>
-      ))}
+export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+  if (!jwt?.apiToken) return NextResponse.json({ message: "Não autenticado" }, { status: 401 })
+  const { slug } = await params
+  const body = await req.json()
+  const res = await fetch(`${API_URL}/tenants/${slug}/destinations`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${jwt.apiToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  })
+  const data = await res.text()
+  return new NextResponse(data, { status: res.status, headers: { "Content-Type": "application/json" } })
+}
+```
+
+---
+
+### `apps/web/app/api/[slug]/destinos/[id]/route.ts` (route, request-response)
+
+**Analog:** `apps/web/app/api/super-admin/tenants/[id]/approve/route.ts`
+
+**PATCH + DELETE:**
+```typescript
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ slug: string; id: string }> }) {
+  const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+  if (!jwt?.apiToken) return NextResponse.json({ message: "Não autenticado" }, { status: 401 })
+  const { slug, id } = await params
+  const body = await req.json()
+  const res = await fetch(`${API_URL}/tenants/${slug}/destinations/${id}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${jwt.apiToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  })
+  const data = await res.text()
+  return new NextResponse(data, { status: res.status, headers: { "Content-Type": "application/json" } })
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ slug: string; id: string }> }) {
+  const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+  if (!jwt?.apiToken) return NextResponse.json({ message: "Não autenticado" }, { status: 401 })
+  const { slug, id } = await params
+  const res = await fetch(`${API_URL}/tenants/${slug}/destinations/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${jwt.apiToken}` },
+    cache: "no-store",
+  })
+  const data = await res.text()
+  return new NextResponse(data, { status: res.status, headers: { "Content-Type": "application/json" } })
+}
+```
+
+---
+
+### `apps/web/app/api/uploads/presigned/route.ts` (route, file-I/O)
+
+**Analog:** `apps/web/app/api/super-admin/tenants/pending/route.ts` (padrão auth proxy)
+
+```typescript
+export async function POST(req: NextRequest) {
+  const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+  if (!jwt?.apiToken) return NextResponse.json({ message: "Não autenticado" }, { status: 401 })
+  const body = await req.json()
+  const res = await fetch(`${API_URL}/uploads/presigned`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${jwt.apiToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  })
+  const data = await res.text()
+  return new NextResponse(data, { status: res.status, headers: { "Content-Type": "application/json" } })
+}
+```
+
+---
+
+### `apps/web/app/super-admin/destinos/page.tsx` (component, request-response)
+
+**Analog:** `apps/web/app/super-admin/operadoras/page.tsx` (cópia quase direta — mesma estrutura)
+
+**Status badge map** (linhas 15–19, operadoras — adaptar labels):
+```typescript
+const DEST_STATUS: Record<string, { label: string; bg: string; color: string }> = {
+  PENDING:  { label: "Pendente",  bg: "#FEF9EC", color: "#B45309" },
+  APPROVED: { label: "Aprovado",  bg: "#F0FDF4", color: "#15803D" },
+  REJECTED: { label: "Rejeitado", bg: "#FEF2F2", color: "#DC2626" },
+}
+```
+
+**Estado e load pattern** (linhas 30–55, operadoras — copiar estrutura):
+```typescript
+const [items, setItems] = useState<Destination[]>([])
+const [loading, setLoading] = useState(true)
+const [loadError, setLoadError] = useState(false)
+const [actionLoading, setActionLoading] = useState<string | null>(null)
+const [actionError, setActionError] = useState<string | null>(null)
+
+function loadDestinations() {
+  setLoading(true)
+  setLoadError(false)
+  fetch("/api/super-admin/destinos?status=PENDING")
+    .then((r) => { if (!r.ok) throw new Error(); return r.json() })
+    .then(setItems)
+    .catch(() => setLoadError(true))
+    .finally(() => setLoading(false))
+}
+useEffect(() => { loadDestinations() }, [])
+```
+
+**Optimistic update + rollback** (linhas 57–78, operadoras — copiar padrão):
+```typescript
+async function handleApprove(dest: Destination) {
+  setActionLoading(dest.id)
+  setItems((prev) => prev.map((d) => d.id === dest.id ? { ...d, approvalStatus: "APPROVED" } : d))
+  try {
+    const res = await fetch(`/api/super-admin/destinos/${dest.id}/approve`, { method: "PATCH" })
+    if (!res.ok) throw new Error()
+  } catch {
+    setItems((prev) => prev.map((d) => d.id === dest.id ? { ...d, approvalStatus: "PENDING" } : d))
+    setActionError("Não foi possível realizar a ação. Tente novamente.")
+  } finally {
+    setActionLoading(null)
+  }
+}
+```
+
+**Shimmer skeleton** (linhas 161–176, operadoras — copiar exato):
+```typescript
+const shimmerKeyframes = `
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+`
+{loading && [1, 2, 3].map((i) => (
+  <div key={i} style={{
+    height: "52px", marginBottom: "8px", borderRadius: "4px",
+    background: "linear-gradient(90deg, var(--stone-100), var(--stone-50), var(--stone-100))",
+    backgroundSize: "200% 100%",
+    animation: "shimmer 1.5s infinite",
+  }} />
+))}
+```
+
+**Cards com thumbnail** (diferença vs operadoras que usa table — D-13 exige foto):
+```typescript
+// Grid de cards em vez de table — destinos têm heroImageUrl
+<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
+  {items.map((dest) => (
+    <div key={dest.id} style={{ border: "1px solid var(--stone-200)", borderRadius: "8px", overflow: "hidden" }}>
+      {dest.heroImageUrl && (
+        <img src={dest.heroImageUrl} alt="" loading="lazy"
+          style={{ width: "100%", height: "160px", objectFit: "cover" }} />
+      )}
+      {/* título + UF + badge + botões Aprovar/Rejeitar */}
     </div>
-  )
+  ))}
+</div>
+```
+
+---
+
+### `apps/web/app/[slug]/(painel)/painel/destinos/page.tsx` (component, CRUD)
+
+**Analog:** `apps/web/app/[slug]/(painel)/painel/destino/page.tsx` (arquivo inteiro)
+
+**useEffect slug resolution** (linhas 43–45, destino — copiar):
+```typescript
+useEffect(() => {
+  Promise.resolve(params).then(({ slug: s }) => setSlug(s))
+}, [params])
+```
+
+**Fetch de lista** (adaptar do padrão linhas 47–69, destino):
+```typescript
+useEffect(() => {
+  if (!slug) return
+  setLoading(true)
+  fetch(`/api/${slug}/destinos`)
+    .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
+    .then((data) => setDestinations(Array.isArray(data) ? data : []))
+    .catch(() => setLoadError(true))
+    .finally(() => setLoading(false))
+}, [slug])
+```
+
+**Input/label styles** (linhas 141–158, destino — copiar exato):
+```typescript
+const inputStyle: React.CSSProperties = {
+  width: "100%", padding: "8px 12px",
+  border: "1px solid var(--stone-300)", borderRadius: "4px",
+  fontSize: "16px", color: "var(--stone-800)", background: "white", boxSizing: "border-box",
+}
+const labelStyle: React.CSSProperties = {
+  display: "block", fontSize: "14px",
+  color: "var(--stone-700)", marginBottom: "4px", fontWeight: 600,
 }
 ```
 
-**Ownership-filtered edit/delete buttons:**
+**Highlights add/remove pattern** (linhas 71–81, destino — copiar exato):
 ```typescript
-const isOwner = (createdById: string) => createdById === currentUserId
+function setHighlight(idx: number, value: string) {
+  setHighlights((prev) => prev.map((h, i) => (i === idx ? value : h)))
+}
+function addHighlight() { setHighlights((prev) => [...prev, ""]) }
+function removeHighlight(idx: number) { setHighlights((prev) => prev.filter((_, i) => i !== idx)) }
+```
 
-{isOwner(dest.createdById) && (
-  <div>
-    <button onClick={() => { /* edit */ }}>Editar</button>
-    <button onClick={() => { /* delete with confirm */ }}>Deletar</button>
-  </div>
+**Save com error handling** (linhas 107–138, destino — adaptar para POST):
+```typescript
+async function handleSave(e: React.FormEvent) {
+  e.preventDefault()
+  setSaving(true)
+  setSaveError(null)
+  try {
+    const res = await fetch(`/api/${slug}/destinos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, description, state, heroImageUrl, photos, highlights }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.message ?? `Erro ${res.status}`)
+    }
+    setSaveSuccess(true)
+    setTimeout(() => setSaveSuccess(false), 3000)
+  } catch (err: any) {
+    setSaveError(err.message ?? "Não foi possível salvar. Tente novamente.")
+  } finally {
+    setSaving(false)
+  }
+}
+```
+
+**Badge de status** (reutilizar DEST_STATUS de super-admin/destinos):
+```typescript
+// D-08: guia vê status do seu destino
+<span style={{
+  display: "inline-block", padding: "4px 8px", borderRadius: "4px",
+  fontSize: "12px", fontWeight: 600,
+  background: DEST_STATUS[dest.approvalStatus].bg,
+  color: DEST_STATUS[dest.approvalStatus].color,
+}}>
+  {DEST_STATUS[dest.approvalStatus].label}
+</span>
+```
+
+**Controle de ownership no frontend (D-12):**
+```typescript
+// Botões Editar/Deletar apenas nos destinos do próprio guia
+{dest.createdById === currentUserId && (
+  <>
+    <button onClick={() => handleEdit(dest)}>Editar</button>
+    <button onClick={() => handleDelete(dest.id)}>Excluir</button>
+  </>
 )}
 ```
 
----
-
-### `apps/web/app/super-admin/destinos/page.tsx` — NEW (page, request-response)
-
-**Analog:** `apps/web/app/super-admin/operadoras/page.tsx` (approval queue pattern, lines 26–90)
-
-**Client component pattern (super-admin approval queue):**
+**Select de estados brasileiros (D-10):**
 ```typescript
-"use client"
-import { useState, useEffect } from "react"
-import { Modal } from "@/components/ui/Modal"
+const ESTADOS_BR = [
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA",
+  "MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN",
+  "RS","RO","RR","SC","SP","SE","TO"
+]
+// <select value={state} onChange={(e) => setState(e.target.value)} style={inputStyle}>
+//   {ESTADOS_BR.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+// </select>
+```
 
-interface Destination {
-  id: string
-  title: string
-  state: string
-  approvalStatus: "PENDING" | "APPROVED" | "REJECTED"
-  createdBy: { name: string }
-}
-
-const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
-  PENDING: { label: "Pendente", bg: "#FEF9EC", color: "#B45309" },
-  APPROVED: { label: "Aprovado", bg: "#F0FDF4", color: "#15803D" },
-  REJECTED: { label: "Rejeitado", bg: "#FEF2F2", color: "#DC2626" },
-}
-
-export default function SuperAdminDestinosPage() {
-  const [items, setItems] = useState<Destination[]>([])
-  const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch("/api/proxy?path=/destinations?approvalStatus=PENDING")
-      .then(r => r.json())
-      .then(setItems)
-      .finally(() => setLoading(false))
-  }, [])
-
-  async function handleApprove(id: string) {
-    setActionLoading(id)
-    try {
-      const res = await fetch("/api/proxy?path=/destinations/" + id + "/approve", {
-        method: "PATCH",
-        body: JSON.stringify({ approvalStatus: "APPROVED" }),
-      })
-      if (res.ok) {
-        setItems(prev => prev.filter(d => d.id !== id))
-      }
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  return (
-    <div>
-      <h1>Fila de Aprovação — Destinos</h1>
-      {items.map(dest => (
-        <div key={dest.id}>
-          <h3>{dest.title}</h3>
-          <button onClick={() => handleApprove(dest.id)}>Aprovar</button>
-          <button onClick={() => handleReject(dest.id)}>Rejeitar</button>
-        </div>
-      ))}
-    </div>
-  )
+**PhotoUploader com arquivo real** (diferença crítica vs destino/page.tsx atual que usava URLs manuais):
+```typescript
+// 1. <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileSelect} />
+// 2. Validar file.size < 5 * 1024 * 1024 antes de upload
+// 3. POST /api/uploads/presigned → { uploadUrl, publicUrl }
+// 4. PUT uploadUrl com o arquivo (fetch direto ao R2 — sem Authorization header)
+// 5. Salvar publicUrl no array photos[]
+async function handleFileUpload(file: File) {
+  if (file.size > 5 * 1024 * 1024) { setPhotoError("Arquivo excede 5MB."); return }
+  const { uploadUrl, publicUrl } = await fetch("/api/uploads/presigned", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileName: file.name, contentType: file.type, context: "destination", contextId: destinationId }),
+  }).then((r) => r.json())
+  await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } })
+  setPhotos((prev) => [...prev, publicUrl])
 }
 ```
 
-**Rejection modal pattern** (operadoras/page.tsx, lines 77–140):
-```typescript
-const [rejectTarget, setRejectTarget] = useState<Tenant | null>(null)
-const [rejectReason, setRejectReason] = useState("")
+---
 
-async function handleRejectSubmit() {
-  setRejectSubmitting(true)
+### `apps/web/app/[slug]/(painel)/painel/roteiros/[id]/page.tsx` (component, CRUD)
+
+**Analog:** `apps/web/app/[slug]/(painel)/painel/destino/page.tsx`
+
+**Seção de enriquecimento** (adicionar após campos básicos do roteiro — D-16):
+```typescript
+// Estado separado para enriquecimento:
+const [photos, setPhotos] = useState<string[]>([])
+const [highlights, setHighlights] = useState<string[]>([])
+const [savingEnrich, setSavingEnrich] = useState(false)
+const [enrichError, setEnrichError] = useState<string | null>(null)
+const [enrichSuccess, setEnrichSuccess] = useState(false)
+
+// Highlights: copiar exato de destino/page.tsx linhas 71–81
+// Photos: copiar lógica handleFileUpload com context: "package"
+
+async function handleSaveEnrich(e: React.FormEvent) {
+  e.preventDefault()
+  setSavingEnrich(true)
+  setEnrichError(null)
   try {
-    const res = await fetch(`/api/proxy?path=/destinations/${rejectTarget.id}/approve`, {
+    const res = await fetch(`/api/${slug}/pacotes/${packageId}/enrich`, {
       method: "PATCH",
-      body: JSON.stringify({ 
-        approvalStatus: "REJECTED",
-        rejectionReason: rejectReason,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photos, highlights }),
     })
-    if (res.ok) {
-      setItems(prev => prev.filter(t => t.id !== rejectTarget.id))
-      setRejectTarget(null)
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.message ?? `Erro ${res.status}`)
     }
+    setEnrichSuccess(true)
+    setTimeout(() => setEnrichSuccess(false), 3000)
+  } catch (err: any) {
+    setEnrichError(err.message ?? "Não foi possível salvar. Tente novamente.")
   } finally {
-    setRejectSubmitting(false)
+    setSavingEnrich(false)
   }
 }
-
-return (
-  <Modal isOpen={!!rejectTarget} onClose={() => setRejectTarget(null)}>
-    <textarea 
-      value={rejectReason} 
-      onChange={(e) => setRejectReason(e.target.value)}
-      placeholder="Motivo da rejeição"
-    />
-    <button onClick={handleRejectSubmit}>Rejeitar</button>
-  </Modal>
-)
 ```
 
 ---
 
 ## Shared Patterns
 
-### Authentication Middleware (All API routes)
-
-**Source:** `apps/api/src/modules/guides/guides.routes.ts` (lines 1–5, 178)
-
-**Apply to:** All new POST/PATCH/DELETE destination and package routes
-
+### Autenticação proxy (Next.js API routes)
+**Source:** `apps/web/app/api/super-admin/tenants/pending/route.ts` (linhas 1–20)
+**Apply to:** Todos os arquivos em `app/api/super-admin/destinos/` e `app/api/[slug]/destinos/` e `app/api/uploads/`
 ```typescript
-import { authenticate } from '../../shared/middlewares/authenticate'
-import { authorize } from '../../shared/middlewares/authorize'
-
-// Usage in route handler:
-app.post('/tenants/:slug/destinations', {
-  preHandler: [authenticate, authorize(['CONDUTOR', 'ADMIN'])],
-}, async (request, reply) => {
-  // request.user contains JWT payload with sub (userId), tenantId, role
-})
-```
-
----
-
-### Error Handling with AppError
-
-**Source:** `apps/api/src/modules/destinations/destinations.routes.ts` (lines 5, 67)
-
-**Apply to:** All service functions and route handlers
-
-```typescript
-import { AppError } from '../../shared/errors/AppError'
-
-// Pattern:
-if (!destination) throw new AppError('Destino não encontrado', 404)
-if (destination.createdById !== currentUserId) {
-  throw new AppError('Você pode editar apenas seus próprios destinos', 403)
+const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+if (!jwt?.apiToken) {
+  return NextResponse.json({ message: "Não autenticado" }, { status: 401 })
 }
+// Forward: headers: { Authorization: `Bearer ${jwt.apiToken}` }
+const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
 ```
 
----
+### Autenticação Fastify (backend routes)
+**Source:** `apps/api/src/modules/destinations/destinations.routes.ts` (linhas 209–211)
+**Apply to:** Todas as novas rotas protegidas no backend
+```typescript
+{ preHandler: [authenticate, authorize(['CONDUTOR', 'ADMIN', 'SUPER_ADMIN'])] }
+```
 
-### Zod Input Validation
-
-**Source:** `apps/api/src/modules/guides/guides.routes.ts` (lines 9–17)
-
-**Apply to:** All POST/PATCH handlers before body parsing
-
+### Validação Zod + zodError helper (Fastify)
+**Source:** `apps/api/src/modules/destinations/destinations.routes.ts` (linhas 12–17)
+**Apply to:** Todos os novos handlers de rotas Fastify
 ```typescript
 function zodError(err: ZodError) {
   return {
     message: 'Dados inválidos',
-    errors: err.issues.map((e) => ({
-      field: e.path.join('.'),
-      message: e.message,
-    })),
+    errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })),
   }
 }
-
-// Usage:
-try {
-  const body = destinationCreateSchema.parse(request.body)
-} catch (err) {
-  if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-  throw err
-}
+// Uso: catch (err) { if (err instanceof ZodError) return reply.status(400).send(zodError(err)); throw err }
 ```
 
----
-
-### API Proxy Pattern (Web)
-
-**Source:** `apps/web/app/api/proxy/route.ts` (lines 1–65)
-
-**Apply to:** All client-side API calls from painel and super-admin
-
+### AppError para erros de negócio (Fastify)
+**Source:** `apps/api/src/modules/packages/packages.routes.ts` (linhas 83–84)
+**Apply to:** Todos os novos handlers de rotas Fastify
 ```typescript
-// Client calls:
-fetch("/api/proxy?path=/tenants/slug/destinations")
-fetch("/api/proxy?path=/destinations/id/approve", {
-  method: "PATCH",
-  body: JSON.stringify({ approvalStatus: "APPROVED" }),
-})
-
-// Proxy automatically injects JWT from NextAuth session
+import { AppError } from '../../shared/errors/AppError'
+throw new AppError('Mensagem em português', statusCode)
 ```
 
----
-
-### Status Badge Component (Web)
-
-**Source:** `apps/web/app/super-admin/operadoras/page.tsx` (lines 17–21)
-
-**Apply to:** All approval status displays in painel and super-admin
-
+### Shimmer skeleton (loading state — frontend)
+**Source:** `apps/web/app/super-admin/operadoras/page.tsx` (linhas 161–176)
+**Apply to:** `super-admin/destinos/page.tsx`, `[slug]/(painel)/painel/destinos/page.tsx`
 ```typescript
-const STATUS_CONFIG = {
-  PENDING: { label: "Pendente", bg: "#FEF9EC", color: "#B45309" },
-  APPROVED: { label: "Aprovado", bg: "#F0FDF4", color: "#15803D" },
+const shimmerKeyframes = `@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }`
+// height: "52px", animation: "shimmer 1.5s infinite"
+// background: "linear-gradient(90deg, var(--stone-100), var(--stone-50), var(--stone-100))"
+// backgroundSize: "200% 100%"
+```
+
+### Status badge visual (PENDING/APPROVED/REJECTED)
+**Source:** `apps/web/app/super-admin/operadoras/page.tsx` (linhas 15–19)
+**Apply to:** `super-admin/destinos/page.tsx`, `[slug]/(painel)/painel/destinos/page.tsx`
+```typescript
+const STATUS_MAP = {
+  PENDING:  { label: "Pendente",  bg: "#FEF9EC", color: "#B45309" },
+  APPROVED: { label: "Aprovado",  bg: "#F0FDF4", color: "#15803D" },
   REJECTED: { label: "Rejeitado", bg: "#FEF2F2", color: "#DC2626" },
 }
-
-return (
-  <span style={{
-    background: STATUS_CONFIG[approvalStatus].bg,
-    color: STATUS_CONFIG[approvalStatus].color,
-  }}>
-    {STATUS_CONFIG[approvalStatus].label}
-  </span>
-)
+// <span style={{ padding: "4px 8px", borderRadius: "4px", fontSize: "12px",
+//   fontWeight: 600, background: s.bg, color: s.color }}>{s.label}</span>
 ```
 
----
-
-## Database Migrations
-
-### Migration: Add `approvalStatus` enum to Destination
-
-**Analog:** `apps/api/prisma/schema.prisma` (lines 28–30, existing TenantApprovalStatus enum pattern)
-
-```sql
--- [timestamp]_add_approval_status_destination/migration.sql
--- Add ApprovalStatus enum if not exists (may exist from Tenant model)
-CREATE TYPE "ApprovalStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
-
--- Add column to Destination
-ALTER TABLE "Destination" ADD COLUMN "approvalStatus" "ApprovalStatus" NOT NULL DEFAULT 'PENDING';
-
--- Backfill existing destinations based on active status
-UPDATE "Destination" SET "approvalStatus" = 'APPROVED' WHERE active = true;
-UPDATE "Destination" SET "approvalStatus" = 'PENDING' WHERE active = false;
+### Mobile-first (painel UI)
+**Source:** `apps/web/app/[slug]/(painel)/painel/destino/page.tsx` (linhas 210–212)
+**Apply to:** Toda UI do painel
+```typescript
+// form: maxWidth: "640px", display: "flex", flexDirection: "column", gap: "20px"
+// buttons: minHeight: "44px" (touch target mínimo iOS)
+// input: fontSize: "16px" (evita zoom iOS Safari)
 ```
 
----
-
-### Migration: Add `createdById` FK to Destination
-
-**Analog:** `apps/api/prisma/schema.prisma` (lines 47–48, existing FK pattern User.tenantId)
-
-```sql
--- [timestamp]_add_created_by_destination/migration.sql
-ALTER TABLE "Destination" ADD COLUMN "createdById" TEXT;
-
--- Add FK constraint
-ALTER TABLE "Destination" ADD CONSTRAINT "Destination_createdById_fkey" 
-  FOREIGN KEY ("createdById") REFERENCES "User"("id");
-
--- Create index for ownership queries
-CREATE INDEX "Destination_createdById_idx" ON "Destination"("createdById");
+### Ownership check backend (CONDUTOR por createdById)
+**Source:** `apps/api/src/modules/packages/packages.routes.ts` (linhas 223–226)
+**Apply to:** PATCH e DELETE de destinos criados por guias
+```typescript
+const user = request.user as { sub: string; role: string }
+if (user.role === 'CONDUTOR' && resource.createdById !== user.sub) {
+  throw new AppError('Você pode editar apenas seus próprios destinos', 403)
+}
 ```
 
----
-
-### Migration: Add `photos` and `highlights` to TourPackage
-
-**Analog:** `apps/api/prisma/schema.prisma` (lines 12–13, existing String[] pattern on Destination)
-
-```sql
--- [timestamp]_add_photos_highlights_package/migration.sql
-ALTER TABLE "TourPackage" ADD COLUMN "photos" text[] DEFAULT '{}';
-ALTER TABLE "TourPackage" ADD COLUMN "highlights" text[] DEFAULT '{}';
+### parseParams helper (Fastify)
+**Source:** `apps/api/src/modules/packages/packages.routes.ts` (linhas 18–34)
+**Apply to:** Novos handlers em destinations.routes.ts e uploads.routes.ts
+```typescript
+function parseParams<T>(schema: z.ZodType<T>, params: unknown, reply: any) {
+  try {
+    return { data: schema.parse(params) as T, error: null }
+  } catch (err) {
+    if (err instanceof ZodError) {
+      reply.status(400).send({ message: 'Dados inválidos', errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })) })
+      return { data: null, error: true }
+    }
+    throw err
+  }
+}
 ```
 
 ---
@@ -616,20 +898,12 @@ ALTER TABLE "TourPackage" ADD COLUMN "highlights" text[] DEFAULT '{}';
 
 | File | Role | Data Flow | Reason |
 |------|------|-----------|--------|
-| (None) | — | — | All new files have existing analogs in destinations, guides, bookings, or super-admin modules. |
+| `apps/api/src/modules/uploads/uploads.service.ts` | service | file-I/O | Nenhuma integração com storage externo existe no codebase. Usar padrão `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` do RESEARCH.md. |
 
 ---
 
 ## Metadata
 
-**Analog search scope:** `apps/api/src/modules/` (destinations, guides, bookings), `apps/web/app/` (painel, super-admin)  
-**Files scanned:** 12 existing route/service/schema files  
-**Pattern extraction date:** 2026-06-08  
-
-**Key patterns identified:**
-1. **API CRUD:** All routes follow `/tenants/:slug/resource` pattern with auth middleware + Zod validation
-2. **Ownership checks:** Query by `createdById` before PATCH/DELETE; throw AppError 403 if mismatch
-3. **Approval workflow:** Status enum (PENDING | APPROVED | REJECTED); public GET filters by `approvalStatus: 'APPROVED'`
-4. **File upload:** Pre-signed URL pattern via AWS SDK (R2 compatible); direct frontend upload to cloud
-5. **Web UI:** RSC + client components; API proxy via `/api/proxy?path=/...` with NextAuth JWT injection
-6. **Super-admin:** Approval queue with modal for rejection reason; optimistic updates with rollback
+**Analog search scope:** `apps/api/src/modules/`, `apps/web/app/api/`, `apps/web/app/super-admin/`, `apps/web/app/[slug]/(painel)/`
+**Files scanned:** 8 arquivos lidos diretamente + schema.prisma
+**Pattern extraction date:** 2026-06-08

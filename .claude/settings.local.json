@@ -84,7 +84,8 @@
       "Skill(gsd-insert-phase)",
       "Bash(pnpm:*)",
       "Skill(gsd-audit-uat)",
-      "Bash(cat -n /c/projetos/turismo-capivara/apps/api/src/modules/users/*.ts)"
+      "Bash(cat -n /c/projetos/turismo-capivara/apps/api/src/modules/users/*.ts)",
+      "mcp__plugin_claude-mem_mcp-search__timeline"
     ]
   }
 }
