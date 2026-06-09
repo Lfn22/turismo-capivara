@@ -4,6 +4,12 @@ import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
+import { CreateDestinationInput, UpdateDestinationInput } from './destinations.schemas'
+import {
+  createDestination,
+  updateDestination,
+  deleteDestination,
+} from './destinations.service'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -277,6 +283,59 @@ export async function destinationsRoutes(app: FastifyInstance) {
       })
 
       return reply.status(200).send(updated)
+    },
+  )
+
+  // POST /tenants/:slug/destinations — guia cria destino (ADMIN/CONDUTOR)
+  app.post(
+    '/tenants/:slug/destinations',
+    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR'])] },
+    async (request, reply) => {
+      let input
+      try {
+        input = CreateDestinationInput.parse(request.body)
+      } catch (err) {
+        if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+        throw err
+      }
+
+      const userId = request.user.sub
+      const tenantId = request.user.tenantId
+      const destination = await createDestination(tenantId, userId, input)
+      return reply.status(201).send(destination)
+    },
+  )
+
+  // PATCH /tenants/:slug/destinations/:id — guia edita destino próprio
+  app.patch(
+    '/tenants/:slug/destinations/:id',
+    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR'])] },
+    async (request, reply) => {
+      const { id } = request.params as { slug: string; id: string }
+
+      let input
+      try {
+        input = UpdateDestinationInput.parse(request.body)
+      } catch (err) {
+        if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+        throw err
+      }
+
+      const userId = request.user.sub
+      const destination = await updateDestination(id, userId, input)
+      return reply.status(200).send(destination)
+    },
+  )
+
+  // DELETE /tenants/:slug/destinations/:id — guia deleta destino próprio
+  app.delete(
+    '/tenants/:slug/destinations/:id',
+    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR'])] },
+    async (request, reply) => {
+      const { id } = request.params as { slug: string; id: string }
+      const userId = request.user.sub
+      await deleteDestination(id, userId)
+      return reply.status(204).send()
     },
   )
 }

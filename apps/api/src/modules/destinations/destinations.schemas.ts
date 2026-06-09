@@ -15,9 +15,7 @@ export const CreateDestinationInput = z.object({
     .string()
     .min(10, { message: 'Descrição deve ter entre 10 e 1000 caracteres' })
     .max(1000, { message: 'Descrição deve ter entre 10 e 1000 caracteres' }),
-  state: z.enum(BR_STATES, {
-    errorMap: () => ({ message: 'Estado inválido' }),
-  }),
+  state: z.enum(BR_STATES, { error: 'Estado inválido' }),
   photos: z
     .array(z.string().url({ message: 'URL de foto inválida' }))
     .max(5, { message: 'Máximo de 5 fotos' })
@@ -47,9 +45,7 @@ export const UpdateDestinationInput = z
       .min(10, { message: 'Descrição deve ter entre 10 e 1000 caracteres' })
       .max(1000, { message: 'Descrição deve ter entre 10 e 1000 caracteres' })
       .optional(),
-    state: z
-      .enum(BR_STATES, { errorMap: () => ({ message: 'Estado inválido' }) })
-      .optional(),
+    state: z.enum(BR_STATES, { error: 'Estado inválido' }).optional(),
     photos: z
       .array(z.string().url({ message: 'URL de foto inválida' }))
       .max(5, { message: 'Máximo de 5 fotos' })
@@ -71,9 +67,7 @@ export const UpdateDestinationInput = z
 export type UpdateDestinationInputType = z.infer<typeof UpdateDestinationInput>
 
 export const ApprovalUpdateInput = z.object({
-  approvalStatus: z.enum(['APPROVED', 'REJECTED'], {
-    errorMap: () => ({ message: 'Status de aprovação inválido' }),
-  }),
+  approvalStatus: z.enum(['APPROVED', 'REJECTED'], { error: 'Status de aprovação inválido' }),
   rejectionReason: z.string().optional(),
 })
 
