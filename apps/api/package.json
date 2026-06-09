@@ -6,7 +6,10 @@
     "node": ">=22.12.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@prisma/client", "prisma"]
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "prisma"
+    ]
   },
   "scripts": {
     "dev": "tsx watch src/app.ts",
@@ -17,9 +20,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1064.0",
     "@fastify/cors": "^11.2.0",
     "@fastify/helmet": "^13.0.2",
     "@fastify/jwt": "^10.0.0",
+    "@fastify/multipart": "^10.0.0",
     "@fastify/rate-limit": "^10.3.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
