@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 
 ## Current Position
 
-Phase: Phase 14 (executing — 4/8 plans complete)
-Plan: 14-05 (next)
-Status: Phase 14 Gestão de Conteúdo — Plans 01-04 complete. Approval workflow live: PATCH /destinations/:id/approve + GET /admin/destinations/pending.
-Last activity: 2026-06-09 — 14-04 complete: approveDestination/rejectDestination service methods, PATCH approve endpoint (ADMIN), GET pending queue, 39 tests passing
+Phase: Phase 14 (executing — 5/8 plans complete)
+Plan: 14-06 (next)
+Status: Phase 14 Gestão de Conteúdo — Plans 01-05 complete. Package enrichment live: PATCH /tenants/:slug/packages/:id updates photos and highlights immediately.
+Last activity: 2026-06-09 — 14-05 complete: UpdatePackagePhotosInput/UpdatePackageHighlightsInput schemas, updatePackagePhotos/updatePackageHighlights service, PATCH endpoint, 21 tests passing
 
 ## Decisões estratégicas
 
@@ -113,8 +113,8 @@ Last activity: 2026-06-09 — 14-04 complete: approveDestination/rejectDestinati
 
 ## Session Continuity
 
-Last session: 2026-06-09T17:47:00-03:00
-Stopped at: 14-04 complete — destination approval workflow done
+Last session: 2026-06-09T17:53:00-03:00
+Stopped at: 14-05 complete — package enrichment (photos/highlights) done
 Resume file: None
 
 ### Quick Tasks Completed
