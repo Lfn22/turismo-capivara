@@ -25,10 +25,10 @@ function zodError(err: ZodError) {
 }
 
 export async function destinationsRoutes(app: FastifyInstance) {
-  // GET /destinations — lista destinos ativos (público)
+  // GET /destinations — lista destinos aprovados (público)
   app.get('/destinations', async (_request, reply) => {
     const destinations = await prisma.destination.findMany({
-      where: { active: true },
+      where: { active: true, approvalStatus: 'APPROVED' },
       select: {
         id: true,
         slug: true,
@@ -69,12 +69,16 @@ export async function destinationsRoutes(app: FastifyInstance) {
         heroImageBlurDataUrl: true,
         photos: true,
         tagline: true,
+        approvalStatus: true,
       },
     })
 
     if (!destination) throw new AppError('Destino não encontrado', 404)
+    if (destination.approvalStatus !== 'APPROVED') throw new AppError('Destino não encontrado', 404)
 
-    return reply.status(200).send(destination)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { approvalStatus: _status, ...publicDestination } = destination
+    return reply.status(200).send(publicDestination)
   })
 
   // GET /destinations/:slug/guides — guias aprovados do destino (público)
