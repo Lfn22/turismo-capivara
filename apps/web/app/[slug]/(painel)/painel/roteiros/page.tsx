@@ -236,26 +236,50 @@ export default async function RoteirosPage({
                   </span>
                 </div>
 
-                <Link
-                  href={`/${slug}/painel/disponibilidade`}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textAlign: "center",
-                    padding: "8px 16px",
-                    border: "1px solid var(--stone-300)",
-                    borderRadius: "4px",
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    color: "var(--stone-700)",
-                    textDecoration: "none",
-                    background: "transparent",
-                    minHeight: "44px",
-                  }}
-                >
-                  Gerenciar Slots
-                </Link>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <Link
+                    href={`/${slug}/painel/roteiros/${pkg.id}`}
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      textAlign: "center",
+                      padding: "8px 12px",
+                      border: "none",
+                      borderRadius: "4px",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      color: "white",
+                      textDecoration: "none",
+                      background: "var(--ochre, #c2783c)",
+                      minHeight: "44px",
+                    }}
+                  >
+                    Fotos / Experiências
+                  </Link>
+                  <Link
+                    href={`/${slug}/painel/disponibilidade`}
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      textAlign: "center",
+                      padding: "8px 12px",
+                      border: "1px solid var(--stone-300)",
+                      borderRadius: "4px",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                      color: "var(--stone-700)",
+                      textDecoration: "none",
+                      background: "transparent",
+                      minHeight: "44px",
+                    }}
+                  >
+                    Gerenciar Slots
+                  </Link>
+                </div>
               </div>
             )
           })}
