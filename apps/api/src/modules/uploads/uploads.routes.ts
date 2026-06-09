@@ -43,11 +43,11 @@ export async function uploadsRoutes(app: FastifyInstance) {
       try {
         file = await request.file()
       } catch {
-        return reply.status(400).send({ error: 'Nenhum arquivo enviado' })
+        return reply.status(400).send({ message: 'Nenhum arquivo enviado' })
       }
 
       if (!file) {
-        return reply.status(400).send({ error: 'Nenhum arquivo enviado' })
+        return reply.status(400).send({ message: 'Nenhum arquivo enviado' })
       }
 
       const buffer = await file.toBuffer()
@@ -55,7 +55,7 @@ export async function uploadsRoutes(app: FastifyInstance) {
       // Validate file (size + mime)
       const validation = validatePhotoFile(buffer.length, file.mimetype)
       if (!validation.valid) {
-        return reply.status(400).send({ error: validation.error })
+        return reply.status(400).send({ message: validation.error })
       }
 
       // Upload to R2
@@ -64,9 +64,9 @@ export async function uploadsRoutes(app: FastifyInstance) {
         result = await uploadPhotoToR2(buffer, file.filename, file.mimetype, folder)
       } catch (err) {
         if (err instanceof AppError) {
-          return reply.status(err.statusCode).send({ error: err.message })
+          return reply.status(err.statusCode).send({ message: err.message })
         }
-        return reply.status(500).send({ error: 'Falha ao fazer upload. Tente novamente.' })
+        return reply.status(500).send({ message: 'Falha ao fazer upload. Tente novamente.' })
       }
 
       return reply.status(200).send(result)

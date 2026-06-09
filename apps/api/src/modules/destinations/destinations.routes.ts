@@ -348,7 +348,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
   // PATCH /destinations/:id/approve — super-admin aprova ou rejeita destino
   app.patch(
     '/destinations/:id/approve',
-    { preHandler: [authenticate, authorize(['ADMIN'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       const { id } = request.params as { id: string }
 
@@ -372,7 +372,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
   // GET /admin/destinations/pending — fila de aprovação (ADMIN)
   app.get(
     '/admin/destinations/pending',
-    { preHandler: [authenticate, authorize(['ADMIN'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       const querySchema = z.object({
         limit: z.coerce.number().int().min(1).max(100).default(50),
