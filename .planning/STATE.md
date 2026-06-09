@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 
 ## Current Position
 
-Phase: Phase 14 (executing — 1/8 plans complete)
-Plan: 14-02 (next)
-Status: Phase 14 Gestão de Conteúdo — Plan 01 complete. Schema migrations applied. Wave 1 in progress.
-Last activity: 2026-06-08 — 14-01 complete: Destination approvalStatus + createdById FK + TourPackage photos/highlights; migration applied to Railway
+Phase: Phase 14 (executing — 2/8 plans complete)
+Plan: 14-03 (next)
+Status: Phase 14 Gestão de Conteúdo — Plans 01-02 complete. Destination CRUD API with ownership enforcement live.
+Last activity: 2026-06-09 — 14-02 complete: Destination CRUD (POST/PATCH/DELETE) with Zod validation, service ownership checks, 29 tests passing
 
 ## Decisões estratégicas
 
@@ -64,6 +64,9 @@ Last activity: 2026-06-08 — 14-01 complete: Destination approvalStatus + creat
 - `Destination.approvalStatus`: reusa enum `ApprovalStatus` (não TenantApprovalStatus) — migration `20260608174257`
 - `Destination.createdById`: FK para `User.id` com ON DELETE SET NULL — relação nomeada `DestinationCreator`
 - `TourPackage.photos` / `highlights`: `String[]` nativo PostgreSQL (não JSON) — consistente com Destination model
+- Destination CRUD API: input usa `name`, service mapeia para `title` (campo DB) — separação semântica intencional
+- Destination ownership: `createdById === request.user.sub` — guia só edita/deleta os próprios; APPROVED imutável para guias
+- Zod v4 enum: usar `{ error: 'msg' }` (não `errorMap`) para mensagens customizadas em `z.enum()`
 - CNPJ: `String?` no Prisma schema, required no Zod `signupBodySchema` — consistência intencional
 - Perfil próprio: PUT /tenants/:slug/guides/me
 - Login global: email-first two-step — POST /auth/lookup-tenant descobre tenant pelo email, sem slug na URL
