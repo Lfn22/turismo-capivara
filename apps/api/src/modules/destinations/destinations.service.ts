@@ -86,6 +86,40 @@ export async function updateDestination(
   return updated
 }
 
+export async function approveDestination(destinationId: string) {
+  const destination = await prisma.destination.findUnique({
+    where: { id: destinationId },
+  })
+
+  if (!destination) throw new AppError('Destino não encontrado', 404)
+
+  if (destination.approvalStatus !== 'PENDING') {
+    throw new AppError('Destino não está pendente', 400)
+  }
+
+  return prisma.destination.update({
+    where: { id: destinationId },
+    data: { approvalStatus: 'APPROVED' },
+  })
+}
+
+export async function rejectDestination(destinationId: string) {
+  const destination = await prisma.destination.findUnique({
+    where: { id: destinationId },
+  })
+
+  if (!destination) throw new AppError('Destino não encontrado', 404)
+
+  if (destination.approvalStatus !== 'PENDING') {
+    throw new AppError('Destino não está pendente', 400)
+  }
+
+  return prisma.destination.update({
+    where: { id: destinationId },
+    data: { approvalStatus: 'REJECTED' },
+  })
+}
+
 export async function deleteDestination(destinationId: string, userId: string) {
   const destination = await prisma.destination.findUnique({
     where: { id: destinationId },
