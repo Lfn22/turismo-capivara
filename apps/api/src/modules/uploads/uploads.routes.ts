@@ -38,8 +38,13 @@ export async function uploadsRoutes(app: FastifyInstance) {
         throw err
       }
 
-      // Read uploaded file
-      const file = await request.file()
+      // Read uploaded file — request.file() throws if content-type is not multipart
+      let file: Awaited<ReturnType<typeof request.file>> | undefined
+      try {
+        file = await request.file()
+      } catch {
+        return reply.status(400).send({ error: 'Nenhum arquivo enviado' })
+      }
 
       if (!file) {
         return reply.status(400).send({ error: 'Nenhum arquivo enviado' })
