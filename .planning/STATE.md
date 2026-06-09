@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 
 ## Current Position
 
-Phase: Phase 14 (executing — 2/8 plans complete)
-Plan: 14-03 (next)
-Status: Phase 14 Gestão de Conteúdo — Plans 01-02 complete. Destination CRUD API with ownership enforcement live.
-Last activity: 2026-06-09 — 14-02 complete: Destination CRUD (POST/PATCH/DELETE) with Zod validation, service ownership checks, 29 tests passing
+Phase: Phase 14 (executing — 4/8 plans complete)
+Plan: 14-05 (next)
+Status: Phase 14 Gestão de Conteúdo — Plans 01-04 complete. Approval workflow live: PATCH /destinations/:id/approve + GET /admin/destinations/pending.
+Last activity: 2026-06-09 — 14-04 complete: approveDestination/rejectDestination service methods, PATCH approve endpoint (ADMIN), GET pending queue, 39 tests passing
 
 ## Decisões estratégicas
 
@@ -74,6 +74,10 @@ Last activity: 2026-06-09 — 14-02 complete: Destination CRUD (POST/PATCH/DELET
 - auth-client.ts: response shape `data.tenant.tenantSlug` no lookup-tenant
 - Idempotency: header `Idempotency-Key` em POST /bookings — lookup por `idempotencyKey` ANTES do $transaction, escopado por tenant
 - Connection pool: Prisma 7 usa `prisma.config.ts` para `url`/`directUrl` — schema.prisma não precisa desses campos; DATABASE_URL com `?connection_limit=10&pool_timeout=2`, DIRECT_URL sem params para migrations
+- R2 client: lazy initialization via `getR2Client()` factory — lê env vars no momento da chamada, não no import (evita crash em test/dev)
+- R2 auth: `CLOUDFLARE_API_TOKEN` formato `accessKeyId:secretAccessKey` (split em `:`)
+- Vitest mocks @aws-sdk: `PutObjectCommand`/`DeleteObjectCommand` devem usar `function` keyword (não arrow fn) para suportar `new` como construtor
+- Vitest + @fastify/multipart: mockar o plugin quebra `decorateRequest` por isolamento de módulos — usar real multipart body com Buffer manual em testes de rota
 
 ## Performance histórica
 
@@ -109,8 +113,8 @@ Last activity: 2026-06-09 — 14-02 complete: Destination CRUD (POST/PATCH/DELET
 
 ## Session Continuity
 
-Last session: 2026-06-03T23:41:00-03:00
-Stopped at: Phase 13 context gathered — ready for planning
+Last session: 2026-06-09T17:47:00-03:00
+Stopped at: 14-04 complete — destination approval workflow done
 Resume file: None
 
 ### Quick Tasks Completed
