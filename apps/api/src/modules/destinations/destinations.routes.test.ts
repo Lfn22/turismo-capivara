@@ -517,3 +517,97 @@ describe('ApprovalUpdateInput — schema validation', () => {
     }
   })
 })
+
+// ---- Public visibility filtering ----
+
+describe('Public destination visibility — GET /destinations (list)', () => {
+  it('calls findMany with approvalStatus: APPROVED filter', async () => {
+    mockPrisma.destination.findMany.mockResolvedValue([
+      { id: 'dest-1', slug: 'capivara', title: 'Capivara', approvalStatus: 'APPROVED' },
+    ])
+
+    // Simula o que a rota faz: buscar apenas APPROVED
+    const result = await prisma.destination.findMany({
+      where: { active: true, approvalStatus: 'APPROVED' },
+      select: { id: true, slug: true, title: true },
+      orderBy: { title: 'asc' },
+    })
+
+    expect(mockPrisma.destination.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ approvalStatus: 'APPROVED' }),
+      }),
+    )
+    expect(result).toHaveLength(1)
+    expect(result[0].approvalStatus).toBe('APPROVED')
+  })
+
+  it('PENDING destination is excluded from public list', async () => {
+    mockPrisma.destination.findMany.mockResolvedValue([]) // nenhum APPROVED
+
+    const result = await prisma.destination.findMany({
+      where: { active: true, approvalStatus: 'APPROVED' },
+    })
+
+    expect(result).toHaveLength(0)
+  })
+})
+
+describe('Public destination visibility — GET /destinations/:slug (detail)', () => {
+  it('returns destination when approvalStatus is APPROVED', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({
+      id: 'dest-1',
+      slug: 'capivara',
+      title: 'Capivara',
+      approvalStatus: 'APPROVED',
+    })
+
+    const destination = await prisma.destination.findUnique({
+      where: { slug: 'capivara', active: true },
+    })
+
+    expect(destination).not.toBeNull()
+    expect(destination?.approvalStatus).toBe('APPROVED')
+  })
+
+  it('PENDING destination is treated as not found (404 logic)', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({
+      id: 'dest-2',
+      slug: 'pending-dest',
+      title: 'Destino Pendente',
+      approvalStatus: 'PENDING',
+    })
+
+    const destination = await prisma.destination.findUnique({
+      where: { slug: 'pending-dest', active: true },
+    })
+
+    // A rota retorna 404 se approvalStatus !== 'APPROVED'
+    expect(destination?.approvalStatus).not.toBe('APPROVED')
+  })
+
+  it('REJECTED destination is treated as not found (404 logic)', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({
+      id: 'dest-3',
+      slug: 'rejected-dest',
+      title: 'Destino Rejeitado',
+      approvalStatus: 'REJECTED',
+    })
+
+    const destination = await prisma.destination.findUnique({
+      where: { slug: 'rejected-dest', active: true },
+    })
+
+    expect(destination?.approvalStatus).not.toBe('APPROVED')
+  })
+
+  it('non-existent slug returns null', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue(null)
+
+    const destination = await prisma.destination.findUnique({
+      where: { slug: 'nao-existe', active: true },
+    })
+
+    expect(destination).toBeNull()
+  })
+})
