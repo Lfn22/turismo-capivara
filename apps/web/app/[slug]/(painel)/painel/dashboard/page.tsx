@@ -43,6 +43,15 @@ function isToday(iso: string) {
   )
 }
 
+function MetricCard({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div style={{ background: "var(--stone-50)", border: "1px solid var(--stone-200)", borderRadius: "8px", padding: "16px 20px" }}>
+      <p style={{ fontSize: "11px", color: "var(--stone-500)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px" }}>{label}</p>
+      <p style={{ fontSize: "24px", fontWeight: 600, color: "var(--stone-900)" }}>{value}</p>
+    </div>
+  )
+}
+
 export default async function DashboardPage({
   params,
 }: {
@@ -56,6 +65,19 @@ export default async function DashboardPage({
   let bookings: Booking[] = []
   let packages: Package[] = []
   let loadError = false
+
+  let dashboardMetrics: {
+    bookings: { pending: number; confirmed: number; cancelled: number; completed: number; expired: number }
+    revenue: { confirmed: number }
+    upcomingSlots: Array<{ id: string; startsAt: string; booked: number; capacity: number; package: { name: string } }>
+  } | null = null
+
+  try {
+    const metricsData = await apiFetch<typeof dashboardMetrics>(`/tenants/${slug}/dashboard`, token)
+    dashboardMetrics = metricsData
+  } catch {
+    // silently fail — metrics are additive, page still works
+  }
 
   const bookingsPath =
     jwtRole === "CONDUTOR"
@@ -124,6 +146,14 @@ export default async function DashboardPage({
           Dashboard
         </h1>
       </div>
+
+      {dashboardMetrics && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "32px" }}>
+          <MetricCard label="Pendentes" value={dashboardMetrics.bookings.pending} />
+          <MetricCard label="Confirmadas" value={dashboardMetrics.bookings.confirmed} />
+          <MetricCard label="Faturamento" value={`R$ ${dashboardMetrics.revenue.confirmed.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
+        </div>
+      )}
 
       {/* Onboarding banner — só exibe quando não há roteiros cadastrados */}
       {activePackages.length === 0 && (

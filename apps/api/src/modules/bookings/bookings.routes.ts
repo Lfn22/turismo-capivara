@@ -177,7 +177,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
     try {
       paymentResult = await createPixPayment({
         bookingId: booking.id,
-        transactionAmount: Number(pkg.price),
+        transactionAmount: Number(pkg.price) * pax,
         description: `Reserva #${booking.id} — ${pkg.name}`,
         customerEmail,
         customerCpf,
@@ -549,7 +549,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
   app.patch(
     '/tenants/:slug/bookings/:id/cancel',
-    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       let params
       try {
@@ -610,7 +610,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
   app.patch(
     '/tenants/:slug/bookings/:id/confirm',
-    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       let params
       try {

@@ -27,7 +27,7 @@ async function buildRateLimitApp(): Promise<FastifyInstance> {
 
   await app.register(rateLimit, {
     global: true,
-    max: 20,
+    max: 100,
     timeWindow: '1 minute',
     addHeaders: {
       'x-ratelimit-limit': true,
@@ -75,8 +75,8 @@ describe('Rate Limiting', () => {
     await app.close()
   })
 
-  it('blocks 21st request to POST /auth/login (max 20/min per IP)', async () => {
-    for (let i = 0; i < 20; i++) {
+  it('blocks 101st request to POST /auth/login (max 100/min per IP)', async () => {
+    for (let i = 0; i < 100; i++) {
       await app.inject({
         method: 'POST',
         url: '/auth/login',
@@ -93,8 +93,8 @@ describe('Rate Limiting', () => {
     expect(res.statusCode).toBe(429)
   })
 
-  it('blocks 21st request to POST /tenants/:slug/auth/register (max 20/min per IP)', async () => {
-    for (let i = 0; i < 20; i++) {
+  it('blocks 101st request to POST /tenants/:slug/auth/register (max 100/min per IP)', async () => {
+    for (let i = 0; i < 100; i++) {
       await app.inject({
         method: 'POST',
         url: '/tenants/test-tenant/auth/register',
@@ -144,7 +144,7 @@ describe('Rate Limiting', () => {
   })
 
   it('429 response includes Retry-After header', async () => {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 100; i++) {
       await app.inject({
         method: 'POST',
         url: '/auth/login',

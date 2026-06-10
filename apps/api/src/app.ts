@@ -27,6 +27,7 @@ import { guidesRoutes } from './modules/guides/guides.routes'
 import { webhooksRoutes } from './modules/webhooks/webhooks.routes'
 import { destinationsRoutes } from './modules/destinations/destinations.routes'
 import { uploadsRoutes } from './modules/uploads/uploads.routes'
+import { dashboardRoutes } from './modules/dashboard/dashboard.routes'
 import { createBookingExpiryJob } from './modules/bookings/expiry.job'
 import { AppError } from './shared/errors/AppError'
 
@@ -51,7 +52,7 @@ app.register(helmet)
 
 app.register(rateLimit, {
   global: true,
-  max: 20,
+  max: 100,
   timeWindow: '1 minute',
   addHeaders: {
     'x-ratelimit-limit': true,
@@ -91,6 +92,7 @@ app.register(guidesRoutes)
 app.register(webhooksRoutes)
 app.register(destinationsRoutes)
 app.register(uploadsRoutes)
+app.register(dashboardRoutes)
 
 app.setErrorHandler((err, request, reply) => {
   if (err instanceof AppError) {
