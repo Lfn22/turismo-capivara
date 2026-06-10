@@ -15,12 +15,12 @@ describe('booking price calculation', () => {
     expect(transactionAmount).toBe(200.0)
   })
 
-  it('repay calculation matches create calculation formula', () => {
-    const packagePrice = 100.0
+  it('converts Decimal string price correctly before multiplication', () => {
+    // Prisma retorna price como string "150.00" (tipo Decimal)
+    const priceFromDb = '150.00' as unknown as number
     const pax = 2
-    const createAmount = Number(packagePrice) * pax
-    const repayAmount = Number(packagePrice) * pax
-    expect(createAmount).toBe(repayAmount)
-    expect(createAmount).toBe(200.0)
+    const transactionAmount = Number(priceFromDb) * pax
+    expect(transactionAmount).toBe(300.0)
+    expect(typeof transactionAmount).toBe('number')
   })
 })
