@@ -52,7 +52,7 @@ app.register(helmet)
 
 app.register(rateLimit, {
   global: true,
-  max: 20,
+  max: 100,
   timeWindow: '1 minute',
   addHeaders: {
     'x-ratelimit-limit': true,
