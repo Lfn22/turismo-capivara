@@ -5,17 +5,6 @@ import prisma from '../../database'
 import { getResend } from '../../shared/email'
 import { bookingConfirmedEmailText, bookingConfirmedSubject } from '../bookings/emails/booking-confirmed-email'
 
-if (!process.env.MP_ACCESS_TOKEN) {
-  throw new Error('MP_ACCESS_TOKEN environment variable is required')
-}
-
-if (!process.env.MP_WEBHOOK_SECRET) {
-  throw new Error('MP_WEBHOOK_SECRET environment variable is required')
-}
-
-const client = new MercadoPagoConfig({
-  accessToken: process.env.MP_ACCESS_TOKEN,
-})
 
 function validateMpSignature(
   signatureHeader: string,
@@ -91,6 +80,10 @@ export async function webhooksRoutes(app: FastifyInstance) {
       }
 
       // 4. Fetch payment details from MP to get authoritative status and external_reference
+      // Lazy init — validateEnv() já garantiu que a var existe no startup
+      const client = new MercadoPagoConfig({
+        accessToken: process.env.MP_ACCESS_TOKEN!,
+      })
       let payment
       try {
         payment = await new Payment(client).get({ id: paymentId })
