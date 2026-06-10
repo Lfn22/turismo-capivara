@@ -10,6 +10,7 @@ import { getResend } from '../../shared/email'
 import { bookingCreatedEmailText, bookingCreatedSubject } from './emails/booking-created-email'
 import { selfServiceBodySchema, type SelfServiceBody } from './bookings.schemas'
 import { bookingCancelledEmailText } from './emails/booking-cancelled-email'
+import { bookingGuideNotificationEmailText, bookingGuideNotificationSubject } from './emails/booking-guide-notification-email'
 import * as paymentService from '../../services/payment.service'
 
 const createBookingBodySchema = z.object({
@@ -156,7 +157,12 @@ export async function bookingsRoutes(app: FastifyInstance) {
     // Query package price OUTSIDE $transaction (keeps tx minimal)
     const pkg = await prisma.tourPackage.findFirst({
       where: { departureSlots: { some: { id: slotId } } },
-      select: { price: true, name: true },
+      select: {
+        price: true,
+        name: true,
+        conductor: { select: { email: true } },
+        departureSlots: { where: { id: slotId }, select: { startsAt: true }, take: 1 },
+      },
     })
 
     // Guard: package must exist to build a valid PIX amount
@@ -226,6 +232,27 @@ export async function bookingsRoutes(app: FastifyInstance) {
         })
         .catch((emailErr: unknown) => {
           app.log.warn({ err: emailErr }, '[email] Failed to send booking-created email')
+        })
+    }
+
+    // NOTIF-05: Notify guide of new booking (fire-and-forget)
+    const guideEmail = pkg.conductor?.email
+    if (resend && guideEmail) {
+      resend.emails
+        .send({
+          from: 'CAPI <noreply@capi.turismo>',
+          to: [guideEmail],
+          subject: bookingGuideNotificationSubject,
+          text: bookingGuideNotificationEmailText({
+            bookingId: updatedBooking.id,
+            customerName,
+            pax,
+            packageName: pkg.name,
+            slotDate: pkg.departureSlots[0]?.startsAt ?? new Date(),
+          }),
+        })
+        .catch((emailErr: unknown) => {
+          app.log.warn({ err: emailErr }, '[email] Failed to send guide notification email')
         })
     }
 
