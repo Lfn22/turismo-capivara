@@ -1,1 +1,1 @@
-web: pnpm prisma migrate deploy && node dist/app.js
+web: pnpm prisma generate && pnpm prisma migrate deploy && node dist/app.js
