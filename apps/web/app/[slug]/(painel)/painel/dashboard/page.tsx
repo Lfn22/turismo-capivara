@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import { getToken } from "next-auth/jwt"
 import { headers } from "next/headers"
 import { apiFetch } from "@/lib/api/client"
@@ -67,6 +68,10 @@ export default async function DashboardPage({
   const jwt = await getToken({ req: { headers: await headers() } as any, secret: process.env.NEXTAUTH_SECRET })
   const token = (jwt?.apiToken as string) ?? ""
   const jwtRole = (jwt?.role as string) ?? ""
+
+  if (!token) {
+    redirect(`/login?callbackUrl=/${slug}/painel/dashboard`)
+  }
 
   let bookings: Booking[] = []
   let packages: Package[] = []
