@@ -342,7 +342,7 @@ export default async function HomePage() {
         <Link href="/" className="home-nav__wordmark">CAPI</Link>
         <div className="home-nav__links">
           <Link href="/destinos" className="home-nav__link">Destinos</Link>
-          <Link href="/destinos" className="home-nav__cta">Explorar</Link>
+          <Link href="/explorar" className="home-nav__cta">Explorar</Link>
         </div>
       </nav>
 
