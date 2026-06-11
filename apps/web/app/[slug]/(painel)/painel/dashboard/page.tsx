@@ -23,6 +23,12 @@ interface Package {
   active: boolean
 }
 
+type DashboardMetrics = {
+  bookings: { pending: number; confirmed: number; cancelled: number; completed: number; expired: number }
+  revenue: { confirmed: number }
+  upcomingSlots: Array<{ id: string; startsAt: string; booked: number; capacity: number; package: { name: string } }>
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -66,15 +72,10 @@ export default async function DashboardPage({
   let packages: Package[] = []
   let loadError = false
 
-  let dashboardMetrics: {
-    bookings: { pending: number; confirmed: number; cancelled: number; completed: number; expired: number }
-    revenue: { confirmed: number }
-    upcomingSlots: Array<{ id: string; startsAt: string; booked: number; capacity: number; package: { name: string } }>
-  } | null = null
+  let dashboardMetrics: DashboardMetrics | null = null
 
   try {
-    const metricsData = await apiFetch<typeof dashboardMetrics>(`/tenants/${slug}/dashboard`, token)
-    dashboardMetrics = metricsData
+    dashboardMetrics = await apiFetch<DashboardMetrics>(`/tenants/${slug}/dashboard`, token)
   } catch {
     // silently fail — metrics are additive, page still works
   }
