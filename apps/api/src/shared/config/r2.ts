@@ -40,12 +40,11 @@ export function getR2Bucket(): string {
 }
 
 export function getR2PublicUrl(): string {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID
-  const bucket = process.env.R2_BUCKET_NAME
-  if (!accountId || !bucket) {
+  const publicUrl = process.env.R2_PUBLIC_URL
+  if (!publicUrl) {
     throw new Error(
-      'Variáveis R2 ausentes: CLOUDFLARE_ACCOUNT_ID e R2_BUCKET_NAME são obrigatórias',
+      'Variável R2 ausente: R2_PUBLIC_URL é obrigatória (copie a URL pública do dashboard Cloudflare R2 → seu bucket → Public URL)',
     )
   }
-  return `https://${bucket}.${accountId}.r2.dev`
+  return publicUrl.replace(/\/$/, '')
 }
