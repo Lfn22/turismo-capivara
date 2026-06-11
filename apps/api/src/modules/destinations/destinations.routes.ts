@@ -307,7 +307,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
 
       const userId = request.user.sub
       const tenantId = request.user.tenantId
-      const destination = await createDestination(tenantId, userId, input)
+      const destination = await createDestination(tenantId, userId, input, request.user.role)
       return reply.status(201).send(destination)
     },
   )

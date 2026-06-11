@@ -462,11 +462,11 @@ export async function packagesRoutes(app: FastifyInstance) {
     let updatedPackage
 
     if (body.photos !== undefined) {
-      updatedPackage = await updatePackagePhotos(params!.id, user.sub, body.photos)
+      updatedPackage = await updatePackagePhotos(params!.id, user.sub, body.photos, user.role)
     }
 
     if (body.highlights !== undefined) {
-      updatedPackage = await updatePackageHighlights(params!.id, user.sub, body.highlights)
+      updatedPackage = await updatePackageHighlights(params!.id, user.sub, body.highlights, user.role)
     }
 
     return reply.status(200).send(updatedPackage)

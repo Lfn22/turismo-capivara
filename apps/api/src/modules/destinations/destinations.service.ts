@@ -29,6 +29,7 @@ export async function createDestination(
   tenantId: string,
   userId: string,
   input: CreateDestinationInputType,
+  userRole?: string,
 ) {
   const baseSlug = slugify(input.name)
   const slug = await uniqueSlug(baseSlug)
@@ -45,7 +46,7 @@ export async function createDestination(
       state: input.state,
       photos: input.photos ?? [],
       highlights: input.highlights ?? [],
-      approvalStatus: 'PENDING',
+      approvalStatus: userRole === 'ADMIN' ? 'APPROVED' : 'PENDING',
       createdById: userId,
     },
   })

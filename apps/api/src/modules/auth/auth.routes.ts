@@ -65,7 +65,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     const user = await prisma.user.findFirst({
       where: {
-        email,
+        email: email.toLowerCase(),
         tenantId: tenant.id,
       },
     })
@@ -143,7 +143,7 @@ export async function authRoutes(app: FastifyInstance) {
           data: {
             tenantId: tenant.id,
             name: body.name,
-            email: body.email,
+            email: body.email.toLowerCase(),
             password: hashedPassword,
             role: 'CLIENTE',
           },
@@ -155,7 +155,7 @@ export async function authRoutes(app: FastifyInstance) {
             data: {
               tenantId: tenant.id,
               name: body.name,
-              email: body.email,
+              email: body.email.toLowerCase(),
               password: hashedPassword,
               role: 'CONDUTOR',
               cpf: hashCpf(body.cpf),

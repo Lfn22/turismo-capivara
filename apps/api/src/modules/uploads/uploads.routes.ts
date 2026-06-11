@@ -32,7 +32,7 @@ export async function uploadsRoutes(app: FastifyInstance) {
       } catch (err) {
         if (err instanceof ZodError) {
           return reply.status(400).send({
-            error: err.issues[0]?.message ?? 'Parâmetro folder inválido',
+            message: err.issues[0]?.message ?? 'Parâmetro folder inválido',
           })
         }
         throw err
