@@ -17,7 +17,7 @@
 - [x] **Phase 12: Login Global** — Portal `/login` sem slug com email lookup automático de tenant (completed 2026-06-02)
 - [x] **Phase 12.1: Pre-Launch Hardening** — Idempotência em bookings, connection pool, smoke test PIX, onboarding de early adopters (completed 2026-06-03)
 - [ ] **Phase 13: Painel Mobile + Feedback** — Card layout responsivo, touch targets, toasts, empty states, dialogs de confirmação
-- [ ] **Phase 14: Gestao de Conteudo** — Guia cria/edita destinos com fotos e enriquece roteiros com galeria e experiências
+- [x] **Phase 14: Gestao de Conteudo** — Guia cria/edita destinos com fotos e enriquece roteiros com galeria e experiências (completed 2026-06-11)
 
 ---
 
@@ -103,7 +103,7 @@ Plans:
 | 12. Login Global | 3/3 | Complete   | 2026-06-02 |
 | 12.1. Pre-Launch Hardening | 3/3 | Complete | 2026-06-03 |
 | 13. Painel Mobile + Feedback | 0/? | Not started | - |
-| 14. Gestao de Conteudo | 5/8 | In progress | - |
+| 14. Gestao de Conteudo | 8/8 | Complete | 2026-06-11 |
 
 ---
 

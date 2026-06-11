@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
-status: executing
-stopped_at: "Phase 13 fixes pending — code review complete, 2 críticos fase 12 + 9 warnings fases 12.1/13"
-last_updated: "2026-06-04T16:17:00-03:00"
-last_activity: "2026-06-04 — Code review deep fases 12/12.1/13 completo; 13-REVIEW.md, 12-REVIEW.md, 12.1-REVIEW.md gerados"
+status: complete
+stopped_at: "Phase 14 complete — all 8 plans executed, 4 post-UAT bugs fixed, committed and deployed"
+last_updated: "2026-06-11T16:00:00-03:00"
+last_activity: "2026-06-11 — Phase 14 complete: 4 bugs fixed (login email case, destinos PENDING, highlights 403, upload error key)"
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 16
-  completed_plans: 16
+  completed_phases: 4
+  total_plans: 24
+  completed_plans: 24
   percent: 100
 ---
 
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-05-26)
 
 ## Current Position
 
-Phase: Phase 14 (executing — 5/8 plans complete)
-Plan: 14-06 (next)
-Status: Phase 14 Gestão de Conteúdo — Plans 01-05 complete. Package enrichment live: PATCH /tenants/:slug/packages/:id updates photos and highlights immediately.
-Last activity: 2026-06-09 — 14-05 complete: UpdatePackagePhotosInput/UpdatePackageHighlightsInput schemas, updatePackagePhotos/updatePackageHighlights service, PATCH endpoint, 21 tests passing
+Phase: Phase 14 (complete — 8/8 plans)
+Plan: —
+Status: Milestone v1.2 complete. Phase 13 (Painel Mobile + Feedback) is the only remaining phase of v1.2 and was not started.
+Last activity: 2026-06-11 — Phase 14 complete: 4 bugs fixed post-UAT (login email case, destinos always PENDING, highlights 403 for ADMIN, upload error key inconsistency)
 
 ## Decisões estratégicas
 
@@ -113,8 +113,8 @@ Last activity: 2026-06-09 — 14-05 complete: UpdatePackagePhotosInput/UpdatePac
 
 ## Session Continuity
 
-Last session: 2026-06-09T17:53:00-03:00
-Stopped at: 14-05 complete — package enrichment (photos/highlights) done
+Last session: 2026-06-11T16:00:00-03:00
+Stopped at: Phase 14 complete — all bugs fixed, committed eaca28b, pushed to Railway
 Resume file: None
 
 ### Quick Tasks Completed
