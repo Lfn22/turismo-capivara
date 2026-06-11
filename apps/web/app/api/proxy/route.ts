@@ -50,12 +50,17 @@ async function handler(req: NextRequest) {
     body = await req.text()
   }
 
-  const res = await fetch(upstream, {
-    method: req.method,
-    headers,
-    ...(body !== undefined ? { body } : {}),
-    cache: "no-store",
-  })
+  let res: Response
+  try {
+    res = await fetch(upstream, {
+      method: req.method,
+      headers,
+      ...(body !== undefined ? { body } : {}),
+      cache: "no-store",
+    })
+  } catch {
+    return NextResponse.json({ message: "Serviço indisponível" }, { status: 502 })
+  }
 
   const data = await res.text()
   return new NextResponse(data, {
