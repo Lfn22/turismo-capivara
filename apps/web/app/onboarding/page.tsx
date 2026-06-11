@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
 
@@ -345,9 +346,9 @@ export default function OnboardingPage() {
           }}
         >
           Já tem conta?{" "}
-          <span style={{ color: "var(--ochre)", cursor: "pointer" }}>
+          <Link href="/login" style={{ color: "var(--ochre)", fontWeight: 600, textDecoration: "none" }}>
             Acesse o painel da sua operadora.
-          </span>
+          </Link>
         </p>
       </div>
     </main>
