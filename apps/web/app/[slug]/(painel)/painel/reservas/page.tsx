@@ -66,9 +66,10 @@ export default function ReservasPage({
   }
 
   useEffect(() => {
+    if (!role) return
     loadBookings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug])
+  }, [slug, role])
 
   async function handleConfirm(id: string) {
     setActionLoading(id)
@@ -456,7 +457,7 @@ export default function ReservasPage({
         open={cancelDialogOpen}
         onOpenChange={setCancelDialogOpen}
         onConfirm={executeCancel}
-        loading={false}
+        loading={actionLoading === pendingCancelId}
       />
 
       <style>{`
