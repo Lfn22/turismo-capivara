@@ -346,7 +346,13 @@ export async function destinationsRoutes(app: FastifyInstance) {
     '/tenants/:slug/destinations/:id',
     { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR'])] },
     async (request, reply) => {
-      const { id } = request.params as { slug: string; id: string }
+      const { slug, id } = request.params as { slug: string; id: string }
+
+      // Verificar que o destino pertence ao tenant indicado pelo slug
+      const tenant = await prisma.tenant.findUnique({ where: { slug } })
+      if (!tenant) throw new AppError('Tenant não encontrado', 404)
+      const linked = await prisma.destination.findFirst({ where: { id, tenants: { some: { slug } } } })
+      if (!linked) throw new AppError('Destino não encontrado', 404)
 
       let input
       try {
@@ -367,7 +373,14 @@ export async function destinationsRoutes(app: FastifyInstance) {
     '/tenants/:slug/destinations/:id',
     { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR'])] },
     async (request, reply) => {
-      const { id } = request.params as { slug: string; id: string }
+      const { slug, id } = request.params as { slug: string; id: string }
+
+      // Verificar que o destino pertence ao tenant indicado pelo slug
+      const tenant = await prisma.tenant.findUnique({ where: { slug } })
+      if (!tenant) throw new AppError('Tenant não encontrado', 404)
+      const linked = await prisma.destination.findFirst({ where: { id, tenants: { some: { slug } } } })
+      if (!linked) throw new AppError('Destino não encontrado', 404)
+
       const userId = request.user.sub
       await deleteDestination(id, userId, request.user.role)
       return reply.status(204).send()
