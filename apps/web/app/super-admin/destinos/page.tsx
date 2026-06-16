@@ -3,11 +3,11 @@ import { useState, useEffect, useCallback } from "react"
 
 interface Destination {
   id: string
-  name: string
+  title: string
   state: string
-  thumbnailUrl: string | null
+  heroImageUrl: string | null
   approvalStatus: "PENDING" | "APPROVED" | "REJECTED"
-  tenant: { slug: string; name: string }
+  createdBy: { name: string; email: string; tenant: { slug: string; name: string } } | null
   createdAt: string
 }
 
@@ -247,10 +247,10 @@ export default function SuperAdminDestinosPendentesPage() {
                 }}
               >
                 {/* Thumbnail */}
-                {dest.thumbnailUrl ? (
+                {dest.heroImageUrl ? (
                   <img
-                    src={dest.thumbnailUrl}
-                    alt={dest.name}
+                    src={dest.heroImageUrl}
+                    alt={dest.title}
                     style={{
                       width: "60px",
                       height: "60px",
@@ -282,7 +282,7 @@ export default function SuperAdminDestinosPendentesPage() {
                       margin: 0,
                     }}
                   >
-                    {dest.name}
+                    {dest.title}
                   </p>
                   <p
                     style={{
@@ -291,7 +291,7 @@ export default function SuperAdminDestinosPendentesPage() {
                       margin: "2px 0 0",
                     }}
                   >
-                    {dest.tenant.slug} &middot; {dest.state}
+                    {dest.createdBy?.tenant?.slug ?? "—"} &middot; {dest.state}
                   </p>
                 </div>
 
@@ -316,7 +316,7 @@ export default function SuperAdminDestinosPendentesPage() {
                   <button
                     onClick={() => handleApprove(dest)}
                     disabled={busy}
-                    aria-label={`Aprovar destino ${dest.name}`}
+                    aria-label={`Aprovar destino ${dest.title}`}
                     style={{
                       background: "#15803D",
                       color: "white",
@@ -337,7 +337,7 @@ export default function SuperAdminDestinosPendentesPage() {
                   <button
                     onClick={() => handleReject(dest)}
                     disabled={busy}
-                    aria-label={`Rejeitar destino ${dest.name}`}
+                    aria-label={`Rejeitar destino ${dest.title}`}
                     style={{
                       background: "#DC2626",
                       color: "white",
