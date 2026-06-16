@@ -65,7 +65,8 @@ export async function updateDestination(
 
   if (!destination) throw new AppError('Destino não encontrado', 404)
 
-  if (destination.createdById !== userId) {
+  // createdById pode ser null em destinos criados antes da Phase 14 — tratar como não autorizado
+  if (!destination.createdById || destination.createdById !== userId) {
     throw new AppError('Não autorizado', 403)
   }
 
