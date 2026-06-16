@@ -254,7 +254,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
         photos: z.array(z.string().url()).max(5).optional(),
         title: z.string().min(1).optional(),
         subtitle: z.string().nullable().optional(),
-        description: z.string().nullable().optional(),
+        description: z.string().optional(),
         highlights: z.array(z.string().min(1)).optional(),
         tagline: z.string().nullable().optional(),
       })
@@ -305,7 +305,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
       const whereClause =
         request.user.role === 'CONDUTOR'
           ? { createdById: request.user.sub }
-          : { approvalStatus: { in: ['PENDING', 'APPROVED', 'REJECTED'] as const } }
+          : { approvalStatus: { in: ['PENDING', 'APPROVED', 'REJECTED'] as ('PENDING' | 'APPROVED' | 'REJECTED')[] } }
 
       const destinations = await prisma.destination.findMany({
         where: whereClause,
