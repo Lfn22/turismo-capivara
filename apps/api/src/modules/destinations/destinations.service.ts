@@ -15,7 +15,7 @@ function slugify(text: string): string {
 
 async function uniqueSlug(base: string): Promise<string> {
   const existing = await prisma.destination.findMany({
-    where: { slug: { startsWith: base } },
+    where: { OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }] },
     select: { slug: true },
   })
   const slugs = new Set(existing.map((d) => d.slug))
