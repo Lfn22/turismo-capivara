@@ -218,6 +218,10 @@ export async function destinationsRoutes(app: FastifyInstance) {
 
   // PATCH /destinations/:destinationSlug — atualiza fotos (ADMIN/SUPER_ADMIN/CONDUTOR)
   // CONDUTOR só pode editar o destino vinculado ao seu próprio tenant
+  // NOTE: Esta rota chama prisma.destination.update() diretamente, sem passar por updateDestination().
+  // Isso é intencional: o serviço updateDestination() bloqueia edições em destinos APPROVED para
+  // usuários não-admin. Admins precisam editar destinos aprovados via esta rota. Qualquer refatoração
+  // que redirecione esta rota pelo serviço deve preservar essa distinção explicitamente.
   app.patch(
     '/destinations/:destinationSlug',
     { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN', 'CONDUTOR'])] },
