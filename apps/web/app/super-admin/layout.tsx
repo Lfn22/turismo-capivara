@@ -23,16 +23,19 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
           flexWrap: "wrap",
         }}
       >
-        <span
+        <Link
+          href="/"
           style={{
             fontFamily: "var(--font-display)",
             fontSize: "18px",
             fontWeight: 400,
             color: "var(--stone-900)",
+            textDecoration: "none",
           }}
         >
-          CAPI — Painel Super-Admin
-        </span>
+          CAPI
+        </Link>
+        <span style={{ color: "var(--stone-400)", fontSize: "14px" }}>Painel Super-Admin</span>
         <nav style={{ display: "flex", gap: "4px" }}>
           {navItems.map((item) => {
             const active = pathname.startsWith(item.href)

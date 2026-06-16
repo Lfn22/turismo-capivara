@@ -81,11 +81,14 @@ export default function ReservasPage({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message ?? "Erro ao processar.")
+      }
       toast.success("Reserva confirmada.")
-    } catch {
+    } catch (err) {
       setBookings(prevBookings)
-      toast.error("Erro ao processar.")
+      toast.error(err instanceof Error ? err.message : "Erro ao processar.")
     } finally {
       setActionLoading(null)
     }
@@ -111,11 +114,14 @@ export default function ReservasPage({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message ?? "Erro ao processar.")
+      }
       toast.success("Reserva cancelada.")
-    } catch {
+    } catch (err) {
       setBookings(prevBookings)
-      toast.error("Erro ao processar.")
+      toast.error(err instanceof Error ? err.message : "Erro ao processar.")
     } finally {
       setActionLoading(null)
     }

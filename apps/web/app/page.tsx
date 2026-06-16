@@ -353,9 +353,6 @@ export default async function HomePage() {
           <h1 className="home-hero__wordmark">
             <Image src="/images/logo.png" alt="CAPI — caminho entre quem explora e quem opera" width={260} height={235} style={{ filter: 'brightness(0) invert(1)', display: 'block', margin: '0 auto' }} priority />
           </h1>
-          <p className="home-hero__tagline">
-            caminho entre quem explora e quem opera
-          </p>
           <div className="home-hero__actions">
             <Link href="/destinos" className="home-hero__btn">
               Explorar destinos

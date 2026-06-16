@@ -168,6 +168,9 @@ export function SidebarNav({ slug, tenantName }: { slug: string; tenantName?: st
 
         {/* Brand */}
         <div style={{ padding: "24px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <Link href="/" style={{ fontFamily: "var(--font-display)", fontSize: "13px", color: "var(--ochre)", fontWeight: 600, textDecoration: "none", display: "block", marginBottom: "8px", letterSpacing: "0.04em" }}>
+            ← CAPI
+          </Link>
           <p style={{ fontFamily: "var(--font-display)", fontSize: "16px", color: "var(--stone-100)", fontWeight: 600, margin: 0 }}>
             {tenantName ?? slug}
           </p>

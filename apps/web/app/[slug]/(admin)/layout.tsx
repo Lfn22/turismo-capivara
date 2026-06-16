@@ -32,17 +32,31 @@ export default async function AdminLayout({
           justifyContent: "space-between",
         }}
       >
-        <p
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "16px",
-            color: "var(--stone-100)",
-            fontWeight: 600,
-            margin: 0,
-          }}
-        >
-          {slug} — Admin
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <Link
+            href="/"
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "16px",
+              color: "var(--ochre)",
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            CAPI
+          </Link>
+          <p
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "16px",
+              color: "var(--stone-100)",
+              fontWeight: 600,
+              margin: 0,
+            }}
+          >
+            {slug} — Admin
+          </p>
+        </div>
         <Link
           href={`/${slug}/login`}
           style={{ fontSize: "14px", color: "var(--stone-400)", textDecoration: "none" }}
