@@ -292,6 +292,35 @@ export async function destinationsRoutes(app: FastifyInstance) {
     },
   )
 
+  // GET /tenants/:slug/destinations — lista destinos do tenant (ADMIN/CONDUTOR/ATENDENTE)
+  app.get(
+    '/tenants/:slug/destinations',
+    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'ATENDENTE'])] },
+    async (request, reply) => {
+      // CONDUTOR vê apenas seus próprios destinos; ADMIN/ATENDENTE vê todos
+      const whereClause =
+        request.user.role === 'CONDUTOR'
+          ? { createdById: request.user.sub }
+          : { approvalStatus: { in: ['PENDING', 'APPROVED', 'REJECTED'] as const } }
+
+      const destinations = await prisma.destination.findMany({
+        where: whereClause,
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          state: true,
+          approvalStatus: true,
+          createdById: true,
+          photos: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      return reply.status(200).send({ destinations })
+    },
+  )
+
   // POST /tenants/:slug/destinations — guia cria destino (ADMIN/CONDUTOR)
   app.post(
     '/tenants/:slug/destinations',
