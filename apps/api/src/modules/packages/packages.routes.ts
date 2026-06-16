@@ -459,15 +459,16 @@ export async function packagesRoutes(app: FastifyInstance) {
 
     const user = request.user as { sub: string; role: string }
 
-    let updatedPackage
-
     if (body.photos !== undefined) {
-      updatedPackage = await updatePackagePhotos(params!.id, user.sub, body.photos, user.role)
+      await updatePackagePhotos(params!.id, user.sub, body.photos, user.role)
     }
 
     if (body.highlights !== undefined) {
-      updatedPackage = await updatePackageHighlights(params!.id, user.sub, body.highlights, user.role)
+      await updatePackageHighlights(params!.id, user.sub, body.highlights, user.role)
     }
+
+    // Busca o pacote completo após todas as atualizações para retornar estado consistente
+    const updatedPackage = await prisma.tourPackage.findUnique({ where: { id: params!.id } })
 
     return reply.status(200).send(updatedPackage)
   })
