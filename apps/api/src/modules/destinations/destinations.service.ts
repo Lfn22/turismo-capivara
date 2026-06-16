@@ -121,15 +121,19 @@ export async function rejectDestination(destinationId: string) {
   })
 }
 
-export async function deleteDestination(destinationId: string, userId: string) {
+export async function deleteDestination(destinationId: string, userId: string, userRole?: string) {
   const destination = await prisma.destination.findUnique({
     where: { id: destinationId },
   })
 
   if (!destination) throw new AppError('Destino não encontrado', 404)
 
-  if (destination.createdById !== userId) {
+  if (userRole !== 'ADMIN' && destination.createdById !== userId) {
     throw new AppError('Não autorizado', 403)
+  }
+
+  if (userRole !== 'ADMIN' && destination.approvalStatus === 'APPROVED') {
+    throw new AppError('Não é possível excluir destino aprovado. Entre em contato com o suporte.', 400)
   }
 
   await prisma.destination.delete({ where: { id: destinationId } })

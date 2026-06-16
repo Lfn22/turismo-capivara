@@ -340,7 +340,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params as { slug: string; id: string }
       const userId = request.user.sub
-      await deleteDestination(id, userId)
+      await deleteDestination(id, userId, request.user.role)
       return reply.status(204).send()
     },
   )
