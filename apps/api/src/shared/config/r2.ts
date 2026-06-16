@@ -19,7 +19,13 @@ export function getR2Client(): S3Client {
   }
 
   // R2 API token format: <accessKeyId>:<secretAccessKey>
-  const [accessKeyId, secretAccessKey] = apiToken.split(':')
+  const parts = apiToken.split(':')
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    throw new Error(
+      'CLOUDFLARE_API_TOKEN formato inválido. Esperado: <accessKeyId>:<secretAccessKey>',
+    )
+  }
+  const [accessKeyId, secretAccessKey] = parts
 
   return new S3Client({
     region: 'auto',
