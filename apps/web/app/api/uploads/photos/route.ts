@@ -7,7 +7,10 @@ export async function POST(req: NextRequest) {
   const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
   const token = (jwt?.apiToken as string) ?? ""
 
-  const folder = req.nextUrl.searchParams.get("folder") ?? "uploads"
+  const folder = req.nextUrl.searchParams.get("folder")
+  if (!folder || !["destinations", "packages"].includes(folder)) {
+    return NextResponse.json({ message: "Parâmetro folder inválido" }, { status: 400 })
+  }
   const formData = await req.formData()
 
   const res = await fetch(`${API_URL}/uploads/photos?folder=${encodeURIComponent(folder)}`, {
