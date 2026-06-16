@@ -5,7 +5,10 @@ const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http:
 
 export async function POST(req: NextRequest) {
   const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-  const token = (jwt?.apiToken as string) ?? ""
+  if (!jwt?.apiToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  const token = jwt.apiToken as string
 
   const folder = req.nextUrl.searchParams.get("folder")
   if (!folder || !["destinations", "packages"].includes(folder)) {

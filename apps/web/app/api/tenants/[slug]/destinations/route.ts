@@ -9,7 +9,10 @@ export async function GET(
 ) {
   const { slug } = await params
   const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-  const token = (jwt?.apiToken as string) ?? ""
+  if (!jwt?.apiToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  const token = jwt.apiToken as string
 
   const res = await fetch(`${API_URL}/tenants/${slug}/destinations`, {
     cache: "no-store",
@@ -28,7 +31,10 @@ export async function POST(
 ) {
   const { slug } = await params
   const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-  const token = (jwt?.apiToken as string) ?? ""
+  if (!jwt?.apiToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+  const token = jwt.apiToken as string
 
   const body = await req.text()
   const res = await fetch(`${API_URL}/tenants/${slug}/destinations`, {
