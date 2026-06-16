@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { getToken } from "next-auth/jwt"
-import { headers } from "next/headers"
+import { cookies } from "next/headers"
 import { apiFetch } from "@/lib/api/client"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 import BackButton from "@/src/components/ui/BackButton"
@@ -65,7 +65,11 @@ export default async function DashboardPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const jwt = await getToken({ req: { headers: await headers() } as any, secret: process.env.NEXTAUTH_SECRET })
+  const cookieStore = await cookies()
+  const jwt = await getToken({
+    req: { cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])) } as any,
+    secret: process.env.NEXTAUTH_SECRET,
+  })
   const token = (jwt?.apiToken as string) ?? ""
   const jwtRole = (jwt?.role as string) ?? ""
 

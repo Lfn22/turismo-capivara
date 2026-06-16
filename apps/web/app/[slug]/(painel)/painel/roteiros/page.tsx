@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth"
 import { getToken } from "next-auth/jwt"
-import { headers } from "next/headers"
+import { cookies } from "next/headers"
 import { authOptions } from "@/lib/auth"
 import { apiFetch } from "@/lib/api/client"
 import Link from "next/link"
@@ -37,7 +37,11 @@ export default async function RoteirosPage({
 }) {
   const { slug } = await params
   const session = await getServerSession(authOptions)
-  const jwt = await getToken({ req: { headers: await headers() } as any, secret: process.env.NEXTAUTH_SECRET })
+  const cookieStore = await cookies()
+  const jwt = await getToken({
+    req: { cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])) } as any,
+    secret: process.env.NEXTAUTH_SECRET,
+  })
   const token = (jwt?.apiToken as string) ?? ""
   const userId = (session?.user as any)?.id ?? ""
   const role = (session?.user as any)?.role ?? ""
