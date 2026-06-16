@@ -23,7 +23,7 @@ export async function uploadsRoutes(app: FastifyInstance) {
   // Auth: qualquer usuário autenticado (ADMIN, CONDUTOR, CLIENTE)
   app.post(
     '/uploads/photos',
-    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'CLIENTE'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN', 'CONDUTOR', 'CLIENTE'])] },
     async (request, reply) => {
       // Validate query param: folder
       let folder: 'destinations' | 'packages'
