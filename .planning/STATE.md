@@ -1,34 +1,34 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: — UI/UX Polish + Guia Experience
-status: complete
-stopped_at: "Phase 14 complete — all 8 plans executed, 4 post-UAT bugs fixed, committed and deployed"
-last_updated: "2026-06-11T16:00:00-03:00"
-last_activity: "2026-06-11 — Phase 14 complete: 4 bugs fixed (login email case, destinos PENDING, highlights 403, upload error key)"
+milestone: v1.3
+milestone_name: MVP Stability & Payment Integrity
+status: in_progress
+stopped_at: "Milestone initialized — requirements defined, roadmap pending"
+last_updated: "2026-06-17T15:44:00-03:00"
+last_activity: "2026-06-17 — Milestone v1.3 started: 24 requirements defined across 5 phases (16–20)"
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 24
-  completed_plans: 24
-  percent: 100
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # STATE.md — Turismo Capivara
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-05-26)
+See: .planning/PROJECT.md (updated 2026-06-17)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Milestone v1.2 UI/UX Polish + Guia Experience — Phase 12.1 complete, next: Phase 13 Painel Mobile + Feedback
+**Current focus:** Milestone v1.3 MVP Stability & Payment Integrity — 24 requirements definidos, iniciando Phase 16
 
 ## Current Position
 
-Phase: Phase 14 (complete — 8/8 plans)
+Phase: Not started (defining roadmap)
 Plan: —
-Status: Milestone v1.2 complete. Phase 13 (Painel Mobile + Feedback) is the only remaining phase of v1.2 and was not started.
-Last activity: 2026-06-11 — Phase 14 complete: 4 bugs fixed post-UAT (login email case, destinos always PENDING, highlights 403 for ADMIN, upload error key inconsistency)
+Status: Milestone v1.3 iniciado — requirements definidos, aguardando roadmap
+Last activity: 2026-06-17 — Milestone v1.3 iniciado: 24 requirements em 6 categorias (PAY, SEC, DATA, UX, OPS, POL)
 
 ## Decisões estratégicas
 
@@ -110,6 +110,8 @@ Last activity: 2026-06-11 — Phase 14 complete: 4 bugs fixed post-UAT (login em
 - Phase 12.1 inserted after Phase 12 (2026-06-02): Pre-Launch Hardening — idempotência bookings, connection pool, smoke test PIX, doc early adopters (URGENT)
 - Phase 12 complete (2026-06-02): Login Global — /login two-step, password reset flow, user verified end-to-end
 - Phase 12.1 complete (2026-06-03): Pre-Launch Hardening — idempotência bookings (Idempotency-Key header), connection pool Railway, página /acesso, smoke test PIX 4/6 PASS
+- v1.2 milestone complete (2026-06-11) — Phases 11–15, UI/UX polish, login global, gestão de conteúdo
+- v1.3 milestone started (2026-06-17) — 24 requirements em auditoria end-to-end: PAY, SEC, DATA, UX, OPS, POL — Phases 16–20
 
 ## Session Continuity
 

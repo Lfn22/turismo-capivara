@@ -1,18 +1,25 @@
 # Turismo Capivara
 
-## Current Milestone: v1.2 UI/UX Polish + Guia Experience
+## Current Milestone: v1.3 MVP Stability & Payment Integrity
+
+**Goal:** Corrigir todos os pontos de quebra identificados na auditoria de produto antes de operar com clientes reais — pagamento atomicamente seguro, segurança multi-tenant, UX de checkout completa e confiabilidade operacional.
+
+**Target features:**
+- Integridade de pagamento — MP_ACCESS_TOKEN validado em produção, booking+PIX atômico, polling de status no checkout, CPF com algoritmo real
+- Segurança multi-tenant — rate limit + token opaco no cancel-self, isolamento de tenant em confirm/cancel, deduplicação de webhook
+- UX do checkout — countdown do PIX, QR code visual, link "minha reserva", loading state no formulário, sem PII exposta
+- Anti-overbooking — lock pessimista no slot, liberação de capacidade no cancelamento, bloqueio de booking em tenant PENDING
+- Confiabilidade operacional — job de expiração de PIX, validação de R2 no startup, e-mails com log, slots só no futuro
+- Polimento final — home com mais destinos, filtro APPROVED público, badge de status nos destinos, toast global, terminologia clara
+- UAT por sprint — cada fase termina com checklist de confirmação antes de avançar
+
+<details>
+<summary>v1.2 Milestone Context (arquivado)</summary>
 
 **Goal:** Entregar um app mobile-first com login global sem slug, UI/estilos unificados, painel do guia totalmente responsivo, e gestão de conteúdo de roteiros e destinos.
 
-**Target features:**
-- Login global (/login) — email lookup sem slug, "Painel" na nav → /login, cadastrar abaixo do form
-- Mobile-first painel — tabelas → card layout, touch targets 44px, 16px inputs (iOS), modal slide-up
-- Toast + empty states — feedback visual em todas as ações, estados vazios com CTA
-- Back button universal — todas as páginas exceto homepage
-- Unificação de estilos — 161 hex hardcoded → tokens CSS, 3 paradigmas → globals.css, fluidez entre páginas
-- UI/UX audit fixes — ErrorBoundary, cancel dialog, ConversionAnchor real, links mortos, CAPI brand
-- Cadastro de destinos — guia cria novo destino com fotos e descrição (painel)
-- Enriquecimento de roteiros — adicionar fotos e experiências a roteiros existentes (painel)
+Fases 11–15 completas. Ver [milestones/v1.2-ROADMAP.md](milestones/v1.2-ROADMAP.md).
+</details>
 
 <details>
 <summary>v1.1 Milestone Context (arquivado)</summary>
@@ -133,7 +140,7 @@ Turista encontra, compara e reserva um guia para seu roteiro desejado — tudo e
 
 ## Evolution
 
-*Last updated: 2026-05-28 — v1.2 milestone started: UI/UX Polish + Guia Experience*
+*Last updated: 2026-06-17 — v1.3 milestone started: MVP Stability & Payment Integrity*
 
 Este documento evolui a cada transição de fase e marco de milestone.
 

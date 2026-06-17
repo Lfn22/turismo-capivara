@@ -1,126 +1,89 @@
-# Requirements: Turismo Capivara — v1.2
+# Requirements — Turismo Capivara v1.3
 
-**Defined:** 2026-05-28
-**Core Value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
+**Milestone:** v1.3 MVP Stability & Payment Integrity
+**Source:** Auditoria de produto end-to-end realizada em 2026-06-17
+**Scope:** Correções críticas, segurança, UX de checkout, confiabilidade operacional e polimento final
 
-## v1.2 Requirements
+---
 
-### Login Global
+## Active Requirements
 
-- [x] **LOGIN-01**: Botão "Painel" na PublicNav aponta para `/login` (não para onboarding)
-- [x] **LOGIN-02**: Página `/login` sem slug — um único portal de acesso para guias, agências e admins
-- [ ] **LOGIN-03**: Email lookup resolve automaticamente a qual agência/tenant o usuário pertence
-- [x] **LOGIN-04**: Abaixo do form de login, botão "Cadastrar agência ou guia" redireciona para onboarding
-- [x] **LOGIN-05**: Fluxo de forgot password básico com envio de link por email
+### PAY — Integridade de Pagamento
 
-### Mobile UX — Painel do Guia
+- [ ] **PAY-01:** Sistema valida presença de `MP_ACCESS_TOKEN` no startup e retorna 503 ao turista se ausente em produção (nunca usa mock silenciosamente)
+- [ ] **PAY-02:** Sistema cria o pagamento PIX antes de persistir o booking — se a chamada ao Mercado Pago falhar, nenhum booking é criado no banco
+- [ ] **PAY-03:** Turista vê o status da reserva atualizar automaticamente na página de confirmação (polling a cada 5s) sem precisar recarregar a página
+- [ ] **PAY-04:** Sistema rejeita CPF com dígitos verificadores inválidos antes de criar o booking ou chamar o gateway de pagamento
 
-- [ ] **MOBILE-01**: Tabela de reservas no painel vira card layout em telas < 768px
-- [ ] **MOBILE-02**: Tabela de roteiros no painel vira card layout em telas < 768px
-- [ ] **MOBILE-03**: Todos os botões e links interativos têm touch target mínimo de 44×44px
-- [ ] **MOBILE-04**: Todos os inputs têm font-size 16px para evitar zoom automático no iOS Safari
-- [ ] **MOBILE-05**: Modais no mobile usam slide-up sheet em vez de overlay centrado
+### SEC — Segurança Multi-tenant
 
-### Feedback e Estados
+- [ ] **SEC-01:** Endpoint `cancel-self` aplica rate limit de no máximo 3 tentativas por 15 minutos por IP
+- [ ] **SEC-02:** Endpoint `cancel-self` usa token opaco e independente do `bookingId` para identificar reservas (não derivado do UUID)
+- [ ] **SEC-03:** Handlers de confirmação e cancelamento de booking verificam que o booking pertence ao tenant do usuário logado antes de executar a ação
+- [ ] **SEC-04:** Sistema persiste ID de cada evento de webhook processado e ignora reenvios duplicados dentro da mesma janela de tempo
 
-- [ ] **FEEDBACK-01**: Sistema de toast global — sucesso, erro e info em todas as ações do painel
-- [ ] **FEEDBACK-02**: Empty state em "Minhas Reservas" quando não há reservas, com CTA para compartilhar link
-- [ ] **FEEDBACK-03**: Empty state em "Meus Roteiros" quando não há roteiros, com CTA para criar roteiro
-- [ ] **FEEDBACK-04**: ErrorBoundary em toda a aplicação com mensagem útil e botão "Tentar novamente"
-- [ ] **FEEDBACK-05**: Dialog de confirmação antes de cancelar uma reserva ("Tem certeza?")
+### DATA — Integridade de Dados
 
-### Navegação
+- [ ] **DATA-01:** Cancelamento de reserva libera a capacidade do slot (decrementando `bookedCount`) em transação atômica junto com a mudança de status
+- [ ] **DATA-02:** Sistema bloqueia criação de booking para tenant com `approvalStatus !== APPROVED` e retorna mensagem clara ao turista
+- [ ] **DATA-03:** Sistema usa lock pessimista no slot durante criação de booking para prevenir overbooking em requisições simultâneas
+- [ ] **DATA-04:** Sistema rejeita criação de slot com data no passado, com validação no backend e feedback no frontend
 
-- [ ] **NAV-01**: Back button visível em todas as páginas exceto homepage
-- [ ] **NAV-02**: Transições suaves entre páginas (sem flash branco entre rotas)
+### UX — Checkout e Confirmação
 
-### Unificação de Estilos
+- [ ] **UX-01:** Página de confirmação exibe countdown em tempo real do prazo de expiração do PIX (baseado em `expiresAt`)
+- [ ] **UX-02:** Página de confirmação exibe QR Code visual gerado a partir do código copia-e-cola (componente `react-qr-code` já disponível no projeto)
+- [ ] **UX-03:** Página de confirmação exibe link direto para a página "Consultar minha reserva" (`/minha-reserva`)
+- [ ] **UX-04:** Formulário de booking desabilita o botão de submit imediatamente após o primeiro clique e exibe spinner de loading durante o processamento
+- [ ] **UX-05:** Página de confirmação não exibe CPF completo, telefone ou outros dados PII sem autenticação do usuário
 
-- [ ] **STYLE-01**: Todos os 161 valores hex hardcoded substituídos por tokens CSS de globals.css
-- [ ] **STYLE-02**: Paradigma de inline `React.CSSProperties` eliminado — componentes usam tokens CSS
-- [ ] **STYLE-03**: Classes BEM com `<style>` injetado migradas para tokens CSS
-- [ ] **STYLE-04**: Tailwind utilities removidos de componentes que usam o design system próprio
-- [ ] **STYLE-05**: `apps/web/app/dashboard/page.tsx` (legacy stub) deletado
+### OPS — Confiabilidade Operacional
 
-### UI/UX Audit Fixes
+- [ ] **OPS-01:** Job periódico (a cada hora) marca bookings `PENDING` com `expiresAt` anterior ao momento atual como `EXPIRED` e libera capacidade no slot associado
+- [ ] **OPS-02:** Sistema valida presença das variáveis Cloudflare R2 no startup e retorna erro 503 descritivo ao tentar fazer upload se ausentes
+- [ ] **OPS-03:** Falhas no envio de e-mail são capturadas com `await`, logadas no Sentry e não falham silenciosamente (sem `void sendEmail()`)
+- [ ] **OPS-04:** Toast notifications são gerenciadas por um provider global reutilizável — sem reimplementação de estado inline por componente
+- [ ] **OPS-05:** Painel do guia exibe badge de status (PENDENTE / APROVADO / REJEITADO) para cada destino criado, com data de submissão e motivo de rejeição se houver
 
-- [ ] **AUDIT-01**: ConversionAnchor (waitlist) conectado na API real — fim do `setTimeout` fake
-- [ ] **AUDIT-02**: Links mortos removidos da navegação pública (Blog, Ver todos, redes sociais)
-- [ ] **AUDIT-03**: Nome "CAPI" unificado em todos os `<title>` e meta `description` do browser
-- [ ] **AUDIT-04**: Font-size fallback corrigido: `var(--font-display, Georgia, serif)` consistente
-- [ ] **AUDIT-05**: Inputs de formulários de onboarding herdam font-body sem override manual
+### POL — Polimento e Dados Públicos
 
-### Gestão de Conteúdo — Destinos
+- [ ] **POL-01:** Home pública exibe mais de 3 destinos com ordenação por relevância e link "Ver todos" apontando para `/destinos`
+- [ ] **POL-02:** Listagem pública de destinos filtra apenas registros com `approvalStatus = APPROVED` — destinos PENDING nunca visíveis ao turista
+- [ ] **POL-03:** Sistema exibe mensagem de erro amigável ao turista ao tentar reservar roteiro de operadora não aprovada
+- [ ] **POL-04:** Item de navegação "Destino" (singular — editor do tenant) recebe nomenclatura diferenciada para não confundir com "Destinos" (plural — CRUD Phase 14)
+- [ ] **POL-05:** Listas de aprovação no super-admin têm paginação funcional (botão "Carregar mais" ou paginação numerada — não limitadas a 50 registros hardcoded)
 
-- [ ] **DEST-01**: Guia/agência pode criar novo destino com nome, descrição e região (tag)
-- [ ] **DEST-02**: Upload de foto de capa para o destino (armazenamento local ou S3)
-- [ ] **DEST-03**: Destino criado fica visível no marketplace após aprovação de admin
-- [ ] **DEST-04**: Guia pode editar e deletar destinos que criou
+---
 
-### Gestão de Conteúdo — Roteiros
+## Future Requirements
 
-- [ ] **ROT-01**: Guia pode adicionar fotos a um roteiro existente (galeria de imagens)
-- [ ] **ROT-02**: Guia pode descrever experiências incluídas no roteiro (lista de destaques)
-- [ ] **ROT-03**: Fotos e experiências aparecem na página pública do roteiro para o turista
+*Deferred — revisitar no v1.4:*
 
-## Out of Scope (v1.2)
+- Aprovação individual de CONDUTOR (guia) pelo superadmin — endpoint existe no backend, UI não implementada
+- Multi-guia por roteiro (competição de preço) — pendente desde v1.0
+- Comparação de guias lado a lado
+- Verificação de e-mail no signup (ONBOARD-04)
+- Queue de e-mail com retry via BullMQ/Redis — pós-MVP
 
-| Feature | Reason |
-|---------|--------|
-| Avaliações turista ↔ guia | v2 — pós-MVP |
-| Perfil público do guia | v2 — pós-MVP |
-| Upload de vídeo | Custo de storage/bandwidth — defer |
-| Multi-idioma (EN/ES) | v2 — mercado inicial é Brasil |
-| App nativo (iOS/Android) | Web-first — PWA suficiente no curto prazo |
-| Forgot password | Adiado — não bloqueador de launch |
+---
+
+## Out of Scope
+
+- Novas features de produto — este milestone é exclusivamente de correção e estabilização
+- Refactor de arquitetura do monorepo
+- Integração com cartão de crédito — pós-MVP confirmado
+- Sistema de avaliações — pós-MVP confirmado
+- White-label / multi-tenant marketplace — pós-MVP confirmado
+
+---
 
 ## Traceability
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| LOGIN-01 | Phase 12 | Complete |
-| LOGIN-02 | Phase 12 | Complete |
-| LOGIN-03 | Phase 12 | Pending |
-| LOGIN-04 | Phase 12 | Complete |
-| LOGIN-05 | Phase 12 | Complete |
-| MOBILE-01 | Phase 13 | Pending |
-| MOBILE-02 | Phase 13 | Pending |
-| MOBILE-03 | Phase 13 | Pending |
-| MOBILE-04 | Phase 13 | Pending |
-| MOBILE-05 | Phase 13 | Pending |
-| FEEDBACK-01 | Phase 13 | Pending |
-| FEEDBACK-02 | Phase 13 | Pending |
-| FEEDBACK-03 | Phase 13 | Pending |
-| FEEDBACK-04 | Phase 13 | Pending |
-| FEEDBACK-05 | Phase 13 | Pending |
-| NAV-01 | Phase 11 | Pending |
-| NAV-02 | Phase 11 | Pending |
-| STYLE-01 | Phase 11 | Pending |
-| STYLE-02 | Phase 11 | Pending |
-| STYLE-03 | Phase 11 | Pending |
-| STYLE-04 | Phase 11 | Pending |
-| STYLE-05 | Phase 11 | Pending |
-| AUDIT-01 | Phase 11 | Pending |
-| AUDIT-02 | Phase 11 | Pending |
-| AUDIT-03 | Phase 11 | Pending |
-| AUDIT-04 | Phase 11 | Pending |
-| AUDIT-05 | Phase 11 | Pending |
-| DEST-01 | Phase 14 | Pending |
-| DEST-02 | Phase 14 | Pending |
-| DEST-03 | Phase 14 | Pending |
-| DEST-04 | Phase 14 | Pending |
-| ROT-01 | Phase 14 | Pending |
-| ROT-02 | Phase 14 | Pending |
-| ROT-03 | Phase 14 | Pending |
-
-**Coverage:**
-- v1.2 requirements: 34 total
-- Mapped to phases: 34/34 ✓
-- Phase 11 (Frontend Polish): NAV-01–02, STYLE-01–05, AUDIT-01–05 = 12 requirements
-- Phase 12 (Login Global): LOGIN-01–05 = 5 requirements
-- Phase 13 (Painel Mobile + Feedback): MOBILE-01–05, FEEDBACK-01–05 = 10 requirements
-- Phase 14 (Gestao de Conteudo): DEST-01–04, ROT-01–03 = 7 requirements
-
----
-*Requirements defined: 2026-05-28*
-*Last updated: 2026-05-28 — roadmap created, traceability populated*
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| PAY-01, PAY-02, PAY-03, PAY-04 | Phase 16 | ⏳ Pending |
+| SEC-01, SEC-02, SEC-03, SEC-04 | Phase 17 | ⏳ Pending |
+| DATA-01, DATA-02, DATA-03, DATA-04 | Phase 17 | ⏳ Pending |
+| UX-01, UX-02, UX-03, UX-04, UX-05 | Phase 18 | ⏳ Pending |
+| OPS-01, OPS-02, OPS-03, OPS-04, OPS-05 | Phase 19 | ⏳ Pending |
+| POL-01, POL-02, POL-03, POL-04, POL-05 | Phase 20 | ⏳ Pending |
