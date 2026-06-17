@@ -29,6 +29,9 @@ async function attemptCreatePayment(
 
   // 1. Bypass para ambiente de desenvolvimento (Mock)
   if (!token) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new AppError('Serviço de pagamento temporariamente indisponível', 503)
+    }
     console.warn('[PaymentService] MP_ACCESS_TOKEN ausente. Retornando pagamento Pix simulado (MOCK).')
     return {
       paymentId: `mock_${Date.now()}`,
