@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: MVP Stability & Payment Integrity
 status: in_progress
-stopped_at: "Milestone initialized — requirements defined, roadmap pending"
-last_updated: "2026-06-17T15:44:00-03:00"
-last_activity: "2026-06-17 — Milestone v1.3 started: 24 requirements defined across 5 phases (16–20)"
+stopped_at: "Roadmap criado — 5 fases definidas (16–20), pronto para iniciar Phase 16"
+last_updated: "2026-06-17T15:46:00-03:00"
+last_activity: "2026-06-17 — Roadmap v1.3 criado: 5 fases (16–20), 24 requirements mapeados, critérios UAT definidos por fase"
 progress:
   total_phases: 5
   completed_phases: 0

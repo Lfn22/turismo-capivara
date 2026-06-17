@@ -81,9 +81,8 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| PAY-01, PAY-02, PAY-03, PAY-04 | Phase 16 | ⏳ Pending |
-| SEC-01, SEC-02, SEC-03, SEC-04 | Phase 17 | ⏳ Pending |
-| DATA-01, DATA-02, DATA-03, DATA-04 | Phase 17 | ⏳ Pending |
+| PAY-01, PAY-02, PAY-03, PAY-04, DATA-03 | Phase 16 | ⏳ Pending |
+| SEC-01, SEC-02, SEC-03, SEC-04, DATA-01, DATA-02, DATA-04 | Phase 17 | ⏳ Pending |
 | UX-01, UX-02, UX-03, UX-04, UX-05 | Phase 18 | ⏳ Pending |
 | OPS-01, OPS-02, OPS-03, OPS-04, OPS-05 | Phase 19 | ⏳ Pending |
 | POL-01, POL-02, POL-03, POL-04, POL-05 | Phase 20 | ⏳ Pending |
