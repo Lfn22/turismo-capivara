@@ -97,7 +97,8 @@ export async function bookingsRoutes(app: FastifyInstance) {
       }
     }
 
-    const booking = await prisma.$transaction(async (tx) => {
+    // Tx 1: Lock slot, validate and increment — booking NOT created yet (PAY-02)
+    await prisma.$transaction(async (tx) => {
       // Lock the slot row to prevent concurrent overbooking (WR-04)
       const [slot] = await tx.$queryRaw<Array<{
         id: string
@@ -137,21 +138,6 @@ export async function bookingsRoutes(app: FastifyInstance) {
           status: slot.booked + pax >= slot.capacity ? 'FULL' : 'OPEN',
         },
       })
-
-      return tx.booking.create({
-        data: {
-          tenantId: tenant.id,
-          slotId,
-          customerName,
-          customerEmail,
-          customerPhone,
-          customerCpfHash: hashCpf(customerCpf),
-          pax,
-          status: 'PENDING',
-          expiresAt: new Date(Date.now() + expiryMinutes * 60_000),
-          idempotencyKey: idempotencyKey ?? null,
-        },
-      })
     })
 
     // Query package price OUTSIDE $transaction (keeps tx minimal)
@@ -165,10 +151,9 @@ export async function bookingsRoutes(app: FastifyInstance) {
       },
     })
 
-    // Guard: package must exist to build a valid PIX amount
+    // Guard: package must exist to build a valid PIX amount — rollback slot if missing
     if (!pkg) {
       await prisma.$transaction(async (tx) => {
-        await tx.booking.delete({ where: { id: booking.id } })
         const s1 = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
         await tx.departureSlot.update({
           where: { id: slotId },
@@ -179,19 +164,19 @@ export async function bookingsRoutes(app: FastifyInstance) {
     }
 
     // MP call happens OUTSIDE $transaction — per D-02
+    // booking does NOT exist yet; paymentId will be set on create (PAY-02)
     let paymentResult
     try {
       paymentResult = await createPixPayment({
-        bookingId: booking.id,
+        bookingId: `pre_${Date.now()}`,
         transactionAmount: Number(pkg.price) * pax,
-        description: `Reserva #${booking.id} — ${pkg.name}`,
+        description: `Reserva — ${pkg.name}`,
         customerEmail,
         customerCpf,
       })
     } catch (err) {
-      // Compensation: delete booking and restore slot atomically (per D-02)
+      // Compensation: restore slot atomically (per D-02)
       await prisma.$transaction(async (tx) => {
-        await tx.booking.delete({ where: { id: booking.id } })
         const s2 = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
         await tx.departureSlot.update({
           where: { id: slotId },
@@ -204,15 +189,28 @@ export async function bookingsRoutes(app: FastifyInstance) {
       throw err // AppError 502 propagates to error handler
     }
 
-    // Update booking with payment fields
-    const updatedBooking = await prisma.booking.update({
-      where: { id: booking.id },
-      data: {
-        paymentId: paymentResult.paymentId,
-        paymentUrl: paymentResult.paymentUrl,
-        qrCode: paymentResult.qrCode,
-      },
+    // Tx 2: Create booking with paymentId already in hand — never exists without PIX data (PAY-02)
+    const booking = await prisma.$transaction(async (tx) => {
+      return tx.booking.create({
+        data: {
+          tenantId: tenant.id,
+          slotId,
+          customerName,
+          customerEmail,
+          customerPhone,
+          customerCpfHash: hashCpf(customerCpf),
+          pax,
+          status: 'PENDING',
+          expiresAt: paymentResult.expiresAt,
+          idempotencyKey: idempotencyKey ?? null,
+          paymentId: paymentResult.paymentId,
+          paymentUrl: paymentResult.paymentUrl,
+          qrCode: paymentResult.qrCode,
+        },
+      })
     })
+
+    const updatedBooking = booking
 
     // NOTIF-01: Notify customer of pending booking with PIX details (fire-and-forget)
     const resend = getResend()
