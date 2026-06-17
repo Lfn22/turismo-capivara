@@ -13,12 +13,41 @@ import { bookingCancelledEmailText } from './emails/booking-cancelled-email'
 import { bookingGuideNotificationEmailText, bookingGuideNotificationSubject } from './emails/booking-guide-notification-email'
 import * as paymentService from '../../services/payment.service'
 
+function isValidCPF(cpf: string): boolean {
+  // Rejeitar sequências de dígitos iguais (00000000000, 11111111111, etc.)
+  if (/^(\d)\1{10}$/.test(cpf)) return false
+
+  const digits = cpf.split('').map(Number)
+
+  // Dígito verificador 1: soma dos 9 primeiros × pesos 10..2
+  let sum = 0
+  for (let i = 0; i < 9; i++) {
+    sum += digits[i] * (10 - i)
+  }
+  let remainder = sum % 11
+  const digit1 = remainder < 2 ? 0 : 11 - remainder
+
+  if (digits[9] !== digit1) return false
+
+  // Dígito verificador 2: soma dos 10 primeiros × pesos 11..2
+  sum = 0
+  for (let i = 0; i < 10; i++) {
+    sum += digits[i] * (11 - i)
+  }
+  remainder = sum % 11
+  const digit2 = remainder < 2 ? 0 : 11 - remainder
+
+  return digits[10] === digit2
+}
+
 const createBookingBodySchema = z.object({
   slotId: z.string().min(1, { message: 'slotId obrigatório' }),
   customerName: z.string().min(1, { message: 'Nome do cliente obrigatório' }),
   customerEmail: z.string().email({ message: 'Email do cliente inválido' }),
   customerPhone: z.string().min(1, { message: 'Telefone do cliente obrigatório' }),
-  customerCpf: z.string().regex(/^\d{11}$/, { message: 'CPF deve conter 11 dígitos numéricos' }),
+  customerCpf: z.string()
+    .regex(/^\d{11}$/, { message: 'CPF deve conter 11 dígitos numéricos' })
+    .refine(isValidCPF, { message: 'CPF inválido' }),
   pax: z.number().int().positive({ message: 'Número de participantes deve ser inteiro positivo' }),
 })
 
