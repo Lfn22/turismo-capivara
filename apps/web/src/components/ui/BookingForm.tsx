@@ -3,6 +3,21 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 
+function isValidCPF(cpf: string): boolean {
+  if (/^(\d)\1{10}$/.test(cpf)) return false
+  const digits = cpf.split('').map(Number)
+  let sum = 0
+  for (let i = 0; i < 9; i++) sum += digits[i] * (10 - i)
+  let remainder = sum % 11
+  const digit1 = remainder < 2 ? 0 : 11 - remainder
+  if (digits[9] !== digit1) return false
+  sum = 0
+  for (let i = 0; i < 10; i++) sum += digits[i] * (11 - i)
+  remainder = sum % 11
+  const digit2 = remainder < 2 ? 0 : 11 - remainder
+  return digits[10] === digit2
+}
+
 interface BookingFormProps {
   slotId: string;
   packageId: string;
@@ -29,6 +44,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cpfError, setCpfError] = useState<string | null>(null);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value, type } = e.target;
@@ -40,6 +56,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (cpfError !== null) return;
     setLoading(true);
     setError(null);
 
@@ -158,15 +175,26 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           maxLength={14}
           value={form.cpf}
           onChange={handleChange}
+          onBlur={(e) => {
+            const val = e.target.value.replace(/\D/g, '');
+            if (val.length === 11 && !isValidCPF(val)) {
+              setCpfError('CPF inválido');
+            } else {
+              setCpfError(null);
+            }
+          }}
           placeholder="000.000.000-00"
           className="w-full px-3 py-2.5 text-[0.95rem] rounded-lg outline-none box-border"
           style={{
-            border: '1px solid var(--stone-300)',
+            border: cpfError ? '1px solid #b91c1c' : '1px solid var(--stone-300)',
             color: 'var(--stone-900)',
             backgroundColor: 'var(--stone-50)',
           }}
           disabled={loading}
         />
+        {cpfError && (
+          <p className="m-0 mt-1 text-sm" style={{ color: '#b91c1c' }}>{cpfError}</p>
+        )}
       </div>
 
       <div>
