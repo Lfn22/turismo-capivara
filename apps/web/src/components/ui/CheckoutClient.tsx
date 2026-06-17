@@ -67,13 +67,11 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
-
   const fetchBooking = useCallback(async () => {
     if (!bookingId || !email) return
     try {
       const res = await fetch(
-        `${apiBase}/tenants/${slug}/bookings/${bookingId}?email=${encodeURIComponent(email)}`,
+        `/api/${slug}/bookings/${bookingId}/status?email=${encodeURIComponent(email)}`,
         { cache: 'no-store' }
       )
       if (!res.ok) throw new Error('Reserva não encontrada.')
@@ -85,7 +83,7 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
       setError(e instanceof Error ? e.message : 'Erro ao carregar reserva.')
       setLoading(false)
     }
-  }, [apiBase, slug, bookingId, email])
+  }, [slug, bookingId, email])
 
   // Initial fetch
   useEffect(() => {
@@ -100,8 +98,8 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
     const interval = setInterval(async () => {
       if (cancelled) return
       const status = await fetchBooking()
-      if (status && status !== 'PENDING') clearInterval(interval)
-    }, 3000)
+      if (status && (status === 'CONFIRMED' || status === 'CANCELLED' || status === 'EXPIRED')) clearInterval(interval)
+    }, 5000)
 
     return () => {
       cancelled = true
