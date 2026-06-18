@@ -119,7 +119,7 @@ model DepartureSlot {
 
 model Booking {
   id            String        @id @default(cuid())
-  cancelToken   String?       @unique
+  cancelToken   String        @unique
   tenantId      String
   slotId        String
   customerName  String
