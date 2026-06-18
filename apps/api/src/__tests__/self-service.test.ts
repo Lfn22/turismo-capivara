@@ -136,19 +136,20 @@ describe('POST /tenants/:slug/bookings/lookup', () => {
 })
 
 // ---------------------------------------------------------------------------
-// POST /cancel-self
+// POST /cancel-self — agora usa { token } (cancelToken opaco) em vez de { email, code }
 // ---------------------------------------------------------------------------
 describe('POST /tenants/:slug/bookings/cancel-self', () => {
   it('cancels booking and releases slot when >24h before start', async () => {
     db.booking.findFirst.mockResolvedValue(BASE_BOOKING)
     db.$transaction.mockImplementation(async (fn: Function) => fn(db))
     db.booking.update.mockResolvedValue({ ...BASE_BOOKING, status: 'CANCELLED' })
+    db.departureSlot.findUnique.mockResolvedValue({ booked: 2, status: 'OPEN' })
     db.departureSlot.update.mockResolvedValue({})
 
     const res = await app.inject({
       method: 'POST',
       url: '/tenants/capivara/bookings/cancel-self',
-      payload: { email: 'joao@example.com', code: 'ab1234' },
+      payload: { token: 'abc123opaque64hextoken' },
     })
 
     expect(res.statusCode).toBe(200)
@@ -165,7 +166,7 @@ describe('POST /tenants/:slug/bookings/cancel-self', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/tenants/capivara/bookings/cancel-self',
-      payload: { email: 'joao@example.com', code: 'ab1234' },
+      payload: { token: 'abc123opaque64hextoken' },
     })
 
     expect(res.statusCode).toBe(422)
@@ -177,22 +178,32 @@ describe('POST /tenants/:slug/bookings/cancel-self', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/tenants/capivara/bookings/cancel-self',
-      payload: { email: 'joao@example.com', code: 'ab1234' },
+      payload: { token: 'abc123opaque64hextoken' },
     })
 
     expect(res.statusCode).toBe(422)
   })
 
-  it('returns 404 for email mismatch (opaque error)', async () => {
-    db.booking.findFirst.mockResolvedValue(BASE_BOOKING)
+  it('returns 404 when token does not match any booking (SEC-02)', async () => {
+    db.booking.findFirst.mockResolvedValue(null)
 
     const res = await app.inject({
       method: 'POST',
       url: '/tenants/capivara/bookings/cancel-self',
-      payload: { email: 'outro@example.com', code: 'ab1234' },
+      payload: { token: 'token-inexistente' },
     })
 
     expect(res.statusCode).toBe(404)
+  })
+
+  it('returns 400 when token field is missing', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/capivara/bookings/cancel-self',
+      payload: {},
+    })
+
+    expect(res.statusCode).toBe(400)
   })
 })
 

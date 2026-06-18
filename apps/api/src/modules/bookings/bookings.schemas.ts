@@ -6,3 +6,9 @@ export const selfServiceBodySchema = z.object({
 })
 
 export type SelfServiceBody = z.infer<typeof selfServiceBodySchema>
+
+export const cancelSelfBodySchema = z.object({
+  token: z.string().min(1, { message: 'Token é obrigatório' }),
+})
+
+export type CancelSelfBody = z.infer<typeof cancelSelfBodySchema>

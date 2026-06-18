@@ -8,7 +8,8 @@ import { createPixPayment } from '../../services/payment.service'
 import { hashCpf } from '../../shared/utils/hash'
 import { getResend } from '../../shared/email'
 import { bookingCreatedEmailText, bookingCreatedSubject } from './emails/booking-created-email'
-import { selfServiceBodySchema, type SelfServiceBody } from './bookings.schemas'
+import { selfServiceBodySchema, type SelfServiceBody, cancelSelfBodySchema, type CancelSelfBody } from './bookings.schemas'
+import { randomBytes } from 'crypto'
 import { bookingCancelledEmailText } from './emails/booking-cancelled-email'
 import { bookingGuideNotificationEmailText, bookingGuideNotificationSubject } from './emails/booking-guide-notification-email'
 import * as paymentService from '../../services/payment.service'
@@ -220,6 +221,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
     // Tx 2: Create booking with paymentId already in hand — never exists without PIX data (PAY-02)
     const booking = await prisma.$transaction(async (tx) => {
+      const cancelToken = randomBytes(32).toString('hex')
       return tx.booking.create({
         data: {
           tenantId: tenant.id,
@@ -235,6 +237,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
           paymentId: paymentResult.paymentId,
           paymentUrl: paymentResult.paymentUrl,
           qrCode: paymentResult.qrCode,
+          cancelToken,
         },
       })
     })
@@ -255,6 +258,8 @@ export async function bookingsRoutes(app: FastifyInstance) {
             qrCode: paymentResult.qrCode,
             paymentUrl: paymentResult.paymentUrl ?? '',
             expiresAt: updatedBooking.expiresAt ?? new Date(),
+            cancelToken: updatedBooking.cancelToken,
+            tenantSlug: slug,
           }),
         })
         .catch((emailErr: unknown) => {
@@ -364,40 +369,36 @@ export async function bookingsRoutes(app: FastifyInstance) {
   )
 
   // POST /tenants/:slug/bookings/cancel-self — public, no JWT
-  app.post<{ Params: { slug: string }; Body: SelfServiceBody }>(
+  app.post<{ Params: { slug: string }; Body: CancelSelfBody }>(
     '/tenants/:slug/bookings/cancel-self',
     {
       config: {
         rateLimit: {
-          max: 5,
+          max: 3,
           timeWindow: '15 minutes',
-          keyGenerator: (req) =>
-            `lookup:email:${((req.body as { email?: string })?.email || '').trim().toLowerCase()}`,
+          keyGenerator: (req) => req.ip,
         },
       },
     },
     async (request, reply) => {
-      const parsed = selfServiceBodySchema.safeParse(request.body)
+      const parsed = cancelSelfBodySchema.safeParse(request.body)
       if (!parsed.success) {
         return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
       }
       const { slug } = request.params
-      const { email, code } = parsed.data
+      const { token } = parsed.data
 
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
       if (!tenant) throw new AppError('Tenant não encontrado', 404)
 
-      const normalizedEmail = email.trim().toLowerCase()
-
       const booking = await prisma.booking.findFirst({
-        where: { id: { endsWith: code.toLowerCase() }, tenantId: tenant.id },
-        orderBy: { createdAt: 'desc' },
+        where: { cancelToken: token, tenantId: tenant.id },
         include: {
           slot: { select: { startsAt: true, package: { select: { name: true } } } },
         },
       })
 
-      if (!booking || booking.customerEmail.toLowerCase() !== normalizedEmail) {
+      if (!booking) {
         throw new AppError('Reserva não encontrada ou dados inválidos', 404)
       }
 

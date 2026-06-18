@@ -13,6 +13,8 @@ describe('bookingCreatedEmail', () => {
       qrCode: 'pix-qr-code-abc',
       paymentUrl: 'https://pagamento.capi.turismo/abc',
       expiresAt: new Date('2025-01-15T12:00:00-03:00'),
+      cancelToken: 'abc123token',
+      tenantSlug: 'meu-tenant',
     })
     expect(result).toContain('João Silva')
     expect(result).toContain('booking-123')
@@ -28,6 +30,8 @@ describe('bookingCreatedEmail', () => {
       qrCode: 'qr',
       paymentUrl: 'http://pay.example',
       expiresAt,
+      cancelToken: 'token1',
+      tenantSlug: 'slug1',
     })
     // Must mention a deadline (formatted date string present)
     expect(result).toContain('Prazo para pagamento')
@@ -41,7 +45,23 @@ describe('bookingCreatedEmail', () => {
       qrCode: 'qr2',
       paymentUrl: 'http://pay2.example',
       expiresAt: new Date(),
+      cancelToken: 'token2',
+      tenantSlug: 'slug2',
     })
     expect(result).toContain('cancelada automaticamente')
+  })
+
+  it('SEC-02: text includes cancel link with cancelToken', () => {
+    const result = bookingCreatedEmailText({
+      bookingId: 'b-3',
+      customerName: 'Ana',
+      qrCode: 'qr3',
+      paymentUrl: 'http://pay3.example',
+      expiresAt: new Date(),
+      cancelToken: 'myopaquetoken64chars',
+      tenantSlug: 'meu-guia',
+    })
+    expect(result).toContain('myopaquetoken64chars')
+    expect(result).toContain('meu-guia.capi.com.br/minha-reserva/cancelar?token=myopaquetoken64chars')
   })
 })

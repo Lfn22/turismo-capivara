@@ -6,6 +6,8 @@ interface BookingCreatedEmailParams {
   qrCode: string
   paymentUrl: string
   expiresAt: Date
+  cancelToken: string
+  tenantSlug: string
 }
 
 export function bookingCreatedEmailText({
@@ -14,8 +16,11 @@ export function bookingCreatedEmailText({
   qrCode,
   paymentUrl,
   expiresAt,
+  cancelToken,
+  tenantSlug,
 }: BookingCreatedEmailParams): string {
   const deadline = expiresAt.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+  const cancelUrl = `https://${tenantSlug}.capi.com.br/minha-reserva/cancelar?token=${cancelToken}`
   return `Olá, ${customerName}!
 
 Sua reserva foi recebida com sucesso.
@@ -30,6 +35,9 @@ Ou acesse o link de pagamento: ${paymentUrl}
 Prazo para pagamento: ${deadline}
 
 Após o prazo, a reserva será cancelada automaticamente.
+
+Caso precise cancelar sua reserva (até 24h antes da partida):
+${cancelUrl}
 
 — Equipe CAPI`
 }
