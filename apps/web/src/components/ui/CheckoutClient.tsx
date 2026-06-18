@@ -67,37 +67,52 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const fetchBooking = useCallback(async () => {
+  const fetchInitialBooking = useCallback(async () => {
     if (!bookingId || !email) return
     try {
       const res = await fetch(
-        `/api/${slug}/bookings/${bookingId}/status?email=${encodeURIComponent(email)}`,
+        `/api/${slug}/bookings/${bookingId}?email=${encodeURIComponent(email)}`,
         { cache: 'no-store' }
       )
       if (!res.ok) throw new Error('Reserva não encontrada.')
       const data: Booking = await res.json()
       setBooking(data)
       setLoading(false)
-      return data.status
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro ao carregar reserva.')
       setLoading(false)
     }
   }, [slug, bookingId, email])
 
-  // Initial fetch
-  useEffect(() => {
-    fetchBooking()
-  }, [fetchBooking])
+  const pollStatus = useCallback(async () => {
+    if (!bookingId || !email) return
+    try {
+      const res = await fetch(
+        `/api/${slug}/bookings/${bookingId}/status?email=${encodeURIComponent(email)}`,
+        { cache: 'no-store' }
+      )
+      if (!res.ok) return
+      const data: { status: string } = await res.json()
+      setBooking(prev => prev ? { ...prev, status: data.status } : prev)
+      return data.status
+    } catch {
+      // silently ignore poll errors — initial data preserved
+    }
+  }, [slug, bookingId, email])
 
-  // Poll while PENDING — fixed ref avoids interval restart on every state update (WR-01)
+  // Initial fetch — loads full booking (qrCode, expiresAt, pax, etc.)
+  useEffect(() => {
+    fetchInitialBooking()
+  }, [fetchInitialBooking])
+
+  // Poll while PENDING — only updates status, preserves full booking state (WR-01)
   useEffect(() => {
     if (!booking || booking.status !== 'PENDING') return
 
     let cancelled = false
     const interval = setInterval(async () => {
       if (cancelled) return
-      const status = await fetchBooking()
+      const status = await pollStatus()
       if (status && (status === 'CONFIRMED' || status === 'CANCELLED' || status === 'EXPIRED')) clearInterval(interval)
     }, 5000)
 
@@ -106,7 +121,7 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
       clearInterval(interval)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [booking?.status, fetchBooking])
+  }, [booking?.status, pollStatus])
 
   // Redirect to confirmacao on success
   useEffect(() => {
