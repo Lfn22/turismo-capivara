@@ -52,7 +52,12 @@ const slugIdAndSlotIdParamsSchema = z.object({
 })
 
 const createSlotBodySchema = z.object({
-  startsAt: z.string().datetime({ message: 'Data inválida' }),
+  startsAt: z
+    .string()
+    .datetime({ message: 'Data inválida' })
+    .refine((val) => new Date(val) > new Date(), {
+      message: 'A data do slot deve ser no futuro',
+    }),
   capacity: z.number().int().min(1, { message: 'Capacidade mínima é 1' }),
   minCapacity: z.number().int().min(1, { message: 'Mínimo de participantes é 1' }),
 }).refine((d) => d.minCapacity <= d.capacity, {
@@ -306,10 +311,19 @@ export async function packagesRoutes(app: FastifyInstance) {
     try {
       body = createSlotBodySchema.parse(request.body)
     } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send({
-        message: 'Dados inválidos',
-        errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })),
-      })
+      if (err instanceof ZodError) {
+        const pastDateIssue = err.issues.find((e) => e.message === 'A data do slot deve ser no futuro')
+        if (pastDateIssue) {
+          return reply.status(400).send({
+            code: 'SLOT_DATE_PAST',
+            message: 'A data do slot deve ser no futuro',
+          })
+        }
+        return reply.status(400).send({
+          message: 'Dados inválidos',
+          errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })),
+        })
+      }
       throw err
     }
 

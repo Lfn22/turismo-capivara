@@ -153,10 +153,21 @@ export default function DisponibilidadePage({
     }
   }
 
+  function isStartsAtInPast(): boolean {
+    if (!selectedDate || !formStartTime) return false
+    const dateStr = toLocalDateStr(selectedDate)
+    const startsAt = new Date(`${dateStr}T${formStartTime}:00`)
+    return startsAt <= new Date()
+  }
+
   function validateForm(): boolean {
     const errs: Record<string, string> = {}
     if (!formPackageId) errs.packageId = "Campo obrigatório."
-    if (!formStartTime) errs.startTime = "Campo obrigatório."
+    if (!formStartTime) {
+      errs.startTime = "Campo obrigatório."
+    } else if (isStartsAtInPast()) {
+      errs.startTime = "A data do slot deve ser no futuro"
+    }
     if (!formEndTime) errs.endTime = "Campo obrigatório."
     else if (formStartTime && formEndTime && formEndTime <= formStartTime) {
       errs.endTime = "O horário de fim deve ser após o início."
@@ -542,6 +553,20 @@ export default function DisponibilidadePage({
                 type="time"
                 value={formStartTime}
                 onChange={(e) => setFormStartTime(e.target.value)}
+                onBlur={() => {
+                  if (formStartTime && isStartsAtInPast()) {
+                    setFormErrors((prev) => ({
+                      ...prev,
+                      startTime: "A data do slot deve ser no futuro",
+                    }))
+                  } else {
+                    setFormErrors((prev) => {
+                      const next = { ...prev }
+                      delete next.startTime
+                      return next
+                    })
+                  }
+                }}
                 required
                 aria-describedby={
                   formErrors.startTime ? "slot-start-error" : undefined
