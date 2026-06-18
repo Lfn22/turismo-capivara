@@ -101,7 +101,16 @@ export async function webhooksRoutes(app: FastifyInstance) {
         return reply.status(200).send({ message: 'ok' })
       }
 
-      // 5. Find booking by external_reference (= booking.id set at creation)
+      // 5. Deduplication check (per D-08/D-09): if this paymentId was already processed,
+      //    return 200 immediately without reprocessing. Cleanup of stale records deferred to OPS phase.
+      const alreadyProcessed = await prisma.processedWebhookEvent.findUnique({
+        where: { id: paymentId },
+      })
+      if (alreadyProcessed) {
+        return reply.status(200).send({ ok: true, deduplicated: true })
+      }
+
+      // 6. Find booking by external_reference (= booking.id set at creation)
       //    Using external_reference avoids race condition where webhook fires before
       //    paymentId is stored in booking (per D-03 / prior wave design)
       const booking = await prisma.booking.findFirst({
@@ -125,13 +134,13 @@ export async function webhooksRoutes(app: FastifyInstance) {
         return reply.status(200).send({ message: 'ok' })
       }
 
-      // 6. Idempotency check (per D-08): already in terminal state — no reprocessing
+      // 7. Idempotency check (per D-08): already in terminal state — no reprocessing
       const TERMINAL_STATES: string[] = ['CONFIRMED', 'CANCELLED', 'EXPIRED', 'COMPLETED', 'NO_SHOW']
       if (TERMINAL_STATES.includes(booking.status)) {
         return reply.status(200).send({ message: 'ok' })
       }
 
-      // 7. Transition based on authoritative payment status from MP API
+      // 8. Transition based on authoritative payment status from MP API
       if (status === 'approved') {
         // PENDING → CONFIRMED (idempotent: only transitions if still PENDING)
         await prisma.booking.updateMany({
@@ -183,6 +192,11 @@ export async function webhooksRoutes(app: FastifyInstance) {
         })
       }
       // Other statuses (pending, in_process) — no-op, acknowledge with 200
+
+      // 9. Register processed event to prevent duplicate processing (per D-08/D-09)
+      await prisma.processedWebhookEvent.create({
+        data: { id: paymentId },
+      })
 
       return reply.status(200).send({ message: 'ok' })
     }
