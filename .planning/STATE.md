@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-17)
 
 Phase: 17 de 20 — Segurança e Dados (próxima)
 Plan: —
-Status: Phase 16 completa — aguardando discuss/plan Phase 17
+Status: Phase 17 planejada (4 planos criados, verificados) — pronta para execução
 Last activity: 2026-06-18 — Phase 16 encerrada com 8/8 must-haves. Gap PAY-03 fechado (CheckoutClient fetch inicial separado do polling).
 
 ## Decisões estratégicas
