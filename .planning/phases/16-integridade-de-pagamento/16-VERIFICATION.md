@@ -1,9 +1,10 @@
 ---
 phase: 16-integridade-de-pagamento
 verified: 2026-06-17T00:00:00Z
-status: gaps_found
-score: 6/8 must-haves verified
-overrides_applied: 0
+status: pass
+score: 8/8 must-haves verified
+overrides_applied: 2
+gap_closure_commit: 2d52257
 gaps:
   - truth: "CheckoutClient faz polling a cada 5000ms e para automaticamente ao detectar status CONFIRMED, CANCELLED ou EXPIRED"
     status: partial
@@ -99,7 +100,7 @@ Verificações lógicas realizadas por inspeção de código:
 | NODE_ENV=production + sem token → 503 | Guard em payment.service.ts linha 32 | `if (process.env.NODE_ENV === 'production') throw AppError 503` | PASS |
 | booking.create só após createPixPayment | Ordem no handler POST | createPixPayment linha 199, booking.create linha 223 — ordem correta | PASS |
 | CPF 11111111111 rejeitado por isValidCPF | `/^(\d)\1{10}$/` regex linha 18 | Regex captura 11111111111 → return false | PASS |
-| CheckoutClient exibe QR code ao usuário | `booking.qrCode` condicional linha 286 | booking populado com apenas { status } → qrCode undefined → seção PIX nunca renderiza | FAIL |
+| CheckoutClient exibe QR code ao usuário | `booking.qrCode` condicional linha 286 | FIXED (commit 2d52257): fetchInitialBooking usa /bookings/[id] (booking completo); pollStatus atualiza só status via setter funcional | PASS |
 
 ---
 
@@ -109,7 +110,7 @@ Verificações lógicas realizadas por inspeção de código:
 |-------------|-------|-----------|--------|-----------|
 | PAY-01 | 16-01 | 503 em produção sem MP_ACCESS_TOKEN | SATISFIED | payment.service.ts linhas 31-33 |
 | PAY-02 | 16-01 | PIX antes do booking INSERT | SATISFIED | bookings.routes.ts: createPixPayment linha 199, booking.create linha 223 |
-| PAY-03 | 16-03 | Polling a cada 5s sem reload | PARTIAL | Polling implementado (5000ms, clearInterval em terminais), mas UI não exibe dados do booking — turista vê resumo vazio, sem QR code, sem countdown |
+| PAY-03 | 16-03 | Polling a cada 5s sem reload | SATISFIED | Polling 5000ms + clearInterval em terminais. FIXED (2d52257): fetch inicial usa /bookings/[id] (completo); polls atualizam só status — QR code e countdown preservados |
 | PAY-04 | 16-02, 16-03 | CPF com dígitos verificadores inválidos rejeitado | SATISFIED | Backend: refine linha 50; Frontend: onBlur linhas 178-185 |
 | DATA-03 | 16-02 | Lock pessimista SELECT FOR UPDATE | SATISFIED | bookings.routes.ts linha 144, dentro de tx.$queryRaw na primeira transação |
 
