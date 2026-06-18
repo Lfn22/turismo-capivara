@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: MVP Stability & Payment Integrity
 status: in_progress
-stopped_at: "Roadmap criado — 5 fases definidas (16–20), pronto para iniciar Phase 16"
-last_updated: "2026-06-17T15:46:00-03:00"
-last_activity: "2026-06-17 — Roadmap v1.3 criado: 5 fases (16–20), 24 requirements mapeados, critérios UAT definidos por fase"
+stopped_at: "Phase 16 completa (8/8 must-haves) — iniciando Phase 17: Segurança e Dados"
+last_updated: "2026-06-18T10:11:00-03:00"
+last_activity: "2026-06-18 — Phase 16 encerrada: PAY-01/02/03/04 + DATA-03 verificados. Gap closure CheckoutClient (commit 2d52257). Avançando para Phase 17."
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 3
+  percent: 20
 ---
 
 # STATE.md — Turismo Capivara
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-06-17)
 
 ## Current Position
 
-Phase: Not started (defining roadmap)
+Phase: 17 de 20 — Segurança e Dados (próxima)
 Plan: —
-Status: Milestone v1.3 iniciado — requirements definidos, aguardando roadmap
-Last activity: 2026-06-17 — Milestone v1.3 iniciado: 24 requirements em 6 categorias (PAY, SEC, DATA, UX, OPS, POL)
+Status: Phase 16 completa — aguardando discuss/plan Phase 17
+Last activity: 2026-06-18 — Phase 16 encerrada com 8/8 must-haves. Gap PAY-03 fechado (CheckoutClient fetch inicial separado do polling).
 
 ## Decisões estratégicas
 
