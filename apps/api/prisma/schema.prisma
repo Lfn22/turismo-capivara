@@ -119,6 +119,7 @@ model DepartureSlot {
 
 model Booking {
   id            String        @id @default(cuid())
+  cancelToken   String?       @unique
   tenantId      String
   slotId        String
   customerName  String
@@ -206,4 +207,9 @@ enum TenantApprovalStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model ProcessedWebhookEvent {
+  id          String   @id
+  processedAt DateTime @default(now())
 }
