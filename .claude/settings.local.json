@@ -87,7 +87,8 @@
       "Bash(cat -n /c/projetos/turismo-capivara/apps/api/src/modules/users/*.ts)",
       "mcp__plugin_claude-mem_mcp-search__timeline",
       "mcp__plugin_claude-mem_mcp-search__search",
-      "Bash(find C:/projetos/turismo-capivara/apps/web -name \"page.tsx\" -path \"*/login/*\" -exec cat {} \\\\;)"
+      "Bash(find C:/projetos/turismo-capivara/apps/web -name \"page.tsx\" -path \"*/login/*\" -exec cat {} \\\\;)",
+      "Skill(gsd-next)"
     ]
   }
 }
