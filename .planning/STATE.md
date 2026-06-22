@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: MVP Stability & Payment Integrity
-status: in_progress
-stopped_at: "Phase 16 completa (8/8 must-haves) — iniciando Phase 17: Segurança e Dados"
-last_updated: "2026-06-18T10:11:00-03:00"
-last_activity: "2026-06-18 — Phase 16 encerrada: PAY-01/02/03/04 + DATA-03 verificados. Gap closure CheckoutClient (commit 2d52257). Avançando para Phase 17."
+milestone: v1.2
+milestone_name: — UI/UX Polish + Guia Experience
+status: verifying
+stopped_at: Phase 14 complete — all bugs fixed, committed eaca28b, pushed to Railway
+last_updated: "2026-06-22T12:42:00Z"
+last_activity: 2026-06-22 — Phase 17 plan 03 completo: tenant isolation + atomic cancel + approval gate.
 progress:
-  total_phases: 5
-  completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
-  percent: 20
+  total_phases: 10
+  completed_phases: 7
+  total_plans: 31
+  completed_plans: 31
+  percent: 100
 ---
 
 # STATE.md — Turismo Capivara
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-06-17)
 
 ## Current Position
 
-Phase: 17 de 20 — Segurança e Dados (próxima)
-Plan: —
-Status: Phase 17 planejada (4 planos criados, verificados) — pronta para execução
-Last activity: 2026-06-18 — Phase 16 encerrada com 8/8 must-haves. Gap PAY-03 fechado (CheckoutClient fetch inicial separado do polling).
+Phase: 17 de 20 — Segurança e Dados (em execução)
+Plan: 03/04 completo — próximo: 17-04
+Status: Phase 17 em execução — 17-01, 17-02, 17-03 concluídos
+Last activity: 2026-06-22 — 17-03 completo: tenant isolation confirm/cancel, double-cancel guard, approval gate POST /bookings.
 
 ## Decisões estratégicas
 
@@ -78,6 +78,8 @@ Last activity: 2026-06-18 — Phase 16 encerrada com 8/8 must-haves. Gap PAY-03 
 - R2 auth: `CLOUDFLARE_API_TOKEN` formato `accessKeyId:secretAccessKey` (split em `:`)
 - Vitest mocks @aws-sdk: `PutObjectCommand`/`DeleteObjectCommand` devem usar `function` keyword (não arrow fn) para suportar `new` como construtor
 - Vitest + @fastify/multipart: mockar o plugin quebra `decorateRequest` por isolamento de módulos — usar real multipart body com Buffer manual em testes de rota
+- D-12: 403 em tenant não aprovado usa mensagem genérica `'Reservas indisponíveis no momento.'` — não revelar motivo real ao turista
+- AppError: construtor 2-param `(message: string, statusCode = 400)` — sem terceiro argumento de código
 
 ## Performance histórica
 
