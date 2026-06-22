@@ -317,8 +317,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
         rateLimit: {
           max: 5,
           timeWindow: '15 minutes',
-          keyGenerator: (req) =>
-            `lookup:email:${((req.body as { email?: string })?.email || '').trim().toLowerCase()}`,
+          keyGenerator: (req) => `lookup:ip:${req.ip}`,
         },
       },
     },
@@ -468,8 +467,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
         rateLimit: {
           max: 5,
           timeWindow: '15 minutes',
-          keyGenerator: (req) =>
-            `lookup:email:${((req.body as { email?: string })?.email || '').trim().toLowerCase()}`,
+          keyGenerator: (req) => `repay:ip:${req.ip}`,
         },
       },
     },
@@ -529,8 +527,8 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
       // Lock slot and update booking atomically to prevent race condition
       await prisma.$transaction(async (tx) => {
-        const [slotRow] = await tx.$queryRaw<Array<{ status: string }>>`
-          SELECT status FROM "DepartureSlot"
+        const [slotRow] = await tx.$queryRaw<Array<{ status: string; booked: number; capacity: number }>>`
+          SELECT status, booked, capacity FROM "DepartureSlot"
           WHERE id = ${booking.slotId}
           FOR UPDATE
         `
@@ -538,6 +536,17 @@ export async function bookingsRoutes(app: FastifyInstance) {
           // MP payment was created but slot is gone — log for manual reconciliation
           throw new AppError('Slot indisponível para novo pagamento', 422)
         }
+        if (slotRow.booked + booking.pax > slotRow.capacity) {
+          throw new AppError('SLOT_UNAVAILABLE', 409)
+        }
+        const newBooked = slotRow.booked + booking.pax
+        await tx.departureSlot.update({
+          where: { id: booking.slotId },
+          data: {
+            booked: { increment: booking.pax },
+            status: newBooked >= slotRow.capacity ? 'FULL' : 'OPEN',
+          },
+        })
         await tx.booking.update({
           where: { id: booking.id },
           data: {
