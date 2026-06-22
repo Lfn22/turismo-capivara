@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
-status: verifying
-stopped_at: Phase 14 complete — all bugs fixed, committed eaca28b, pushed to Railway
-last_updated: "2026-06-22T12:42:00Z"
-last_activity: 2026-06-22 — Phase 17 plan 03 completo: tenant isolation + atomic cancel + approval gate.
+status: in_progress
+stopped_at: "Phase 17 completa (4/4 planos, verificado 7/7 requisitos) — iniciando Phase 18: UX do Checkout"
+last_updated: "2026-06-22T12:52:00-03:00"
+last_activity: "2026-06-22 — Phase 17 encerrada: SEC-01/02/03/04 + DATA-01/02/04 verificados. 2 findings críticos no code review (TOCTOU webhook + repay sem incremento) — recomendado /gsd-code-review-fix 17 antes de prod."
 progress:
   total_phases: 10
   completed_phases: 7
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-06-17)
 
 ## Current Position
 
-Phase: 17 de 20 — Segurança e Dados (em execução)
+Phase: 18 de 20 — UX do Checkout (próxima)
 Plan: 03/04 completo — próximo: 17-04
-Status: Phase 17 em execução — 17-01, 17-02, 17-03 concluídos
+Status: Phase 17 completa (4/4 planos verificados) — pronta para Phase 18
 Last activity: 2026-06-22 — 17-03 completo: tenant isolation confirm/cancel, double-cancel guard, approval gate POST /bookings.
 
 ## Decisões estratégicas

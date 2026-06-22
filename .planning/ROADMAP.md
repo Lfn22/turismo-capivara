@@ -28,7 +28,7 @@
 ### Phases
 
 - [ ] **Phase 16: Integridade de Pagamento** — PIX atômico, validação de MP_ACCESS_TOKEN, algoritmo de CPF, polling de status, lock de slot
-- [ ] **Phase 17: Segurança e Dados** — Rate limit cancel-self, token opaco, isolamento multi-tenant, dedup de webhook, liberação de slot, aprovação de tenant, validação de data de slot
+- [x] **Phase 17: Segurança e Dados** — Rate limit cancel-self, token opaco, isolamento multi-tenant, dedup de webhook, liberação de slot, aprovação de tenant, validação de data de slot
 - [ ] **Phase 18: UX do Checkout** — Countdown PIX, QR code visual, link minha-reserva, loading state, proteção PII
 - [ ] **Phase 19: Confiabilidade Operacional** — Job de expiração PIX, validação R2, confiabilidade de email, toast provider global, badge de status de destino
 - [ ] **Phase 20: Polimento e Dados Públicos** — Home com mais destinos, filtro APPROVED, erro de tenant PENDING, terminologia, paginação super-admin
@@ -177,7 +177,7 @@ Plans:
 | 13. Painel Mobile + Feedback | 0/? | Not started | - |
 | 14. Gestao de Conteudo | 8/8 | Complete | 2026-06-11 |
 | 16. Integridade de Pagamento | 0/? | Not started | - |
-| 17. Segurança e Dados | 0/? | Not started | - |
+| 17. Segurança e Dados | 4/4 | Complete | 2026-06-22 |
 | 18. UX do Checkout | 0/? | Not started | - |
 | 19. Confiabilidade Operacional | 0/? | Not started | - |
 | 20. Polimento e Dados Públicos | 0/? | Not started | - |
