@@ -101,13 +101,20 @@ export async function webhooksRoutes(app: FastifyInstance) {
         return reply.status(200).send({ message: 'ok' })
       }
 
-      // 5. Deduplication check (per D-08/D-09): if this paymentId was already processed,
-      //    return 200 immediately without reprocessing. Cleanup of stale records deferred to OPS phase.
-      const alreadyProcessed = await prisma.processedWebhookEvent.findUnique({
-        where: { id: paymentId },
-      })
-      if (alreadyProcessed) {
-        return reply.status(200).send({ ok: true, deduplicated: true })
+      // 5. Deduplication: attempt to register this paymentId atomically FIRST (per D-08/D-09).
+      //    If another concurrent delivery already claimed it, P2002 unique constraint fires → deduplicate.
+      //    This eliminates the TOCTOU window between findUnique and create.
+      try {
+        await prisma.processedWebhookEvent.create({ data: { id: paymentId } })
+      } catch (dedupeErr: unknown) {
+        const isPrismaUniqueViolation =
+          typeof dedupeErr === 'object' &&
+          dedupeErr !== null &&
+          (dedupeErr as { code?: string }).code === 'P2002'
+        if (isPrismaUniqueViolation) {
+          return reply.status(200).send({ ok: true, deduplicated: true })
+        }
+        throw dedupeErr
       }
 
       // 6. Find booking by external_reference (= booking.id set at creation)
@@ -179,8 +186,9 @@ export async function webhooksRoutes(app: FastifyInstance) {
 
           const currentSlot = await tx.departureSlot.findUnique({ where: { id: booking.slotId } })
           const newBooked = Math.max(0, (currentSlot?.booked ?? booking.pax) - booking.pax)
-          await tx.departureSlot.update({
-            where: { id: booking.slotId },
+          // Atomic decrement with where guard: never decrement below 0
+          await tx.departureSlot.updateMany({
+            where: { id: booking.slotId, booked: { gt: 0 } },
             data: {
               booked: { decrement: booking.pax },
               // Only recalculate status for OPEN/FULL slots — preserve CANCELLED/COMPLETED
@@ -192,11 +200,6 @@ export async function webhooksRoutes(app: FastifyInstance) {
         })
       }
       // Other statuses (pending, in_process) — no-op, acknowledge with 200
-
-      // 9. Register processed event to prevent duplicate processing (per D-08/D-09)
-      await prisma.processedWebhookEvent.create({
-        data: { id: paymentId },
-      })
 
       return reply.status(200).send({ message: 'ok' })
     }
