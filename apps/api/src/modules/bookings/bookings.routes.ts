@@ -102,6 +102,11 @@ export async function bookingsRoutes(app: FastifyInstance) {
       throw new AppError('Tenant não encontrado', 404)
     }
 
+    // DATA-02: Tenant approval gate — generic message per D-12 (do not expose real reason)
+    if (tenant.approvalStatus !== 'APPROVED') {
+      throw new AppError('Reservas indisponíveis no momento.', 403)
+    }
+
     // HARDENING-01: Idempotency check — deve vir ANTES do $transaction
     const idempotencyKey = (request.headers['idempotency-key'] as string | undefined)?.trim() || undefined
 
@@ -632,9 +637,16 @@ export async function bookingsRoutes(app: FastifyInstance) {
         throw new AppError('Reserva não encontrada', 404)
       }
 
-      const user = request.user as { sub: string; role: string }
+      const user = request.user as { sub: string; role: string; tenantId: string }
+      if (booking.tenantId !== user.tenantId) {
+        throw new AppError('FORBIDDEN', 403)
+      }
       if (user.role === 'CONDUTOR' && booking.slot?.package?.conductorId !== user.sub) {
         throw new AppError('Acesso negado', 403)
+      }
+
+      if (booking.status === 'CANCELLED') {
+        throw new AppError('BOOKING_ALREADY_CANCELLED', 400)
       }
 
       if (!['PENDING', 'CONFIRMED'].includes(booking.status)) {
@@ -693,7 +705,10 @@ export async function bookingsRoutes(app: FastifyInstance) {
         throw new AppError('Reserva não encontrada', 404)
       }
 
-      const user = request.user as { sub: string; role: string }
+      const user = request.user as { sub: string; role: string; tenantId: string }
+      if (booking.tenantId !== user.tenantId) {
+        throw new AppError('FORBIDDEN', 403)
+      }
       if (user.role === 'CONDUTOR' && booking.slot?.package?.conductorId !== user.sub) {
         throw new AppError('Acesso negado', 403)
       }
