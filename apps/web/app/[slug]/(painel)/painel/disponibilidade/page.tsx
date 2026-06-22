@@ -58,6 +58,7 @@ export default function DisponibilidadePage({
   const [formStartTime, setFormStartTime] = useState("")
   const [formEndTime, setFormEndTime] = useState("")
   const [formVagas, setFormVagas] = useState<number>(1)
+  const [formMinCapacity, setFormMinCapacity] = useState<number>(1)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [formApiError, setFormApiError] = useState<string | null>(null)
@@ -173,6 +174,8 @@ export default function DisponibilidadePage({
       errs.endTime = "O horário de fim deve ser após o início."
     }
     if (!formVagas || formVagas < 1) errs.vagas = "Informe ao menos 1 vaga."
+    if (!formMinCapacity || formMinCapacity < 1) errs.minCapacity = "Informe o mínimo de participantes."
+    else if (formMinCapacity > formVagas) errs.minCapacity = "Mínimo não pode exceder a capacidade."
     setFormErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -192,7 +195,7 @@ export default function DisponibilidadePage({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ startsAt, capacity: formVagas }),
+          body: JSON.stringify({ startsAt, capacity: formVagas, minCapacity: formMinCapacity }),
         }
       )
       if (!res.ok) {
@@ -206,6 +209,7 @@ export default function DisponibilidadePage({
       setFormStartTime("")
       setFormEndTime("")
       setFormVagas(1)
+      setFormMinCapacity(1)
       setFormErrors({})
       toast.success("Slot criado com sucesso.")
     } catch (err: unknown) {
@@ -609,7 +613,7 @@ export default function DisponibilidadePage({
           {/* Vagas */}
           <div>
             <label htmlFor="slot-vagas" style={labelStyle}>
-              Vagas
+              Vagas (capacidade máxima)
             </label>
             <input
               id="slot-vagas"
@@ -627,6 +631,31 @@ export default function DisponibilidadePage({
             {formErrors.vagas && (
               <p id="slot-vagas-error" style={errorStyle}>
                 {formErrors.vagas}
+              </p>
+            )}
+          </div>
+
+          {/* Mínimo de participantes */}
+          <div>
+            <label htmlFor="slot-min-capacity" style={labelStyle}>
+              Mínimo de participantes
+            </label>
+            <input
+              id="slot-min-capacity"
+              type="number"
+              min={1}
+              value={formMinCapacity}
+              onChange={(e) => setFormMinCapacity(parseInt(e.target.value) || 1)}
+              required
+              aria-describedby={formErrors.minCapacity ? "slot-min-capacity-error" : undefined}
+              style={{
+                ...inputStyle,
+                borderColor: formErrors.minCapacity ? "#DC2626" : undefined,
+              }}
+            />
+            {formErrors.minCapacity && (
+              <p id="slot-min-capacity-error" style={errorStyle}>
+                {formErrors.minCapacity}
               </p>
             )}
           </div>
