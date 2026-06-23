@@ -139,6 +139,10 @@ Plans:
   3. Página de confirmação exibe link "Consultar minha reserva" apontando para `/minha-reserva`
   4. Botão de submit do formulário de booking é desabilitado imediatamente após o primeiro clique e exibe spinner durante processamento — sem double submit
   5. **UAT:** Inspecionar DOM da página de confirmação e confirmar ausência de CPF, telefone ou qualquer PII sem autenticação; verificar countdown atualizando em tempo real; verificar QR code renderizando como SVG; clicar submit duas vezes rapidamente e verificar que apenas 1 requisição é feita
+**Plans:** 2 plans
+Plans:
+- [ ] 18-01-PLAN.md — BookingForm: fix double-submit + spinner SVG (UX-04)
+- [ ] 18-02-PLAN.md — ConfirmationClient: countdown + QR Code + link /minha-reserva (UX-01, UX-02, UX-03, UX-05)
 **UI hint**: yes
 
 ### Phase 19: Confiabilidade Operacional
@@ -178,7 +182,7 @@ Plans:
 | 14. Gestao de Conteudo | 8/8 | Complete | 2026-06-11 |
 | 16. Integridade de Pagamento | 0/? | Not started | - |
 | 17. Segurança e Dados | 4/4 | Complete | 2026-06-22 |
-| 18. UX do Checkout | 0/? | Not started | - |
+| 18. UX do Checkout | 0/2 | Planning | - |
 | 19. Confiabilidade Operacional | 0/? | Not started | - |
 | 20. Polimento e Dados Públicos | 0/? | Not started | - |
 
