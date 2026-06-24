@@ -86,7 +86,6 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
       if (!UUID_RE.test(bookingId)) {
         throw new Error('Resposta inválida do servidor. Tente novamente.');
       }
-      setLoading(false); // WR-03: unlock form before navigation
       router.push(`/${slug}/checkout?bookingId=${bookingId}&email=${encodeURIComponent(form.email)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado.');
@@ -236,15 +235,35 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
       <button
         type="submit"
         disabled={loading}
+        aria-busy={loading}
         className="px-6 py-3 rounded-[10px] font-semibold text-base transition-colors"
         style={{
           backgroundColor: loading ? 'var(--stone-400)' : 'var(--ochre)',
           color: 'var(--stone-50)',
           border: 'none',
           cursor: loading ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
         }}
       >
-        {loading ? 'Processando...' : 'Confirmar reserva'}
+        {loading ? (
+          <>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+              style={{ animation: 'spin 0.75s linear infinite' }}
+            >
+              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.3" />
+              <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            Processando…
+          </>
+        ) : 'Confirmar reserva'}
       </button>
     </form>
   );

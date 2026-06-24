@@ -63,6 +63,10 @@ button {
   animation-delay: 0.1s;
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Destination nav transition ──────────────────────────────── */
 .dest-nav {
   position: fixed;
