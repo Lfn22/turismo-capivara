@@ -5,6 +5,7 @@ interface Booking {
   slotStartsAt?: string;
   guestName: string;
   pax: number;
+  slug: string;
 }
 
 interface ConfirmationCardProps {
@@ -117,6 +118,21 @@ export default function ConfirmationCard({ booking }: ConfirmationCardProps) {
           value={`${booking.pax} ${booking.pax === 1 ? 'pessoa' : 'pessoas'}`}
         />
       </div>
+      <a
+        href={`/${booking.slug}/minha-reserva`}
+        style={{
+          display: 'block',
+          textAlign: 'center',
+          color: 'var(--ochre)',
+          fontWeight: 700,
+          fontSize: '1rem',
+          textDecoration: 'none',
+          padding: '12px 0',
+          marginTop: '1rem',
+        }}
+      >
+        Consultar minha reserva
+      </a>
     </div>
   );
 }

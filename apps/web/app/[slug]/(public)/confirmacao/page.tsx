@@ -1,4 +1,5 @@
 import ConfirmationCard from '@/src/components/ui/ConfirmationCard';
+import ConfirmationClient from '@/src/components/ui/ConfirmationClient';
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3001';
 
@@ -7,6 +8,8 @@ interface BookingResponse {
   status: string;
   customerName: string;
   pax: number;
+  qrCode: string | null;
+  expiresAt: string | null;
   slot?: {
     startsAt?: string;
     package?: { name?: string };
@@ -81,6 +84,7 @@ export default async function ConfirmacaoPage({
     pax: booking.pax,
     packageName: booking.slot?.package?.name,
     slotStartsAt: booking.slot?.startsAt,
+    slug,
   };
 
   return (
@@ -92,6 +96,14 @@ export default async function ConfirmacaoPage({
       }}
     >
       <ConfirmationCard booking={cardBooking} />
+      {(booking.qrCode || booking.expiresAt) && (
+        <ConfirmationClient
+          qrCode={booking.qrCode}
+          expiresAt={booking.expiresAt}
+          slug={slug}
+          status={booking.status}
+        />
+      )}
     </div>
   );
 }
