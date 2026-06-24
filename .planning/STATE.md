@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
 status: in_progress
-stopped_at: "Phase 17 completa (4/4 planos, verificado 7/7 requisitos) — iniciando Phase 18: UX do Checkout"
-last_updated: "2026-06-22T12:52:00-03:00"
-last_activity: "2026-06-22 — Phase 17 encerrada: SEC-01/02/03/04 + DATA-01/02/04 verificados. 2 findings críticos no code review (TOCTOU webhook + repay sem incremento) — recomendado /gsd-code-review-fix 17 antes de prod."
+stopped_at: "Phase 18 completa (2/2 planos, 9/9 must-haves verificados) — próxima: Phase 19 (Tour Virtual 360°)"
+last_updated: "2026-06-24T09:56:00-03:00"
+last_activity: "2026-06-24 — Phase 18 encerrada: UX-01/02/03/04/05 verificados. BookingForm double-submit corrigido + spinner + aria-busy. ConfirmationClient criado com countdown MM:SS + QR Code + link /minha-reserva."
 progress:
   total_phases: 10
   completed_phases: 7
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-06-17)
 
 ## Current Position
 
-Phase: 18 de 20 — UX do Checkout (próxima)
-Plan: 03/04 completo — próximo: 17-04
-Status: Phase 18 planejada (2 planos, wave 1, verificação aprovada) — pronta para execução
-Last activity: 2026-06-22 — 17-03 completo: tenant isolation confirm/cancel, double-cancel guard, approval gate POST /bookings.
+Phase: 18 de 20 — UX do Checkout (completa)
+Plan: 2/2 completo
+Status: Phase 18 completa (9/9 must-haves verificados) — próxima: Phase 19 (Tour Virtual 360°)
+Last activity: 2026-06-24 — Phase 18 encerrada: BookingForm double-submit + spinner + aria-busy (UX-04). ConfirmationClient com countdown MM:SS + QR Code SVG 200x200 + link /minha-reserva (UX-01/02/03/05).
 
 ## Decisões estratégicas
 
