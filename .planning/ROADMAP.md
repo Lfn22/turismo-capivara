@@ -156,6 +156,12 @@ Plans:
   4. Toast notifications em todo o painel usam um único provider global — nenhum componente reimplementa estado de toast inline
   5. **UAT:** Forçar expiração de booking PENDING (alterar `expiresAt` para passado no DB) e verificar que job da próxima hora o marca como EXPIRED e libera slot; remover variáveis R2 e tentar upload de foto e verificar 503 descritivo; verificar no Sentry que falha de email de teste aparece como evento
 **UI hint**: yes
+**Plans:** 4 plans
+Plans:
+- [ ] 19-01-PLAN.md — OPS-01/02/03: cronTime horário, 503 R2, Sentry em email de operadora
+- [ ] 19-02-PLAN.md — OPS-04: Toaster no super-admin layout, remover toast inline
+- [ ] 19-03-PLAN.md — OPS-05 backend: schema rejectionReason, service, endpoint + db push
+- [ ] 19-04-PLAN.md — OPS-05 frontend: PainelDestinationCard com badge, data e motivo
 
 ### Phase 20: Polimento e Dados Públicos
 **Goal**: A home pública é rica, destinos pendentes nunca vazam para turistas, e o super-admin opera sem limitações artificiais de paginação
