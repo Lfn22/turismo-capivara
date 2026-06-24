@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-17)
 
 Phase: 18 de 20 — UX do Checkout (próxima)
 Plan: 03/04 completo — próximo: 17-04
-Status: Phase 17 completa (4/4 planos verificados) — pronta para Phase 18
+Status: Phase 18 planejada (2 planos, wave 1, verificação aprovada) — pronta para execução
 Last activity: 2026-06-22 — 17-03 completo: tenant isolation confirm/cancel, double-cancel guard, approval gate POST /bookings.
 
 ## Decisões estratégicas
@@ -117,8 +117,8 @@ Last activity: 2026-06-22 — 17-03 completo: tenant isolation confirm/cancel, d
 
 ## Session Continuity
 
-Last session: 2026-06-11T16:00:00-03:00
-Stopped at: Phase 14 complete — all bugs fixed, committed eaca28b, pushed to Railway
+Last session: 2026-06-22T14:38:00-03:00
+Stopped at: Phase 18 planejada (2 planos criados, verificação aprovada) — pronta para /gsd-execute-phase 18
 Resume file: None
 
 ### Quick Tasks Completed
