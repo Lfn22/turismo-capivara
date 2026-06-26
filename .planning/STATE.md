@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Lançamento em Produção
 status: in_progress
-stopped_at: "Phase 21 Plan 01 completo — 21-02 (validateEnv) próximo em Wave 1"
-last_updated: "2026-06-26T14:51:00-03:00"
-last_activity: "2026-06-26 — Phase 21 Plan 01 executado: ioredis removido, fix-plan06.js deletado, out/ (55 arquivos) desrastreado do git index, .gitignore atualizado. commit 097a378."
+stopped_at: "Phase 21 Plan 04 completo — INFRA-07/INFRA-08: cron schedule fix + checkout test ported"
+last_updated: "2026-06-26T15:05:00-03:00"
+last_activity: "2026-06-26 — Phase 21 Plan 04 executado: expiry.job.ts cron '* * * * *' → '0 * * * *', checkout.test.ts portado do worktree (CPF fix + approvalStatus). commits 7c62b84, 6a9832c."
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 21
-  completed_plans: 1
-  percent: 5
+  completed_plans: 4
+  percent: 19
 ---
 
 # STATE.md — Turismo Capivara
