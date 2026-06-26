@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Lançamento em Produção
 status: in_progress
-stopped_at: "Phase 21 (Hardening de Infraestrutura) — próxima a executar; Fase 22 e 19 paralelas após"
-last_updated: "2026-06-26T10:53:00-03:00"
-last_activity: "2026-06-26 — Milestone v2.0 criado com base em auditoria executiva (7 especialistas, 12 pilares, 18 tasks de recuperação). 37 requisitos em 8 categorias. 8 fases: 21 Hardening, 22 Email, 16 PIX, 19 OPS, 18 UX, 13 Mobile, 20 Polimento+SEO, 23 QA. Próximo passo: /gsd-plan-phase 21"
+stopped_at: "Phase 21 Plan 01 completo — 21-02 (validateEnv) próximo em Wave 1"
+last_updated: "2026-06-26T14:51:00-03:00"
+last_activity: "2026-06-26 — Phase 21 Plan 01 executado: ioredis removido, fix-plan06.js deletado, out/ (55 arquivos) desrastreado do git index, .gitignore atualizado. commit 097a378."
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 21
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 5
 ---
 
 # STATE.md — Turismo Capivara
