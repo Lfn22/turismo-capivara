@@ -88,7 +88,7 @@ export async function authRoutes(app: FastifyInstance) {
         name: user.name,
         approvalStatus: user.approvalStatus,
       },
-      { expiresIn: '1d' }
+      { expiresIn: '7d' }
     )
 
     return reply.status(200).send({ token })
