@@ -7,7 +7,7 @@ const BOOKING_EXPIRY_LOCK_ID = 1_234_567_890
 
 export function createBookingExpiryJob(app: FastifyInstance) {
   return {
-    cronTime: '* * * * *',
+    cronTime: '0 * * * *',
     onTick: async () => {
       // Acquire PostgreSQL advisory lock to prevent multi-instance races (D-10)
       const [lockResult] = await prisma.$queryRaw<Array<{ pg_try_advisory_lock: boolean }>>`
