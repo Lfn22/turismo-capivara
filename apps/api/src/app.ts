@@ -31,7 +31,12 @@ import { dashboardRoutes } from './modules/dashboard/dashboard.routes'
 import { createBookingExpiryJob } from './modules/bookings/expiry.job'
 import { AppError } from './shared/errors/AppError'
 
-const app = Fastify({ logger: true, trustProxy: true })
+const app = Fastify({
+  logger: true,
+  trustProxy: true,
+  genReqId: () => crypto.randomUUID(),
+  connectionTimeout: 30000,
+})
 
 // Sentry MUST be registered before custom setErrorHandler (per D-08)
 // This adds Sentry as an outer error handler in the Fastify lifecycle.
@@ -45,7 +50,7 @@ app.register(rawBody, {
 
 app.register(cors, {
   origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 })
 
 app.register(helmet)
@@ -79,8 +84,15 @@ app.register(fastifyCron, {
   jobs: [createBookingExpiryJob(app)],
 })
 
-app.get('/health', { config: { rateLimit: false } }, async () => {
-  return { status: 'ok', timestamp: new Date().toISOString() }
+app.get('/health', { config: { rateLimit: false } }, async (request, reply) => {
+  try {
+    const prisma = (await import('./database')).default
+    await prisma.$queryRaw`SELECT 1`
+    return reply.status(200).send({ db: 'ok' })
+  } catch (err) {
+    app.log.error(err, 'Health check DB probe failed')
+    return reply.status(503).send({ db: 'error' })
+  }
 })
 
 app.register(authRoutes)
@@ -93,6 +105,10 @@ app.register(webhooksRoutes)
 app.register(destinationsRoutes)
 app.register(uploadsRoutes)
 app.register(dashboardRoutes)
+
+app.addHook('onSend', async (request, reply) => {
+  reply.header('X-Request-Id', request.id)
+})
 
 app.setErrorHandler((err, request, reply) => {
   if (err instanceof AppError) {
