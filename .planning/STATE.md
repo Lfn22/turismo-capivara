@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: — UI/UX Polish + Guia Experience
+milestone: v2.0
+milestone_name: Lançamento em Produção
 status: in_progress
-stopped_at: "Phase 18 completa (2/2 planos, 9/9 must-haves verificados) — próxima: Phase 19 (Tour Virtual 360°)"
-last_updated: "2026-06-24T09:56:00-03:00"
-last_activity: "2026-06-24 — Phase 18 encerrada: UX-01/02/03/04/05 verificados. BookingForm double-submit corrigido + spinner + aria-busy. ConfirmationClient criado com countdown MM:SS + QR Code + link /minha-reserva."
+stopped_at: "Phase 21 (Hardening de Infraestrutura) — próxima a executar; Fase 22 e 19 paralelas após"
+last_updated: "2026-06-26T10:53:00-03:00"
+last_activity: "2026-06-26 — Milestone v2.0 criado com base em auditoria executiva (7 especialistas, 12 pilares, 18 tasks de recuperação). 37 requisitos em 8 categorias. 8 fases: 21 Hardening, 22 Email, 16 PIX, 19 OPS, 18 UX, 13 Mobile, 20 Polimento+SEO, 23 QA. Próximo passo: /gsd-plan-phase 21"
 progress:
-  total_phases: 10
-  completed_phases: 7
-  total_plans: 31
-  completed_plans: 31
-  percent: 100
+  total_phases: 8
+  completed_phases: 0
+  total_plans: 21
+  completed_plans: 0
+  percent: 0
 ---
 
 # STATE.md — Turismo Capivara
@@ -114,6 +114,7 @@ Last activity: 2026-06-24 — Phase 18 encerrada: BookingForm double-submit + sp
 - Phase 12.1 complete (2026-06-03): Pre-Launch Hardening — idempotência bookings (Idempotency-Key header), connection pool Railway, página /acesso, smoke test PIX 4/6 PASS
 - v1.2 milestone complete (2026-06-11) — Phases 11–15, UI/UX polish, login global, gestão de conteúdo
 - v1.3 milestone started (2026-06-17) — 24 requirements em auditoria end-to-end: PAY, SEC, DATA, UX, OPS, POL — Phases 16–20
+- v2.0 milestone created (2026-06-26) — Auditoria executiva MVP (7 especialistas, 12 pilares): 37 requisitos, 8 fases (21 Hardening + 22 Email novas; 13, 16, 18, 19, 20 absorvidas do v1.3), 21 planos total. Próximo: Phase 21
 
 ## Session Continuity
 

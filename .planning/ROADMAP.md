@@ -177,24 +177,102 @@ Plans:
 
 ---
 
-## Progress
+---
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 11. Frontend Polish | 5/5 | Complete | 2026-06-01 |
-| 12. Login Global | 3/3 | Complete   | 2026-06-02 |
-| 12.1. Pre-Launch Hardening | 3/3 | Complete | 2026-06-03 |
-| 13. Painel Mobile + Feedback | 0/? | Not started | - |
-| 14. Gestao de Conteudo | 8/8 | Complete | 2026-06-11 |
-| 16. Integridade de Pagamento | 0/? | Not started | - |
-| 17. Segurança e Dados | 4/4 | Complete | 2026-06-22 |
-| 18. UX do Checkout | 0/2 | Planning | - |
-| 19. Confiabilidade Operacional | 0/? | Not started | - |
-| 20. Polimento e Dados Públicos | 0/? | Not started | - |
+### Phase 21: Hardening de Infraestrutura
+**Goal:** Eliminar débitos técnicos de infraestrutura zero-risco — dependências mortas, variáveis não validadas, configurações inseguras.
+**Depends on:** Phase 17 (✅ Completo)
+**Requirements:** INFRA-01 a INFRA-08
+**Success Criteria:**
+  1. `pnpm ls ioredis` vazio; `fix-plan06.js`, `.worktrees/`, `out/` removidos do git
+  2. API encerra com erro descritivo se R2, ANONYMIZATION_SALT, RESEND_API_KEY ou EMAIL_FROM ausentes
+  3. JWT expira em 7 dias; `PUT /auth/reset-password` sem CORS error no browser
+  4. `GET /health` retorna `{ db: 'ok' }` em condição normal; HTTP 503 se DB offline
+  5. Todo log de rota contém `reqId` UUID; header `X-Request-Id` na response
+  6. Job de expiração executa às horas exatas (`:00`), não a cada minuto
+  7. `pnpm test` executa `checkout.test.ts` e passa
+
+**Plans:**
+- [ ] 21-01-PLAN.md — Remover ioredis, fix-plan06.js, .worktrees, out/ (INFRA-01)
+- [ ] 21-02-PLAN.md — Completar validateEnv: R2, ANONYMIZATION_SALT, RESEND, EMAIL_FROM (INFRA-02)
+- [ ] 21-03-PLAN.md — app.ts: JWT expiresIn + CORS PUT + health check DB + connectionTimeout + genReqId (INFRA-03,04,05,06)
+- [ ] 21-04-PLAN.md — Corrigir cron schedule `0 * * * *` + portar checkout.test.ts (INFRA-07,08)
 
 ---
 
-## Backlog (pós-v1.3)
+### Phase 22: Confiabilidade de Email
+**Goal:** Eliminar o padrão fire-and-forget — garantir que falhas de entrega sejam retentadas e logadas.
+**Depends on:** Phase 21 (INFRA-02 valida RESEND_API_KEY)
+**Requirements:** EMAIL-01
+**Success Criteria:**
+  1. `sendEmailWithRetry()` existe com 3 tentativas e backoff 500ms/1s/2s
+  2. Zero ocorrências de `void resend.emails.send` no codebase
+  3. Falha nas 3 tentativas → erro logado, sem throw não tratado
+
+**Plans:**
+- [ ] 22-01-PLAN.md — Implementar sendEmailWithRetry() e migrar todos os callers (EMAIL-01)
+
+---
+
+### Phase 23: Qualidade e Observabilidade
+**Goal:** E2E nos 3 fluxos críticos, uptime monitoring, backup verificado, todos os endpoints privados auditados.
+**Depends on:** Phase 20 (produto completo)
+**Requirements:** QA-01, QA-02, QA-03, QA-04
+**Success Criteria:**
+  1. `pnpm e2e` passa: reserva→PIX→confirmação, login global, expiração de booking
+  2. Falha nos fluxos bloqueia deploy no CI
+  3. Railway health check em `/health` com alerta + Sentry error rate >5%
+  4. Backup PostgreSQL Railway verificado; restore testado em staging
+  5. Teste lista rotas Fastify e verifica `preHandler: [authenticate]` em todas as rotas privadas
+
+**Plans:**
+- [ ] 23-01-PLAN.md — Playwright E2E: 3 fluxos + CI integration (QA-01)
+- [ ] 23-02-PLAN.md — Uptime alerts Railway + Sentry (QA-02)
+- [ ] 23-03-PLAN.md — Backup verify + endpoint auth audit + security test (QA-03,QA-04)
+
+---
+
+## Progress
+
+| Phase | Plans Complete | Status | Concluído |
+|-------|----------------|--------|-----------|
+| 11. Frontend Polish | 5/5 | Complete | 2026-06-01 |
+| 12. Login Global | 3/3 | Complete | 2026-06-02 |
+| 12.1. Pre-Launch Hardening | 3/3 | Complete | 2026-06-03 |
+| 14. Gestão de Conteúdo | 8/8 | Complete | 2026-06-11 |
+| 17. Segurança e Dados | 4/4 | Complete | 2026-06-22 |
+| 21. Hardening de Infraestrutura | 0/4 | Not started | - |
+| 22. Confiabilidade de Email | 0/1 | Not started | - |
+| 19. Confiabilidade Operacional | 0/4 | Not started | - |
+| 16. Integridade de Pagamento PIX | 0/3 | Not started | - |
+| 18. UX do Checkout | 0/2 | Not started | - |
+| 13. Painel Mobile + Feedback | 0/2 | Not started | - |
+| 20. Polimento e Dados Públicos + SEO | 0/2 | Not started | - |
+| 23. Qualidade e Observabilidade | 0/3 | Not started | - |
+
+---
+
+## v2.0 — Lançamento em Produção
+
+**Goal:** Transformar o CAPI MVP em produto apto para primeiros clientes pagantes e apresentável a investidores-anjo — eliminando todos os débitos técnicos identificados na auditoria executiva de 2026-06-26.
+**Origin:** Auditoria executiva MVP — Comitê de 7 especialistas, 12 pilares, 18 tasks de recuperação.
+**Archive:** [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md) · [milestones/v2.0-REQUIREMENTS.md](milestones/v2.0-REQUIREMENTS.md)
+**Requirements:** 37 (INFRA×8, EMAIL×1, PAY×4, OPS×5, UX×5, MOB×4, POL×4, SEO×2, QA×4)
+
+### Phases
+
+- [ ] **Phase 21: Hardening de Infraestrutura** — Remover ioredis/artefatos dev, completar validateEnv, JWT expiresIn, CORS PUT, health check DB, connectionTimeout, request ID, cron schedule, portar checkout tests
+- [ ] **Phase 22: Confiabilidade de Email** — `sendEmailWithRetry()` com 3 tentativas + backoff exponencial; migrar todos os callers
+- [ ] **Phase 16: Integridade de Pagamento PIX** — PIX atômico, validação MP_ACCESS_TOKEN, polling status, lock de slot *(do v1.3)*
+- [ ] **Phase 19: Confiabilidade Operacional** — Job expiração com advisory lock, toast provider global, badge de status de destino *(do v1.3, plans existem)*
+- [ ] **Phase 18: UX do Checkout** — Countdown PIX, QR code visual, link minha-reserva, double-submit, PII *(do v1.3)*
+- [ ] **Phase 13: Painel Mobile + Feedback** — Card layout responsivo, touch targets 44px, toasts, estados vazios *(do v1.2)*
+- [ ] **Phase 20: Polimento e Dados Públicos + SEO** — Home ≥6 destinos, filtro APPROVED, JSON-LD TouristAttraction/TourOperator *(do v1.3)*
+- [ ] **Phase 23: Qualidade e Observabilidade** — E2E Playwright (3 fluxos), uptime alerts, backup verify, endpoint auth audit
+
+---
+
+## Backlog (pós-v2.0)
 
 - Templates de email com design visual (NOTIF-05)
 - Queue de email com retry via BullMQ/Redis
