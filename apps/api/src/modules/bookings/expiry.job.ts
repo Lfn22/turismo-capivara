@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import prisma from '../../database'
-import { getResend } from '../../shared/email'
+import { getResend, getEmailFrom } from '../../shared/email'
 import { bookingExpiredEmailText, bookingExpiredSubject } from './emails/booking-expired-email'
 
 const BOOKING_EXPIRY_LOCK_ID = 1_234_567_890
@@ -90,7 +90,7 @@ export function createBookingExpiryJob(app: FastifyInstance) {
               const slug = booking.slot?.package?.tenant?.slug ?? ''
               resend.emails
                 .send({
-                  from: 'CAPI <noreply@capi.turismo>',
+                  from: getEmailFrom(),
                   to: [booking.customerEmail],
                   subject: bookingExpiredSubject,
                   text: bookingExpiredEmailText({

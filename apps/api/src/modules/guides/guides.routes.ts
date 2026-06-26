@@ -4,7 +4,7 @@ import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
-import { getResend } from '../../shared/email'
+import { getResend, getEmailFrom } from '../../shared/email'
 import { guideApprovedEmailText, guideApprovedSubject } from '../bookings/emails/guide-approved-email'
 
 const slugParamsSchema = z.object({
@@ -214,7 +214,7 @@ export async function guidesRoutes(app: FastifyInstance) {
     if (resend && guideProfile.user.email) {
       resend.emails
         .send({
-          from: 'CAPI <noreply@capi.turismo>',
+          from: getEmailFrom(),
           to: guideProfile.user.email,
           subject: guideApprovedSubject,
           text: guideApprovedEmailText({ guideName: guideProfile.user.name ?? 'Guia', slug: params.slug }),

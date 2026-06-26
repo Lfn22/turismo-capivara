@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify'
 import crypto from 'node:crypto'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
 import prisma from '../../database'
-import { getResend } from '../../shared/email'
+import { getResend, getEmailFrom } from '../../shared/email'
 import { bookingConfirmedEmailText, bookingConfirmedSubject } from '../bookings/emails/booking-confirmed-email'
 
 
@@ -160,7 +160,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
         if (resend && booking.customerEmail) {
           resend.emails
             .send({
-              from: 'CAPI <noreply@capi.turismo>',
+              from: getEmailFrom(),
               to: [booking.customerEmail],
               subject: bookingConfirmedSubject,
               text: bookingConfirmedEmailText({

@@ -7,3 +7,7 @@ export function getResend(): Resend | null {
   }
   return new Resend(process.env.RESEND_API_KEY)
 }
+
+export function getEmailFrom(): string {
+  return process.env.EMAIL_FROM ?? 'CAPI <noreply@capi.turismo>'
+}

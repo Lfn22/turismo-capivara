@@ -2,11 +2,11 @@ import { FastifyInstance } from 'fastify'
 import { z, ZodError } from 'zod'
 import { Prisma } from '@prisma/client'
 import { hashSync } from 'bcryptjs'
-import { Resend } from 'resend'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
+import { getResend, getEmailFrom } from '../../shared/email'
 import { approvalEmailText } from './emails/approval-email'
 import { rejectionEmailText } from './emails/rejection-email'
 
@@ -41,13 +41,6 @@ function zodError400(err: ZodError) {
   }
 }
 
-function getResend(): Resend | null {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[email] RESEND_API_KEY not set — skipping email delivery')
-    return null
-  }
-  return new Resend(process.env.RESEND_API_KEY)
-}
 
 export async function tenantsRoutes(app: FastifyInstance) {
   // ---------------------------------------------------------------------------
@@ -213,7 +206,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
     if (resend && tenant.users[0]) {
       try {
         await resend.emails.send({
-          from: 'CAPI <noreply@capi.turismo>',
+          from: getEmailFrom(),
           to: [tenant.users[0].email],
           subject: 'Sua operadora foi aprovada no CAPI',
           text: approvalEmailText({ operatorName: tenant.users[0].name, slug: tenant.slug }),
@@ -258,7 +251,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
     if (resend && tenant.users[0]) {
       try {
         await resend.emails.send({
-          from: 'CAPI <noreply@capi.turismo>',
+          from: getEmailFrom(),
           to: [tenant.users[0].email],
           subject: 'Atualização sobre seu cadastro no CAPI',
           text: rejectionEmailText({ operatorName: tenant.users[0].name, rejectionReason: body.reason }),

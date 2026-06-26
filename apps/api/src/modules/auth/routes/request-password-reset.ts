@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { z, ZodError } from 'zod'
 import { randomBytes, createHash } from 'crypto'
 import prisma from '../../../database'
-import { getResend } from '../../../shared/email'
+import { getResend, getEmailFrom } from '../../../shared/email'
 
 const bodySchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
@@ -80,7 +80,7 @@ export async function requestPasswordResetRoute(app: FastifyInstance) {
 
       const resend = getResend()
       if (resend) {
-        const fromEmail = process.env.EMAIL_FROM ?? 'noreply@turismocapivara.com.br'
+        const fromEmail = getEmailFrom()
         await resend.emails.send({
           from: fromEmail,
           to: email,

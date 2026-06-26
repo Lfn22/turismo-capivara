@@ -6,7 +6,7 @@ import { authorize } from '../../shared/middlewares/authorize'
 import { AppError } from '../../shared/errors/AppError'
 import { createPixPayment } from '../../services/payment.service'
 import { hashCpf } from '../../shared/utils/hash'
-import { getResend } from '../../shared/email'
+import { getResend, getEmailFrom } from '../../shared/email'
 import { bookingCreatedEmailText, bookingCreatedSubject } from './emails/booking-created-email'
 import { selfServiceBodySchema, type SelfServiceBody, cancelSelfBodySchema, type CancelSelfBody } from './bookings.schemas'
 import { randomBytes } from 'crypto'
@@ -254,7 +254,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
     if (resend) {
       resend.emails
         .send({
-          from: 'CAPI <noreply@capi.turismo>',
+          from: getEmailFrom(),
           to: [customerEmail],
           subject: bookingCreatedSubject,
           text: bookingCreatedEmailText({
@@ -277,7 +277,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
     if (resend && guideEmail) {
       resend.emails
         .send({
-          from: 'CAPI <noreply@capi.turismo>',
+          from: getEmailFrom(),
           to: [guideEmail],
           subject: bookingGuideNotificationSubject,
           text: bookingGuideNotificationEmailText({
@@ -441,7 +441,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
       if (resend) {
         resend.emails
           .send({
-            from: 'CAPI <noreply@capi.turismo>',
+            from: getEmailFrom(),
             to: [booking.customerEmail],
             subject: 'Cancelamento confirmado — CAPI',
             text: bookingCancelledEmailText({
