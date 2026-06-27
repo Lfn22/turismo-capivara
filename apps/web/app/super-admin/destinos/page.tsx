@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
+import { toast } from "sonner"
 
 interface Destination {
   id: string
@@ -24,12 +25,6 @@ export default function SuperAdminDestinosPendentesPage() {
   const [loadError, setLoadError] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [toastMsg, setToastMsg] = useState<{ text: string; ok: boolean } | null>(null)
-
-  function showToast(text: string, ok: boolean) {
-    setToastMsg({ text, ok })
-    setTimeout(() => setToastMsg(null), 4000)
-  }
 
   const loadDestinations = useCallback(() => {
     setLoading(true)
@@ -63,12 +58,12 @@ export default function SuperAdminDestinosPendentesPage() {
         body: JSON.stringify({ approvalStatus: "APPROVED" }),
       })
       if (!res.ok) throw new Error()
-      showToast("Destino aprovado com sucesso.", true)
+      toast.success("Destino aprovado com sucesso.")
     } catch {
       // Rollback: reload server state
       setDestinations((prev) => [dest, ...prev])
       setActionError("Não foi possível aprovar o destino. Tente novamente.")
-      showToast("Falha ao aprovar. Tente novamente.", false)
+      toast.error("Erro ao processar ação. Tente novamente.")
     } finally {
       setActionLoading(null)
     }
@@ -86,12 +81,12 @@ export default function SuperAdminDestinosPendentesPage() {
         body: JSON.stringify({ approvalStatus: "REJECTED" }),
       })
       if (!res.ok) throw new Error()
-      showToast("Destino rejeitado.", true)
+      toast.success("Destino rejeitado.")
     } catch {
       // Rollback: re-add to list
       setDestinations((prev) => [dest, ...prev])
       setActionError("Não foi possível rejeitar o destino. Tente novamente.")
-      showToast("Falha ao rejeitar. Tente novamente.", false)
+      toast.error("Erro ao processar ação. Tente novamente.")
     } finally {
       setActionLoading(null)
     }
@@ -102,30 +97,6 @@ export default function SuperAdminDestinosPendentesPage() {
   return (
     <>
       <style>{shimmerKeyframes}</style>
-
-      {/* Toast */}
-      {toastMsg && (
-        <div
-          role="status"
-          aria-live="polite"
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            background: toastMsg.ok ? "#15803D" : "#DC2626",
-            color: "white",
-            padding: "12px 20px",
-            borderRadius: "6px",
-            fontSize: "14px",
-            fontWeight: 500,
-            zIndex: 9999,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            maxWidth: "320px",
-          }}
-        >
-          {toastMsg.text}
-        </div>
-      )}
 
       <p
         style={{
