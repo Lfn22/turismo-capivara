@@ -1,6 +1,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { Toaster } from "sonner"
 
 const navItems = [
   { label: "Operadoras", href: "/super-admin/operadoras" },
@@ -69,6 +70,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       >
         {children}
       </main>
+      <Toaster position="top-right" richColors />
     </div>
   )
 }
