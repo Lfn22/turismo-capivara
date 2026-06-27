@@ -20,6 +20,7 @@ model Destination {
   highlights           String[]
   active               Boolean        @default(true)
   approvalStatus       ApprovalStatus @default(PENDING)
+  rejectionReason      String?
   createdById          String?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
