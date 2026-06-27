@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Lançamento em Produção
-status: in_progress
-stopped_at: "Phase 21 Plan 04 completo — INFRA-07/INFRA-08: cron schedule fix + checkout test ported"
-last_updated: "2026-06-26T15:05:00-03:00"
-last_activity: "2026-06-26 — Phase 21 Plan 04 executado: expiry.job.ts cron '* * * * *' → '0 * * * *', checkout.test.ts portado do worktree (CPF fix + approvalStatus). commits 7c62b84, 6a9832c."
+milestone: v1.2
+milestone_name: — UI/UX Polish + Guia Experience
+status: executing
+stopped_at: Phase 18 planejada (2 planos criados, verificação aprovada) — pronta para /gsd-execute-phase 18
+last_updated: "2026-06-26T23:55:50.229Z"
+last_activity: 2026-06-26 -- Phase 19 execution started
 progress:
-  total_phases: 8
-  completed_phases: 0
-  total_plans: 21
-  completed_plans: 4
-  percent: 19
+  total_phases: 13
+  completed_phases: 9
+  total_plans: 41
+  completed_plans: 37
+  percent: 90
 ---
 
 # STATE.md — Turismo Capivara
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-17)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Milestone v1.3 MVP Stability & Payment Integrity — 24 requirements definidos, iniciando Phase 16
+**Current focus:** Phase 19 — Confiabilidade Operacional
 
 ## Current Position
 
-Phase: 18 de 20 — UX do Checkout (completa)
-Plan: 2/2 completo
-Status: Phase 18 completa (9/9 must-haves verificados) — próxima: Phase 19 (Tour Virtual 360°)
-Last activity: 2026-06-24 — Phase 18 encerrada: BookingForm double-submit + spinner + aria-busy (UX-04). ConfirmationClient com countdown MM:SS + QR Code SVG 200x200 + link /minha-reserva (UX-01/02/03/05).
+Phase: 19 (Confiabilidade Operacional) — EXECUTING
+Plan: 1 of 4
+Status: Executing Phase 19
+Last activity: 2026-06-26 -- Phase 19 execution started
 
 ## Decisões estratégicas
 
