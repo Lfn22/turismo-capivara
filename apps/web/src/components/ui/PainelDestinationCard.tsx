@@ -9,6 +9,8 @@ export interface PainelDestination {
   state: string
   approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
   createdById: string | null
+  createdAt: string
+  rejectionReason: string | null
   photos: string[]
 }
 
@@ -19,6 +21,12 @@ interface PainelDestinationCardProps {
   onEdit?: (id: string) => void
   onDelete?: (id: string) => void
 }
+
+const STATUS_BADGE = {
+  PENDING:  { label: 'Pendente',  className: 'pdcard__status-badge--pending' },
+  APPROVED: { label: 'Aprovado',  className: 'pdcard__status-badge--approved' },
+  REJECTED: { label: 'Rejeitado', className: 'pdcard__status-badge--rejected' },
+} as const
 
 export function PainelDestinationCard({
   destination,
@@ -123,6 +131,49 @@ export function PainelDestinationCard({
         .pdcard__btn:hover {
           opacity: 0.85;
         }
+        .pdcard__meta {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .pdcard__status-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 4px 8px;
+          border-radius: 9999px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          align-self: flex-start;
+        }
+        .pdcard__status-badge--pending {
+          background: #fffbeb;
+          border: 1px solid #fde68a;
+          color: #92400e;
+        }
+        .pdcard__status-badge--approved {
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          color: #166534;
+        }
+        .pdcard__status-badge--rejected {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #991b1b;
+        }
+        .pdcard__submitted-at {
+          font-size: 0.8rem;
+          font-weight: 400;
+          color: var(--stone-500, #78716c);
+          margin: 0;
+        }
+        .pdcard__rejection-reason {
+          font-size: 0.8rem;
+          font-weight: 400;
+          color: #991b1b;
+          margin: 0;
+        }
       `}</style>
       <div className="pdcard">
         <div className="pdcard__thumb">
@@ -147,6 +198,24 @@ export function PainelDestinationCard({
         <div className="pdcard__body">
           <p className="pdcard__state">{destination.state}</p>
           <h2 className="pdcard__name">{destination.name}</h2>
+
+          {showStatus && (
+            <div className="pdcard__meta">
+              <span
+                className={`pdcard__status-badge ${STATUS_BADGE[destination.approvalStatus].className}`}
+              >
+                {STATUS_BADGE[destination.approvalStatus].label}
+              </span>
+              <p className="pdcard__submitted-at">
+                Enviado em {new Date(destination.createdAt).toLocaleDateString('pt-BR')}
+              </p>
+              {destination.approvalStatus === 'REJECTED' && destination.rejectionReason && (
+                <p className="pdcard__rejection-reason">
+                  Motivo: {destination.rejectionReason}
+                </p>
+              )}
+            </div>
+          )}
 
           {isOwner && (onEdit || onDelete) && (
             <div className="pdcard__actions">
