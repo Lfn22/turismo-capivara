@@ -229,3 +229,67 @@ describe('POST /uploads/photos — file validation errors', () => {
     expect(res.json().error).toContain('Arquivo muito grande')
   })
 })
+
+// ---------------------------------------------------------------------------
+// R2 misconfiguration — 503
+// ---------------------------------------------------------------------------
+
+describe('POST /uploads/photos — R2 misconfiguration', () => {
+  it('returns 503 when uploadPhotoToR2 throws with R2 config error message', async () => {
+    mockUpload.mockRejectedValueOnce(
+      new Error('Variáveis R2 ausentes: CLOUDFLARE_ACCOUNT_ID e CLOUDFLARE_API_TOKEN são obrigatórias'),
+    )
+    const { body, contentType } = buildMultipart('photo.jpg', 'image/jpeg')
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/uploads/photos?folder=destinations',
+      headers: {
+        authorization: `Bearer ${conductorToken}`,
+        'content-type': contentType,
+      },
+      payload: body,
+    })
+
+    expect(res.statusCode).toBe(503)
+    expect(res.json().message).toBe('Serviço de armazenamento indisponível. Configuração ausente.')
+  })
+
+  it('returns 503 when uploadPhotoToR2 throws with CLOUDFLARE config error message', async () => {
+    mockUpload.mockRejectedValueOnce(
+      new Error('CLOUDFLARE_API_TOKEN formato inválido'),
+    )
+    const { body, contentType } = buildMultipart('photo.jpg', 'image/jpeg')
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/uploads/photos?folder=destinations',
+      headers: {
+        authorization: `Bearer ${conductorToken}`,
+        'content-type': contentType,
+      },
+      payload: body,
+    })
+
+    expect(res.statusCode).toBe(503)
+    expect(res.json().message).toBe('Serviço de armazenamento indisponível. Configuração ausente.')
+  })
+
+  it('returns 500 for generic upload error (not R2 config)', async () => {
+    mockUpload.mockRejectedValueOnce(new Error('Network timeout'))
+    const { body, contentType } = buildMultipart('photo.jpg', 'image/jpeg')
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/uploads/photos?folder=destinations',
+      headers: {
+        authorization: `Bearer ${conductorToken}`,
+        'content-type': contentType,
+      },
+      payload: body,
+    })
+
+    expect(res.statusCode).toBe(500)
+    expect(res.json().message).toBe('Falha ao fazer upload. Tente novamente.')
+  })
+})

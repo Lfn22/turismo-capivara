@@ -66,6 +66,11 @@ export async function uploadsRoutes(app: FastifyInstance) {
         if (err instanceof AppError) {
           return reply.status(err.statusCode).send({ message: err.message })
         }
+        if (err instanceof Error && /R2|CLOUDFLARE/i.test(err.message)) {
+          return reply.status(503).send({
+            message: 'Serviço de armazenamento indisponível. Configuração ausente.',
+          })
+        }
         return reply.status(500).send({ message: 'Falha ao fazer upload. Tente novamente.' })
       }
 
