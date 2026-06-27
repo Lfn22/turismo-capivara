@@ -36,6 +36,14 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
+describe('createBookingExpiryJob schedule', () => {
+  it('should run hourly (minute 0), not every minute', () => {
+    const app = makeApp()
+    const job = createBookingExpiryJob(app)
+    expect(job.cronTime).toBe('0 * * * *')
+  })
+})
+
 describe('createBookingExpiryJob (OPS-01)', () => {
   it('OPS-01: returns early without DB writes when advisory lock not obtained', async () => {
     mockPrisma.$queryRaw.mockResolvedValueOnce([{ pg_try_advisory_lock: false }])
