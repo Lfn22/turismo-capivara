@@ -610,3 +610,62 @@ describe('Public destination visibility — GET /destinations/:slug (detail)', (
     expect(destination).toBeNull()
   })
 })
+
+// ---- OPS-05: rejectionReason persistence ----
+
+describe('rejectDestination — with reason (OPS-05)', () => {
+  it('persists rejectionReason when provided', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({
+      id: 'dest-1',
+      approvalStatus: 'PENDING',
+    })
+    mockPrisma.destination.update.mockResolvedValue({
+      id: 'dest-1',
+      approvalStatus: 'REJECTED',
+      rejectionReason: 'Conteúdo duplicado',
+    })
+
+    const result = await rejectDestination('dest-1', 'Conteúdo duplicado')
+    expect(result.rejectionReason).toBe('Conteúdo duplicado')
+    expect(mockPrisma.destination.update).toHaveBeenCalledWith({
+      where: { id: 'dest-1' },
+      data: { approvalStatus: 'REJECTED', rejectionReason: 'Conteúdo duplicado' },
+    })
+  })
+
+  it('sets rejectionReason to null when no reason provided', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({
+      id: 'dest-1',
+      approvalStatus: 'PENDING',
+    })
+    mockPrisma.destination.update.mockResolvedValue({
+      id: 'dest-1',
+      approvalStatus: 'REJECTED',
+      rejectionReason: null,
+    })
+
+    await rejectDestination('dest-1', undefined)
+    expect(mockPrisma.destination.update).toHaveBeenCalledWith({
+      where: { id: 'dest-1' },
+      data: { approvalStatus: 'REJECTED', rejectionReason: null },
+    })
+  })
+})
+
+describe('ApprovalUpdateInput — rejectionReason max length (OPS-05)', () => {
+  it('rejects rejectionReason longer than 500 characters', () => {
+    const result = ApprovalUpdateInput.safeParse({
+      approvalStatus: 'REJECTED',
+      rejectionReason: 'A'.repeat(501),
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('accepts rejectionReason with exactly 500 characters', () => {
+    const result = ApprovalUpdateInput.safeParse({
+      approvalStatus: 'REJECTED',
+      rejectionReason: 'A'.repeat(500),
+    })
+    expect(result.success).toBe(true)
+  })
+})
