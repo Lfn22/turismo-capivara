@@ -8,6 +8,15 @@ import type { Mock } from 'vitest'
 import { buildApp } from '../../../__tests__/helpers/build-app'
 import { tenantsRoutes } from '../tenants.routes'
 
+// Mock Sentry before route import resolves
+vi.mock('../../../shared/sentry', () => ({
+  Sentry: {
+    init: vi.fn(),
+    captureException: vi.fn(),
+  },
+  initSentry: vi.fn(),
+}))
+
 // ---------------------------------------------------------------------------
 // Mock prisma
 // ---------------------------------------------------------------------------
@@ -26,6 +35,13 @@ vi.mock('../../../database', () => ({
   },
 }))
 
+// Mock shared/email — control getResend() return value per test
+const mockEmailSend = vi.fn().mockResolvedValue({ id: 'mock-email-id' })
+vi.mock('../../../shared/email', () => ({
+  getResend: vi.fn(() => ({ emails: { send: mockEmailSend } })),
+  getEmailFrom: vi.fn(() => 'CAPI <noreply@capi.turismo>'),
+}))
+
 // Mock resend — no real emails in tests
 vi.mock('resend', () => ({
   Resend: vi.fn().mockImplementation(() => ({
@@ -39,6 +55,9 @@ vi.mock('bcryptjs', () => ({
 }))
 
 import prisma from '../../../database'
+import { Sentry } from '../../../shared/sentry'
+const mockCaptureException = Sentry.captureException as ReturnType<typeof vi.fn>
+
 const prismaMock = prisma as unknown as {
   $transaction: Mock
   tenant: { findMany: Mock; findUnique: Mock; create: Mock; update: Mock }
@@ -152,5 +171,39 @@ describe('Tenant approval', () => {
       payload: { reason: 'Motivo qualquer' },
     })
     expect(res.statusCode).toBe(409)
+  })
+})
+
+describe('Tenant approval — Sentry email capture (OPS-03)', () => {
+  it('PATCH approve: captureException is called when email send fails', async () => {
+    prismaMock.tenant.findUnique.mockResolvedValue(mockTenant)
+    prismaMock.tenant.update.mockResolvedValue({ ...mockTenant, approvalStatus: 'APPROVED' })
+    mockEmailSend.mockRejectedValueOnce(new Error('SMTP connection failed'))
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/tenants/tenant-abc/approve',
+      headers: { Authorization: `Bearer ${superAdminToken}` },
+    })
+
+    // DB state succeeds even when email fails
+    expect(res.statusCode).toBe(200)
+    expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error))
+  })
+
+  it('PATCH reject: captureException is called when email send fails', async () => {
+    prismaMock.tenant.findUnique.mockResolvedValue(mockTenant)
+    prismaMock.tenant.update.mockResolvedValue({ ...mockTenant, approvalStatus: 'REJECTED', rejectionReason: 'Docs inválidos' })
+    mockEmailSend.mockRejectedValueOnce(new Error('SMTP connection failed'))
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/tenants/tenant-abc/reject',
+      headers: { Authorization: `Bearer ${superAdminToken}` },
+      payload: { reason: 'Docs inválidos' },
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error))
   })
 })

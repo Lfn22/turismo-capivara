@@ -7,6 +7,7 @@ import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { getResend, getEmailFrom } from '../../shared/email'
+import { Sentry } from '../../shared/sentry'
 import { approvalEmailText } from './emails/approval-email'
 import { rejectionEmailText } from './emails/rejection-email'
 
@@ -214,6 +215,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
       } catch (emailErr) {
         // Log but don't fail — DB state is authoritative
         app.log.warn({ err: emailErr }, '[email] Failed to send approval notification')
+        Sentry.captureException(emailErr)
       }
     }
 
@@ -259,6 +261,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
       } catch (emailErr) {
         // Log but don't fail — DB state is authoritative
         app.log.warn({ err: emailErr }, '[email] Failed to send rejection notification')
+        Sentry.captureException(emailErr)
       }
     }
 
