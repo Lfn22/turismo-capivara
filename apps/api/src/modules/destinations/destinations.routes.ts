@@ -315,6 +315,8 @@ export async function destinationsRoutes(app: FastifyInstance) {
           title: true,
           state: true,
           approvalStatus: true,
+          rejectionReason: true,
+          createdAt: true,
           createdById: true,
           photos: true,
         },
@@ -409,7 +411,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
       const destination =
         input.approvalStatus === 'APPROVED'
           ? await approveDestination(id)
-          : await rejectDestination(id)
+          : await rejectDestination(id, input.rejectionReason)
 
       return reply.status(200).send(destination)
     },

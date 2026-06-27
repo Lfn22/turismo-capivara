@@ -463,7 +463,7 @@ describe('rejectDestination', () => {
     expect(result.approvalStatus).toBe('REJECTED')
     expect(mockPrisma.destination.update).toHaveBeenCalledWith({
       where: { id: 'dest-1' },
-      data: { approvalStatus: 'REJECTED' },
+      data: { approvalStatus: 'REJECTED', rejectionReason: null },
     })
   })
 

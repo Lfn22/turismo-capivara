@@ -68,7 +68,7 @@ export type UpdateDestinationInputType = z.infer<typeof UpdateDestinationInput>
 
 export const ApprovalUpdateInput = z.object({
   approvalStatus: z.enum(['APPROVED', 'REJECTED'], { error: 'Status de aprovação inválido' }),
-  rejectionReason: z.string().optional(),
+  rejectionReason: z.string().max(500).optional(),
 })
 
 export type ApprovalUpdateInputType = z.infer<typeof ApprovalUpdateInput>

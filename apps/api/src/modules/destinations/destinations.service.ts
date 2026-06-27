@@ -105,7 +105,7 @@ export async function approveDestination(destinationId: string) {
   })
 }
 
-export async function rejectDestination(destinationId: string) {
+export async function rejectDestination(destinationId: string, reason?: string) {
   const destination = await prisma.destination.findUnique({
     where: { id: destinationId },
   })
@@ -118,7 +118,10 @@ export async function rejectDestination(destinationId: string) {
 
   return prisma.destination.update({
     where: { id: destinationId },
-    data: { approvalStatus: 'REJECTED' },
+    data: {
+      approvalStatus: 'REJECTED',
+      rejectionReason: reason ?? null,
+    },
   })
 }
 
