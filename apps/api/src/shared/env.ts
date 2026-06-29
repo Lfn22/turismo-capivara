@@ -15,7 +15,7 @@ const envSchema = z
     R2_PUBLIC_URL: z.string().min(1),
     // Email
     RESEND_API_KEY: z.string().optional(),
-    EMAIL_FROM: z.string().min(1),
+    EMAIL_FROM: z.string().optional(),
     // Optional with defaults — won't block startup in development
     CORS_ORIGIN: z.string().optional(),
     WEB_URL: z.string().optional(),
