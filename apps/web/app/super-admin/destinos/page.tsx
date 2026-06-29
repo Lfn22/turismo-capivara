@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
+import { Modal } from "@/components/ui/Modal"
 
 interface Destination {
   id: string
@@ -25,6 +26,10 @@ export default function SuperAdminDestinosPendentesPage() {
   const [loadError, setLoadError] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [rejectTarget, setRejectTarget] = useState<Destination | null>(null)
+  const [rejectReason, setRejectReason] = useState("")
+  const [rejectError, setRejectError] = useState<string | null>(null)
+  const [rejectSubmitting, setRejectSubmitting] = useState(false)
 
   const loadDestinations = useCallback(() => {
     setLoading(true)
@@ -69,26 +74,36 @@ export default function SuperAdminDestinosPendentesPage() {
     }
   }
 
-  async function handleReject(dest: Destination) {
-    setActionLoading(dest.id)
-    setActionError(null)
-    // Optimistic: remove from PENDING list immediately
-    setDestinations((prev) => prev.filter((d) => d.id !== dest.id))
+  function handleReject(dest: Destination) {
+    setRejectTarget(dest)
+    setRejectReason("")
+    setRejectError(null)
+  }
+
+  async function handleRejectSubmit() {
+    if (!rejectTarget || !rejectReason.trim()) {
+      setRejectError("Informe o motivo da rejeição.")
+      return
+    }
+    setRejectSubmitting(true)
+    setRejectError(null)
+    setDestinations((prev) => prev.filter((d) => d.id !== rejectTarget.id))
     try {
-      const res = await fetch(`/api/admin/destinations/${dest.id}/approve`, {
+      const res = await fetch(`/api/admin/destinations/${rejectTarget.id}/approve`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approvalStatus: "REJECTED" }),
+        body: JSON.stringify({ approvalStatus: "REJECTED", rejectionReason: rejectReason }),
       })
       if (!res.ok) throw new Error()
       toast.success("Destino rejeitado.")
+      setRejectTarget(null)
+      setRejectReason("")
     } catch {
-      // Rollback: re-add to list
-      setDestinations((prev) => [dest, ...prev])
-      setActionError("Não foi possível rejeitar o destino. Tente novamente.")
+      setDestinations((prev) => [rejectTarget, ...prev])
+      setRejectError("Não foi possível rejeitar o destino. Tente novamente.")
       toast.error("Erro ao processar ação. Tente novamente.")
     } finally {
-      setActionLoading(null)
+      setRejectSubmitting(false)
     }
   }
 
@@ -332,6 +347,71 @@ export default function SuperAdminDestinosPendentesPage() {
           })}
         </div>
       )}
+
+      <Modal
+        open={!!rejectTarget}
+        onClose={() => setRejectTarget(null)}
+        title="Rejeitar Destino"
+      >
+        <p style={{ fontSize: "14px", color: "var(--stone-600)", marginBottom: "16px" }}>
+          Informe o motivo da rejeição.
+        </p>
+        <textarea
+          rows={4}
+          placeholder="Descreva o motivo..."
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          autoFocus
+          style={{
+            width: "100%",
+            minHeight: "96px",
+            padding: "8px 12px",
+            border: "1px solid var(--stone-200)",
+            borderRadius: "4px",
+            fontSize: "16px",
+            fontFamily: "var(--font-body)",
+            resize: "vertical",
+            boxSizing: "border-box",
+          }}
+        />
+        {rejectError && (
+          <p role="alert" style={{ fontSize: "14px", color: "#DC2626", marginTop: "8px" }}>
+            {rejectError}
+          </p>
+        )}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "16px" }}>
+          <button
+            onClick={() => setRejectTarget(null)}
+            style={{
+              background: "white",
+              color: "var(--stone-700)",
+              border: "1px solid var(--stone-300)",
+              padding: "8px 16px",
+              borderRadius: "4px",
+              fontSize: "14px",
+              cursor: "pointer",
+            }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleRejectSubmit}
+            disabled={rejectSubmitting}
+            style={{
+              background: rejectSubmitting ? "var(--stone-400)" : "#DC2626",
+              color: "white",
+              border: "none",
+              padding: "8px 16px",
+              borderRadius: "4px",
+              fontSize: "14px",
+              fontWeight: 600,
+              cursor: rejectSubmitting ? "not-allowed" : "pointer",
+            }}
+          >
+            {rejectSubmitting ? "Rejeitando..." : "Confirmar Rejeição"}
+          </button>
+        </div>
+      </Modal>
     </>
   )
 }
