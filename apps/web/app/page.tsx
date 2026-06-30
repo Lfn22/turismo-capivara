@@ -46,7 +46,7 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const destinations = await fetchDestinations();
-  const previewDestinations = destinations?.slice(0, 3) ?? [];
+  const previewDestinations = destinations?.slice(0, 6) ?? [];
 
   return (
     <>
@@ -194,14 +194,12 @@ export default async function HomePage() {
           color: #fff;
         }
 
-        /* ── Catalog (Section 2 — 50dvh) ── */
+        /* ── Catalog (Section 2) ── */
         .home-catalog {
-          height: 50dvh;
-          min-height: 360px;
+          min-height: 50dvh;
           background: var(--stone-50, #fafaf9);
           display: flex;
           flex-direction: column;
-          overflow: hidden;
           padding: clamp(20px, 3.5vw, 40px) clamp(16px, 5vw, 48px);
         }
         .home-catalog__header {
@@ -246,15 +244,12 @@ export default async function HomePage() {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 16px;
-          flex: 1;
-          min-height: 0;
-          overflow: hidden;
           max-width: 1280px;
           width: 100%;
           align-self: center;
         }
         .home-catalog__grid .dcard {
-          height: 100%;
+          height: 220px;
           overflow: hidden;
         }
         .home-catalog__empty {
