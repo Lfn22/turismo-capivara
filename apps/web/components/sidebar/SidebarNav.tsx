@@ -80,7 +80,7 @@ function navItems(slug: string) {
     { label: "Reservas",        labelShort: "Reservas",  href: `/${slug}/painel/reservas`,        icon: <IconBookings /> },
     { label: "Disponibilidade", labelShort: "Agenda",    href: `/${slug}/painel/disponibilidade`, icon: <IconCalendar /> },
     { label: "Roteiros",        labelShort: "Roteiros",  href: `/${slug}/painel/roteiros`,        icon: <IconMap />         },
-    { label: "Destinos",        labelShort: "Destinos",  href: `/${slug}/painel/destinos`,        icon: <IconDestination /> },
+    { label: "Locais",           labelShort: "Locais",    href: `/${slug}/painel/destinos`,        icon: <IconDestination /> },
     { label: "Dashboard",       labelShort: "Início",    href: `/${slug}/painel/dashboard`,       icon: <IconGrid />        },
     { label: "Perfil",          labelShort: "Perfil",    href: `/${slug}/painel/perfil`,          icon: <IconUser />     },
   ]
