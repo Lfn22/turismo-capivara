@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useParams } from 'next/navigation';
 import BookingForm from '@/src/components/ui/BookingForm';
@@ -11,6 +12,18 @@ export default function ReservarPage() {
   const slotId = searchParams.get('slotId') ?? '';
   const packageId = searchParams.get('packageId') ?? '';
   const slug = params.slug ?? '';
+
+  const [tenantStatus, setTenantStatus] = useState<'loading' | 'approved' | 'unavailable'>('loading');
+
+  useEffect(() => {
+    if (!slug) return;
+    fetch(`/api/tenants/${slug}/status`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        setTenantStatus(data?.approvalStatus === 'APPROVED' ? 'approved' : 'unavailable');
+      })
+      .catch(() => setTenantStatus('approved')); // fail-open: se erro, deixa o form aparecer
+  }, [slug]);
 
   if (!slotId || !packageId) {
     return (
@@ -25,6 +38,38 @@ export default function ReservarPage() {
         <p style={{ color: '#78716c', fontSize: '1rem' }}>
           Selecione um slot antes de reservar.
         </p>
+      </div>
+    );
+  }
+
+  if (tenantStatus === 'loading') {
+    return null;
+  }
+
+  if (tenantStatus === 'unavailable') {
+    return (
+      <div
+        style={{
+          maxWidth: '480px',
+          margin: '0 auto',
+          padding: '3rem 1.5rem',
+          textAlign: 'center',
+        }}
+      >
+        <p style={{ color: '#78716c', fontSize: '1rem', marginBottom: '1rem' }}>
+          Este roteiro não está disponível para reservas no momento.
+        </p>
+        <a
+          href="/destinos"
+          style={{
+            fontSize: '0.875rem',
+            color: '#c8961c',
+            textDecoration: 'none',
+            fontWeight: 600,
+          }}
+        >
+          Explorar outros destinos →
+        </a>
       </div>
     );
   }
