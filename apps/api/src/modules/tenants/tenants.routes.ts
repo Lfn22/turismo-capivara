@@ -165,18 +165,30 @@ export async function tenantsRoutes(app: FastifyInstance) {
 
   app.get('/tenants/admin/pending', {
     preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
-  }, async (_request, reply) => {
-    const tenants = await prisma.tenant.findMany({
-      where: { approvalStatus: 'PENDING' },
-      include: {
-        users: {
-          where: { role: 'ADMIN' },
-          select: { email: true, name: true },
+    schema: {
+      querystring: z.object({
+        limit: z.coerce.number().int().min(1).max(100).default(20),
+        offset: z.coerce.number().int().min(0).default(0),
+      }),
+    },
+  }, async (request, reply) => {
+    const query = request.query as { limit: number; offset: number }
+    const [tenants, total] = await Promise.all([
+      prisma.tenant.findMany({
+        where: { approvalStatus: 'PENDING' },
+        include: {
+          users: {
+            where: { role: 'ADMIN' },
+            select: { email: true, name: true },
+          },
         },
-      },
-      orderBy: { createdAt: 'asc' },
-    })
-    return reply.send(tenants)
+        orderBy: { createdAt: 'asc' },
+        take: query.limit,
+        skip: query.offset,
+      }),
+      prisma.tenant.count({ where: { approvalStatus: 'PENDING' } }),
+    ])
+    return reply.send({ tenants, total, limit: query.limit, offset: query.offset })
   })
 
   app.patch('/tenants/:id/approve', {

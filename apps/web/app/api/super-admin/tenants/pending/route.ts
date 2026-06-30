@@ -8,7 +8,10 @@ export async function GET(req: NextRequest) {
   if (!jwt?.apiToken) {
     return NextResponse.json({ message: "Não autenticado" }, { status: 401 })
   }
-  const res = await fetch(`${API_URL}/tenants/admin/pending`, {
+  const { searchParams } = new URL(req.url)
+  const limit = searchParams.get("limit") ?? "20"
+  const offset = searchParams.get("offset") ?? "0"
+  const res = await fetch(`${API_URL}/tenants/admin/pending?limit=${limit}&offset=${offset}`, {
     headers: { Authorization: `Bearer ${jwt.apiToken}` },
     cache: "no-store",
   })
