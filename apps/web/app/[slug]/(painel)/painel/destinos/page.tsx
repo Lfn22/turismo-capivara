@@ -59,7 +59,7 @@ export default function DestinosPage() {
         method: 'DELETE',
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      toast.success('Destino excluído com sucesso.')
+      toast.success('Local excluído com sucesso.')
       setDeleteConfirm(null)
       await fetchDestinations()
     } catch {
@@ -154,7 +154,7 @@ export default function DestinosPage() {
               margin: 0,
             }}
           >
-            Destinos
+            Locais
           </h1>
         </div>
 
@@ -175,7 +175,7 @@ export default function DestinosPage() {
             minHeight: '44px',
           }}
         >
-          + Criar destino
+          + Criar local
         </a>
       </div>
 
@@ -188,7 +188,7 @@ export default function DestinosPage() {
             color: 'var(--stone-500)',
           }}
         >
-          Carregando destinos...
+          Carregando locais...
         </p>
       ) : loadError ? (
         <p
@@ -199,13 +199,13 @@ export default function DestinosPage() {
             color: 'var(--stone-500)',
           }}
         >
-          Erro ao carregar destinos. Tente novamente.
+          Erro ao carregar locais. Tente novamente.
         </p>
       ) : destinations.length === 0 ? (
         <EmptyState
-          title="Nenhum destino ainda"
-          description="Crie seu primeiro destino para aparecer no marketplace."
-          ctaLabel="Criar destino"
+          title="Nenhum local ainda"
+          description="Crie seu primeiro local para aparecer no marketplace."
+          ctaLabel="Criar local"
           ctaHref={`/${slug}/painel/destinos/novo`}
         />
       ) : (
@@ -226,8 +226,8 @@ export default function DestinosPage() {
       {deleteConfirm && (
         <div className="destinos-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="destinos-dialog" onClick={(e) => e.stopPropagation()}>
-            <h2>Excluir destino</h2>
-            <p>Tem certeza que deseja excluir este destino? Esta ação não pode ser desfeita.</p>
+            <h2>Excluir local</h2>
+            <p>Tem certeza que deseja excluir este local? Esta ação não pode ser desfeita.</p>
             <div className="destinos-dialog-actions">
               <button
                 type="button"

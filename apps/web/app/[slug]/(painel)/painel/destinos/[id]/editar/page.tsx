@@ -56,15 +56,15 @@ export default function EditarDestinoPage() {
       })
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: 'Erro ao atualizar destino' }))
-        toast.error(err.message ?? 'Erro ao atualizar destino')
+        const err = await res.json().catch(() => ({ message: 'Erro ao atualizar local' }))
+        toast.error(err.message ?? 'Erro ao atualizar local')
         return
       }
 
-      toast.success('Destino atualizado.')
+      toast.success('Local atualizado.')
       router.push(`/${slug}/painel/destinos`)
     } catch {
-      toast.error('Falha ao atualizar destino. Tente novamente.')
+      toast.error('Falha ao atualizar local. Tente novamente.')
     } finally {
       setSubmitting(false)
     }
@@ -73,7 +73,7 @@ export default function EditarDestinoPage() {
   if (loading) {
     return (
       <p style={{ textAlign: 'center', padding: '48px 24px', fontSize: '16px', color: 'var(--stone-500)' }}>
-        Carregando destino...
+        Carregando local...
       </p>
     )
   }
@@ -81,7 +81,7 @@ export default function EditarDestinoPage() {
   if (loadError || !destination) {
     return (
       <p style={{ textAlign: 'center', padding: '48px 24px', fontSize: '16px', color: 'var(--stone-500)' }}>
-        Destino não encontrado.
+        Local não encontrado.
       </p>
     )
   }
@@ -112,16 +112,16 @@ export default function EditarDestinoPage() {
               margin: 0,
             }}
           >
-            Editar Destino
+            Editar Local
           </h1>
           <DestinationStatusBadge status={destination.approvalStatus} />
         </div>
         <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginTop: '8px' }}>
           {destination.approvalStatus === 'APPROVED'
-            ? 'Este destino está aprovado e visível no marketplace.'
+            ? 'Este local está aprovado e visível no marketplace.'
             : destination.approvalStatus === 'REJECTED'
-            ? 'Este destino foi rejeitado. Edite e aguarde nova revisão.'
-            : 'Este destino está aguardando aprovação.'}
+            ? 'Este local foi rejeitado. Edite e aguarde nova revisão.'
+            : 'Este local está aguardando aprovação.'}
         </p>
       </div>
 

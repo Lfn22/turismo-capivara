@@ -26,15 +26,15 @@ export default function NovosDestinoPage() {
       })
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: 'Erro ao criar destino' }))
-        toast.error(err.message ?? 'Erro ao criar destino')
+        const err = await res.json().catch(() => ({ message: 'Erro ao criar local' }))
+        toast.error(err.message ?? 'Erro ao criar local')
         return
       }
 
-      toast.success('Destino criado. Aguardando aprovação.')
+      toast.success('Local criado. Aguardando aprovação.')
       router.push(`/${slug}/painel/destinos`)
     } catch {
-      toast.error('Falha ao criar destino. Tente novamente.')
+      toast.error('Falha ao criar local. Tente novamente.')
     } finally {
       setSubmitting(false)
     }
@@ -65,10 +65,10 @@ export default function NovosDestinoPage() {
             margin: 0,
           }}
         >
-          Criar Destino
+          Criar Local
         </h1>
         <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginTop: '8px' }}>
-          Preencha as informações do destino. Ele ficará pendente de aprovação até ser revisado.
+          Preencha as informações do local. Ele ficará pendente de aprovação até ser revisado.
         </p>
       </div>
 
