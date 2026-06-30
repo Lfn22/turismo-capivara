@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
 status: executing
-stopped_at: Phase 18 planejada (2 planos criados, verificação aprovada) — pronta para /gsd-execute-phase 18
-last_updated: "2026-06-26T23:55:50.229Z"
-last_activity: 2026-06-26 -- Phase 19 execution started
+stopped_at: Phase 20 Plan 02 concluído — próximo plano 20-03
+last_updated: "2026-06-30T12:55:00Z"
+last_activity: 2026-06-30 -- Phase 20 Plan 02 executed (rename Destinos→Locais no painel)
 progress:
   total_phases: 13
   completed_phases: 9
   total_plans: 41
-  completed_plans: 37
-  percent: 90
+  completed_plans: 38
+  percent: 93
 ---
 
 # STATE.md — Turismo Capivara
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-17)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Phase 19 — Confiabilidade Operacional
+**Current focus:** Phase 20 — Polimento e Dados Públicos
 
 ## Current Position
 
-Phase: 19 (Confiabilidade Operacional) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 19
-Last activity: 2026-06-26 -- Phase 19 execution started
+Phase: 20 (Polimento e Dados Públicos) — EXECUTING
+Plan: 3 of 4
+Status: Executing Phase 20 (Plan 02 concluído)
+Last activity: 2026-06-30 -- Phase 20 Plan 02 executed (rename Destinos→Locais no painel)
 
 ## Decisões estratégicas
 
