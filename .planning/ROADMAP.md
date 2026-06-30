@@ -174,6 +174,12 @@ Plans:
   4. Item de navegação do editor do tenant tem nomenclatura que não confunde com a listagem pública de Destinos
   5. **UAT (smoke test end-to-end):** Smoke test completo — criar conta de turista, buscar destino na home, abrir roteiro, preencher formulário com CPF válido, pagar com PIX sandbox, verificar email de confirmação, verificar status CONFIRMED no painel do guia, verificar que super-admin consegue carregar mais de 50 operadoras na listagem; confirmar que destino PENDING não aparece em nenhuma rota pública
 **UI hint**: yes
+**Plans:** 4 plans
+Plans:
+- [ ] 20-01-PLAN.md — POL-01/02: home 6 destinos ordenados por recência + verificar filtro APPROVED em /destinos
+- [ ] 20-02-PLAN.md — POL-04: renomear nav "Destinos" → "Locais" no painel do guia
+- [ ] 20-03-PLAN.md — POL-03: mensagem inline de indisponibilidade para tenant não-APPROVED na página de reserva
+- [ ] 20-04-PLAN.md — POL-05: paginação "Carregar mais" (20/lote) nas listas super-admin de destinos e operadoras
 
 ---
 
