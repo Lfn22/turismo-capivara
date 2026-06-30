@@ -39,7 +39,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
         heroImageBlurDataUrl: true,
         photos: true,
       },
-      orderBy: { title: 'asc' },
+      orderBy: { createdAt: 'desc' },
     })
 
     return reply.status(200).send(destinations)
