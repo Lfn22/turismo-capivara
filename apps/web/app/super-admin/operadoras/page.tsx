@@ -30,6 +30,9 @@ export default function SuperAdminOperadorasPage() {
   const [items, setItems] = useState<Tenant[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [offset, setOffset] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [rejectTarget, setRejectTarget] = useState<Tenant | null>(null)
@@ -40,18 +43,43 @@ export default function SuperAdminOperadorasPage() {
   function loadTenants() {
     setLoading(true)
     setLoadError(false)
-    fetch("/api/super-admin/tenants/pending")
+    setOffset(0)
+    setHasMore(true)
+    fetch("/api/super-admin/tenants/pending?limit=20&offset=0")
       .then((r) => {
         if (!r.ok) throw new Error()
         return r.json()
       })
-      .then(setItems)
+      .then((data) => {
+        const list = Array.isArray(data) ? data : (data.tenants ?? [])
+        setItems(list)
+        setHasMore(list.length === 20)
+      })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
   }
 
+  function loadMore() {
+    const nextOffset = offset + 20
+    setLoadingMore(true)
+    fetch(`/api/super-admin/tenants/pending?limit=20&offset=${nextOffset}`)
+      .then((r) => {
+        if (!r.ok) throw new Error()
+        return r.json()
+      })
+      .then((data) => {
+        const list = Array.isArray(data) ? data : (data.tenants ?? [])
+        setItems((prev) => [...prev, ...list])
+        setOffset(nextOffset)
+        setHasMore(list.length === 20)
+      })
+      .catch(() => { /* silencioso — botão permanece */ })
+      .finally(() => setLoadingMore(false))
+  }
+
   useEffect(() => {
     loadTenants()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function handleApprove(tenant: Tenant) {
@@ -206,6 +234,7 @@ export default function SuperAdminOperadorasPage() {
           Nenhuma operadora cadastrada ainda.
         </p>
       ) : (
+        <div>
         <div style={{ overflowX: "auto" }}>
           <table
             style={{
@@ -321,6 +350,28 @@ export default function SuperAdminOperadorasPage() {
               })}
             </tbody>
           </table>
+        </div>
+          {hasMore && !loading && !loadError && (
+            <div style={{ textAlign: "center", padding: "24px 0" }}>
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: loadingMore ? "#a8a29e" : "#c8961c",
+                  background: "transparent",
+                  border: "1px solid",
+                  borderColor: loadingMore ? "#d6d3d1" : "#c8961c",
+                  borderRadius: "2px",
+                  padding: "10px 24px",
+                  cursor: loadingMore ? "not-allowed" : "pointer",
+                }}
+              >
+                {loadingMore ? "Carregando..." : "Carregar mais"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

@@ -24,6 +24,9 @@ export default function SuperAdminDestinosPendentesPage() {
   const [destinations, setDestinations] = useState<Destination[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [offset, setOffset] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [rejectTarget, setRejectTarget] = useState<Destination | null>(null)
@@ -34,18 +37,39 @@ export default function SuperAdminDestinosPendentesPage() {
   const loadDestinations = useCallback(() => {
     setLoading(true)
     setLoadError(false)
-    fetch("/api/admin/destinations/pending?limit=50&offset=0")
+    setOffset(0)
+    setHasMore(true)
+    fetch("/api/admin/destinations/pending?limit=20&offset=0")
       .then((r) => {
         if (!r.ok) throw new Error()
         return r.json()
       })
       .then((data) => {
-        // API may return { destinations: [...] } or plain array
-        setDestinations(Array.isArray(data) ? data : (data.destinations ?? []))
+        const list = Array.isArray(data) ? data : (data.destinations ?? [])
+        setDestinations(list)
+        setHasMore(list.length === 20)
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
   }, [])
+
+  function loadMore() {
+    const nextOffset = offset + 20
+    setLoadingMore(true)
+    fetch(`/api/admin/destinations/pending?limit=20&offset=${nextOffset}`)
+      .then((r) => {
+        if (!r.ok) throw new Error()
+        return r.json()
+      })
+      .then((data) => {
+        const list = Array.isArray(data) ? data : (data.destinations ?? [])
+        setDestinations((prev) => [...prev, ...list])
+        setOffset(nextOffset)
+        setHasMore(list.length === 20)
+      })
+      .catch(() => { /* silencioso — botão permanece */ })
+      .finally(() => setLoadingMore(false))
+  }
 
   useEffect(() => {
     loadDestinations()
@@ -213,7 +237,8 @@ export default function SuperAdminDestinosPendentesPage() {
           Nenhum destino pendente. Todos os destinos foram revisados.
         </p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           {destinations.map((dest) => {
             const busy = actionLoading === dest.id
             return (
@@ -345,6 +370,28 @@ export default function SuperAdminDestinosPendentesPage() {
               </div>
             )
           })}
+          </div>
+          {hasMore && !loading && !loadError && (
+            <div style={{ textAlign: "center", padding: "24px 0" }}>
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: loadingMore ? "#a8a29e" : "#c8961c",
+                  background: "transparent",
+                  border: "1px solid",
+                  borderColor: loadingMore ? "#d6d3d1" : "#c8961c",
+                  borderRadius: "2px",
+                  padding: "10px 24px",
+                  cursor: loadingMore ? "not-allowed" : "pointer",
+                }}
+              >
+                {loadingMore ? "Carregando..." : "Carregar mais"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
