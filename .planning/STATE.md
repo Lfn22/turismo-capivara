@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: — UI/UX Polish + Guia Experience
 status: executing
-stopped_at: Phase 20 Plan 02 concluído — próximo plano 20-03
-last_updated: "2026-06-30T12:55:00Z"
-last_activity: 2026-06-30 -- Phase 20 Plan 02 executed (rename Destinos→Locais no painel)
+stopped_at: Phase 20 Plan 03 concluído — próximo plano 20-04
+last_updated: "2026-06-30T12:59:50Z"
+last_activity: 2026-06-30 -- Phase 20 Plan 03 executed (guard approvalStatus na página /reservar)
 progress:
   total_phases: 13
   completed_phases: 9
   total_plans: 41
-  completed_plans: 38
-  percent: 93
+  completed_plans: 39
+  percent: 95
 ---
 
 # STATE.md — Turismo Capivara
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-06-17)
 ## Current Position
 
 Phase: 20 (Polimento e Dados Públicos) — EXECUTING
-Plan: 3 of 4
-Status: Executing Phase 20 (Plan 02 concluído)
-Last activity: 2026-06-30 -- Phase 20 Plan 02 executed (rename Destinos→Locais no painel)
+Plan: 4 of 4
+Status: Executing Phase 20 (Plan 03 concluído)
+Last activity: 2026-06-30 -- Phase 20 Plan 03 executed (guard approvalStatus na página /reservar)
 
 ## Decisões estratégicas
 
