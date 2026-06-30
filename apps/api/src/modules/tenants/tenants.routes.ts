@@ -89,6 +89,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
       id: tenant.id,
       name: tenant.name,
       slug: tenant.slug,
+      approvalStatus: tenant.approvalStatus,
     })
   })
 
