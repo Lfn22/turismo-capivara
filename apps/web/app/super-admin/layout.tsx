@@ -1,15 +1,20 @@
-"use client"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { Toaster } from "sonner"
+import SuperAdminNav from "./SuperAdminNav"
 
-const navItems = [
-  { label: "Operadoras", href: "/super-admin/operadoras" },
-  { label: "Destinos", href: "/super-admin/destinos" },
-]
+export default async function SuperAdminLayout({ children }: { children: React.ReactNode }) {
+  const session = await getServerSession(authOptions)
 
-export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
+  if (!session) {
+    redirect("/login")
+  }
+
+  if ((session.user as any).role !== "SUPER_ADMIN") {
+    redirect("/login?error=forbidden")
+  }
 
   return (
     <div style={{ minHeight: "100dvh", background: "var(--stone-50)" }}>
@@ -37,29 +42,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
           CAPI
         </Link>
         <span style={{ color: "var(--stone-400)", fontSize: "14px" }}>Painel Super-Admin</span>
-        <nav style={{ display: "flex", gap: "4px" }}>
-          {navItems.map((item) => {
-            const active = pathname.startsWith(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: "4px",
-                  fontSize: "14px",
-                  fontWeight: active ? 600 : 400,
-                  color: active ? "var(--ochre)" : "var(--stone-600)",
-                  background: active ? "var(--ochre-light, #FEF9EC)" : "transparent",
-                  textDecoration: "none",
-                  transition: "background 0.15s",
-                }}
-              >
-                {item.label}
-              </Link>
-            )
-          })}
-        </nav>
+        <SuperAdminNav />
       </header>
       <main
         style={{
