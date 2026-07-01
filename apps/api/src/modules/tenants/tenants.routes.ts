@@ -165,14 +165,18 @@ export async function tenantsRoutes(app: FastifyInstance) {
 
   app.get('/tenants/admin/pending', {
     preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
-    schema: {
-      querystring: z.object({
-        limit: z.coerce.number().int().min(1).max(100).default(20),
-        offset: z.coerce.number().int().min(0).default(0),
-      }),
-    },
   }, async (request, reply) => {
-    const query = request.query as { limit: number; offset: number }
+    const pendingQuerySchema = z.object({
+      limit: z.coerce.number().int().min(1).max(100).default(20),
+      offset: z.coerce.number().int().min(0).default(0),
+    })
+    let query
+    try {
+      query = pendingQuerySchema.parse(request.query)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
+      throw err
+    }
     const [tenants, total] = await Promise.all([
       prisma.tenant.findMany({
         where: { approvalStatus: 'PENDING' },
