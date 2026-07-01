@@ -24,8 +24,6 @@ const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }
   CANCELLED: { bg: '#FEF2F2', color: '#DC2626', label: 'Cancelada' },
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
-
 export default function MinhaReservaClient({ slug }: { slug: string }) {
   const [uiState, setUiState] = useState<UiState>('LOOKUP')
   const [email, setEmail] = useState('')
@@ -41,7 +39,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
     setUiState('LOADING')
     setErrorMsg('')
     try {
-      const res = await fetch(`${API_URL}/tenants/${slug}/bookings/lookup`, {
+      const res = await fetch(`/api/${slug}/bookings/lookup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), code: code.trim().toLowerCase() }),
@@ -73,7 +71,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
     if (!booking) return
     setCancelLoading(true)
     try {
-      const res = await fetch(`${API_URL}/tenants/${slug}/bookings/cancel-self`, {
+      const res = await fetch(`/api/${slug}/bookings/cancel-self`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code: code.trim().toLowerCase() }),
@@ -100,7 +98,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
     if (!booking) return
     setUiState('LOADING')
     try {
-      const res = await fetch(`${API_URL}/tenants/${slug}/bookings/repay`, {
+      const res = await fetch(`/api/${slug}/bookings/repay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code: code.trim().toLowerCase() }),

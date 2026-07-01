@@ -14,7 +14,7 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password || !credentials?.tenantSlug) {
           return null
         }
-        const apiUrl = process.env.API_URL
+        const apiUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
         try {
           const res = await fetch(`${apiUrl}/auth/login`, {
             method: "POST",

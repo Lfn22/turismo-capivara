@@ -87,7 +87,7 @@ export default function OnboardingPage() {
     setError(null)
     setLoading(true)
     try {
-      const res = await fetch(`${API_URL}/tenants/signup`, {
+      const res = await fetch(`/api/tenants/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, slug, email, password, cnpj }),
