@@ -47,7 +47,12 @@ async function handler(req: NextRequest) {
 
   let body: string | undefined
   if (req.method !== "GET" && req.method !== "HEAD") {
-    body = await req.text()
+    const text = await req.text()
+    if (text) body = text
+  }
+
+  if (body === undefined) {
+    delete headers["Content-Type"]
   }
 
   let res: Response

@@ -88,7 +88,8 @@
       "mcp__plugin_claude-mem_mcp-search__timeline",
       "mcp__plugin_claude-mem_mcp-search__search",
       "Bash(find C:/projetos/turismo-capivara/apps/web -name \"page.tsx\" -path \"*/login/*\" -exec cat {} \\\\;)",
-      "Skill(gsd-next)"
+      "Skill(gsd-next)",
+      "mcp__plugin_context-mode_context-mode__ctx_index"
     ]
   }
 }
