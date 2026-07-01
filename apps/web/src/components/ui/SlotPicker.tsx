@@ -8,6 +8,7 @@ interface Slot {
   startsAt: string;
   capacity: number;
   booked: number;
+  status: string;
 }
 
 interface SlotPickerProps {
@@ -37,7 +38,7 @@ export default function SlotPicker({ slots, packageId, slug }: SlotPickerProps) 
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const availableSlots = slots.filter((s) => s.booked < s.capacity);
+  const availableSlots = slots.filter((s) => s.status === 'OPEN' && s.booked < s.capacity);
 
   function handleSelect(slotId: string) {
     setSelectedId(slotId);
