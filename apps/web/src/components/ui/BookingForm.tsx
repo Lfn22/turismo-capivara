@@ -81,9 +81,9 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
 
       const data = await res.json();
       const bookingId: string = data?.id ?? data?.data?.id ?? '';
-      // CR-01: validate bookingId is a UUID before using in navigation
-      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!UUID_RE.test(bookingId)) {
+      // CR-01: validate bookingId is a non-empty alphanumeric ID (cuid, uuid, cuid2, nanoid)
+      const ID_RE = /^[a-zA-Z0-9_-]{10,}$/;
+      if (!ID_RE.test(bookingId)) {
         throw new Error('Resposta inválida do servidor. Tente novamente.');
       }
       router.push(`/${slug}/checkout?bookingId=${bookingId}&email=${encodeURIComponent(form.email)}`);
