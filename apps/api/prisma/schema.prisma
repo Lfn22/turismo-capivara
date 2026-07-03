@@ -45,6 +45,8 @@ model Tenant {
   users        User[]
   tourPackages TourPackage[]
   bookings     Booking[]
+
+  @@index([destinationId])
 }
 
 model User {
@@ -78,7 +80,9 @@ model GuideProfile {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user           User            @relation(fields: [userId], references: [id])
+  packageGuides  PackageGuide[]
+  departureSlots DepartureSlot[]
 }
 
 model TourPackage {
@@ -93,18 +97,23 @@ model TourPackage {
   difficulty  Difficulty
   photos      String[] @default([])
   highlights  String[] @default([])
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  active           Boolean  @default(true)
+  durationMinHours Int?
+  durationMaxHours Int?
+  bufferMinutes    Int      @default(60)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   tenant         Tenant          @relation(fields: [tenantId], references: [id])
   conductor      User?           @relation("ConductorPackages", fields: [conductorId], references: [id])
   departureSlots DepartureSlot[]
+  packageGuides  PackageGuide[]
 }
 
 model DepartureSlot {
   id          String     @id @default(cuid())
   packageId   String
+  guideId     String?
   startsAt    DateTime
   capacity    Int
   minCapacity  Int        @default(1)
@@ -112,10 +121,12 @@ model DepartureSlot {
   status      SlotStatus @default(OPEN)
   createdAt   DateTime   @default(now())
 
-  package  TourPackage @relation(fields: [packageId], references: [id])
+  package  TourPackage   @relation(fields: [packageId], references: [id])
+  guide    GuideProfile? @relation(fields: [guideId], references: [id])
   bookings Booking[]
 
   @@index([packageId, startsAt])
+  @@index([guideId, startsAt])
 }
 
 model Booking {
@@ -208,6 +219,21 @@ enum TenantApprovalStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model PackageGuide {
+  id        String   @id @default(cuid())
+  packageId String
+  guideId   String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  package TourPackage  @relation(fields: [packageId], references: [id])
+  guide   GuideProfile @relation(fields: [guideId], references: [id])
+
+  @@unique([packageId, guideId])
+  @@index([packageId])
+  @@index([guideId])
 }
 
 model ProcessedWebhookEvent {

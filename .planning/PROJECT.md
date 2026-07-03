@@ -1,17 +1,32 @@
 # Turismo Capivara
 
-## Current Milestone: v1.3 MVP Stability & Payment Integrity
+## Current Milestone: v2.1 Multi-Guide & Discovery
+
+**Goal:** Evoluir o CAPI de modelo mono-guia para N:N, com páginas públicas de descoberta de roteiros e guias por destino, qualificação de guias por roteiro, conflito de agenda transacional e widget de mapa.
+
+**Target features:**
+- Schema N:N — PackageGuide (qualificação guia-roteiro), guideId em DepartureSlot (atribuição por saída), durationMinHours/durationMaxHours em TourPackage
+- Conflito de agenda — checagem transacional de sobreposição no POST /slots, erro específico com guia e horários conflitantes
+- API discovery — GET /destinations/:slug/packages, GET /packages/:id/guides, GET /guides/:id/packages (endpoints públicos)
+- Frontend discovery — /destinos/[slug]/roteiros, /destinos/[slug]/roteiros/[id] com guias, /destinos/[slug]/guias, /destinos/[slug]/guias/[id] com roteiros
+- Painel parceiro — criação de slot com seleção de guia qualificado (PackageGuide.active = true) e feedback de conflito
+- Mapa — widget MapLibre + Overpass API, lazy load, parceiros priorizados, sem Redis (Next.js revalidate)
+
+<details>
+<summary>v2.0 Milestone Context (arquivado)</summary>
+
+**Goal:** Transformar o CAPI MVP em produto apto para primeiros clientes pagantes e apresentável a investidores — eliminando débitos técnicos da auditoria executiva de 2026-06-26.
+
+Fases 13, 16, 18, 19, 20 executadas. Ver [milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md).
+</details>
+
+<details>
+<summary>v1.3 Milestone Context (arquivado)</summary>
 
 **Goal:** Corrigir todos os pontos de quebra identificados na auditoria de produto antes de operar com clientes reais — pagamento atomicamente seguro, segurança multi-tenant, UX de checkout completa e confiabilidade operacional.
 
-**Target features:**
-- Integridade de pagamento — MP_ACCESS_TOKEN validado em produção, booking+PIX atômico, polling de status no checkout, CPF com algoritmo real
-- Segurança multi-tenant — rate limit + token opaco no cancel-self, isolamento de tenant em confirm/cancel, deduplicação de webhook
-- UX do checkout — countdown do PIX, QR code visual, link "minha reserva", loading state no formulário, sem PII exposta
-- Anti-overbooking — lock pessimista no slot, liberação de capacidade no cancelamento, bloqueio de booking em tenant PENDING
-- Confiabilidade operacional — job de expiração de PIX, validação de R2 no startup, e-mails com log, slots só no futuro
-- Polimento final — home com mais destinos, filtro APPROVED público, badge de status nos destinos, toast global, terminologia clara
-- UAT por sprint — cada fase termina com checklist de confirmação antes de avançar
+Fases 16–20 completas. Ver [milestones/v1.3-ROADMAP.md](milestones/v1.3-ROADMAP.md).
+</details>
 
 <details>
 <summary>v1.2 Milestone Context (arquivado)</summary>

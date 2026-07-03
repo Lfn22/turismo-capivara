@@ -290,3 +290,100 @@ Plans:
 - Multi-guia por roteiro (competição de preço)
 - Comparação de guias lado a lado
 - Integração com cartão de crédito
+
+---
+
+## v2.1 — Multi-Guide & Discovery
+
+**Goal:** Transformar o CAPI de mono-guia para N:N — múltiplos guias por roteiro, descoberta cross-tenant de roteiros e guias por destino, widget de mapa interativo com parceiros e POIs.
+**Origin:** Backlog estratégico — multi-guia por roteiro + páginas de discovery públicas por destino.
+**Requirements:** 18 (SCH×4, SCHED×3, API×4, DISC×5, PANEL×2, MAP×4)
+
+### Phases
+
+- [ ] **Phase 24: Schema & Data Migration** — PackageGuide N:N, DepartureSlot.guideId, durationMin/MaxHours, backfill de dados legados
+- [ ] **Phase 25: API Endpoints & Conflict Logic** — Discovery cross-tenant, conflito de agenda transacional, validação de guia qualificado em slots
+- [ ] **Phase 26: Frontend Discovery Pages** — Páginas públicas /destinos/[slug]/roteiros, /guias, detalhe de roteiro e guia com links bidirecionais
+- [ ] **Phase 27: Partner Panel — Slot Creation** — Dropdown de guia qualificado no formulário de criação de slot, erro de conflito inline
+- [ ] **Phase 28: Map Widget** — MapLibre GL JS + Maptiler + Overpass API com lazy load e graceful degradation
+
+---
+
+### Phase 24: Schema & Data Migration
+**Goal**: Schema migrado para suportar N:N entre roteiros e guias, com backfill seguro de dados legados e validação de integridade crítica
+**Depends on**: Phase 23
+**Requirements**: SCH-01, SCH-02, SCH-03, SCH-04
+**Success Criteria** (what must be TRUE):
+  1. Tabela `PackageGuide` existe com `@@unique([packageId, guideId])` e `@@index`
+  2. `DepartureSlot.guideId` existe (nullable) com `@@index([guideId, startsAt])`
+  3. `TourPackage` tem `durationMinHours`, `durationMaxHours`, `bufferMinutes`
+  4. Backfill: todo `TourPackage` com `conductorId` tem exatamente 1 row em `PackageGuide`
+  5. Backfill: todo `DepartureSlot` tem `guideId` copiado do `conductorId` do pacote pai (onde não-nulo)
+  6. `Tenant.@@index([destinationId])` existe
+  7. 0 `DepartureSlot` futuros com `guideId=null` E reservas ativas (validação crítica passa)
+**Plans**: TBD
+
+### Phase 25: API Endpoints & Conflict Logic
+**Goal**: Endpoints de discovery cross-tenant implementados e lógica de conflito de agenda transacional bloqueando sobreposição de guia
+**Depends on**: Phase 24
+**Requirements**: API-01, API-02, API-03, API-04, SCHED-01, SCHED-02, SCHED-03
+**Success Criteria** (what must be TRUE):
+  1. `GET /destinations/:slug/packages` retorna roteiros ativos de um destino cross-tenant
+  2. `GET /packages/:id/guides` retorna guias qualificados ativos de um roteiro
+  3. `GET /guides/:id/packages` retorna roteiros que um guia atende
+  4. `POST` de slot rejeita se guia tem agenda sobreposta (mesma transação do lock de capacidade)
+  5. Mensagem de erro de conflito inclui nome do guia, nome do roteiro conflitante, horário de início e fim
+  6. Desativar `PackageGuide` NÃO cancela `DepartureSlot` existentes automaticamente
+**Plans**: TBD
+**UI hint**: no
+
+### Phase 26: Frontend Discovery Pages
+**Goal**: Turistas descobrem roteiros e guias do destino via páginas públicas linkadas bidirecionalmente
+**Depends on**: Phase 25
+**Requirements**: DISC-01, DISC-02, DISC-03, DISC-04, DISC-05
+**Success Criteria** (what must be TRUE):
+  1. `/destinos/[slug]/roteiros` lista todos os roteiros ativos com cards
+  2. `/destinos/[slug]/roteiros/[id]` exibe detalhe do roteiro + cards de guias qualificados com links
+  3. `/destinos/[slug]/guias` lista guias qualificados com cards
+  4. `/destinos/[slug]/guias/[id]` exibe perfil completo do guia + lista de roteiros atendidos + CTA de reserva
+  5. CTA da página `/destinos/[slug]` aponta para `/roteiros` (não `/guias`)
+  6. Páginas de guia e roteiro linkam bidirecionalmente (hub-and-spoke)
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 27: Partner Panel — Slot Creation
+**Goal**: Parceiro cria DepartureSlot selecionando guia qualificado e vê erro de conflito de agenda inline
+**Depends on**: Phase 25
+**Requirements**: PANEL-01, PANEL-02
+**Success Criteria** (what must be TRUE):
+  1. Formulário de criação de slot exibe dropdown com apenas guias qualificados para o roteiro
+  2. Erro de conflito exibido inline no formulário com mensagem específica (nome do guia + horários)
+  3. Criação bem-sucedida atribui `guideId` ao novo slot
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 28: Map Widget
+**Goal**: Widget de mapa interativo na página do destino mostra parceiros e POIs próximos sem expor chave de API
+**Depends on**: Phase 26
+**Requirements**: MAP-01, MAP-02, MAP-03, MAP-04
+**Success Criteria** (what must be TRUE):
+  1. Widget de mapa renderiza na página do destino com MapLibre GL JS
+  2. Parceiros da plataforma exibidos com marcadores distintos (priorizados visualmente)
+  3. POIs da Overpass API carregados (hotéis, restaurantes, bares, locadoras)
+  4. Widget carregado com `dynamic(..., { ssr: false })` — sem crash de SSR
+  5. Falha da Overpass API degrada graciosamente — mapa renderiza apenas com parceiros
+  6. Nenhuma API key exposta no código client-side
+**Plans**: TBD
+**UI hint**: yes
+
+---
+
+## Progress v2.1
+
+| Phase | Plans Complete | Status | Concluído |
+|-------|----------------|--------|-----------|
+| 24. Schema & Data Migration | 0/TBD | Not started | - |
+| 25. API Endpoints & Conflict Logic | 0/TBD | Not started | - |
+| 26. Frontend Discovery Pages | 0/TBD | Not started | - |
+| 27. Partner Panel — Slot Creation | 0/TBD | Not started | - |
+| 28. Map Widget | 0/TBD | Not started | - |

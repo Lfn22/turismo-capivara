@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: — UI/UX Polish + Guia Experience
-status: executing
-stopped_at: Phase 20 Plan 04 concluído — fase 20 completa
-last_updated: "2026-06-30T13:15:00Z"
-last_activity: 2026-06-30 -- Phase 20 Plan 04 executed (paginação Carregar mais no super-admin)
+milestone: v2.1
+milestone_name: Multi-Guide & Discovery
+status: planning
+stopped_at: Roadmap v2.1 criado — Phase 24 pronta para /gsd-plan-phase 24
+last_updated: "2026-07-03T11:12:00-03:00"
+last_activity: 2026-07-03 — Roadmap v2.1 Multi-Guide & Discovery criado (5 fases, 18 requisitos)
 progress:
-  total_phases: 13
-  completed_phases: 9
-  total_plans: 41
-  completed_plans: 39
-  percent: 95
+  total_phases: 5
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # STATE.md — Turismo Capivara
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-17)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Phase 20 — Polimento e Dados Públicos
+**Current focus:** Phase 24 — Schema & Data Migration (v2.1)
 
 ## Current Position
 
-Phase: 20 (Polimento e Dados Públicos) — EXECUTING
-Plan: 4 of 4 (concluído)
-Status: Phase 20 completa — todos os 4 planos executados
-Last activity: 2026-06-30 -- Phase 20 Plan 04 executed (paginação Carregar mais no super-admin)
+Phase: 24 — Schema & Data Migration
+Plan: —
+Status: Roadmap criado — pronto para /gsd-plan-phase 24
+Last activity: 2026-07-03 — Milestone v2.1 Multi-Guide & Discovery roadmap criado
 
 ## Decisões estratégicas
 
@@ -80,6 +80,11 @@ Last activity: 2026-06-30 -- Phase 20 Plan 04 executed (paginação Carregar mai
 - Vitest + @fastify/multipart: mockar o plugin quebra `decorateRequest` por isolamento de módulos — usar real multipart body com Buffer manual em testes de rota
 - D-12: 403 em tenant não aprovado usa mensagem genérica `'Reservas indisponíveis no momento.'` — não revelar motivo real ao turista
 - AppError: construtor 2-param `(message: string, statusCode = 400)` — sem terceiro argumento de código
+- v2.1: IDs são CUIDs (`cuid()`) — validar com regex permissiva, nunca UUID pattern
+- v2.1: Conflito de agenda usa janela `startsAt` até `startsAt + durationMaxHours*60 + bufferMinutes` — dentro de `prisma.$transaction`
+- v2.1: `PackageGuide.active = false` NÃO faz cascade em DepartureSlots — ações distintas
+- v2.1: Tiles Maptiler servidos via proxy Next.js route — API key nunca exposta ao client
+- v2.1: Overpass API é enhancement, nunca bloqueante — falha degrada graciosamente
 
 ## Performance histórica
 
@@ -92,7 +97,6 @@ Last activity: 2026-06-30 -- Phase 20 Plan 04 executed (paginação Carregar mai
 
 - Busca por texto e filtros avançados
 - Comparação de guias lado a lado
-- Multi-guia por roteiro
 - Reviews e avaliações
 - Cartão de crédito
 - Vitrines de parceiros (hotéis, restaurantes)
@@ -101,6 +105,9 @@ Last activity: 2026-06-30 -- Phase 20 Plan 04 executed (paginação Carregar mai
 - Queue de email com retry via BullMQ/Redis (OPS-04)
 - Verificação de email no signup (ONBOARD-04)
 - Links de recuperação com token por email (TOURIST-03)
+- Sistema de avaliações de guias (v3.0)
+- Cache de POIs com Redis/Upstash (v3.0)
+- i18n — next-intl (v3.0)
 
 ## Accumulated Context
 
@@ -114,12 +121,13 @@ Last activity: 2026-06-30 -- Phase 20 Plan 04 executed (paginação Carregar mai
 - Phase 12.1 complete (2026-06-03): Pre-Launch Hardening — idempotência bookings (Idempotency-Key header), connection pool Railway, página /acesso, smoke test PIX 4/6 PASS
 - v1.2 milestone complete (2026-06-11) — Phases 11–15, UI/UX polish, login global, gestão de conteúdo
 - v1.3 milestone started (2026-06-17) — 24 requirements em auditoria end-to-end: PAY, SEC, DATA, UX, OPS, POL — Phases 16–20
-- v2.0 milestone created (2026-06-26) — Auditoria executiva MVP (7 especialistas, 12 pilares): 37 requisitos, 8 fases (21 Hardening + 22 Email novas; 13, 16, 18, 19, 20 absorvidas do v1.3), 21 planos total. Próximo: Phase 21
+- v2.0 milestone created (2026-06-26) — Auditoria executiva MVP (7 especialistas, 12 pilares): 37 requisitos, 8 fases (21 Hardening + 22 Email novas; 13, 16, 18, 19, 20 absorvidas do v1.3), 21 planos total
+- v2.1 milestone created (2026-07-03) — Multi-Guide & Discovery: 18 requisitos, 5 fases (24–28), schema N:N PackageGuide + discovery cross-tenant + mapa
 
 ## Session Continuity
 
-Last session: 2026-06-22T14:38:00-03:00
-Stopped at: Phase 18 planejada (2 planos criados, verificação aprovada) — pronta para /gsd-execute-phase 18
+Last session: 2026-07-03T11:12:00-03:00
+Stopped at: Roadmap v2.1 criado — pronto para /gsd-plan-phase 24
 Resume file: None
 
 ### Quick Tasks Completed
