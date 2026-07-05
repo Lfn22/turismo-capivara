@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Multi-Guide & Discovery
-status: planning
-stopped_at: Roadmap v2.1 criado — Phase 24 pronta para /gsd-plan-phase 24
-last_updated: "2026-07-03T11:12:00-03:00"
-last_activity: 2026-07-03 — Roadmap v2.1 Multi-Guide & Discovery criado (5 fases, 18 requisitos)
+status: executing
+stopped_at: Phase 25 execução completa — pronto para /gsd-verify-work 25
+last_updated: "2026-07-04T13:45:00-03:00"
+last_activity: 2026-07-04 — Phase 24 Schema & Data Migration verificada e marcada completa (6/6 UAT pass)
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
+  percent: 40
 ---
 
 # STATE.md — Turismo Capivara
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-17)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Phase 24 — Schema & Data Migration (v2.1)
+**Current focus:** Phase 25 — API Endpoints & Conflict Logic (v2.1)
 
 ## Current Position
 
-Phase: 24 — Schema & Data Migration
-Plan: —
-Status: Roadmap criado — pronto para /gsd-plan-phase 24
-Last activity: 2026-07-03 — Milestone v2.1 Multi-Guide & Discovery roadmap criado
+Phase: 25 — API Endpoints & Conflict Logic
+Plan: 25-PLAN.md (1 plano, aprovado pelo plan-checker)
+Status: Executado — pronto para /gsd-verify-work 25
+Last activity: 2026-07-05 — Phase 25 executada (3 GET cross-tenant + POST slots com guideId + GUIDE_NOT_QUALIFIED + GUIDE_SCHEDULE_CONFLICT em $transaction)
 
 ## Decisões estratégicas
 
@@ -123,11 +123,12 @@ Last activity: 2026-07-03 — Milestone v2.1 Multi-Guide & Discovery roadmap cri
 - v1.3 milestone started (2026-06-17) — 24 requirements em auditoria end-to-end: PAY, SEC, DATA, UX, OPS, POL — Phases 16–20
 - v2.0 milestone created (2026-06-26) — Auditoria executiva MVP (7 especialistas, 12 pilares): 37 requisitos, 8 fases (21 Hardening + 22 Email novas; 13, 16, 18, 19, 20 absorvidas do v1.3), 21 planos total
 - v2.1 milestone created (2026-07-03) — Multi-Guide & Discovery: 18 requisitos, 5 fases (24–28), schema N:N PackageGuide + discovery cross-tenant + mapa
+- Phase 24 complete (2026-07-04) — Schema + backfill implementados diretamente (commit 19a8823); verificado no banco Railway: 8 PackageGuides, 34/34 slots com guideId, 0 slots críticos
 
 ## Session Continuity
 
-Last session: 2026-07-03T11:12:00-03:00
-Stopped at: Roadmap v2.1 criado — pronto para /gsd-plan-phase 24
+Last session: 2026-07-04T10:58:00-03:00
+Stopped at: Phase 25 executada — pronto para /gsd-verify-work 25
 Resume file: None
 
 ### Quick Tasks Completed
