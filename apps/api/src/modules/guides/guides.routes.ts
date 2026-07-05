@@ -313,6 +313,48 @@ export async function guidesRoutes(app: FastifyInstance) {
     return reply.status(200).send({ bookings: safeBookings })
   })
 
+  // GET /guides/:id/packages — pacotes atendidos por um guia (público)
+  app.get('/guides/:id/packages', async (request, reply) => {
+    const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
+    let params
+    try {
+      params = guideOnlyIdSchema.parse(request.params)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+      throw err
+    }
+
+    const packageGuides = await prisma.packageGuide.findMany({
+      where: {
+        guideId: params.id,
+        active: true,
+      },
+      include: {
+        package: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            durationMinHours: true,
+            durationMaxHours: true,
+            difficulty: true,
+          },
+        },
+      },
+    })
+
+    return reply.status(200).send(
+      packageGuides.map((pg) => ({
+        id: pg.package.id,
+        name: pg.package.name,
+        price: Number(pg.package.price),
+        durationMinHours: pg.package.durationMinHours,
+        durationMaxHours: pg.package.durationMaxHours,
+        difficulty: pg.package.difficulty,
+      }))
+    )
+  })
+
   // PATCH /tenants/:slug/guides/me/profile — CONDUTOR only
   app.patch('/tenants/:slug/guides/me/profile', {
     preHandler: [authenticate, authorize(['CONDUTOR'])],

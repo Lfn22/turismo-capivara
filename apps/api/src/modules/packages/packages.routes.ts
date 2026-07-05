@@ -51,6 +51,10 @@ const slugIdAndSlotIdParamsSchema = z.object({
   slotId: z.string().min(1, { message: 'slotId obrigatório' }),
 })
 
+const packageIdParamsSchema = z.object({
+  id: z.string().min(1, { message: 'ID obrigatório' }),
+})
+
 const createSlotBodySchema = z.object({
   startsAt: z
     .string()
@@ -161,6 +165,44 @@ export async function packagesRoutes(app: FastifyInstance) {
       })),
     }
     return packageWithMinReached
+  })
+
+  // GET /packages/:id/guides — guias qualificados de um pacote (público)
+  app.get('/packages/:id/guides', async (request, reply) => {
+    const { data: params, error } = parseParams(packageIdParamsSchema, request.params, reply)
+    if (error) return
+
+    const guides = await prisma.packageGuide.findMany({
+      where: {
+        packageId: params!.id,
+        active: true,
+      },
+      include: {
+        guide: {
+          select: {
+            id: true,
+            bio: true,
+            photoUrl: true,
+            especialidades: true,
+            regioes: true,
+            user: {
+              select: { name: true },
+            },
+          },
+        },
+      },
+    })
+
+    return reply.status(200).send(
+      guides.map((pg) => ({
+        guideId: pg.guide.id,
+        name: pg.guide.user.name,
+        bio: pg.guide.bio,
+        photoUrl: pg.guide.photoUrl,
+        especialidades: pg.guide.especialidades,
+        regioes: pg.guide.regioes,
+      }))
+    )
   })
 
   app.post('/tenants/:slug/packages', {
