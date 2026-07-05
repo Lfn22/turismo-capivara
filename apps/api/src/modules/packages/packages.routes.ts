@@ -55,6 +55,17 @@ const packageIdParamsSchema = z.object({
   id: z.string().min(1, { message: 'ID obrigatório' }),
 })
 
+class ScheduleConflictError extends Error {
+  constructor(
+    public readonly code: string,
+    public readonly statusCode: number,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'ScheduleConflictError'
+  }
+}
+
 const createSlotBodySchema = z.object({
   startsAt: z
     .string()
@@ -64,6 +75,7 @@ const createSlotBodySchema = z.object({
     }),
   capacity: z.number().int().min(1, { message: 'Capacidade mínima é 1' }),
   minCapacity: z.number().int().min(1, { message: 'Mínimo de participantes é 1' }),
+  guideId: z.string().min(1, { message: 'guideId obrigatório' }),
 }).refine((d) => d.minCapacity <= d.capacity, {
   message: 'Mínimo não pode exceder capacidade máxima',
   path: ['minCapacity'],
@@ -384,14 +396,84 @@ export async function packagesRoutes(app: FastifyInstance) {
       if (conductor?.approvalStatus !== 'APPROVED') throw new AppError('Guia não aprovado para criar slots', 403)
     }
 
-    const slot = await prisma.departureSlot.create({
-      data: {
+    // Verificação de qualificação do guia (ANTES da transação, para 400 antes de 409)
+    const isQualified = await prisma.packageGuide.findFirst({
+      where: {
         packageId: pkg.id,
-        startsAt: new Date(body!.startsAt),
-        capacity: body!.capacity,
-        minCapacity: body!.minCapacity,
+        guideId: body!.guideId,
+        active: true,
       },
     })
+    if (!isQualified) {
+      return reply.status(400).send({
+        code: 'GUIDE_NOT_QUALIFIED',
+        message: 'Guia não está qualificado para este roteiro',
+      })
+    }
+
+    // Calcular janela do novo slot
+    const newStart = new Date(body!.startsAt)
+    const newSlotEndMs = newStart.getTime() + ((pkg.durationMaxHours ?? 0) * 60 + pkg.bufferMinutes) * 60_000
+
+    // Transação: conflict check + create
+    let slot
+    try {
+      slot = await prisma.$transaction(async (tx) => {
+        const existingSlots = await tx.departureSlot.findMany({
+          where: {
+            guideId: body!.guideId,
+            status: { in: ['OPEN', 'FULL'] },
+            startsAt: { lt: new Date(newSlotEndMs) },
+          },
+          select: {
+            startsAt: true,
+            package: {
+              select: { durationMaxHours: true, bufferMinutes: true, name: true },
+            },
+          },
+        })
+
+        for (const existing of existingSlots) {
+          const existingStart = existing.startsAt.getTime()
+          const existingEndMs =
+            existingStart +
+            ((existing.package.durationMaxHours ?? 0) * 60 + existing.package.bufferMinutes) * 60 * 1000
+
+          if (newStart.getTime() < existingEndMs && newSlotEndMs > existingStart) {
+            const existingEndDate = new Date(existingEndMs)
+            const fmt = (d: Date) =>
+              d.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
+
+            const guideProfile = await tx.guideProfile.findUnique({
+              where: { id: body!.guideId },
+              select: { user: { select: { name: true } } },
+            })
+            const guideName = guideProfile?.user.name ?? 'Guia'
+
+            throw new ScheduleConflictError(
+              'GUIDE_SCHEDULE_CONFLICT',
+              409,
+              `Guia ${guideName} já tem compromisso com roteiro '${existing.package.name}' das ${fmt(existing.startsAt)} até ${fmt(existingEndDate)}`,
+            )
+          }
+        }
+
+        return await tx.departureSlot.create({
+          data: {
+            packageId: pkg.id,
+            guideId: body!.guideId,
+            startsAt: new Date(body!.startsAt),
+            capacity: body!.capacity,
+            minCapacity: body!.minCapacity,
+          },
+        })
+      })
+    } catch (err) {
+      if (err instanceof ScheduleConflictError) {
+        return reply.status(err.statusCode).send({ code: err.code, message: err.message })
+      }
+      throw err
+    }
 
     return reply.status(201).send(slot)
   })
