@@ -216,6 +216,61 @@ export async function destinationsRoutes(app: FastifyInstance) {
     })
   })
 
+  // GET /destinations/:slug/packages — pacotes ativos de um destino aprovado (público)
+  app.get('/destinations/:slug/packages', async (request, reply) => {
+    let params
+    try {
+      params = slugParamsSchema.parse(request.params)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+      throw err
+    }
+
+    const destination = await prisma.destination.findUnique({
+      where: { slug: params.slug, active: true, approvalStatus: 'APPROVED' },
+      select: { id: true },
+    })
+
+    if (!destination) throw new AppError('Destino não encontrado', 404)
+
+    const packages = await prisma.tourPackage.findMany({
+      where: {
+        active: true,
+        tenant: {
+          destinationId: destination.id,
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        duration: true,
+        price: true,
+        difficulty: true,
+        durationMinHours: true,
+        durationMaxHours: true,
+        tenant: {
+          select: { slug: true },
+        },
+      },
+      orderBy: { name: 'asc' },
+    })
+
+    return reply.status(200).send(
+      packages.map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        duration: p.duration,
+        price: Number(p.price),
+        difficulty: p.difficulty,
+        durationMinHours: p.durationMinHours,
+        durationMaxHours: p.durationMaxHours,
+        tenantSlug: p.tenant.slug,
+      }))
+    )
+  })
+
   // PATCH /destinations/:destinationSlug — atualiza fotos (ADMIN/SUPER_ADMIN/CONDUTOR)
   // CONDUTOR só pode editar o destino vinculado ao seu próprio tenant
   // NOTE: Esta rota chama prisma.destination.update() diretamente, sem passar por updateDestination().
