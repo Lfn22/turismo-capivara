@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Multi-Guide & Discovery
 status: executing
-stopped_at: Phase 25 execução completa — pronto para /gsd-verify-work 25
+stopped_at: Phase 26 contexto capturado — pronto para /gsd-plan-phase 26
 last_updated: "2026-07-04T13:45:00-03:00"
 last_activity: 2026-07-04 — Phase 24 Schema & Data Migration verificada e marcada completa (6/6 UAT pass)
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 2
   completed_plans: 2
-  percent: 40
+  percent: 60
 ---
 
 # STATE.md — Turismo Capivara
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-17)
 
 **Core value:** Guia de turismo publica roteiros e gerencia reservas digitalmente. Turista encontra, reserva e paga com PIX — sem WhatsApp, sem dinheiro em espécie.
-**Current focus:** Phase 25 — API Endpoints & Conflict Logic (v2.1)
+**Current focus:** Phase 26 — Frontend Discovery (v2.1)
 
 ## Current Position
 
-Phase: 25 — API Endpoints & Conflict Logic
-Plan: 25-PLAN.md (1 plano, aprovado pelo plan-checker)
-Status: Executado — pronto para /gsd-verify-work 25
-Last activity: 2026-07-05 — Phase 25 executada (3 GET cross-tenant + POST slots com guideId + GUIDE_NOT_QUALIFIED + GUIDE_SCHEDULE_CONFLICT em $transaction)
+Phase: 26 — Frontend Discovery
+Plan: aguardando /gsd-plan-phase 26
+Status: Contexto capturado — pronto para planning
+Last activity: 2026-07-06 — Phase 26 contexto capturado (discuss-phase completo)
 
 ## Decisões estratégicas
 
@@ -128,7 +128,7 @@ Last activity: 2026-07-05 — Phase 25 executada (3 GET cross-tenant + POST slot
 ## Session Continuity
 
 Last session: 2026-07-04T10:58:00-03:00
-Stopped at: Phase 25 executada — pronto para /gsd-verify-work 25
+Stopped at: Phase 25 verificada (8/8 UAT pass) — pronto para /gsd-plan-phase 26
 Resume file: None
 
 ### Quick Tasks Completed
