@@ -7,7 +7,8 @@ import Image from 'next/image';
 export interface StickyDestinationNavProps {
   destinationName: string;
   destinationSlug: string;
-  guidesHref?: string;
+  guidesHref?: string;    // deprecated — kept for backwards compatibility
+  activeTab?: 'roteiros' | 'guias';
 }
 
 /**
@@ -26,9 +27,8 @@ export interface StickyDestinationNavProps {
 export default function StickyDestinationNav({
   destinationName,
   destinationSlug,
-  guidesHref,
+  activeTab,
 }: StickyDestinationNavProps) {
-  const resolvedGuidesHref = guidesHref ?? `/destinos/${destinationSlug}/guias`;
   const navRef = useRef<HTMLElement>(null);
   const lastScrollY = useRef(0);
   const heroVisible = useRef(true);
@@ -204,10 +204,50 @@ export default function StickyDestinationNav({
         }
         .snav__logo:hover { color: var(--ochre-dark, #a07010); }
 
+        /* Tabs de navegação */
+        .snav__tabs {
+          display: none;
+          align-items: center;
+          gap: 0;
+        }
+
+        .snav--opaque .snav__tabs {
+          display: flex;
+        }
+
+        .snav__tab {
+          font-size: 0.72rem;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.6);
+          text-decoration: none;
+          padding: 0 1rem;
+          height: 56px;
+          display: flex;
+          align-items: center;
+          border-bottom: 2px solid transparent;
+          transition: color 0.2s, border-color 0.2s;
+          white-space: nowrap;
+        }
+
+        .snav__tab:hover {
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .snav__tab--active {
+          color: #fff;
+          border-bottom-color: var(--ochre, #c8961c);
+        }
+
         /* Mobile: esconde o CTA em telas muito pequenas */
         @media (max-width: 360px) {
           .snav__cta { display: none; }
           .snav__name { max-width: 140px; }
+        }
+
+        @media (max-width: 500px) {
+          .snav__tabs { display: none !important; }
         }
       `}</style>
 
@@ -230,8 +270,27 @@ export default function StickyDestinationNav({
           <span className="snav__name">{destinationName}</span>
         </div>
 
-        <a href={resolvedGuidesHref} className="snav__cta" aria-label="Ver guias disponíveis">
-          Ver guias
+        <div className="snav__tabs">
+          <Link
+            href={`/destinos/${destinationSlug}/roteiros`}
+            className={`snav__tab${activeTab === 'roteiros' ? ' snav__tab--active' : ''}`}
+          >
+            Roteiros
+          </Link>
+          <Link
+            href={`/destinos/${destinationSlug}/guias`}
+            className={`snav__tab${activeTab === 'guias' ? ' snav__tab--active' : ''}`}
+          >
+            Guias
+          </Link>
+        </div>
+
+        <Link
+          href={`/destinos/${destinationSlug}/roteiros`}
+          className="snav__cta"
+          aria-label="Ver roteiros disponíveis"
+        >
+          Ver roteiros
           <svg
             width="13" height="13" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2.5"
@@ -240,7 +299,7 @@ export default function StickyDestinationNav({
           >
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
-        </a>
+        </Link>
       </nav>
     </>
   );
