@@ -93,7 +93,16 @@
       "Bash(python scripts/search.py \"travel tourism marketplace guide booking PIX mobile Brazil\" --design-system -f markdown -p \"CAPI\")",
       "Bash(python scripts/search.py \"travel tourism marketplace guide booking mobile Brazil\" --design-system -f markdown -p \"CAPI\")",
       "Bash(python scripts/search.py \"booking form trust conversion mobile\" --domain ux -n 8)",
-      "Bash(python scripts/search.py \"marketplace service booking\" --domain color -n 3)"
+      "Bash(python scripts/search.py \"marketplace service booking\" --domain color -n 3)",
+      "Bash(curl -s http://localhost:3333/packages/cmqh7jrj2000201pm2es3fc19/guides)",
+      "Bash(curl -s http://localhost:3333/packages/id-que-nao-existe/guides)",
+      "Bash(curl -s http://localhost:3333/guides/cmq9iq4j30008jk0vvgpudjgg/packages)",
+      "Bash(curl -s http://localhost:3333/guides/id-que-nao-existe/packages)",
+      "Bash(curl -s -X POST http://localhost:3333/tenants/serra-capivara/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"admin@serracapivara.com\",\"password\":\"password123\"}')",
+      "Bash(curl -sv http://localhost:3333/destinations/serra-da-capivara/packages)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(curl -s http://localhost:3333/destinations/serra-da-capivara/packages)",
+      "Bash(find \"C:/projetos/turismo-capivara/apps/web\" -name \"StickyDestinationNav.tsx\" -exec grep -n \"guidesHref\" {} \\\\;)"
     ]
   }
 }

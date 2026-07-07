@@ -303,7 +303,7 @@ Plans:
 
 - [x] **Phase 24: Schema & Data Migration** — PackageGuide N:N, DepartureSlot.guideId, durationMin/MaxHours, backfill de dados legados (completed 2026-07-04)
 - [x] **Phase 25: API Endpoints & Conflict Logic** — Discovery cross-tenant, conflito de agenda transacional, validação de guia qualificado em slots
-- [ ] **Phase 26: Frontend Discovery Pages** — Páginas públicas /destinos/[slug]/roteiros, /guias, detalhe de roteiro e guia com links bidirecionais
+- [x] **Phase 26: Frontend Discovery Pages** — Páginas públicas /destinos/[slug]/roteiros, /guias, detalhe de roteiro e guia com links bidirecionais (completed 2026-07-07)
 - [ ] **Phase 27: Partner Panel — Slot Creation** — Dropdown de guia qualificado no formulário de criação de slot, erro de conflito inline
 - [ ] **Phase 28: Map Widget** — MapLibre GL JS + Maptiler + Overpass API com lazy load e graceful degradation
 
