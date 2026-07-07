@@ -5,7 +5,7 @@ import GuideCard, { GuideCardGuide } from '@/src/components/ui/GuideCard';
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333';
+const API_URL = process.env.API_URL ?? 'http://localhost:3333';
 
 interface ApiGuide {
   guideId: string;
