@@ -20,6 +20,11 @@ interface Package {
   name: string
 }
 
+interface Guide {
+  guideId: string
+  name: string
+}
+
 function toLocalDateStr(date: Date): string {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, "0")
@@ -62,6 +67,10 @@ export default function DisponibilidadePage({
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [formApiError, setFormApiError] = useState<string | null>(null)
+  const [guides, setGuides] = useState<Guide[]>([])
+  const [guidesLoading, setGuidesLoading] = useState(false)
+  const [formGuideId, setFormGuideId] = useState<string>("")
+  const [formIsConflict, setFormIsConflict] = useState(false)
 
   // Load packages for dropdown (filtered to current conductor)
   useEffect(() => {
@@ -92,6 +101,20 @@ export default function DisponibilidadePage({
       .catch(() => setSlotsError("Erro ao carregar slots. Tente novamente."))
       .finally(() => setLoading(false))
   }, [packages, slug])
+
+  // Fetch qualified guides when formPackageId changes
+  useEffect(() => {
+    if (!formPackageId) {
+      setGuides([])
+      return
+    }
+    setGuidesLoading(true)
+    fetch(`/api/proxy?path=/tenants/${slug}/packages/${formPackageId}/guides`)
+      .then((res) => res.json())
+      .then((data: Guide[]) => setGuides(data))
+      .catch(() => setGuides([]))
+      .finally(() => setGuidesLoading(false))
+  }, [formPackageId, slug])
 
   // Filter slots for selected date
   useEffect(() => {
@@ -164,6 +187,7 @@ export default function DisponibilidadePage({
   function validateForm(): boolean {
     const errs: Record<string, string> = {}
     if (!formPackageId) errs.packageId = "Campo obrigatório."
+    if (!formGuideId) errs.guideId = "Selecione um guia"
     if (!formStartTime) {
       errs.startTime = "Campo obrigatório."
     } else if (isStartsAtInPast()) {
@@ -185,6 +209,7 @@ export default function DisponibilidadePage({
     if (!validateForm() || !selectedDate) return
     setFormSubmitting(true)
     setFormApiError(null)
+    setFormIsConflict(false)
 
     const dateStr = toLocalDateStr(selectedDate)
     const startsAt = new Date(`${dateStr}T${formStartTime}:00`).toISOString()
@@ -195,9 +220,16 @@ export default function DisponibilidadePage({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ startsAt, capacity: formVagas, minCapacity: formMinCapacity }),
+          body: JSON.stringify({ startsAt, capacity: formVagas, minCapacity: formMinCapacity, guideId: formGuideId }),
         }
       )
+      if (res.status === 409) {
+        const data = await res.json()
+        setFormIsConflict(true)
+        setFormApiError(data.message ?? "Conflito de agenda para este guia")
+        return
+      }
+      setFormIsConflict(false)
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: "Erro ao criar slot" }))
         throw new Error(err.message ?? "Erro ao criar slot")
@@ -228,6 +260,10 @@ export default function DisponibilidadePage({
     setModalOpen(false)
     setFormErrors({})
     setFormApiError(null)
+    setFormGuideId("")
+    setGuides([])
+    setGuidesLoading(false)
+    setFormIsConflict(false)
   }
 
   const inputStyle: React.CSSProperties = {
@@ -544,6 +580,37 @@ export default function DisponibilidadePage({
             )}
           </div>
 
+          {/* Guia */}
+          <div>
+            <label style={{ display: "block", marginBottom: "4px", fontSize: "14px", fontWeight: 500 }}>
+              Guia
+            </label>
+            <select
+              value={formGuideId}
+              onChange={e => setFormGuideId(e.target.value)}
+              disabled={guidesLoading || guides.length === 0}
+              style={{ ...inputStyle, minHeight: "44px" }}
+            >
+              <option value="">
+                {guidesLoading
+                  ? "Carregando guias..."
+                  : guides.length === 0
+                  ? "Nenhum guia qualificado para este roteiro"
+                  : "Selecione um guia"}
+              </option>
+              {guides.map(g => (
+                <option key={g.guideId} value={g.guideId}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+            {formErrors.guideId && (
+              <span style={{ color: "#dc2626", fontSize: "12px", marginTop: "2px", display: "block" }}>
+                {formErrors.guideId}
+              </span>
+            )}
+          </div>
+
           {/* Time inputs */}
           <div
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}
@@ -670,6 +737,7 @@ export default function DisponibilidadePage({
                 borderRadius: "4px",
               }}
             >
+              {formIsConflict && <span aria-hidden="true">⚠ </span>}
               {formApiError}
             </p>
           )}
