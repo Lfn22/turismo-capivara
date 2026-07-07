@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import PackageCard from '@/src/components/ui/PackageCard';
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 
@@ -68,22 +69,6 @@ export async function generateMetadata({
 const FALLBACK_BLUR =
   'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM5Qzc4NjAiLz48L3N2Zz4=';
 
-const DIFFICULTY_LABEL: Record<string, string> = {
-  EASY: 'Fácil',
-  MODERATE: 'Moderado',
-  HARD: 'Difícil',
-};
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes}min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m > 0 ? `${h}h${m}min` : `${h}h`;
-}
-
-function formatPrice(price: number): string {
-  return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -96,8 +81,7 @@ export default async function GuideProfilePage({ params }: Props) {
   const guide = await fetchGuideProfile(dSlug, gId);
   if (!guide) notFound();
 
-  const roteiroBase = `/${guide.tenantSlug}/roteiros`;
-  const firstPackage = guide.packages[0];
+  const roteiroBase = `/destinos/${dSlug}/roteiros`;
 
   return (
     <>
@@ -279,7 +263,7 @@ export default async function GuideProfilePage({ params }: Props) {
         }
 
         .gprofile__packages-inner {
-          max-width: 640px;
+          max-width: 1100px;
           margin: 0 auto;
         }
 
@@ -297,85 +281,10 @@ export default async function GuideProfilePage({ params }: Props) {
           margin: 0 0 1.75rem;
         }
 
-        .gprofile__pkg-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .gprofile__pkg {
-          background: #fff;
-          border: 1px solid var(--stone-200, #e7e5e4);
-          border-radius: 4px;
-          padding: 1.25rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .gprofile__pkg-header {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 1rem;
-        }
-
-        .gprofile__pkg-name {
-          font-size: 1rem;
-          font-weight: 700;
-          color: var(--stone-900, #1c1917);
-          margin: 0;
-          flex: 1;
-        }
-
-        .gprofile__pkg-price {
-          font-size: 1rem;
-          font-weight: 700;
-          color: var(--ochre-dark, #9a6520);
-          white-space: nowrap;
-        }
-
-        .gprofile__pkg-desc {
-          font-size: 0.875rem;
-          line-height: 1.6;
-          color: var(--stone-600, #57534e);
-          margin: 0;
-        }
-
-        .gprofile__pkg-meta {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          flex-wrap: wrap;
-        }
-
-        .gprofile__pkg-meta-item {
-          display: flex;
-          align-items: center;
-          gap: 0.3rem;
-          font-size: 0.78rem;
-          color: var(--stone-500, #78716c);
-        }
-
-        .gprofile__pkg-cta {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          background: var(--ochre, #C8892A);
-          color: #fff;
-          font-size: 0.85rem;
-          font-weight: 700;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          text-decoration: none;
-          border-radius: 3px;
-          padding: 0.65rem 1.25rem;
-          transition: background 0.2s;
-          align-self: flex-start;
-        }
-
-        .gprofile__pkg-cta:hover {
-          background: var(--ochre-dark, #9a6520);
+        .gprofile__pkg-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+          gap: 1.25rem;
         }
 
         /* ── Empty state ── */
@@ -430,7 +339,6 @@ export default async function GuideProfilePage({ params }: Props) {
           .gprofile__hero-content { padding: 2.5rem 2.5rem 2.5rem; }
           .gprofile__about { padding: 2.5rem 2.5rem; }
           .gprofile__packages { padding: 3rem 2.5rem; }
-          .gprofile__pkg-cta { align-self: flex-end; }
         }
       `}</style>
 
@@ -512,58 +420,39 @@ export default async function GuideProfilePage({ params }: Props) {
         )}
 
         {/* ── Roteiros ────────────────────────────────────────────── */}
-        <section className="gprofile__packages" aria-labelledby="packages-heading">
+        <section id="roteiros" className="gprofile__packages" aria-labelledby="packages-heading">
           <div className="gprofile__packages-inner">
             <h2 className="gprofile__packages-heading" id="packages-heading">
-              Roteiros disponíveis
+              Roteiros deste guia
             </h2>
             <p className="gprofile__packages-sub">
               Escolha um roteiro e reserve sua experiência.
             </p>
 
             {guide.packages.length > 0 ? (
-              <div className="gprofile__pkg-list">
-                {guide.packages.map((pkg) => (
-                  <article key={pkg.id} className="gprofile__pkg">
-                    <div className="gprofile__pkg-header">
-                      <h3 className="gprofile__pkg-name">{pkg.name}</h3>
-                      <span className="gprofile__pkg-price">
-                        {formatPrice(pkg.price)}
-                      </span>
-                    </div>
-
-                    {pkg.description && (
-                      <p className="gprofile__pkg-desc">{pkg.description}</p>
-                    )}
-
-                    <div className="gprofile__pkg-meta">
-                      <span className="gprofile__pkg-meta-item">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" strokeWidth="2"
-                          strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <circle cx="12" cy="12" r="10" />
-                          <path d="M12 6v6l4 2" />
-                        </svg>
-                        {formatDuration(pkg.duration)}
-                      </span>
-                      <span className="gprofile__pkg-meta-item">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" strokeWidth="2"
-                          strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M3 17l4-8 4 4 4-6 4 10" />
-                        </svg>
-                        {DIFFICULTY_LABEL[pkg.difficulty] ?? pkg.difficulty}
-                      </span>
-                    </div>
-
-                    <Link
+              <div className="gprofile__pkg-grid">
+                {guide.packages.map((pkg) => {
+                  const normalizedDifficulty =
+                    pkg.difficulty === 'MEDIUM' ? 'MODERATE' :
+                    pkg.difficulty === 'FACIL' ? 'EASY' :
+                    pkg.difficulty === 'MODERADO' ? 'MODERATE' :
+                    pkg.difficulty === 'DIFICIL' ? 'HARD' :
+                    (pkg.difficulty as 'EASY' | 'MODERATE' | 'HARD');
+                  return (
+                    <PackageCard
+                      key={pkg.id}
                       href={`${roteiroBase}/${pkg.id}`}
-                      className="gprofile__pkg-cta"
-                    >
-                      Reservar este roteiro
-                    </Link>
-                  </article>
-                ))}
+                      package={{
+                        id: pkg.id,
+                        name: pkg.name,
+                        durationMinutes: pkg.duration,
+                        priceFrom: pkg.price,
+                        difficulty: normalizedDifficulty,
+                        tags: [],
+                      }}
+                    />
+                  );
+                })}
               </div>
             ) : (
               <div className="gprofile__empty" role="status">
@@ -574,17 +463,18 @@ export default async function GuideProfilePage({ params }: Props) {
           </div>
         </section>
 
-        {/* ── CTA strip: contato geral ─────────────────────────────── */}
+        {/* ── CTA strip ───────────────────────────────────────────── */}
         {guide.packages.length > 0 && (
           <section className="gprofile__cta-strip" aria-label="Reserva geral">
             <p className="gprofile__cta-strip-text">
-              Ainda em dúvida? Acesse o perfil completo do guia.
+              Escolha um roteiro acima e faça sua reserva.
             </p>
             <Link
-              href={firstPackage ? `${roteiroBase}/${firstPackage.id}` : roteiroBase}
+              href="#roteiros"
+              aria-label={`Ver roteiros de ${guide.name}`}
               className="gprofile__cta-strip-btn"
             >
-              Ver disponibilidade
+              Reservar com {guide.name}
             </Link>
           </section>
         )}
