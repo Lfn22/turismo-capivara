@@ -100,7 +100,7 @@ export default async function DestinationPage({ params }: Props) {
   const destination = await fetchDestination(slug);
   if (!destination) notFound();
 
-  const guidesHref = `/destinos/${slug}/guias`;
+  const guidesHref = `/destinos/${slug}/roteiros`;
   const highlights = destination.highlights ?? [];
   const photos = destination.photos ?? [];
 
@@ -401,20 +401,20 @@ export default async function DestinationPage({ params }: Props) {
           }
         }
 
-        /* ── CTA — Guias ── */
-        .guides-cta {
+        /* ── CTA — Roteiros ── */
+        .roteiros-cta {
           background: var(--stone-50, #fafaf9);
           border-top: 1px solid var(--stone-200, #e7e5e4);
           padding: clamp(3rem, 6vw, 5rem) clamp(1.5rem, 5vw, 3.5rem);
           text-align: center;
         }
 
-        .guides-cta__inner {
+        .roteiros-cta__inner {
           max-width: 560px;
           margin: 0 auto;
         }
 
-        .guides-cta__eyebrow {
+        .roteiros-cta__eyebrow {
           font-size: 0.66rem;
           font-weight: 700;
           letter-spacing: 0.18em;
@@ -427,8 +427,8 @@ export default async function DestinationPage({ params }: Props) {
           gap: 0.6rem;
         }
 
-        .guides-cta__eyebrow::before,
-        .guides-cta__eyebrow::after {
+        .roteiros-cta__eyebrow::before,
+        .roteiros-cta__eyebrow::after {
           content: '';
           display: block;
           width: 24px;
@@ -437,7 +437,7 @@ export default async function DestinationPage({ params }: Props) {
           flex-shrink: 0;
         }
 
-        .guides-cta__heading {
+        .roteiros-cta__heading {
           font-family: var(--font-display), Georgia, serif;
           font-size: clamp(1.6rem, 3.5vw, 2.4rem);
           font-weight: 700;
@@ -447,14 +447,14 @@ export default async function DestinationPage({ params }: Props) {
           margin-bottom: 0.75rem;
         }
 
-        .guides-cta__sub {
+        .roteiros-cta__sub {
           font-size: clamp(0.88rem, 1.5vw, 1rem);
           color: var(--stone-500, #78716c);
           line-height: 1.7;
           margin-bottom: 2rem;
         }
 
-        .guides-cta__btn {
+        .roteiros-cta__btn {
           display: inline-flex;
           align-items: center;
           gap: 0.55rem;
@@ -470,13 +470,13 @@ export default async function DestinationPage({ params }: Props) {
           transition: background 0.2s, transform 0.15s;
         }
 
-        .guides-cta__btn:hover {
+        .roteiros-cta__btn:hover {
           background: var(--ochre-dark, #a07010);
           transform: translateY(-1px);
         }
 
         @media (max-width: 480px) {
-          .guides-cta__btn {
+          .roteiros-cta__btn {
             width: 100%;
             justify-content: center;
           }
@@ -487,7 +487,6 @@ export default async function DestinationPage({ params }: Props) {
       <StickyDestinationNav
         destinationName={destination.title}
         destinationSlug={slug}
-        guidesHref={guidesHref}
       />
 
       {/* ── 1. Hero cinematográfico ─────────────────────────────── */}
@@ -586,18 +585,17 @@ export default async function DestinationPage({ params }: Props) {
       )}
 
       {/* ── 4. CTA — Guias ──────────────────────────────────────── */}
-      <section className="guides-cta">
-        <div className="guides-cta__inner">
-          <p className="guides-cta__eyebrow">Guias certificados</p>
-          <h2 className="guides-cta__heading">
+      <section className="roteiros-cta">
+        <div className="roteiros-cta__inner">
+          <p className="roteiros-cta__eyebrow">Roteiros disponíveis</p>
+          <h2 className="roteiros-cta__heading">
             Pronto para explorar {destination.title}?
           </h2>
-          <p className="guides-cta__sub">
-            Conheça os guias locais certificados. Compare especialidades, roteiros e
-            avaliações — e reserve com pagamento integrado.
+          <p className="roteiros-cta__sub">
+            Descubra os roteiros disponíveis em {destination.title}. Compare duração, dificuldade e preço — e reserve com guias certificados.
           </p>
-          <Link href={guidesHref} className="guides-cta__btn">
-            Ver guias disponíveis
+          <Link href={guidesHref} className="roteiros-cta__btn">
+            Ver roteiros
             <svg
               width="14"
               height="14"
