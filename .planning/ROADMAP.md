@@ -305,7 +305,7 @@ Plans:
 - [x] **Phase 25: API Endpoints & Conflict Logic** — Discovery cross-tenant, conflito de agenda transacional, validação de guia qualificado em slots
 - [x] **Phase 26: Frontend Discovery Pages** — Páginas públicas /destinos/[slug]/roteiros, /guias, detalhe de roteiro e guia com links bidirecionais (completed 2026-07-07)
 - [ ] **Phase 27: Partner Panel — Slot Creation** — Dropdown de guia qualificado no formulário de criação de slot, erro de conflito inline
-- [ ] **Phase 28: Map Widget** — MapLibre GL JS + Maptiler + Overpass API com lazy load e graceful degradation
+- [x] **Phase 28: Map Widget** — MapLibre GL JS + Maptiler + Overpass API com lazy load e graceful degradation (completed 2026-07-08)
 
 ---
 
@@ -387,4 +387,4 @@ Plans:
 | 25. API Endpoints & Conflict Logic | 1/1 | Complete | 2026-07-05 |
 | 26. Frontend Discovery Pages | 0/TBD | Not started | - |
 | 27. Partner Panel — Slot Creation | 0/TBD | Not started | - |
-| 28. Map Widget | 0/TBD | Not started | - |
+| 28. Map Widget | 3/3 | Complete | 2026-07-08 |
