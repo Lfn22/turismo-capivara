@@ -17,6 +17,8 @@ model Destination {
   photos               String[]
   tagline              String?
   state                String
+  lat                  Float?   // latitude para widget de mapa
+  lng                  Float?   // longitude para widget de mapa
   highlights           String[]
   active               Boolean        @default(true)
   approvalStatus       ApprovalStatus @default(PENDING)
