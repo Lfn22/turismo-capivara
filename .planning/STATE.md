@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Multi-Guide & Discovery
 status: executing
-stopped_at: Phase 26 executada (7/7 must-haves verificados) — aguardando UAT humano (4 itens visuais)
-last_updated: "2026-07-07T14:42:00-03:00"
-last_activity: 2026-07-07 — Phase 26 Frontend Discovery executada (PackageCard, StickyNav tabs, roteiros pages, guide profile completo)
+stopped_at: Phase 27 executado completo — aguardando UAT ou /gsd-execute-phase 28
+last_updated: "2026-07-07T19:30:00-03:00"
+last_activity: 2026-07-07 — Phase 27 executado (commit 6e0c4b5, guide dropdown slot creation, PANEL-01 + PANEL-02 cobertos)
 progress:
   total_phases: 5
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 2
-  completed_plans: 2
-  percent: 60
+  completed_plans: 3
+  percent: 80
 ---
 
 # STATE.md — Turismo Capivara
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-06-17)
 
 ## Current Position
 
-Phase: 26 — Frontend Discovery
-Plan: 26-PLAN.md executado (7/7 tasks, 5 waves)
-Status: Executada — human_needed (4 itens UAT visual)
+Phase: 27 — Partner Panel Slot Creation
+Plan: contexto capturado, sem plano ainda
+Status: Context — pronto para /gsd-plan-phase 27
 Last activity: 2026-07-07 — Phase 26 planejada (DISC-01–05 cobertos, checker PASS)
 
 ## Decisões estratégicas
