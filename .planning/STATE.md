@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Multi-Guide & Discovery
 status: executing
-stopped_at: Phase 28 contexto capturado — pronto para /gsd-plan-phase 28
-last_updated: "2026-07-08T09:17:00-03:00"
-last_activity: 2026-07-08 — Phase 28 discuss concluído (lat/lng migration, posição na página, marcadores ochre, 400px height)
+stopped_at: Phase 28 executando — Wave 1 em andamento (28-01 Prisma migration)
+last_updated: "2026-07-08T19:35:00-03:00"
+last_activity: 2026-07-08 — Phase 28 execução iniciada (3 planos: Prisma coords → tile proxy + MapWidget → page integration)
 progress:
   total_phases: 5
   completed_phases: 4
