@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Multi-Guide & Discovery
 status: executing
-stopped_at: Phase 27 executado completo — aguardando UAT ou /gsd-execute-phase 28
-last_updated: "2026-07-07T19:30:00-03:00"
-last_activity: 2026-07-07 — Phase 27 executado (commit 6e0c4b5, guide dropdown slot creation, PANEL-01 + PANEL-02 cobertos)
+stopped_at: Phase 28 contexto capturado — pronto para /gsd-plan-phase 28
+last_updated: "2026-07-08T09:17:00-03:00"
+last_activity: 2026-07-08 — Phase 28 discuss concluído (lat/lng migration, posição na página, marcadores ochre, 400px height)
 progress:
   total_phases: 5
   completed_phases: 4
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-06-17)
 
 ## Current Position
 
-Phase: 27 — Partner Panel Slot Creation
+Phase: 28 — Map Widget
 Plan: contexto capturado, sem plano ainda
-Status: Context — pronto para /gsd-plan-phase 27
+Status: Context — pronto para /gsd-plan-phase 28
 Last activity: 2026-07-07 — Phase 26 planejada (DISC-01–05 cobertos, checker PASS)
 
 ## Decisões estratégicas
