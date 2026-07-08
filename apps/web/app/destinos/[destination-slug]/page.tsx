@@ -1,9 +1,33 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import type { PartnerData } from '@/src/components/ui/MapWidget';
 import DestinationHero from '@/src/components/ui/DestinationHero';
 import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
 import BackButton from '@/src/components/ui/BackButton';
+
+const MapWidget = dynamic(
+  () => import('@/src/components/ui/MapWidget'),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{
+        width: '100%',
+        height: '400px',
+        borderRadius: '12px',
+        background: 'var(--stone-100, #f5f0eb)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'var(--stone-400, #a8a29e)',
+        fontSize: '0.875rem',
+      }}>
+        Carregando mapa...
+      </div>
+    )
+  }
+)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -20,6 +44,8 @@ interface Destination {
   subtitle: string | null;
   description: string | null;
   state: string;
+  lat: number | null;
+  lng: number | null;
   highlights: string[];
   heroImageUrl: string | null;
   heroImageBlurDataUrl: string | null;
@@ -37,6 +63,31 @@ async function fetchDestination(slug: string): Promise<Destination | null> {
     return res.json();
   } catch {
     return null;
+  }
+}
+
+interface TenantPartner {
+  id: string
+  name: string
+  lat?: number | null
+  lng?: number | null
+}
+
+async function fetchPartners(destinationSlug: string): Promise<PartnerData[]> {
+  try {
+    const res = await fetch(
+      `${API_URL}/destinations/${destinationSlug}/tenants`,
+      { next: { revalidate: 3600 } }
+    )
+    if (!res.ok) return []
+    const tenants: TenantPartner[] = await res.json()
+    return tenants
+      .filter((t): t is TenantPartner & { lat: number; lng: number } =>
+        typeof t.lat === 'number' && typeof t.lng === 'number'
+      )
+      .map(t => ({ id: t.id, name: t.name, lat: t.lat, lng: t.lng }))
+  } catch {
+    return []
   }
 }
 
@@ -99,6 +150,10 @@ export default async function DestinationPage({ params }: Props) {
   const { 'destination-slug': slug } = await params;
   const destination = await fetchDestination(slug);
   if (!destination) notFound();
+
+  const partners = destination.lat && destination.lng
+    ? await fetchPartners(slug)
+    : []
 
   const guidesHref = `/destinos/${slug}/roteiros`;
   const highlights = destination.highlights ?? [];
@@ -502,6 +557,16 @@ export default async function DestinationPage({ params }: Props) {
       <div style={{ padding: '1.25rem clamp(1.5rem, 5vw, 3.5rem) 0', background: 'var(--stone-50)' }}>
         <BackButton />
       </div>
+
+      {/* ── Widget de mapa ─────────────────────────────────────────── */}
+      {destination.lat && destination.lng && (
+        <MapWidget
+          lat={destination.lat}
+          lng={destination.lng}
+          partners={partners}
+          destinationName={destination.title}
+        />
+      )}
 
       {/* ── 2. Storytelling ─────────────────────────────────────── */}
       {(descriptionParagraphs.length > 0 || highlights.length > 0) && (
