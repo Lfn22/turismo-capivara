@@ -102,7 +102,9 @@
       "Bash(curl -sv http://localhost:3333/destinations/serra-da-capivara/packages)",
       "Bash(echo \"PID: $!\")",
       "Bash(curl -s http://localhost:3333/destinations/serra-da-capivara/packages)",
-      "Bash(find \"C:/projetos/turismo-capivara/apps/web\" -name \"StickyDestinationNav.tsx\" -exec grep -n \"guidesHref\" {} \\\\;)"
+      "Bash(find \"C:/projetos/turismo-capivara/apps/web\" -name \"StickyDestinationNav.tsx\" -exec grep -n \"guidesHref\" {} \\\\;)",
+      "Bash(find:*)",
+      "Bash(ls -1 apps/web/src/components/ui/*.tsx)"
     ]
   }
 }

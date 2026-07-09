@@ -1,33 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
-import type { PartnerData } from '@/src/components/ui/MapWidget';
 import DestinationHero from '@/src/components/ui/DestinationHero';
 import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
 import BackButton from '@/src/components/ui/BackButton';
-
-const MapWidget = dynamic(
-  () => import('@/src/components/ui/MapWidget'),
-  {
-    ssr: false,
-    loading: () => (
-      <div style={{
-        width: '100%',
-        height: '400px',
-        borderRadius: '12px',
-        background: 'var(--stone-100, #f5f0eb)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--stone-400, #a8a29e)',
-        fontSize: '0.875rem',
-      }}>
-        Carregando mapa...
-      </div>
-    )
-  }
-)
+import MapWidgetClient, { type PartnerData } from '@/src/components/ui/MapWidgetClient';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -560,7 +537,7 @@ export default async function DestinationPage({ params }: Props) {
 
       {/* ── Widget de mapa ─────────────────────────────────────────── */}
       {destination.lat && destination.lng && (
-        <MapWidget
+        <MapWidgetClient
           lat={destination.lat}
           lng={destination.lng}
           partners={partners}
