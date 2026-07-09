@@ -2,11 +2,19 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import PackageCard from '@/src/components/ui/PackageCard';
+import SlotPicker from '@/src/components/ui/SlotPicker';
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3333';
+
+interface DepartureSlot {
+  id: string;
+  startsAt: string;
+  capacity: number;
+  booked: number;
+  status: string;
+}
 
 interface GuidePackage {
   id: string;
@@ -15,6 +23,7 @@ interface GuidePackage {
   duration: number;
   price: number;
   difficulty: string;
+  departureSlots: DepartureSlot[];
 }
 
 interface GuideProfile {
@@ -68,6 +77,16 @@ export async function generateMetadata({
 
 const FALLBACK_BLUR =
   'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9IiM5Qzc4NjAiLz48L3N2Zz4=';
+
+const DIFFICULTY_LABEL: Record<string, string> = {
+  EASY: 'Fácil',
+  FACIL: 'Fácil',
+  MODERATE: 'Moderado',
+  MEDIUM: 'Moderado',
+  MODERADO: 'Moderado',
+  HARD: 'Difícil',
+  DIFICIL: 'Difícil',
+};
 
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -430,28 +449,48 @@ export default async function GuideProfilePage({ params }: Props) {
             </p>
 
             {guide.packages.length > 0 ? (
-              <div className="gprofile__pkg-grid">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 {guide.packages.map((pkg) => {
-                  const normalizedDifficulty =
-                    pkg.difficulty === 'MEDIUM' ? 'MODERATE' :
-                    pkg.difficulty === 'FACIL' ? 'EASY' :
-                    pkg.difficulty === 'MODERADO' ? 'MODERATE' :
-                    pkg.difficulty === 'DIFICIL' ? 'HARD' :
-                    (pkg.difficulty as 'EASY' | 'MODERATE' | 'HARD');
+                  const openSlots = (pkg.departureSlots ?? []).filter(
+                    (s) => s.status === 'OPEN' && s.booked < s.capacity
+                  )
                   return (
-                    <PackageCard
+                    <div
                       key={pkg.id}
-                      href={`/${guide.tenantSlug}/guias/${guide.id}`}
-                      package={{
-                        id: pkg.id,
-                        name: pkg.name,
-                        durationMinutes: pkg.duration,
-                        priceFrom: pkg.price,
-                        difficulty: normalizedDifficulty,
-                        tags: [],
+                      style={{
+                        border: '1px solid var(--stone-200)',
+                        borderRadius: '8px',
+                        padding: '1.5rem',
+                        background: 'white',
                       }}
-                    />
-                  );
+                    >
+                      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.125rem', fontWeight: 700, color: 'var(--stone-900)', margin: '0 0 0.5rem' }}>
+                        {pkg.name}
+                      </h3>
+                      {pkg.description && (
+                        <p style={{ fontSize: '0.9rem', color: 'var(--stone-600)', margin: '0 0 0.75rem', lineHeight: 1.6 }}>
+                          {pkg.description}
+                        </p>
+                      )}
+                      <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: 'var(--stone-500)', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                        <span>{pkg.duration} min</span>
+                        <span>R$ {pkg.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span>{DIFFICULTY_LABEL[pkg.difficulty] ?? pkg.difficulty}</span>
+                      </div>
+                      {openSlots.length > 0 ? (
+                        <>
+                          <p style={{ margin: '0 0 0.5rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--stone-700)' }}>
+                            Datas disponíveis:
+                          </p>
+                          <SlotPicker slots={openSlots} packageId={pkg.id} slug={guide.tenantSlug} />
+                        </>
+                      ) : (
+                        <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--stone-500)' }}>
+                          Nenhuma data disponível no momento.
+                        </p>
+                      )}
+                    </div>
+                  )
                 })}
               </div>
             ) : (

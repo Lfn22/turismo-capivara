@@ -186,6 +186,21 @@ export async function destinationsRoutes(app: FastifyInstance) {
                 duration: true,
                 price: true,
                 difficulty: true,
+                departureSlots: {
+                  where: {
+                    startsAt: { gte: new Date() },
+                    status: 'OPEN',
+                  },
+                  select: {
+                    id: true,
+                    startsAt: true,
+                    capacity: true,
+                    booked: true,
+                    status: true,
+                  },
+                  orderBy: { startsAt: 'asc' },
+                  take: 5,
+                },
               },
               orderBy: { price: 'asc' },
             },
@@ -212,6 +227,13 @@ export async function destinationsRoutes(app: FastifyInstance) {
         duration: p.duration,
         price: Number(p.price),
         difficulty: p.difficulty,
+        departureSlots: p.departureSlots.map((s) => ({
+          id: s.id,
+          startsAt: s.startsAt,
+          capacity: s.capacity,
+          booked: s.booked,
+          status: s.status,
+        })),
       })),
     })
   })

@@ -381,7 +381,6 @@ export default function DisponibilidadePage({
             value={selectedDate}
             onChange={(date) => setSelectedDate(date as Date)}
             tileContent={getTileContent}
-            locale="pt-BR"
           />
         </div>
 

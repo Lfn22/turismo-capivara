@@ -38,6 +38,23 @@ async function fetchPackageGuides(id: string): Promise<GuideCardGuide[]> {
   }
 }
 
+async function fetchPackageDetail(
+  destinationSlug: string,
+  packageId: string,
+): Promise<{ id: string; name: string; description: string } | null> {
+  try {
+    const res = await fetch(`${API_URL}/destinations/${destinationSlug}/packages`, {
+      next: { revalidate: 300 },
+    });
+    if (!res.ok) return null;
+    const packages = await res.json();
+    if (!Array.isArray(packages)) return null;
+    return packages.find((p: { id: string }) => p.id === packageId) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Revalidation ──────────────────────────────────────────────────────────────
 
 export const revalidate = 300;
@@ -64,7 +81,10 @@ interface Props {
 
 export default async function RoteiroDetailPage({ params }: Props) {
   const { 'destination-slug': slug, id } = await params;
-  const guides = await fetchPackageGuides(id);
+  const [guides, pkg] = await Promise.all([
+    fetchPackageGuides(id),
+    fetchPackageDetail(slug, id),
+  ]);
 
   return (
     <>
@@ -172,9 +192,9 @@ export default async function RoteiroDetailPage({ params }: Props) {
             Roteiros
           </Link>
           <p className="rdet__eyebrow">Roteiro</p>
-          <h1 className="rdet__title">Guias deste roteiro</h1>
+          <h1 className="rdet__title">{pkg?.name ?? 'Guias deste roteiro'}</h1>
           <p className="rdet__subtitle">
-            Escolha o guia ideal para sua aventura.
+            {pkg?.description ?? 'Escolha o guia ideal para sua aventura.'}
           </p>
         </header>
 
