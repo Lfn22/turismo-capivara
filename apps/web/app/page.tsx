@@ -249,8 +249,7 @@ export default async function HomePage() {
           align-self: center;
         }
         .home-catalog__grid .dcard {
-          height: 220px;
-          overflow: hidden;
+          /* height removed — was clipping card body (names hidden) */
         }
         .home-catalog__empty {
           display: flex;

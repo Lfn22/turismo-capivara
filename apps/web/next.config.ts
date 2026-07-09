@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // react-calendar@6 ships ESM-only; Next.js/webpack needs to transpile it
+  transpilePackages: ["react-calendar"],
   images: {
     remotePatterns: [
       {

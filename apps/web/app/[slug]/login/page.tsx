@@ -2,6 +2,7 @@
 import { signIn, getSession } from "next-auth/react"
 import { useState } from "react"
 import { useRouter, useParams } from "next/navigation"
+import Link from "next/link"
 
 export default function LoginPage() {
   const params = useParams<{ slug: string }>()
@@ -46,11 +47,26 @@ export default function LoginPage() {
         minHeight: "100vh",
         background: "var(--stone-50)",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         padding: "24px",
       }}
     >
+      <Link
+        href="/"
+        style={{
+          display: "block",
+          marginBottom: "24px",
+          fontSize: "13px",
+          fontWeight: 600,
+          color: "var(--stone-500)",
+          textDecoration: "none",
+          alignSelf: "flex-start",
+        }}
+      >
+        ← CAPI
+      </Link>
       <div
         style={{
           background: "white",

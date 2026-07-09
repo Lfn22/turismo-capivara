@@ -1,6 +1,6 @@
 import PublicNav from '@/src/components/layout/PublicNav'
 
-const API_URL = process.env.API_URL ?? 'http://localhost:3001'
+const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 
 export default async function PublicLayout({
   children,

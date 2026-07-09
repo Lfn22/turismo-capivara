@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
 import GuideCard, { GuideCardGuide } from '@/src/components/ui/GuideCard';
 
 // ── Data layer ────────────────────────────────────────────────────────────────
@@ -156,15 +155,6 @@ export default async function RoteiroDetailPage({ params }: Props) {
       <div className="rdet">
         {/* Header */}
         <header className="rdet__header">
-          <Link href="/" style={{ display: 'inline-block', marginBottom: '12px' }}>
-            <Image
-              src="/images/logo.png"
-              alt="CAPI"
-              width={90}
-              height={81}
-              style={{ filter: 'brightness(0) invert(1)', display: 'block' }}
-            />
-          </Link>
           <Link href={`/destinos/${slug}/roteiros`} className="rdet__breadcrumb">
             <svg
               width="14"

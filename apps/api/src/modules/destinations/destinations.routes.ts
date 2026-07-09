@@ -412,7 +412,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
       // Verificar que o destino pertence ao tenant indicado pelo slug
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
       if (!tenant) throw new AppError('Tenant não encontrado', 404)
-      const linked = await prisma.destination.findFirst({ where: { id, tenants: { some: { slug } } } })
+      const linked = await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } } })
       if (!linked) throw new AppError('Destino não encontrado', 404)
 
       let input
@@ -439,7 +439,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
       // Verificar que o destino pertence ao tenant indicado pelo slug
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
       if (!tenant) throw new AppError('Tenant não encontrado', 404)
-      const linked = await prisma.destination.findFirst({ where: { id, tenants: { some: { slug } } } })
+      const linked = await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } } })
       if (!linked) throw new AppError('Destino não encontrado', 404)
 
       const userId = request.user.sub

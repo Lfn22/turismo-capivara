@@ -45,7 +45,7 @@ export default function SuperAdminOperadorasPage() {
     setLoadError(false)
     setOffset(0)
     setHasMore(true)
-    fetch("/api/super-admin/tenants/pending?limit=20&offset=0")
+    fetch("/api/super-admin/tenants/all?limit=50&offset=0")
       .then((r) => {
         if (!r.ok) throw new Error()
         return r.json()
@@ -62,7 +62,7 @@ export default function SuperAdminOperadorasPage() {
   function loadMore() {
     const nextOffset = offset + 20
     setLoadingMore(true)
-    fetch(`/api/super-admin/tenants/pending?limit=20&offset=${nextOffset}`)
+    fetch(`/api/super-admin/tenants/all?limit=50&offset=${nextOffset}`)
       .then((r) => {
         if (!r.ok) throw new Error()
         return r.json()

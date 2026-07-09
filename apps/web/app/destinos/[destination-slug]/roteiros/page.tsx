@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
 import PackageCard, {
   PackageCardPackage,
 } from '@/src/components/ui/PackageCard';
@@ -169,15 +168,6 @@ export default async function DestinationRoteirosPage({ params }: Props) {
       <div className="droteiros">
         {/* Header */}
         <header className="droteiros__header">
-          <Link href="/" style={{ display: 'inline-block', marginBottom: '12px' }}>
-            <Image
-              src="/images/logo.png"
-              alt="CAPI"
-              width={90}
-              height={81}
-              style={{ filter: 'brightness(0) invert(1)', display: 'block' }}
-            />
-          </Link>
           <Link href={`/destinos/${slug}`} className="droteiros__breadcrumb">
             <svg
               width="14"

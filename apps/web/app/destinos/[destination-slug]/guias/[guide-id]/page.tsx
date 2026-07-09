@@ -441,7 +441,7 @@ export default async function GuideProfilePage({ params }: Props) {
                   return (
                     <PackageCard
                       key={pkg.id}
-                      href={`${roteiroBase}/${pkg.id}`}
+                      href={`/${guide.tenantSlug}/guias/${guide.id}`}
                       package={{
                         id: pkg.id,
                         name: pkg.name,
