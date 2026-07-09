@@ -1,0 +1,35 @@
+{
+  "context": "phase",
+  "phase": "28-map-widget",
+  "phase_dir": ".planning/phases/28-map-widget",
+  "handoff_path": ".planning/phases/28-map-widget/.continue-here.md",
+  "task": 2,
+  "total_tasks": 7,
+  "status": "in_progress",
+  "last_updated": "2026-07-08T21:10:00-03:00",
+  "blocking_constraints": [
+    {
+      "name": "MapWidgetClient wrapper",
+      "description": "dynamic({ ssr: false }) requires a 'use client' wrapper in App Router",
+      "severity": "blocking"
+    },
+    {
+      "name": "prisma db push",
+      "description": "Pre-existing schema drift blocks prisma migrate dev — use db push instead",
+      "severity": "blocking"
+    }
+  ],
+  "human_actions_pending": [
+    {
+      "action": "Verify MAPTILER_KEY in apps/web/.env.local",
+      "reason": "Required for map visual rendering tests"
+    },
+    {
+      "action": "Ensure at least one Destination has lat/lng in database",
+      "reason": "Required for UAT Tests 2-4 (visual map tests)"
+    }
+  ],
+  "uncommitted_files": [],
+  "next_action": "Resume /gsd-verify-work 28 at Test 2. Check MAPTILER_KEY and destination coordinates before visual tests.",
+  "context_notes": "Phase 28 fully executed (13/13 verified). MapWidgetClient fix committed. v2.1 milestone 100% code-complete."
+}
