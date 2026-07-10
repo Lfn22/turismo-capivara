@@ -58,12 +58,21 @@ export default function DestinosPage() {
       const res = await fetch(`/api/tenants/${slug}/destinations/${deleteConfirm}`, {
         method: 'DELETE',
       })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        const msg = body?.message ?? ''
+        if (res.status === 400 && msg.includes('aprovado')) {
+          toast.error('Não é possível excluir um local já aprovado. Entre em contato com o suporte.')
+        } else {
+          throw new Error(`HTTP ${res.status}`)
+        }
+        return
+      }
       toast.success('Local excluído com sucesso.')
       setDeleteConfirm(null)
       await fetchDestinations()
     } catch {
-      toast.error('Falha ao excluir destino. Tente novamente.')
+      toast.error('Falha ao excluir local. Tente novamente.')
     } finally {
       setDeleting(false)
     }

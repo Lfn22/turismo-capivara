@@ -195,6 +195,40 @@ export async function tenantsRoutes(app: FastifyInstance) {
     return reply.send({ tenants, total, limit: query.limit, offset: query.offset })
   })
 
+  app.get('/tenants/admin/all', {
+    preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
+  }, async (request, reply) => {
+    const allQuerySchema = z.object({
+      limit: z.coerce.number().int().min(1).max(100).default(50),
+      offset: z.coerce.number().int().min(0).default(0),
+      status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
+    })
+    let query
+    try {
+      query = allQuerySchema.parse(request.query)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
+      throw err
+    }
+    const where = query.status ? { approvalStatus: query.status } : {}
+    const [tenants, total] = await Promise.all([
+      prisma.tenant.findMany({
+        where,
+        include: {
+          users: {
+            where: { role: 'ADMIN' },
+            select: { email: true, name: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: query.limit,
+        skip: query.offset,
+      }),
+      prisma.tenant.count({ where }),
+    ])
+    return reply.send({ tenants, total, limit: query.limit, offset: query.offset })
+  })
+
   app.patch('/tenants/:id/approve', {
     preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
   }, async (request, reply) => {

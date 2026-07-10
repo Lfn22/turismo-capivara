@@ -404,6 +404,39 @@ export async function destinationsRoutes(app: FastifyInstance) {
     },
   )
 
+  // GET /tenants/:slug/destinations/:id — busca destino por ID (ADMIN/CONDUTOR/ATENDENTE)
+  app.get(
+    '/tenants/:slug/destinations/:id',
+    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'ATENDENTE'])] },
+    async (request, reply) => {
+      const { id } = request.params as { slug: string; id: string }
+      const whereClause =
+        request.user.role === 'CONDUTOR'
+          ? { id, createdById: request.user.sub }
+          : { id }
+
+      const destination = await prisma.destination.findFirst({
+        where: whereClause,
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          state: true,
+          description: true,
+          highlights: true,
+          photos: true,
+          approvalStatus: true,
+          rejectionReason: true,
+          createdAt: true,
+          createdById: true,
+        },
+      })
+
+      if (!destination) throw new AppError('Destino não encontrado', 404)
+      return reply.status(200).send(destination)
+    },
+  )
+
   // POST /tenants/:slug/destinations — guia cria destino (ADMIN/CONDUTOR)
   app.post(
     '/tenants/:slug/destinations',

@@ -23,7 +23,7 @@ export async function authenticate(
       throw new AppError('Tenant não encontrado', 404)
     }
 
-    if (request.user.tenantId !== tenant.id) {
+    if (request.user.role !== 'SUPER_ADMIN' && request.user.tenantId !== tenant.id) {
       throw new AppError('Acesso negado a este tenant', 403)
     }
   }
