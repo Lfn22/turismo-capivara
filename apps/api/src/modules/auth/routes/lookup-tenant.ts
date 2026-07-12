@@ -38,7 +38,7 @@ export async function lookupTenantRoute(app: FastifyInstance) {
 
       // Tempo de resposta constante para eliminar timing attack
       const [user] = await Promise.all([
-        prisma.user.findUnique({
+        prisma.user.findFirst({
           where: { email: body.email.toLowerCase() },
           select: { tenant: { select: { name: true, slug: true } } },
         }),

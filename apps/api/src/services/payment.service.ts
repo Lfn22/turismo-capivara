@@ -101,6 +101,9 @@ export async function createPixPayment(
 export async function cancelPixPayment(paymentId: string): Promise<void> {
   const token = process.env.MP_ACCESS_TOKEN
   if (!token) return // dev mock — nothing to cancel
-  const client = new MercadoPagoConfig({ accessToken: token, options: { timeout: 8000 } })
-  await new Payment(client).update({ id: Number(paymentId), updatePaymentRequest: { status: 'cancelled' } })
+  await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'cancelled' }),
+  })
 }
