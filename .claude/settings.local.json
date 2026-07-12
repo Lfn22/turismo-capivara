@@ -107,7 +107,8 @@
       "Bash(ls -1 apps/web/src/components/ui/*.tsx)",
       "Skill(gsd-debug)",
       "Bash(sed -n '1,80p' \"C:/projetos/turismo-capivara/apps/api/src/modules/auth/routes/lookup-tenant.ts\")",
-      "Bash(sed -n '95,110p' \"C:/projetos/turismo-capivara/apps/api/src/services/payment.service.ts\")"
+      "Bash(sed -n '95,110p' \"C:/projetos/turismo-capivara/apps/api/src/services/payment.service.ts\")",
+      "mcp__plugin_claude-mem_mcp-search__smart_search"
     ]
   }
 }
