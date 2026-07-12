@@ -6,8 +6,10 @@ export async function GET(
 ) {
   const { path } = await params
 
-  // Path traversal protection
-  if (path.some(segment => segment.includes('..'))) {
+  // CR-002: Strict allowlist — only alphanumeric, /, ., -, _, @ permitted
+  // Rejects encoded sequences (%2F etc), null bytes, and arbitrary hosts
+  const SAFE_SEGMENT = /^[a-zA-Z0-9@._-]+$/
+  if (path.length === 0 || path.some(segment => !SAFE_SEGMENT.test(segment))) {
     return NextResponse.json({ error: 'Caminho inválido' }, { status: 400 })
   }
 

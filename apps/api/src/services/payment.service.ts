@@ -96,3 +96,11 @@ export async function createPixPayment(
   console.error('[PaymentService] createPixPayment falhou após 3 tentativas:', lastError)
   throw new AppError('Serviço de pagamento indisponível', 502)
 }
+
+// CR-003: Cancel an MP payment to avoid orphaned charges on DB rollback
+export async function cancelPixPayment(paymentId: string): Promise<void> {
+  const token = process.env.MP_ACCESS_TOKEN
+  if (!token) return // dev mock — nothing to cancel
+  const client = new MercadoPagoConfig({ accessToken: token, options: { timeout: 8000 } })
+  await new Payment(client).update({ id: Number(paymentId), updatePaymentRequest: { status: 'cancelled' } })
+}

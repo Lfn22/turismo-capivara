@@ -411,6 +411,15 @@ export async function packagesRoutes(app: FastifyInstance) {
       })
     }
 
+    // CR-004: Validate guideId belongs to the same tenant (cross-tenant isolation)
+    const guideOwner = await prisma.guideProfile.findUnique({
+      where: { id: body!.guideId },
+      select: { user: { select: { tenantId: true } } },
+    })
+    if (!guideOwner || guideOwner.user.tenantId !== tenant.id) {
+      throw new AppError('Guia não pertence a este tenant', 403)
+    }
+
     // Calcular janela do novo slot
     const newStart = new Date(body!.startsAt)
     const newSlotEndMs = newStart.getTime() + ((pkg.durationMaxHours ?? 0) * 60 + pkg.bufferMinutes) * 60_000
