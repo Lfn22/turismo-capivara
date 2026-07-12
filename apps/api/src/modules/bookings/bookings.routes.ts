@@ -8,7 +8,7 @@ import { createPixPayment } from '../../services/payment.service'
 import { hashCpf } from '../../shared/utils/hash'
 import { getResend, getEmailFrom } from '../../shared/email'
 import { bookingCreatedEmailText, bookingCreatedSubject } from './emails/booking-created-email'
-import { selfServiceBodySchema, type SelfServiceBody, cancelSelfBodySchema, type CancelSelfBody } from './bookings.schemas'
+import { selfServiceBodySchema, type SelfServiceBody, cancelSelfBodySchema, type CancelSelfBody, repayBodySchema, type RepayBody } from './bookings.schemas'
 import { randomBytes } from 'crypto'
 import { bookingCancelledEmailText } from './emails/booking-cancelled-email'
 import { bookingGuideNotificationEmailText, bookingGuideNotificationSubject } from './emails/booking-guide-notification-email'
@@ -49,7 +49,7 @@ const createBookingBodySchema = z.object({
   customerCpf: z.string()
     .regex(/^\d{11}$/, { message: 'CPF deve conter 11 dígitos numéricos' })
     .refine(isValidCPF, { message: 'CPF inválido' }),
-  pax: z.number().int().positive({ message: 'Número de participantes deve ser inteiro positivo' }),
+  pax: z.number().int().positive({ message: 'Número de participantes deve ser inteiro positivo' }).max(100, { message: 'Número de participantes não pode exceder 100' }),
 })
 
 const slugParamsSchema = z.object({
@@ -200,10 +200,12 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
     // MP call happens OUTSIDE $transaction — per D-02
     // booking does NOT exist yet; paymentId will be set on create (PAY-02)
+    // CR-001 fix: pre-generate ID so external_reference matches the real booking.id
+    const bookingId = randomBytes(16).toString('hex')
     let paymentResult
     try {
       paymentResult = await createPixPayment({
-        bookingId: `pre_${Date.now()}`,
+        bookingId,
         transactionAmount: Number(pkg.price) * pax,
         description: `Reserva — ${pkg.name}`,
         customerEmail,
@@ -229,6 +231,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
       const cancelToken = randomBytes(32).toString('hex')
       return tx.booking.create({
         data: {
+          id: bookingId,
           tenantId: tenant.id,
           slotId,
           customerName,
@@ -334,6 +337,8 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
       const normalizedEmail = email.trim().toLowerCase()
 
+      // TODO WR-002: endsWith gera LIKE '%suffix' sem índice — migrar para campo `code String @unique`
+      // separado com índice dedicado para evitar full-table scan em produção com volume alto.
       const booking = await prisma.booking.findFirst({
         where: {
           id: { endsWith: code.toLowerCase() },
@@ -460,7 +465,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
   )
 
   // POST /tenants/:slug/bookings/repay — public, no JWT — EXPIRED bookings only
-  app.post<{ Params: { slug: string }; Body: SelfServiceBody }>(
+  app.post<{ Params: { slug: string }; Body: RepayBody }>(
     '/tenants/:slug/bookings/repay',
     {
       config: {
@@ -472,18 +477,19 @@ export async function bookingsRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const parsed = selfServiceBodySchema.safeParse(request.body)
+      const parsed = repayBodySchema.safeParse(request.body)
       if (!parsed.success) {
         return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
       }
       const { slug } = request.params
-      const { email, code } = parsed.data
+      const { email, code, cpf } = parsed.data
 
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
       if (!tenant) throw new AppError('Tenant não encontrado', 404)
 
       const normalizedEmail = email.trim().toLowerCase()
 
+      // TODO WR-002: endsWith gera LIKE '%suffix' sem índice — migrar para campo `code String @unique`
       const booking = await prisma.booking.findFirst({
         where: { id: { endsWith: code.toLowerCase() }, tenantId: tenant.id },
         orderBy: { createdAt: 'desc' },
@@ -515,18 +521,19 @@ export async function bookingsRoutes(app: FastifyInstance) {
       }
 
       // Create new MP payment
-      // CPF not stored after hash — repay uses empty string (no CPF validation on repay)
+      // CPF original não é recuperável (apenas hash armazenado) — cliente pode fornecer CPF no body
       const transactionAmount = Number(booking.slot.package.price) * booking.pax
       const paymentResult = await paymentService.createPixPayment({
         bookingId: booking.id,
         transactionAmount,
         description: `Reserva #${booking.id} — ${booking.slot.package.name}`,
         customerEmail: booking.customerEmail,
-        customerCpf: '',
+        customerCpf: cpf ?? '',
       })
 
       // Lock slot and update booking atomically to prevent race condition
-      await prisma.$transaction(async (tx) => {
+      // CR-003: on DB failure, cancel the MP payment to avoid orphaned charges
+      try { await prisma.$transaction(async (tx) => {
         const [slotRow] = await tx.$queryRaw<Array<{ status: string; booked: number; capacity: number }>>`
           SELECT status, booked, capacity FROM "DepartureSlot"
           WHERE id = ${booking.slotId}
@@ -557,7 +564,12 @@ export async function bookingsRoutes(app: FastifyInstance) {
             status: 'PENDING',
           },
         })
-      })
+      }) } catch (txErr) {
+        await paymentService.cancelPixPayment(paymentResult.paymentId).catch((e) => {
+          app.log.error(e, '[repay] cancelPixPayment falhou após falha na transação DB')
+        })
+        throw txErr
+      }
 
       return reply.status(200).send({
         qrCode: paymentResult.qrCode,

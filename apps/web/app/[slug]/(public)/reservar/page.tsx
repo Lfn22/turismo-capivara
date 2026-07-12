@@ -18,11 +18,11 @@ export default function ReservarPage() {
   useEffect(() => {
     if (!slug) return;
     fetch(`/api/tenants/${slug}/status`)
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('not ok'))))
       .then((data) => {
         setTenantStatus(data?.approvalStatus === 'APPROVED' ? 'approved' : 'unavailable');
       })
-      .catch(() => setTenantStatus('approved')); // fail-open: se erro, deixa o form aparecer
+      .catch(() => setTenantStatus('unavailable')); // fail-closed: erro de rede bloqueia reserva
   }, [slug]);
 
   if (!slotId || !packageId) {

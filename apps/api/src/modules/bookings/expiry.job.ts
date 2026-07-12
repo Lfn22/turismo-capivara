@@ -54,10 +54,12 @@ export function createBookingExpiryJob(app: FastifyInstance) {
           try {
             // Atomically expire booking and release slot seats (D-11)
             await prisma.$transaction(async (tx) => {
-              await tx.booking.update({
-                where: { id: booking.id },
+              const updated = await tx.booking.updateMany({
+                where: { id: booking.id, status: 'PENDING' },
                 data: { status: 'EXPIRED' },
               })
+              // If no rows updated, booking was already CONFIRMED/CANCELLED — skip slot adjustment
+              if (updated.count === 0) return
 
               const [currentSlot] = await tx.$queryRaw<Array<{
                 id: string; booked: number; capacity: number; status: string

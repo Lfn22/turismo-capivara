@@ -178,7 +178,7 @@ export async function authRoutes(app: FastifyInstance) {
         if (fields?.includes('cpf')) {
           throw new AppError('CPF já cadastrado', 409)
         }
-        throw new AppError('Email já cadastrado neste tenant', 409)
+        throw new AppError('Não foi possível criar a conta', 409)
       }
       throw err
     }

@@ -55,7 +55,7 @@ model User {
   id              String         @id @default(cuid())
   tenantId        String
   name            String
-  email           String         @unique
+  email           String
   password        String
   role            Role
   cpf             String?        @unique
@@ -69,6 +69,8 @@ model User {
   tourPackages        TourPackage[]        @relation("ConductorPackages")
   passwordResetTokens PasswordResetToken[]
   destinations        Destination[]        @relation("DestinationCreator")
+
+  @@unique([tenantId, email])
 }
 
 model GuideProfile {

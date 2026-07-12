@@ -21,7 +21,7 @@ export async function usersRoutes(app: FastifyInstance) {
 
       // Query bookings by customerEmail — Booking has no userId field
       const bookings = await prisma.booking.findMany({
-        where: { customerEmail: user.email },
+        where: { customerEmail: user.email, tenantId: request.user.tenantId },
         select: { id: true, slotId: true, status: true, createdAt: true },
       })
 
@@ -61,7 +61,7 @@ export async function usersRoutes(app: FastifyInstance) {
         })
 
         await tx.booking.updateMany({
-          where: { customerEmail: existing.email },
+          where: { customerEmail: existing.email, tenantId: request.user.tenantId },
           data: { customerEmail: anonymizedEmail },
         })
       })
