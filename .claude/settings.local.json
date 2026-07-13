@@ -108,7 +108,10 @@
       "Skill(gsd-debug)",
       "Bash(sed -n '1,80p' \"C:/projetos/turismo-capivara/apps/api/src/modules/auth/routes/lookup-tenant.ts\")",
       "Bash(sed -n '95,110p' \"C:/projetos/turismo-capivara/apps/api/src/services/payment.service.ts\")",
-      "mcp__plugin_claude-mem_mcp-search__smart_search"
+      "mcp__plugin_claude-mem_mcp-search__smart_search",
+      "Bash(ls C:/projetos/turismo-capivara/apps/web/.env*)",
+      "Bash(sed -i 's|^const API_URL = process\\\\.env\\\\.NEXT_PUBLIC_API_URL \\\\?\\\\? \"http://localhost:3333\"$||' \"C:/projetos/turismo-capivara/apps/web/app/onboarding/page.tsx\")",
+      "Bash(sed -i 's|`\\\\${API_URL}/tenants/check-slug?slug=\\\\${encodeURIComponent\\(slug\\)}`|`/api/tenants/check-slug?slug=${encodeURIComponent\\(slug\\)}`|' \"C:/projetos/turismo-capivara/apps/web/app/onboarding/page.tsx\")"
     ]
   }
 }

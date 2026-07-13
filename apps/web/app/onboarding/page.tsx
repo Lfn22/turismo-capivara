@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
 
 function slugify(str: string): string {
   return str
@@ -52,7 +51,7 @@ export default function OnboardingPage() {
     setSlugStatus("checking")
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`${API_URL}/tenants/check-slug?slug=${encodeURIComponent(slug)}`)
+        const res = await fetch(`/api/tenants/check-slug?slug=${encodeURIComponent(slug)}`)
         if (res.ok) {
           const data = await res.json()
           setSlugStatus(data.available ? "available" : "unavailable")

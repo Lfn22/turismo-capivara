@@ -1,7 +1,7 @@
 import ConfirmationCard from '@/src/components/ui/ConfirmationCard';
 import ConfirmationClient from '@/src/components/ui/ConfirmationClient';
 
-const API_URL = process.env.API_URL ?? 'http://localhost:3001';
+const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333';
 
 interface BookingResponse {
   id: string;

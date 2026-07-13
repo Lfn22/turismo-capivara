@@ -13,16 +13,22 @@ export default function ReservarPage() {
   const packageId = searchParams.get('packageId') ?? '';
   const slug = params.slug ?? '';
 
-  const [tenantStatus, setTenantStatus] = useState<'loading' | 'approved' | 'unavailable'>('loading');
+  const [tenantBlocked, setTenantBlocked] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
     fetch(`/api/tenants/${slug}/status`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('not ok'))))
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        setTenantStatus(data?.approvalStatus === 'APPROVED' ? 'approved' : 'unavailable');
+        // Only block if we have a confirmed non-APPROVED status.
+        // Network errors → fail-open (API will reject with 403 if truly blocked).
+        if (data && data.approvalStatus && data.approvalStatus !== 'APPROVED') {
+          setTenantBlocked(true);
+        }
       })
-      .catch(() => setTenantStatus('unavailable')); // fail-closed: erro de rede bloqueia reserva
+      .catch(() => {
+        // fail-open: let the booking attempt proceed; API enforces the gate
+      });
   }, [slug]);
 
   if (!slotId || !packageId) {
@@ -42,11 +48,7 @@ export default function ReservarPage() {
     );
   }
 
-  if (tenantStatus === 'loading') {
-    return null;
-  }
-
-  if (tenantStatus === 'unavailable') {
+  if (tenantBlocked) {
     return (
       <div
         style={{

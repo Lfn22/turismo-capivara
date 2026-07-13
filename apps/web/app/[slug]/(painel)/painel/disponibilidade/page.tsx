@@ -109,7 +109,7 @@ export default function DisponibilidadePage({
       return
     }
     setGuidesLoading(true)
-    fetch(`/api/proxy?path=/tenants/${slug}/packages/${formPackageId}/guides`)
+    fetch(`/api/packages/${formPackageId}/guides`)
       .then((res) => res.json())
       .then((data: Guide[]) => setGuides(data))
       .catch(() => setGuides([]))
