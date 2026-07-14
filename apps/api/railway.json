@@ -5,7 +5,8 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "npx prisma migrate deploy && node dist/app.js",
+    "startCommand": "node dist/app.js",
+    "releaseCommand": "npx prisma migrate deploy",
     "healthcheckPath": "/health",
     "restartPolicyType": "ON_FAILURE"
   }
