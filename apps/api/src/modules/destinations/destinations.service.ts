@@ -58,6 +58,7 @@ export async function updateDestination(
   destinationId: string,
   userId: string,
   input: UpdateDestinationInputType,
+  userRole?: string,
 ) {
   const destination = await prisma.destination.findUnique({
     where: { id: destinationId },
@@ -65,13 +66,15 @@ export async function updateDestination(
 
   if (!destination) throw new AppError('Destino não encontrado', 404)
 
-  // createdById pode ser null em destinos criados antes da Phase 14 — tratar como não autorizado
-  if (!destination.createdById || destination.createdById !== userId) {
-    throw new AppError('Não autorizado', 403)
-  }
-
-  if (destination.approvalStatus === 'APPROVED') {
-    throw new AppError('Não é possível editar destino aprovado', 400)
+  // ADMIN pode editar qualquer destino do tenant (sem restrição de criador)
+  if (userRole !== 'ADMIN') {
+    // createdById pode ser null em destinos criados antes da Phase 14 — tratar como não autorizado
+    if (!destination.createdById || destination.createdById !== userId) {
+      throw new AppError('Não autorizado', 403)
+    }
+    if (destination.approvalStatus === 'APPROVED') {
+      throw new AppError('Não é possível editar destino aprovado', 400)
+    }
   }
 
   const updated = await prisma.destination.update({

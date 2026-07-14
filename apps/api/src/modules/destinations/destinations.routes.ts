@@ -467,7 +467,11 @@ export async function destinationsRoutes(app: FastifyInstance) {
       // Verificar que o destino pertence ao tenant indicado pelo slug
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
       if (!tenant) throw new AppError('Tenant não encontrado', 404)
-      const linked = await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } } })
+      // ADMIN: acesso direto por id (isolamento garantido pela UI); CONDUTOR: exige createdBy no tenant
+      const userRole = request.user.role
+      const linked = userRole === 'ADMIN'
+        ? await prisma.destination.findFirst({ where: { id } })
+        : await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } } })
       if (!linked) throw new AppError('Destino não encontrado', 404)
 
       let input
@@ -479,7 +483,7 @@ export async function destinationsRoutes(app: FastifyInstance) {
       }
 
       const userId = request.user.sub
-      const destination = await updateDestination(id, userId, input)
+      const destination = await updateDestination(id, userId, input, userRole)
       return reply.status(200).send(destination)
     },
   )
@@ -494,11 +498,15 @@ export async function destinationsRoutes(app: FastifyInstance) {
       // Verificar que o destino pertence ao tenant indicado pelo slug
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
       if (!tenant) throw new AppError('Tenant não encontrado', 404)
-      const linked = await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } } })
+      // ADMIN: acesso direto por id; CONDUTOR: exige createdBy no tenant
+      const userRole = request.user.role
+      const linked = userRole === 'ADMIN'
+        ? await prisma.destination.findFirst({ where: { id } })
+        : await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } } })
       if (!linked) throw new AppError('Destino não encontrado', 404)
 
       const userId = request.user.sub
-      await deleteDestination(id, userId, request.user.role)
+      await deleteDestination(id, userId, userRole)
       return reply.status(204).send()
     },
   )

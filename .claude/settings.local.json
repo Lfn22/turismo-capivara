@@ -111,7 +111,11 @@
       "mcp__plugin_claude-mem_mcp-search__smart_search",
       "Bash(ls C:/projetos/turismo-capivara/apps/web/.env*)",
       "Bash(sed -i 's|^const API_URL = process\\\\.env\\\\.NEXT_PUBLIC_API_URL \\\\?\\\\? \"http://localhost:3333\"$||' \"C:/projetos/turismo-capivara/apps/web/app/onboarding/page.tsx\")",
-      "Bash(sed -i 's|`\\\\${API_URL}/tenants/check-slug?slug=\\\\${encodeURIComponent\\(slug\\)}`|`/api/tenants/check-slug?slug=${encodeURIComponent\\(slug\\)}`|' \"C:/projetos/turismo-capivara/apps/web/app/onboarding/page.tsx\")"
+      "Bash(sed -i 's|`\\\\${API_URL}/tenants/check-slug?slug=\\\\${encodeURIComponent\\(slug\\)}`|`/api/tenants/check-slug?slug=${encodeURIComponent\\(slug\\)}`|' \"C:/projetos/turismo-capivara/apps/web/app/onboarding/page.tsx\")",
+      "Bash(python /tmp/service_patch.py)",
+      "Bash(python /tmp/route_patch.py)",
+      "Bash(python /tmp/route_patch2.py)",
+      "Bash(python /tmp/route_patch3.py)"
     ]
   }
 }
