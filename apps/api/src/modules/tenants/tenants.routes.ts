@@ -79,6 +79,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
 
     const tenant = await prisma.tenant.findUnique({
       where: { slug },
+      select: { id: true, name: true, slug: true, approvalStatus: true },
     })
 
     if (!tenant) {
@@ -180,7 +181,13 @@ export async function tenantsRoutes(app: FastifyInstance) {
     const [tenants, total] = await Promise.all([
       prisma.tenant.findMany({
         where: { approvalStatus: 'PENDING' },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          cnpj: true,
+          approvalStatus: true,
+          createdAt: true,
           users: {
             where: { role: 'ADMIN' },
             select: { email: true, name: true },
@@ -214,7 +221,13 @@ export async function tenantsRoutes(app: FastifyInstance) {
     const [tenants, total] = await Promise.all([
       prisma.tenant.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          cnpj: true,
+          approvalStatus: true,
+          createdAt: true,
           users: {
             where: { role: 'ADMIN' },
             select: { email: true, name: true },
@@ -242,7 +255,11 @@ export async function tenantsRoutes(app: FastifyInstance) {
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: params.id },
-      include: { users: { where: { role: 'ADMIN' }, select: { email: true, name: true } } },
+      select: {
+        slug: true,
+        approvalStatus: true,
+        users: { where: { role: 'ADMIN' }, select: { email: true, name: true } },
+      },
     })
     if (!tenant) throw new AppError('Operadora não encontrada', 404)
     if (tenant.approvalStatus !== 'PENDING') {
@@ -252,6 +269,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
     await prisma.tenant.update({
       where: { id: params.id },
       data: { approvalStatus: 'APPROVED' },
+      select: { id: true },
     })
 
     const resend = getResend()
@@ -288,7 +306,11 @@ export async function tenantsRoutes(app: FastifyInstance) {
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: params.id },
-      include: { users: { where: { role: 'ADMIN' }, select: { email: true, name: true } } },
+      select: {
+        slug: true,
+        approvalStatus: true,
+        users: { where: { role: 'ADMIN' }, select: { email: true, name: true } },
+      },
     })
     if (!tenant) throw new AppError('Operadora não encontrada', 404)
     if (tenant.approvalStatus !== 'PENDING') {
@@ -298,6 +320,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
     await prisma.tenant.update({
       where: { id: params.id },
       data: { approvalStatus: 'REJECTED', rejectionReason: body.reason },
+      select: { id: true },
     })
 
     const resend = getResend()

@@ -57,6 +57,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     const tenant = await prisma.tenant.findUnique({
       where: { slug: tenantSlug },
+      select: { id: true },
     })
 
     if (!tenant) {
@@ -68,6 +69,7 @@ export async function authRoutes(app: FastifyInstance) {
         email: email.toLowerCase(),
         tenantId: tenant.id,
       },
+      select: { id: true, tenantId: true, role: true, name: true, approvalStatus: true, password: true },
     })
 
     if (!user) {

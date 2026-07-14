@@ -115,7 +115,8 @@
       "Bash(python /tmp/service_patch.py)",
       "Bash(python /tmp/route_patch.py)",
       "Bash(python /tmp/route_patch2.py)",
-      "Bash(python /tmp/route_patch3.py)"
+      "Bash(python /tmp/route_patch3.py)",
+      "Bash(npx vitest:*)"
     ]
   }
 }

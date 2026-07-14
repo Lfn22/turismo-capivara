@@ -409,6 +409,7 @@ describe('approveDestination', () => {
     expect(mockPrisma.destination.update).toHaveBeenCalledWith({
       where: { id: 'dest-1' },
       data: { approvalStatus: 'APPROVED' },
+      select: { id: true, slug: true, title: true, approvalStatus: true },
     })
   })
 
@@ -464,6 +465,7 @@ describe('rejectDestination', () => {
     expect(mockPrisma.destination.update).toHaveBeenCalledWith({
       where: { id: 'dest-1' },
       data: { approvalStatus: 'REJECTED', rejectionReason: null },
+      select: { id: true, slug: true, title: true, approvalStatus: true, rejectionReason: true },
     })
   })
 
@@ -630,6 +632,7 @@ describe('rejectDestination — with reason (OPS-05)', () => {
     expect(mockPrisma.destination.update).toHaveBeenCalledWith({
       where: { id: 'dest-1' },
       data: { approvalStatus: 'REJECTED', rejectionReason: 'Conteúdo duplicado' },
+      select: { id: true, slug: true, title: true, approvalStatus: true, rejectionReason: true },
     })
   })
 
@@ -648,6 +651,7 @@ describe('rejectDestination — with reason (OPS-05)', () => {
     expect(mockPrisma.destination.update).toHaveBeenCalledWith({
       where: { id: 'dest-1' },
       data: { approvalStatus: 'REJECTED', rejectionReason: null },
+      select: { id: true, slug: true, title: true, approvalStatus: true, rejectionReason: true },
     })
   })
 })

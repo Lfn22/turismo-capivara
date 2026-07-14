@@ -35,7 +35,7 @@ export async function createDestination(
   const slug = await uniqueSlug(baseSlug)
 
   // Verify tenant exists
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } })
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true } })
   if (!tenant) throw new AppError('Tenant não encontrado', 404)
 
   const destination = await prisma.destination.create({
@@ -49,6 +49,7 @@ export async function createDestination(
       approvalStatus: userRole === 'ADMIN' ? 'APPROVED' : 'PENDING',
       createdById: userId,
     },
+    select: { id: true, slug: true, title: true, state: true, description: true, highlights: true, photos: true, approvalStatus: true, createdAt: true, createdById: true },
   })
 
   return destination
@@ -62,6 +63,7 @@ export async function updateDestination(
 ) {
   const destination = await prisma.destination.findUnique({
     where: { id: destinationId },
+    select: { id: true, approvalStatus: true, createdById: true },
   })
 
   if (!destination) throw new AppError('Destino não encontrado', 404)
@@ -86,6 +88,7 @@ export async function updateDestination(
       ...(input.photos !== undefined && { photos: input.photos }),
       ...(input.highlights !== undefined && { highlights: input.highlights }),
     },
+    select: { id: true, slug: true, title: true, state: true, description: true, highlights: true, photos: true, approvalStatus: true, createdAt: true, createdById: true },
   })
 
   return updated
@@ -94,6 +97,7 @@ export async function updateDestination(
 export async function approveDestination(destinationId: string) {
   const destination = await prisma.destination.findUnique({
     where: { id: destinationId },
+    select: { id: true, approvalStatus: true },
   })
 
   if (!destination) throw new AppError('Destino não encontrado', 404)
@@ -105,12 +109,14 @@ export async function approveDestination(destinationId: string) {
   return prisma.destination.update({
     where: { id: destinationId },
     data: { approvalStatus: 'APPROVED' },
+    select: { id: true, slug: true, title: true, approvalStatus: true },
   })
 }
 
 export async function rejectDestination(destinationId: string, reason?: string) {
   const destination = await prisma.destination.findUnique({
     where: { id: destinationId },
+    select: { id: true, approvalStatus: true },
   })
 
   if (!destination) throw new AppError('Destino não encontrado', 404)
@@ -125,12 +131,14 @@ export async function rejectDestination(destinationId: string, reason?: string) 
       approvalStatus: 'REJECTED',
       rejectionReason: reason ?? null,
     },
+    select: { id: true, slug: true, title: true, approvalStatus: true, rejectionReason: true },
   })
 }
 
 export async function deleteDestination(destinationId: string, userId: string, userRole?: string) {
   const destination = await prisma.destination.findUnique({
     where: { id: destinationId },
+    select: { id: true, approvalStatus: true, createdById: true },
   })
 
   if (!destination) throw new AppError('Destino não encontrado', 404)

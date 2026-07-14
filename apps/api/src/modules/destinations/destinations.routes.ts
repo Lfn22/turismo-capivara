@@ -556,7 +556,14 @@ export async function destinationsRoutes(app: FastifyInstance) {
       const [destinations, total] = await Promise.all([
         prisma.destination.findMany({
           where: { approvalStatus: 'PENDING' },
-          include: {
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            state: true,
+            heroImageUrl: true,
+            approvalStatus: true,
+            createdAt: true,
             createdBy: {
               select: {
                 id: true,
