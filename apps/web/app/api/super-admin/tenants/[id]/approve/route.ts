@@ -11,7 +11,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params
   const res = await fetch(`${API_URL}/tenants/${id}/approve`, {
     method: "PATCH",
-    headers: { Authorization: `Bearer ${jwt.apiToken}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${jwt.apiToken}` },
     cache: "no-store",
   })
   const data = await res.text()
