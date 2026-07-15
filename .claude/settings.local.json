@@ -118,7 +118,10 @@
       "Bash(python /tmp/route_patch3.py)",
       "Bash(npx vitest:*)",
       "Bash(sed -n '1,15p' apps/api/src/modules/tenants/tenants.routes.ts)",
-      "Bash(sed -n '245,345p' apps/api/src/modules/tenants/tenants.routes.ts)"
+      "Bash(sed -n '245,345p' apps/api/src/modules/tenants/tenants.routes.ts)",
+      "Bash(cat:*)",
+      "Bash(sed -n '470,480p' \"C:/projetos/turismo-capivara/apps/api/src/modules/destinations/destinations.routes.ts\")",
+      "Bash(sed -n '500,510p' \"C:/projetos/turismo-capivara/apps/api/src/modules/destinations/destinations.routes.ts\")"
     ]
   }
 }

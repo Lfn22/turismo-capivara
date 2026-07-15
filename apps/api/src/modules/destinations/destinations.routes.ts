@@ -470,8 +470,8 @@ export async function destinationsRoutes(app: FastifyInstance) {
       // ADMIN: acesso direto por id (isolamento garantido pela UI); CONDUTOR: exige createdBy no tenant
       const userRole = request.user.role
       const linked = userRole === 'ADMIN'
-        ? await prisma.destination.findFirst({ where: { id } })
-        : await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } } })
+        ? await prisma.destination.findFirst({ where: { id }, select: { id: true } })
+        : await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } }, select: { id: true } })
       if (!linked) throw new AppError('Destino não encontrado', 404)
 
       let input
@@ -501,8 +501,8 @@ export async function destinationsRoutes(app: FastifyInstance) {
       // ADMIN: acesso direto por id; CONDUTOR: exige createdBy no tenant
       const userRole = request.user.role
       const linked = userRole === 'ADMIN'
-        ? await prisma.destination.findFirst({ where: { id } })
-        : await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } } })
+        ? await prisma.destination.findFirst({ where: { id }, select: { id: true } })
+        : await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } }, select: { id: true } })
       if (!linked) throw new AppError('Destino não encontrado', 404)
 
       const userId = request.user.sub
