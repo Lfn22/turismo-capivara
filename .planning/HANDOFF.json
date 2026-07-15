@@ -6,7 +6,7 @@
   "task": 2,
   "total_tasks": 7,
   "status": "in_progress",
-  "last_updated": "2026-07-08T21:10:00-03:00",
+  "last_updated": "2026-07-15T09:04:00-03:00",
   "blocking_constraints": [
     {
       "name": "MapWidgetClient wrapper",
@@ -29,7 +29,19 @@
       "reason": "Required for UAT Tests 2-4 (visual map tests)"
     }
   ],
+  "session_2026_07_14_15": {
+    "type": "bug-fix investigation",
+    "work_done": [
+      "Fixed 500 errors in super-admin panel: approve operadora, load destinos",
+      "Root cause: Prisma queries without explicit select fetched rejectionReason column not yet in production DB",
+      "Added explicit select to all affected queries in destinations.routes.ts, destinations.service.ts, tenants.routes.ts, auth.routes.ts",
+      "Fixed 4 test assertions in destinations.routes.test.ts",
+      "railway.json: releaseCommand added to run prisma migrate deploy on next deploy",
+      "All changes committed: b451875 (fix dos destinos), 20ceeab, ea5dd1e, 35f8fca"
+    ],
+    "status": "complete — all committed, no uncommitted changes"
+  },
   "uncommitted_files": [],
-  "next_action": "Resume /gsd-verify-work 28 at Test 2. Check MAPTILER_KEY and destination coordinates before visual tests.",
-  "context_notes": "Phase 28 fully executed (13/13 verified). MapWidgetClient fix committed. v2.1 milestone 100% code-complete."
+  "next_action": "Resume /gsd-verify-work 28 at Test 2. Check MAPTILER_KEY in apps/web/.env.local and ensure a Destination row has lat/lng in DB before visual tests.",
+  "context_notes": "Phase 28 fully executed (13/13 verified). MapWidgetClient SSR fix committed. v2.1 milestone 100% code-complete. Super-admin panel 500 errors fixed separately (not Phase 28 scope)."
 }
