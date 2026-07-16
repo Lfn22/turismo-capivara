@@ -2,6 +2,62 @@
 import { use, useState, useEffect } from "react"
 import { Modal } from "@/components/ui/Modal"
 
+function CopyLinkBanner({ slug }: { slug: string }) {
+  const [copied, setCopied] = useState(false)
+  const link = typeof window !== "undefined"
+    ? `${window.location.origin}/${slug}/cadastro`
+    : `/${slug}/cadastro`
+
+  function handleCopy() {
+    navigator.clipboard.writeText(link).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div
+      style={{
+        background: "#FFFBEB",
+        border: "1px solid #FDE68A",
+        borderRadius: "8px",
+        padding: "16px 20px",
+        marginBottom: "24px",
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: "12px",
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: "12px", fontWeight: 600, color: "#92400E", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          Link de cadastro para guias
+        </p>
+        <p style={{ fontSize: "13px", color: "#78350F", margin: 0, wordBreak: "break-all" }}>
+          {link}
+        </p>
+      </div>
+      <button
+        onClick={handleCopy}
+        style={{
+          padding: "8px 16px",
+          background: copied ? "#15803D" : "var(--ochre)",
+          color: "white",
+          border: "none",
+          borderRadius: "4px",
+          fontSize: "13px",
+          fontWeight: 600,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          minHeight: "36px",
+        }}
+      >
+        {copied ? "Copiado!" : "Copiar link"}
+      </button>
+    </div>
+  )
+}
+
 interface GuideUser {
   id: string
   name: string
@@ -174,6 +230,8 @@ export default function AdminGuiasPage({
           Aprovação de Guias
         </h1>
       </div>
+
+      <CopyLinkBanner slug={slug} />
 
       {actionError && (
         <p
