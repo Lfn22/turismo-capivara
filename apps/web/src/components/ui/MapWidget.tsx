@@ -18,42 +18,37 @@ interface MapWidgetProps {
 
 export default function MapWidget({ lat, lng, partners, destinationName }: MapWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<any>(null)
+  const maplibreRef = useRef<any>(null)
+  const partnerMarkersRef = useRef<any[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Effect 1: map lifecycle — runs only when coordinates change
   useEffect(() => {
     if (!containerRef.current) return
 
-    let map: any = null
     let aborted = false
 
     async function init() {
-      // Dynamic import inside useEffect for SSR safety
       const maplibregl = (await import('maplibre-gl')).default
       await import('maplibre-gl/dist/maplibre-gl.css')
 
       if (aborted || !containerRef.current) return
 
-      map = new maplibregl.Map({
+      maplibreRef.current = maplibregl
+
+      const map = new maplibregl.Map({
         container: containerRef.current,
         style: '/api/tiles/styles/basic-v2/style.json',
         center: [lng, lat],
         zoom: 12,
       })
 
+      mapRef.current = map
       map.addControl(new maplibregl.NavigationControl(), 'top-right')
 
       map.on('load', async () => {
         setLoading(false)
-
-        // Add partner markers
-        for (const partner of partners) {
-          const el = document.createElement('div')
-          el.className = 'map-widget__marker map-widget__marker--partner'
-          new maplibregl.Marker({ element: el, color: '#9C6318' })
-            .setLngLat([partner.lng, partner.lat])
-            .setPopup(new maplibregl.Popup().setText(partner.name))
-            .addTo(map)
-        }
 
         // Fetch POIs from Overpass with graceful degradation
         try {
@@ -76,7 +71,7 @@ export default function MapWidget({ lat, lng, partners, destinationName }: MapWi
             }
           }
         } catch {
-          // POIs indisponíveis — mapa exibe só parceiros
+          // POIs indisponíveis — mapa exibe só marcadores de parceiros
         }
       })
     }
@@ -85,9 +80,35 @@ export default function MapWidget({ lat, lng, partners, destinationName }: MapWi
 
     return () => {
       aborted = true
-      map?.remove()
+      partnerMarkersRef.current.forEach(m => m.remove())
+      partnerMarkersRef.current = []
+      mapRef.current?.remove()
+      mapRef.current = null
+      maplibreRef.current = null
     }
-  }, [lat, lng, partners, destinationName])
+  }, [lat, lng]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Effect 2: partner markers — updates without rebuilding the map
+  useEffect(() => {
+    const map = mapRef.current
+    const maplibregl = maplibreRef.current
+    if (!map || !maplibregl) return
+
+    // Remove previous partner markers
+    partnerMarkersRef.current.forEach(m => m.remove())
+    partnerMarkersRef.current = []
+
+    // Add current partners
+    const newMarkers = partners.map(partner => {
+      const el = document.createElement('div')
+      el.className = 'map-widget__marker map-widget__marker--partner'
+      return new maplibregl.Marker({ element: el, color: '#9C6318' })
+        .setLngLat([partner.lng, partner.lat])
+        .setPopup(new maplibregl.Popup().setText(partner.name))
+        .addTo(map)
+    })
+    partnerMarkersRef.current = newMarkers
+  }, [partners])
 
   return (
     <>
