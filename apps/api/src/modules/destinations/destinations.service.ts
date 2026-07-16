@@ -2,6 +2,23 @@ import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { CreateDestinationInputType, UpdateDestinationInputType } from './destinations.schemas'
 
+async function geocode(name: string, state?: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const q = state ? `${name}, ${state}, Brasil` : `${name}, Brasil`
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'turismo-capivara/1.0 (contato@capivara.app)' },
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as Array<{ lat: string; lon: string }>
+    if (!data.length) return null
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+  } catch {
+    return null
+  }
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -38,6 +55,8 @@ export async function createDestination(
   const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true } })
   if (!tenant) throw new AppError('Tenant não encontrado', 404)
 
+  const coords = await geocode(input.name, input.state)
+
   const destination = await prisma.destination.create({
     data: {
       slug,
@@ -48,8 +67,9 @@ export async function createDestination(
       highlights: input.highlights ?? [],
       approvalStatus: userRole === 'ADMIN' ? 'APPROVED' : 'PENDING',
       createdById: userId,
+      ...(coords && { lat: coords.lat, lng: coords.lng }),
     },
-    select: { id: true, slug: true, title: true, state: true, description: true, highlights: true, photos: true, approvalStatus: true, createdAt: true, createdById: true },
+    select: { id: true, slug: true, title: true, state: true, description: true, highlights: true, photos: true, approvalStatus: true, createdAt: true, createdById: true, lat: true, lng: true },
   })
 
   return destination
@@ -79,6 +99,11 @@ export async function updateDestination(
     }
   }
 
+  let coords: { lat: number; lng: number } | null = null
+  if (input.name !== undefined) {
+    coords = await geocode(input.name, input.state)
+  }
+
   const updated = await prisma.destination.update({
     where: { id: destinationId },
     data: {
@@ -87,8 +112,9 @@ export async function updateDestination(
       ...(input.state !== undefined && { state: input.state }),
       ...(input.photos !== undefined && { photos: input.photos }),
       ...(input.highlights !== undefined && { highlights: input.highlights }),
+      ...(coords && { lat: coords.lat, lng: coords.lng }),
     },
-    select: { id: true, slug: true, title: true, state: true, description: true, highlights: true, photos: true, approvalStatus: true, createdAt: true, createdById: true },
+    select: { id: true, slug: true, title: true, state: true, description: true, highlights: true, photos: true, approvalStatus: true, createdAt: true, createdById: true, lat: true, lng: true },
   })
 
   return updated
