@@ -535,6 +535,59 @@ export async function destinationsRoutes(app: FastifyInstance) {
     },
   )
 
+  // GET /admin/destinations — listagem completa para admin (ADMIN/SUPER_ADMIN)
+  app.get(
+    '/admin/destinations',
+    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
+    async (request, reply) => {
+      const querySchema = z.object({
+        limit: z.coerce.number().int().min(1).max(100).default(50),
+        offset: z.coerce.number().int().min(0).default(0),
+        status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
+      })
+
+      let query
+      try {
+        query = querySchema.parse(request.query)
+      } catch (err) {
+        if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+        throw err
+      }
+
+      const where = query.status ? { approvalStatus: query.status as 'PENDING' | 'APPROVED' | 'REJECTED' } : {}
+
+      const [destinations, total] = await Promise.all([
+        prisma.destination.findMany({
+          where,
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            state: true,
+            heroImageUrl: true,
+            approvalStatus: true,
+            rejectionReason: true,
+            createdAt: true,
+            createdBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                tenant: { select: { name: true, slug: true } },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: query.limit,
+          skip: query.offset,
+        }),
+        prisma.destination.count({ where }),
+      ])
+
+      return reply.status(200).send({ destinations, total, limit: query.limit, offset: query.offset })
+    },
+  )
+
   // GET /admin/destinations/pending — fila de aprovação (ADMIN)
   app.get(
     '/admin/destinations/pending',

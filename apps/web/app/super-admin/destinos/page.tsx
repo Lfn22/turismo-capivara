@@ -3,14 +3,33 @@ import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import { Modal } from "@/components/ui/Modal"
 
+type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED"
+
 interface Destination {
   id: string
+  slug: string
   title: string
   state: string
   heroImageUrl: string | null
-  approvalStatus: "PENDING" | "APPROVED" | "REJECTED"
+  approvalStatus: ApprovalStatus
+  rejectionReason: string | null
   createdBy: { name: string; email: string; tenant: { slug: string; name: string } } | null
   createdAt: string
+}
+
+type Tab = "TODOS" | ApprovalStatus
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: "TODOS", label: "Todos" },
+  { key: "PENDING", label: "Pendentes" },
+  { key: "APPROVED", label: "Aprovados" },
+  { key: "REJECTED", label: "Rejeitados" },
+]
+
+const STATUS_BADGE: Record<ApprovalStatus, { label: string; bg: string; color: string }> = {
+  PENDING: { label: "PENDENTE", bg: "#FEF9EC", color: "#B45309" },
+  APPROVED: { label: "APROVADO", bg: "#F0FDF4", color: "#15803D" },
+  REJECTED: { label: "REJEITADO", bg: "#FEF2F2", color: "#DC2626" },
 }
 
 const shimmerKeyframes = `
@@ -20,10 +39,11 @@ const shimmerKeyframes = `
   }
 `
 
-export default function SuperAdminDestinosPendentesPage() {
+export default function SuperAdminDestinosPage() {
   const [destinations, setDestinations] = useState<Destination[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [activeTab, setActiveTab] = useState<Tab>("TODOS")
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -34,40 +54,49 @@ export default function SuperAdminDestinosPendentesPage() {
   const [rejectError, setRejectError] = useState<string | null>(null)
   const [rejectSubmitting, setRejectSubmitting] = useState(false)
 
+  const buildUrl = useCallback(
+    (currentOffset: number) => {
+      const params = new URLSearchParams({ limit: "20", offset: String(currentOffset) })
+      if (activeTab !== "TODOS") params.set("status", activeTab)
+      return `/api/admin/destinations?${params}`
+    },
+    [activeTab],
+  )
+
   const loadDestinations = useCallback(() => {
     setLoading(true)
     setLoadError(false)
     setOffset(0)
     setHasMore(true)
-    fetch("/api/admin/destinations/pending?limit=20&offset=0")
+    fetch(buildUrl(0))
       .then((r) => {
         if (!r.ok) throw new Error()
         return r.json()
       })
       .then((data) => {
-        const list = Array.isArray(data) ? data : (data.destinations ?? [])
+        const list: Destination[] = Array.isArray(data) ? data : (data.destinations ?? [])
         setDestinations(list)
         setHasMore(list.length === 20)
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
-  }, [])
+  }, [buildUrl])
 
   function loadMore() {
     const nextOffset = offset + 20
     setLoadingMore(true)
-    fetch(`/api/admin/destinations/pending?limit=20&offset=${nextOffset}`)
+    fetch(buildUrl(nextOffset))
       .then((r) => {
         if (!r.ok) throw new Error()
         return r.json()
       })
       .then((data) => {
-        const list = Array.isArray(data) ? data : (data.destinations ?? [])
+        const list: Destination[] = Array.isArray(data) ? data : (data.destinations ?? [])
         setDestinations((prev) => [...prev, ...list])
         setOffset(nextOffset)
         setHasMore(list.length === 20)
       })
-      .catch(() => { /* silencioso — botão permanece */ })
+      .catch(() => {})
       .finally(() => setLoadingMore(false))
   }
 
@@ -78,8 +107,11 @@ export default function SuperAdminDestinosPendentesPage() {
   async function handleApprove(dest: Destination) {
     setActionLoading(dest.id)
     setActionError(null)
-    // Optimistic: remove from PENDING list immediately
-    setDestinations((prev) => prev.filter((d) => d.id !== dest.id))
+    setDestinations((prev) =>
+      activeTab === "TODOS"
+        ? prev.map((d) => (d.id === dest.id ? { ...d, approvalStatus: "APPROVED" as ApprovalStatus } : d))
+        : prev.filter((d) => d.id !== dest.id),
+    )
     try {
       const res = await fetch(`/api/admin/destinations/${dest.id}/approve`, {
         method: "PATCH",
@@ -89,8 +121,11 @@ export default function SuperAdminDestinosPendentesPage() {
       if (!res.ok) throw new Error()
       toast.success("Destino aprovado com sucesso.")
     } catch {
-      // Rollback: reload server state
-      setDestinations((prev) => [dest, ...prev])
+      setDestinations((prev) =>
+        activeTab === "TODOS"
+          ? prev.map((d) => (d.id === dest.id ? { ...d, approvalStatus: dest.approvalStatus } : d))
+          : [dest, ...prev],
+      )
       setActionError("Não foi possível aprovar o destino. Tente novamente.")
       toast.error("Erro ao processar ação. Tente novamente.")
     } finally {
@@ -111,7 +146,15 @@ export default function SuperAdminDestinosPendentesPage() {
     }
     setRejectSubmitting(true)
     setRejectError(null)
-    setDestinations((prev) => prev.filter((d) => d.id !== rejectTarget.id))
+    setDestinations((prev) =>
+      activeTab === "TODOS"
+        ? prev.map((d) =>
+            d.id === rejectTarget.id
+              ? { ...d, approvalStatus: "REJECTED" as ApprovalStatus, rejectionReason: rejectReason }
+              : d,
+          )
+        : prev.filter((d) => d.id !== rejectTarget.id),
+    )
     try {
       const res = await fetch(`/api/admin/destinations/${rejectTarget.id}/approve`, {
         method: "PATCH",
@@ -123,7 +166,11 @@ export default function SuperAdminDestinosPendentesPage() {
       setRejectTarget(null)
       setRejectReason("")
     } catch {
-      setDestinations((prev) => [rejectTarget, ...prev])
+      setDestinations((prev) =>
+        activeTab === "TODOS"
+          ? prev.map((d) => (d.id === rejectTarget.id ? { ...d, approvalStatus: rejectTarget.approvalStatus, rejectionReason: rejectTarget.rejectionReason } : d))
+          : [rejectTarget, ...prev],
+      )
       setRejectError("Não foi possível rejeitar o destino. Tente novamente.")
       toast.error("Erro ao processar ação. Tente novamente.")
     } finally {
@@ -131,7 +178,14 @@ export default function SuperAdminDestinosPendentesPage() {
     }
   }
 
-  const pendingCount = destinations.length
+  const emptyMessage =
+    activeTab === "TODOS"
+      ? "Nenhum destino cadastrado ainda."
+      : activeTab === "PENDING"
+        ? "Nenhum destino aguardando aprovação."
+        : activeTab === "APPROVED"
+          ? "Nenhum destino aprovado ainda."
+          : "Nenhum destino rejeitado."
 
   return (
     <>
@@ -155,14 +209,43 @@ export default function SuperAdminDestinosPendentesPage() {
           fontSize: "24px",
           fontWeight: 400,
           color: "var(--stone-900)",
-          marginBottom: "4px",
+          marginBottom: "24px",
         }}
       >
-        Destinos Pendentes
+        Destinos
       </h1>
-      <p style={{ fontSize: "14px", color: "var(--stone-500)", marginBottom: "32px" }}>
-        {loading ? "Carregando..." : `${pendingCount} destino${pendingCount !== 1 ? "s" : ""} aguardando aprovação`}
-      </p>
+
+      {/* Tabs */}
+      <div
+        style={{
+          display: "flex",
+          gap: "4px",
+          marginBottom: "24px",
+          borderBottom: "1px solid var(--stone-200)",
+          paddingBottom: "0",
+        }}
+      >
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              background: "none",
+              border: "none",
+              padding: "8px 16px",
+              fontSize: "14px",
+              fontWeight: activeTab === tab.key ? 600 : 400,
+              color: activeTab === tab.key ? "var(--stone-900)" : "var(--stone-500)",
+              cursor: "pointer",
+              borderBottom: activeTab === tab.key ? "2px solid var(--stone-900)" : "2px solid transparent",
+              marginBottom: "-1px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {actionError && (
         <div
@@ -190,8 +273,7 @@ export default function SuperAdminDestinosPendentesPage() {
                 height: "72px",
                 marginBottom: "8px",
                 borderRadius: "6px",
-                background:
-                  "linear-gradient(90deg, var(--stone-100), var(--stone-50), var(--stone-100))",
+                background: "linear-gradient(90deg, var(--stone-100), var(--stone-50), var(--stone-100))",
                 backgroundSize: "200% 100%",
                 animation: "shimmer 1.5s infinite",
               }}
@@ -234,142 +316,121 @@ export default function SuperAdminDestinosPendentesPage() {
             color: "var(--stone-500)",
           }}
         >
-          Nenhum destino pendente. Todos os destinos foram revisados.
+          {emptyMessage}
         </p>
       ) : (
         <div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {destinations.map((dest) => {
-            const busy = actionLoading === dest.id
-            return (
-              <div
-                key={dest.id}
-                style={{
-                  background: "white",
-                  border: "1px solid var(--stone-200)",
-                  borderRadius: "6px",
-                  padding: "12px 16px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "16px",
-                  flexWrap: "wrap",
-                  opacity: busy ? 0.6 : 1,
-                  transition: "opacity 0.15s",
-                }}
-              >
-                {/* Thumbnail */}
-                {dest.heroImageUrl ? (
-                  <img
-                    src={dest.heroImageUrl}
-                    alt={dest.title}
-                    style={{
-                      width: "60px",
-                      height: "60px",
-                      objectFit: "cover",
-                      borderRadius: "4px",
-                      flexShrink: 0,
-                    }}
-                  />
-                ) : (
-                  <div
-                    aria-hidden
-                    style={{
-                      width: "60px",
-                      height: "60px",
-                      borderRadius: "4px",
-                      background: "var(--stone-100)",
-                      flexShrink: 0,
-                    }}
-                  />
-                )}
-
-                {/* Info */}
-                <div style={{ flex: 1, minWidth: "160px" }}>
-                  <p
-                    style={{
-                      fontSize: "15px",
-                      fontWeight: 600,
-                      color: "var(--stone-900)",
-                      margin: 0,
-                    }}
-                  >
-                    {dest.title}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "13px",
-                      color: "var(--stone-500)",
-                      margin: "2px 0 0",
-                    }}
-                  >
-                    {dest.createdBy?.tenant?.slug ?? "—"} &middot; {dest.state}
-                  </p>
-                </div>
-
-                {/* Status badge */}
-                <span
+            {destinations.map((dest) => {
+              const busy = actionLoading === dest.id
+              const badge = STATUS_BADGE[dest.approvalStatus]
+              return (
+                <div
+                  key={dest.id}
                   style={{
-                    display: "inline-block",
-                    padding: "4px 8px",
-                    borderRadius: "4px",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    background: "#FEF9EC",
-                    color: "#B45309",
-                    whiteSpace: "nowrap",
+                    background: "white",
+                    border: "1px solid var(--stone-200)",
+                    borderRadius: "6px",
+                    padding: "12px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "16px",
+                    flexWrap: "wrap",
+                    opacity: busy ? 0.6 : 1,
+                    transition: "opacity 0.15s",
                   }}
                 >
-                  PENDENTE
-                </span>
+                  {dest.heroImageUrl ? (
+                    <img
+                      src={dest.heroImageUrl}
+                      alt={dest.title}
+                      style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "4px", flexShrink: 0 }}
+                    />
+                  ) : (
+                    <div
+                      aria-hidden
+                      style={{ width: "60px", height: "60px", borderRadius: "4px", background: "var(--stone-100)", flexShrink: 0 }}
+                    />
+                  )}
 
-                {/* Action buttons */}
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  <button
-                    onClick={() => handleApprove(dest)}
-                    disabled={busy}
-                    aria-label={`Aprovar destino ${dest.title}`}
+                  <div style={{ flex: 1, minWidth: "160px" }}>
+                    <p style={{ fontSize: "15px", fontWeight: 600, color: "var(--stone-900)", margin: 0 }}>
+                      {dest.title}
+                    </p>
+                    <p style={{ fontSize: "13px", color: "var(--stone-500)", margin: "2px 0 0" }}>
+                      {dest.createdBy?.tenant?.slug ?? "—"} &middot; {dest.state}
+                    </p>
+                    {dest.approvalStatus === "REJECTED" && dest.rejectionReason && (
+                      <p style={{ fontSize: "12px", color: "#DC2626", margin: "4px 0 0", fontStyle: "italic" }}>
+                        Motivo: {dest.rejectionReason}
+                      </p>
+                    )}
+                  </div>
+
+                  <span
                     style={{
-                      background: "#15803D",
-                      color: "white",
-                      border: "none",
-                      padding: "8px 16px",
+                      display: "inline-block",
+                      padding: "4px 8px",
                       borderRadius: "4px",
-                      fontSize: "14px",
+                      fontSize: "12px",
                       fontWeight: 600,
-                      cursor: busy ? "not-allowed" : "pointer",
-                      minHeight: "44px",
-                      minWidth: "80px",
-                      opacity: busy ? 0.6 : 1,
+                      background: badge.bg,
+                      color: badge.color,
                       whiteSpace: "nowrap",
                     }}
                   >
-                    Aprovar
-                  </button>
-                  <button
-                    onClick={() => handleReject(dest)}
-                    disabled={busy}
-                    aria-label={`Rejeitar destino ${dest.title}`}
-                    style={{
-                      background: "#DC2626",
-                      color: "white",
-                      border: "none",
-                      padding: "8px 16px",
-                      borderRadius: "4px",
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      cursor: busy ? "not-allowed" : "pointer",
-                      minHeight: "44px",
-                      minWidth: "80px",
-                      opacity: busy ? 0.6 : 1,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    Rejeitar
-                  </button>
+                    {badge.label}
+                  </span>
+
+                  {dest.approvalStatus === "PENDING" && (
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <button
+                        onClick={() => handleApprove(dest)}
+                        disabled={busy}
+                        aria-label={`Aprovar destino ${dest.title}`}
+                        style={{
+                          background: "#15803D",
+                          color: "white",
+                          border: "none",
+                          padding: "8px 16px",
+                          borderRadius: "4px",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          cursor: busy ? "not-allowed" : "pointer",
+                          minHeight: "44px",
+                          minWidth: "80px",
+                          opacity: busy ? 0.6 : 1,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Aprovar
+                      </button>
+                      <button
+                        onClick={() => handleReject(dest)}
+                        disabled={busy}
+                        aria-label={`Rejeitar destino ${dest.title}`}
+                        style={{
+                          background: "#DC2626",
+                          color: "white",
+                          border: "none",
+                          padding: "8px 16px",
+                          borderRadius: "4px",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          cursor: busy ? "not-allowed" : "pointer",
+                          minHeight: "44px",
+                          minWidth: "80px",
+                          opacity: busy ? 0.6 : 1,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Rejeitar
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
           </div>
           {hasMore && !loading && !loadError && (
             <div style={{ textAlign: "center", padding: "24px 0" }}>
@@ -395,11 +456,7 @@ export default function SuperAdminDestinosPendentesPage() {
         </div>
       )}
 
-      <Modal
-        open={!!rejectTarget}
-        onClose={() => setRejectTarget(null)}
-        title="Rejeitar Destino"
-      >
+      <Modal open={!!rejectTarget} onClose={() => setRejectTarget(null)} title="Rejeitar Destino">
         <p style={{ fontSize: "14px", color: "var(--stone-600)", marginBottom: "16px" }}>
           Informe o motivo da rejeição.
         </p>
