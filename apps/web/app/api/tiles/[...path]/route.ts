@@ -25,12 +25,22 @@ export async function GET(
       headers: { 'User-Agent': 'turismo-capivara/1.0' }
     })
 
+    if (!upstream.ok) {
+      return NextResponse.json(
+        { error: 'Tile indisponível' },
+        { status: upstream.status === 404 ? 404 : 502 }
+      )
+    }
+
     const body = await upstream.arrayBuffer()
     const contentType = upstream.headers.get('content-type') ?? 'application/octet-stream'
 
     return new NextResponse(body, {
-      status: upstream.status,
-      headers: { 'Content-Type': contentType }
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
+      },
     })
   } catch {
     return NextResponse.json({ error: 'Falha ao buscar tile' }, { status: 502 })
