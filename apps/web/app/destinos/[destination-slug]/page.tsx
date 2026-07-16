@@ -43,29 +43,11 @@ async function fetchDestination(slug: string): Promise<Destination | null> {
   }
 }
 
-interface TenantPartner {
-  id: string
-  name: string
-  lat?: number | null
-  lng?: number | null
-}
-
-async function fetchPartners(destinationSlug: string): Promise<PartnerData[]> {
-  try {
-    const res = await fetch(
-      `${API_URL}/destinations/${destinationSlug}/tenants`,
-      { next: { revalidate: 3600 } }
-    )
-    if (!res.ok) return []
-    const tenants: TenantPartner[] = await res.json()
-    return tenants
-      .filter((t): t is TenantPartner & { lat: number; lng: number } =>
-        typeof t.lat === 'number' && typeof t.lng === 'number'
-      )
-      .map(t => ({ id: t.id, name: t.name, lat: t.lat, lng: t.lng }))
-  } catch {
-    return []
-  }
+// TODO: fetchPartners — endpoint GET /destinations/:slug/tenants não existe na API ainda.
+// A rota e os campos lat/lng no model Tenant precisam ser criados em fase futura.
+// Por ora, partners é sempre [].
+async function fetchPartners(_destinationSlug: string): Promise<PartnerData[]> {
+  return []
 }
 
 // ── Static params (ISR) ───────────────────────────────────────────────────────
