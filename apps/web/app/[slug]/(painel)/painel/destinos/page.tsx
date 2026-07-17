@@ -15,6 +15,7 @@ export default function DestinosPage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string>('')
+  const [currentUserRole, setCurrentUserRole] = useState<string>('')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -29,6 +30,7 @@ export default function DestinosPage() {
       if (sessionRes.ok) {
         const session = await sessionRes.json()
         setCurrentUserId((session?.user as any)?.id ?? '')
+        setCurrentUserRole((session?.user as any)?.role ?? '')
       }
       if (!destRes.ok) throw new Error(`HTTP ${destRes.status}`)
       const data = await destRes.json()
@@ -223,7 +225,7 @@ export default function DestinosPage() {
             <PainelDestinationCard
               key={dest.id}
               destination={dest}
-              isOwner={!!currentUserId && dest.createdById === currentUserId}
+              isOwner={currentUserRole === 'ADMIN' || (!!currentUserId && dest.createdById === currentUserId)}
               showStatus
               onEdit={handleEdit}
               onDelete={(id) => setDeleteConfirm(id)}
