@@ -396,21 +396,6 @@ export async function packagesRoutes(app: FastifyInstance) {
       if (conductor?.approvalStatus !== 'APPROVED') throw new AppError('Guia não aprovado para criar slots', 403)
     }
 
-    // Verificação de qualificação do guia (ANTES da transação, para 400 antes de 409)
-    const isQualified = await prisma.packageGuide.findFirst({
-      where: {
-        packageId: pkg.id,
-        guideId: body!.guideId,
-        active: true,
-      },
-    })
-    if (!isQualified) {
-      return reply.status(400).send({
-        code: 'GUIDE_NOT_QUALIFIED',
-        message: 'Guia não está qualificado para este roteiro',
-      })
-    }
-
     // CR-004: Validate guideId belongs to the same tenant (cross-tenant isolation)
     const guideOwner = await prisma.guideProfile.findUnique({
       where: { id: body!.guideId },

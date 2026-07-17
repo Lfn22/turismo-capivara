@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import BackButton from "@/src/components/ui/BackButton"
+import { PhotoUploadArea } from "@/src/components/ui/PhotoUploadArea"
 
 interface GuideProfileData {
   id: string
@@ -37,9 +38,6 @@ export default function PerfilPage({
   const [especialidades, setEspecialidades] = useState("")
   const [regioes, setRegioes] = useState("")
   const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>([])
-  const [newPhotoUrl, setNewPhotoUrl] = useState("")
-  const [photoUrlError, setPhotoUrlError] = useState<string | null>(null)
-
   // Save state
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -135,24 +133,19 @@ export default function PerfilPage({
     }
   }
 
-  function handleAddPhoto() {
-    setPhotoUrlError(null)
-    if (!newPhotoUrl.trim()) {
-      setPhotoUrlError("Informe uma URL.")
-      return
-    }
-    try {
-      new URL(newPhotoUrl.trim())
-    } catch {
-      setPhotoUrlError("URL invalida. Use o formato https://...")
-      return
-    }
-    setPortfolioPhotos((prev) => [...prev, newPhotoUrl.trim()])
-    setNewPhotoUrl("")
+  async function handleUploadPhoto(file: File) {
+    const form = new FormData()
+    form.append("file", file)
+    const res = await fetch("/api/uploads/photos?folder=guides", { method: "POST", body: form })
+    if (!res.ok) throw new Error("Falha ao enviar foto")
+    const data = await res.json()
+    const url = data.url ?? data.secure_url ?? data.path
+    if (!url) throw new Error("URL não retornada")
+    setPortfolioPhotos((prev) => [...prev, url])
   }
 
-  function handleRemovePhoto(idx: number) {
-    setPortfolioPhotos((prev) => prev.filter((_, i) => i !== idx))
+  function handleRemovePhoto(url: string) {
+    setPortfolioPhotos((prev) => prev.filter((u) => u !== url))
   }
 
   const inputStyle: React.CSSProperties = {
@@ -374,129 +367,15 @@ export default function PerfilPage({
           {/* Portfólio de Fotos (GUIDE-04) */}
           <div>
             <label style={labelStyle}>Portfólio de Fotos</label>
-            <p
-              style={{
-                fontSize: "14px",
-                color: "var(--stone-400)",
-                marginTop: 0,
-                marginBottom: "8px",
-              }}
-            >
-              Adicione URLs de fotos do seu portfólio.
+            <p style={{ fontSize: "14px", color: "var(--stone-400)", marginTop: 0, marginBottom: "8px" }}>
+              Faça upload das fotos do seu portfólio (máx. 5, até 5MB cada).
             </p>
-
-            {portfolioPhotos.length > 0 && (
-              <ul
-                style={{
-                  listStyle: "none",
-                  padding: 0,
-                  margin: "0 0 12px 0",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px",
-                }}
-              >
-                {portfolioPhotos.map((url, idx) => (
-                  <li
-                    key={idx}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      background: "var(--stone-50)",
-                      border: "1px solid var(--stone-200)",
-                      borderRadius: "4px",
-                      padding: "8px 12px",
-                    }}
-                  >
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        flex: 1,
-                        fontSize: "14px",
-                        color: "var(--ochre)",
-                        wordBreak: "break-all",
-                        textDecoration: "none",
-                      }}
-                    >
-                      {url}
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePhoto(idx)}
-                      aria-label={`Remover foto ${idx + 1}`}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        color: "#DC2626",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        padding: "4px 8px",
-                      }}
-                    >
-                      Remover
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
-              <div style={{ flex: 1 }}>
-                <input
-                  type="url"
-                  value={newPhotoUrl}
-                  onChange={(e) => {
-                    setNewPhotoUrl(e.target.value)
-                    setPhotoUrlError(null)
-                  }}
-                  placeholder="https://exemplo.com/foto.jpg"
-                  style={{
-                    ...inputStyle,
-                    borderColor: photoUrlError
-                      ? "#DC2626"
-                      : "var(--stone-300)",
-                  }}
-                  aria-describedby={
-                    photoUrlError ? "photo-url-error" : undefined
-                  }
-                />
-                {photoUrlError && (
-                  <p
-                    id="photo-url-error"
-                    style={{
-                      fontSize: "14px",
-                      color: "#DC2626",
-                      marginTop: "4px",
-                    }}
-                  >
-                    {photoUrlError}
-                  </p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={handleAddPhoto}
-                style={{
-                  background: "var(--stone-900)",
-                  color: "white",
-                  padding: "8px 16px",
-                  borderRadius: "4px",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  border: "none",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  minHeight: "44px",
-                }}
-              >
-                Adicionar Foto
-              </button>
-            </div>
+            <PhotoUploadArea
+              photos={portfolioPhotos}
+              onAdd={handleUploadPhoto}
+              onRemove={handleRemovePhoto}
+              maxPhotos={5}
+            />
           </div>
 
           {/* Save button + feedback */}
