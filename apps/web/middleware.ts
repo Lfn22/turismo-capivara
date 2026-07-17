@@ -6,6 +6,11 @@ export default withAuth(
     const token = req.nextauth.token
     const pathname = req.nextUrl.pathname
 
+    // Rotas de API nunca passam pelo guard de role — apenas pelo withAuth
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.next()
+    }
+
     // Extrair slug do path (ex: /serra-viva/painel/dashboard)
     const slugMatch = pathname.match(/^\/([^/]+)\//)
     const slug = slugMatch?.[1] ?? ""
