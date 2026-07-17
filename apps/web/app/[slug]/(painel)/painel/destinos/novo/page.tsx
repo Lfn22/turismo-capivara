@@ -22,6 +22,7 @@ export default function NovosDestinoPage() {
           description: values.description,
           state: values.state,
           photos: values.photos,
+          highlights: values.highlights.filter(Boolean),
         }),
       })
 

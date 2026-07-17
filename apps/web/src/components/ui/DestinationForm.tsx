@@ -38,6 +38,7 @@ export interface DestinationFormValues {
   description: string
   state: string
   photos: string[]
+  highlights: string[]
 }
 
 interface DestinationFormErrors {
@@ -112,6 +113,7 @@ export function DestinationForm({
     description: initialValues.description ?? '',
     state: initialValues.state ?? '',
     photos: initialValues.photos ?? [],
+    highlights: initialValues.highlights ?? [],
   })
   const [errors, setErrors] = useState<DestinationFormErrors>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
@@ -156,6 +158,14 @@ export function DestinationForm({
 
   const handleRemovePhoto = useCallback((url: string) => {
     setValues((v) => ({ ...v, photos: v.photos.filter((p) => p !== url) }))
+  }, [])
+
+  const handleHighlightChange = useCallback((index: number, value: string) => {
+    setValues((v) => {
+      const next = [...v.highlights]
+      next[index] = value
+      return { ...v, highlights: next }
+    })
   }, [])
 
   const handleSubmit = useCallback(
@@ -249,6 +259,27 @@ export function DestinationForm({
           onRemove={handleRemovePhoto}
           maxPhotos={5}
         />
+      </div>
+
+      {/* Highlights */}
+      <div>
+        <label style={LABEL_STYLE}>Pontos de interesse (máximo 4)</label>
+        <p style={{ fontSize: '13px', color: 'var(--stone-500, #78716c)', marginBottom: '12px', marginTop: 0 }}>
+          Nomes dos pontos exibidos sobre as fotos. Ex: "Cachoeira do Salto"
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {[0, 1, 2, 3].map((i) => (
+            <input
+              key={i}
+              type="text"
+              placeholder={`Ponto ${i + 1}`}
+              value={values.highlights[i] ?? ''}
+              onChange={(e) => handleHighlightChange(i, e.target.value)}
+              maxLength={80}
+              style={INPUT_STYLE}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Actions */}
