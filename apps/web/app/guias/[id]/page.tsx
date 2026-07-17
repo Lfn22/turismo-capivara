@@ -28,8 +28,9 @@ async function fetchGuide(id: string): Promise<GuideProfile | null> {
   }
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const guide = await fetchGuide(params.id)
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params
+  const guide = await fetchGuide(id)
   if (!guide) return { title: 'Guia não encontrado' }
   return {
     title: guide.name,
@@ -37,8 +38,9 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 }
 
-export default async function GuiaProfilePage({ params }: { params: { id: string } }) {
-  const guide = await fetchGuide(params.id)
+export default async function GuiaProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const guide = await fetchGuide(id)
   if (!guide) notFound()
 
   return (
