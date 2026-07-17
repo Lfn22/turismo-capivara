@@ -102,16 +102,18 @@ export default function DisponibilidadePage({
       .finally(() => setLoading(false))
   }, [packages, slug])
 
-  // Fetch qualified guides when formPackageId changes
+  // Fetch all tenant guides when a package is selected
   useEffect(() => {
-    if (!formPackageId) {
+    if (!formPackageId || !slug) {
       setGuides([])
       return
     }
     setGuidesLoading(true)
-    fetch(`/api/packages/${formPackageId}/guides`)
+    fetch(`/api/proxy?path=/tenants/${slug}/guides`)
       .then((res) => res.json())
-      .then((data: Guide[]) => setGuides(data))
+      .then((data: { guides: Array<{ id: string; user: { id: string; name: string } }> }) => {
+        setGuides((data.guides ?? []).map(g => ({ guideId: g.id, name: g.user.name })))
+      })
       .catch(() => setGuides([]))
       .finally(() => setGuidesLoading(false))
   }, [formPackageId, slug])

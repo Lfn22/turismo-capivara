@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   const token = jwt.apiToken as string
 
   const folder = req.nextUrl.searchParams.get("folder")
-  if (!folder || !["destinations", "packages"].includes(folder)) {
+  if (!folder || !["destinations", "packages", "guides"].includes(folder)) {
     return NextResponse.json({ message: "Parâmetro folder inválido" }, { status: 400 })
   }
   const formData = await req.formData()

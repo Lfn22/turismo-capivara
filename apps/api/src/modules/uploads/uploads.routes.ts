@@ -6,8 +6,8 @@ import { authorize } from '../../shared/middlewares/authorize'
 import { validatePhotoFile, uploadPhotoToR2 } from './uploads.service'
 import { AppError } from '../../shared/errors/AppError'
 
-const folderSchema = z.enum(['destinations', 'packages'], {
-  error: 'Folder inválido. Use "destinations" ou "packages".',
+const folderSchema = z.enum(['destinations', 'packages', 'guides'], {
+  error: 'Folder inválido. Use "destinations", "packages" ou "guides".',
 })
 
 export async function uploadsRoutes(app: FastifyInstance) {
@@ -26,7 +26,7 @@ export async function uploadsRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN', 'CONDUTOR', 'CLIENTE'])] },
     async (request, reply) => {
       // Validate query param: folder
-      let folder: 'destinations' | 'packages'
+      let folder: 'destinations' | 'packages' | 'guides'
       try {
         folder = folderSchema.parse((request.query as Record<string, string>).folder)
       } catch (err) {
