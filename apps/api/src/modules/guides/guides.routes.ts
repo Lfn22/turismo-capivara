@@ -342,6 +342,46 @@ export async function guidesRoutes(app: FastifyInstance) {
     )
   })
 
+  // GET /guides/:id — perfil público de um guia aprovado
+  app.get('/guides/:id', async (request, reply) => {
+    const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
+    let params
+    try {
+      params = guideOnlyIdSchema.parse(request.params)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+      throw err
+    }
+
+    const guide = await prisma.guideProfile.findFirst({
+      where: {
+        id: params.id,
+        user: { role: 'CONDUTOR', approvalStatus: 'APPROVED' },
+      },
+      select: {
+        id: true,
+        bio: true,
+        photoUrl: true,
+        especialidades: true,
+        regioes: true,
+        portfolioPhotos: true,
+        user: { select: { id: true, name: true } },
+      },
+    })
+
+    if (!guide) throw new AppError('Guia não encontrado', 404)
+
+    return reply.status(200).send({
+      id: guide.id,
+      name: guide.user.name,
+      bio: guide.bio,
+      photoUrl: guide.photoUrl,
+      specialties: guide.especialidades,
+      regions: guide.regioes,
+      portfolioPhotos: guide.portfolioPhotos,
+    })
+  })
+
   // GET /guides/:id/packages — pacotes atendidos por um guia (público)
   app.get('/guides/:id/packages', async (request, reply) => {
     const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
