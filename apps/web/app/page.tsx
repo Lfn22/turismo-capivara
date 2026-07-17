@@ -77,6 +77,11 @@ export default async function HomePage() {
           letter-spacing: -0.02em;
           text-decoration: none;
         }
+        .home-nav__right {
+          display: flex;
+          align-items: center;
+          gap: clamp(16px, 3vw, 32px);
+        }
         .home-nav__links {
           display: flex;
           align-items: center;
@@ -321,6 +326,7 @@ export default async function HomePage() {
         }
         @media (max-width: 640px) {
           .home-nav__links { display: none; }
+          .home-nav__right { gap: 0; }
           .home-hero, .home-catalog {
             height: auto;
             min-height: 50dvh;
@@ -334,10 +340,12 @@ export default async function HomePage() {
       {/* Nav */}
       <nav className="home-nav">
         <Link href="/" className="home-nav__wordmark">CAPI</Link>
-        <div className="home-nav__links">
-          <Link href="/destinos" className="home-nav__link">Destinos</Link>
+        <div className="home-nav__right">
+          <div className="home-nav__links">
+            <Link href="/destinos" className="home-nav__link">Destinos</Link>
+          </div>
+          <Link href="/explorar" className="home-nav__cta">Explorar</Link>
         </div>
-        <Link href="/explorar" className="home-nav__cta">Explorar</Link>
       </nav>
 
       {/* Section 1 — Hero */}
