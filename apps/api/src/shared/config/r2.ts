@@ -52,5 +52,6 @@ export function getR2PublicUrl(): string {
       'Variável R2 ausente: R2_PUBLIC_URL é obrigatória (copie a URL pública do dashboard Cloudflare R2 → seu bucket → Public URL)',
     )
   }
-  return publicUrl.replace(/\/$/, '')
+  const trimmed = publicUrl.replace(/\/$/, '')
+  return trimmed.startsWith('http') ? trimmed : `https://${trimmed}`
 }

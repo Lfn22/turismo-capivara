@@ -62,7 +62,8 @@ export async function uploadPhotoToR2(
         ContentType: mimeType,
       }),
     )
-  } catch {
+  } catch (err) {
+    console.error('[R2] PutObjectCommand failed:', err)
     throw new AppError('Falha ao enviar arquivo. Tente novamente.', 500)
   }
 
