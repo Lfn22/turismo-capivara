@@ -9,7 +9,7 @@ import BackButton from '@/src/components/ui/BackButton'
 
 interface DestinationData {
   id: string
-  name: string
+  title: string
   description: string
   state: string
   photos: string[]
@@ -128,7 +128,7 @@ export default function EditarDestinoPage() {
       <DestinationForm
         slug={slug}
         initialValues={{
-          name: destination.name,
+          name: destination.title,
           description: destination.description,
           state: destination.state,
           photos: destination.photos,

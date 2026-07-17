@@ -94,9 +94,6 @@ export async function updateDestination(
     if (!destination.createdById || destination.createdById !== userId) {
       throw new AppError('Não autorizado', 403)
     }
-    if (destination.approvalStatus === 'APPROVED') {
-      throw new AppError('Não é possível editar destino aprovado', 400)
-    }
   }
 
   let coords: { lat: number; lng: number } | null = null
@@ -113,6 +110,8 @@ export async function updateDestination(
       ...(input.photos !== undefined && { photos: input.photos }),
       ...(input.highlights !== undefined && { highlights: input.highlights }),
       ...(coords && { lat: coords.lat, lng: coords.lng }),
+      // CONDUTOR editando destino aprovado: volta para revisão
+      ...(userRole !== 'ADMIN' && destination.approvalStatus === 'APPROVED' && { approvalStatus: 'PENDING' }),
     },
     select: { id: true, slug: true, title: true, state: true, description: true, highlights: true, photos: true, approvalStatus: true, createdAt: true, createdById: true, lat: true, lng: true },
   })
