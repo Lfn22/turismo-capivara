@@ -6,13 +6,6 @@ export const dynamic = 'force-dynamic'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 
-interface Destination {
-  id: string
-  slug: string
-  title: string
-  state: string
-}
-
 interface Guide {
   id: string
   name: string
@@ -20,29 +13,11 @@ interface Guide {
   specialties: string[]
 }
 
-interface DestinationWithGuides extends Destination {
-  guides: Guide[]
-}
-
-async function fetchExperiences(): Promise<DestinationWithGuides[] | null> {
+async function fetchGuides(): Promise<Guide[] | null> {
   try {
-    const res = await fetch(`${API_URL}/destinations`, { cache: 'no-store' })
+    const res = await fetch(`${API_URL}/guides`, { cache: 'no-store' })
     if (!res.ok) return null
-    const destinations: Destination[] = await res.json()
-
-    const results = await Promise.all(
-      destinations.map(async (d) => {
-        try {
-          const gr = await fetch(`${API_URL}/destinations/${d.slug}/guides`, { cache: 'no-store' })
-          const guides: Guide[] = gr.ok ? await gr.json() : []
-          return { ...d, guides }
-        } catch {
-          return { ...d, guides: [] }
-        }
-      })
-    )
-
-    return results.filter((d) => d.guides.length > 0)
+    return res.json()
   } catch {
     return null
   }
@@ -54,7 +29,7 @@ export const metadata: Metadata = {
 }
 
 export default async function ExplorarPage() {
-  const destinations = await fetchExperiences()
+  const guides = await fetchGuides()
 
   return (
     <>
@@ -161,56 +136,54 @@ export default async function ExplorarPage() {
         </header>
 
         <main className="explorar__body">
-          {destinations === null ? (
+          {guides === null ? (
             <div className="explorar__empty" role="status">
               <p className="explorar__empty-title">Erro ao carregar experiências</p>
               <p className="explorar__empty-sub">
                 Não foi possível conectar ao servidor. Tente novamente em instantes.
               </p>
             </div>
-          ) : destinations.length === 0 ? (
+          ) : guides.length === 0 ? (
             <div className="explorar__empty" role="status">
               <p className="explorar__empty-title">Nenhum guia disponível ainda</p>
               <p className="explorar__empty-sub">Em breve novos guias serão adicionados.</p>
             </div>
           ) : (
-            destinations.map((dest) => (
-              <section key={dest.id} className="explorar__section">
-                <div className="explorar__section-header">
-                  <h2 className="explorar__section-title">{dest.title}</h2>
-                  <p className="explorar__section-sub">{dest.state}</p>
-                </div>
-                <div className="explorar__grid">
-                  {dest.guides.map((guide) => (
-                    <Link
-                      key={guide.id}
-                      href={`/destinos/${dest.slug}/guias/${guide.id}`}
-                      className="explorar__card"
-                    >
-                      {guide.photoUrl ? (
-                        <Image
-                          src={guide.photoUrl}
-                          alt={guide.name}
-                          width={400}
-                          height={400}
-                          className="explorar__photo"
-                        />
-                      ) : (
-                        <div className="explorar__photo-placeholder" aria-hidden>🧭</div>
+            <section className="explorar__section">
+              <div className="explorar__section-header">
+                <h2 className="explorar__section-title">Guias Disponíveis</h2>
+                <p className="explorar__section-sub">{guides.length} guia{guides.length !== 1 ? 's' : ''} certificado{guides.length !== 1 ? 's' : ''}</p>
+              </div>
+              <div className="explorar__grid">
+                {guides.map((guide) => (
+                  <Link
+                    key={guide.id}
+                    href={`/guias/${guide.id}`}
+                    className="explorar__card"
+                  >
+                    {guide.photoUrl ? (
+                      <Image
+                        src={guide.photoUrl}
+                        alt={guide.name}
+                        width={400}
+                        height={400}
+                        className="explorar__photo"
+                      />
+                    ) : (
+                      <div className="explorar__photo-placeholder" aria-hidden>🧭</div>
+                    )}
+                    <div className="explorar__card-body">
+                      <p className="explorar__guide-name">{guide.name}</p>
+                      {guide.specialties?.length > 0 && (
+                        <p className="explorar__specialties">
+                          {guide.specialties.join(' · ')}
+                        </p>
                       )}
-                      <div className="explorar__card-body">
-                        <p className="explorar__guide-name">{guide.name}</p>
-                        {guide.specialties?.length > 0 && (
-                          <p className="explorar__specialties">
-                            {guide.specialties.join(' · ')}
-                          </p>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            ))
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
           )}
         </main>
       </div>

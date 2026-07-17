@@ -33,6 +33,7 @@ const registerBodySchema = z.discriminatedUnion('role', [
     email: z.string().email({ message: 'Email inválido' }),
     password: z.string().min(8, { message: 'Senha deve ter no mínimo 8 caracteres' }),
     cpf: z.string().regex(/^\d{11}$/, { message: 'CPF deve conter 11 dígitos numéricos' }),
+    cadastur: z.string().optional(),
   }),
 ])
 
@@ -170,6 +171,7 @@ export async function authRoutes(app: FastifyInstance) {
               especialidades: [],
               regioes: [],
               portfolioPhotos: [],
+              cadastur: body.role === 'CONDUTOR' ? body.cadastur : undefined,
             },
           })
         })
@@ -199,6 +201,74 @@ export async function authRoutes(app: FastifyInstance) {
       role: user.role,
       tenantId: user.tenantId,
     })
+  })
+
+  // POST /auth/register-independent — registro de guia sem operadora (aprovado pelo super-admin)
+  app.post('/auth/register-independent', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const independentBodySchema = z.object({
+      name: z.string().min(1, { message: 'Nome obrigatório' }),
+      email: z.string().email({ message: 'Email inválido' }),
+      password: z.string().min(8, { message: 'Senha deve ter no mínimo 8 caracteres' }),
+      cpf: z.string().regex(/^\d{11}$/, { message: 'CPF deve conter 11 dígitos numéricos' }),
+      cadastur: z.string().min(1, { message: 'Número CADASTUR obrigatório' }),
+    })
+
+    let body
+    try {
+      body = independentBodySchema.parse(request.body)
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return reply.status(400).send({
+          message: 'Dados inválidos',
+          errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })),
+        })
+      }
+      throw err
+    }
+
+    // Garante que o tenant "independente" existe
+    let systemTenant = await prisma.tenant.findFirst({ where: { slug: 'independente' } })
+    if (!systemTenant) {
+      systemTenant = await prisma.tenant.create({
+        data: { slug: 'independente', name: 'Guias Independentes' },
+      })
+    }
+
+    const hashedPassword = hashSync(body.password, 10)
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            tenantId: systemTenant!.id,
+            name: body.name,
+            email: body.email.toLowerCase(),
+            password: hashedPassword,
+            role: 'CONDUTOR',
+            cpf: hashCpf(body.cpf),
+          },
+          select: { id: true },
+        })
+        await tx.guideProfile.create({
+          data: {
+            userId: user.id,
+            especialidades: [],
+            regioes: [],
+            portfolioPhotos: [],
+            cadastur: body.cadastur,
+          },
+        })
+      })
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const fields = err.meta?.target as string[] | undefined
+        if (fields?.includes('cpf')) throw new AppError('CPF já cadastrado', 409)
+        throw new AppError('Não foi possível criar a conta', 409)
+      }
+      throw err
+    }
+
+    return reply.status(201).send({ message: 'Conta criada com sucesso. Aguarde aprovação.' })
   })
 
   await app.register(lookupTenantRoute)

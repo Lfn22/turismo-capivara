@@ -81,6 +81,7 @@ model GuideProfile {
   especialidades  String[]
   regioes         String[]
   portfolioPhotos String[]
+  cadastur        String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

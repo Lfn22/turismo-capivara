@@ -368,6 +368,12 @@ export default function CadastroCondutorPage() {
             Entrar no painel
           </Link>
         </p>
+        <p style={{ textAlign: "center", fontSize: "13px", color: "var(--stone-400)", marginTop: "8px" }}>
+          Sem código de operadora?{" "}
+          <Link href="/cadastro/guia" style={{ color: "var(--stone-500)", textDecoration: "underline" }}>
+            Cadastre-se como guia independente
+          </Link>
+        </p>
       </div>
     </main>
   )

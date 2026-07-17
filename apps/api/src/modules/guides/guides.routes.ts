@@ -313,6 +313,35 @@ export async function guidesRoutes(app: FastifyInstance) {
     return reply.status(200).send({ bookings: safeBookings })
   })
 
+  // GET /guides — todos os guias aprovados (público)
+  app.get('/guides', async (_request, reply) => {
+    const guides = await prisma.guideProfile.findMany({
+      where: {
+        user: {
+          role: 'CONDUTOR',
+          approvalStatus: 'APPROVED',
+        },
+      },
+      select: {
+        id: true,
+        photoUrl: true,
+        especialidades: true,
+        user: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { user: { name: 'asc' } },
+    })
+    return reply.status(200).send(
+      guides.map((g) => ({
+        id: g.id,
+        name: g.user.name,
+        photoUrl: g.photoUrl,
+        specialties: g.especialidades,
+      }))
+    )
+  })
+
   // GET /guides/:id/packages — pacotes atendidos por um guia (público)
   app.get('/guides/:id/packages', async (request, reply) => {
     const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
