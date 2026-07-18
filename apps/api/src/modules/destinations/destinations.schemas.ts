@@ -60,6 +60,7 @@ export const UpdateDestinationInput = z
       )
       .max(10, { message: 'Máximo de 10 destaques' })
       .optional(),
+    heroImageUrl: z.string().url({ message: 'URL de imagem inválida' }).nullable().optional(),
   })
   .refine((data) => Object.values(data).some((v) => v !== undefined), {
     message: 'Pelo menos um campo deve ser informado',

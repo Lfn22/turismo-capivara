@@ -39,6 +39,7 @@ export interface DestinationFormValues {
   state: string
   photos: string[]
   highlights: string[]
+  heroImageUrl?: string | null
 }
 
 interface DestinationFormErrors {
@@ -114,6 +115,7 @@ export function DestinationForm({
     state: initialValues.state ?? '',
     photos: initialValues.photos ?? [],
     highlights: initialValues.highlights ?? [],
+    heroImageUrl: initialValues.heroImageUrl ?? null,
   })
   const [errors, setErrors] = useState<DestinationFormErrors>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
@@ -260,6 +262,60 @@ export function DestinationForm({
           maxPhotos={5}
         />
       </div>
+
+      {/* Hero image picker */}
+      {values.photos.length > 0 && (
+        <div>
+          <label style={LABEL_STYLE}>Foto de capa</label>
+          <p style={{ fontSize: '13px', color: 'var(--stone-500, #78716c)', marginBottom: '12px', marginTop: 0 }}>
+            Escolha qual foto aparece no topo da página do destino.
+          </p>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            {values.photos.map((url, i) => (
+              <button
+                key={url}
+                type="button"
+                onClick={() =>
+                  setValues((v) => ({ ...v, heroImageUrl: v.heroImageUrl === url ? null : url }))
+                }
+                aria-label={`Definir foto ${i + 1} como capa`}
+                style={{
+                  position: 'relative',
+                  width: '80px',
+                  height: '80px',
+                  padding: 0,
+                  border: values.heroImageUrl === url
+                    ? '3px solid var(--ochre, #c2783c)'
+                    : '2px solid var(--stone-200, #e7e5e4)',
+                  borderRadius: '6px',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  background: 'none',
+                  flexShrink: 0,
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                {values.heroImageUrl === url && (
+                  <span style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    background: 'var(--ochre, #c2783c)',
+                    color: '#fff',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    textAlign: 'center',
+                    padding: '2px 0',
+                    letterSpacing: '0.05em',
+                  }}>CAPA</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Highlights */}
       <div>

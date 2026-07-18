@@ -110,6 +110,7 @@ export async function updateDestination(
       ...(input.state !== undefined && { state: input.state }),
       ...(input.photos !== undefined && { photos: input.photos }),
       ...(input.highlights !== undefined && { highlights: input.highlights }),
+      ...(input.heroImageUrl !== undefined && { heroImageUrl: input.heroImageUrl }),
       ...(coords && { lat: coords.lat, lng: coords.lng }),
       // CONDUTOR editando destino aprovado: volta para revisão
       ...(userRole !== 'ADMIN' && destination.approvalStatus === 'APPROVED' && { approvalStatus: 'PENDING' }),

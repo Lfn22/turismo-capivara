@@ -14,6 +14,7 @@ interface DestinationData {
   state: string
   photos: string[]
   highlights: string[]
+  heroImageUrl: string | null
   approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
   createdById: string | null
 }
@@ -54,6 +55,7 @@ export default function EditarDestinoPage() {
           state: values.state,
           photos: values.photos,
           highlights: values.highlights.filter(Boolean),
+          heroImageUrl: values.heroImageUrl ?? null,
         }),
       })
 
@@ -135,6 +137,7 @@ export default function EditarDestinoPage() {
           state: destination.state,
           photos: destination.photos,
           highlights: destination.highlights,
+          heroImageUrl: destination.heroImageUrl,
         }}
         onSubmit={handleSubmit}
         submitting={submitting}
