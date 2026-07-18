@@ -15,8 +15,8 @@ interface DestinationGuides {
 async function fetchDestinationGuides(slug: string): Promise<DestinationGuides> {
   try {
     const [destRes, guidesRes] = await Promise.all([
-      fetch(`${API_URL}/destinations/${slug}`, { next: { revalidate: 3600 } }),
-      fetch(`${API_URL}/destinations/${slug}/guides`, { next: { revalidate: 300 } }),
+      fetch(`${API_URL}/destinations/${slug}`, { next: { revalidate: 60 } }),
+      fetch(`${API_URL}/destinations/${slug}/guides`, { next: { revalidate: 60 } }),
     ])
     const destination = destRes.ok ? await destRes.json() : null
     const guides: GuideCardGuide[] = guidesRes.ok ? await guidesRes.json() : []

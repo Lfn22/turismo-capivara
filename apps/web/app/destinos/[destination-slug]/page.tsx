@@ -33,7 +33,7 @@ interface Destination {
 async function fetchDestination(slug: string): Promise<Destination | null> {
   try {
     const res = await fetch(`${API_URL}/destinations/${slug}`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 60 },
     });
     if (res.status === 404) return null;
     if (!res.ok) return null;
@@ -55,7 +55,7 @@ async function fetchPartners(_destinationSlug: string): Promise<PartnerData[]> {
 export async function generateStaticParams() {
   try {
     const res = await fetch(`${API_URL}/destinations`, {
-      next: { revalidate: 3600 },
+      next: { revalidate: 60 },
     });
     if (!res.ok) return [];
     const destinations: { slug: string }[] = await res.json();

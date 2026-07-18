@@ -28,8 +28,8 @@ interface DestinationPackages {
 async function fetchDestinationPackages(slug: string): Promise<DestinationPackages> {
   try {
     const [destRes, packagesRes] = await Promise.all([
-      fetch(`${API_URL}/destinations/${slug}`, { next: { revalidate: 3600 } }),
-      fetch(`${API_URL}/destinations/${slug}/packages`, { next: { revalidate: 300 } }),
+      fetch(`${API_URL}/destinations/${slug}`, { next: { revalidate: 60 } }),
+      fetch(`${API_URL}/destinations/${slug}/packages`, { next: { revalidate: 60 } }),
     ]);
     const destination = destRes.ok ? await destRes.json() : null;
     const raw: ApiPackage[] = packagesRes.ok ? await packagesRes.json() : [];
