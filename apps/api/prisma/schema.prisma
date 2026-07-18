@@ -88,6 +88,7 @@ model GuideProfile {
   user           User            @relation(fields: [userId], references: [id])
   packageGuides  PackageGuide[]
   departureSlots DepartureSlot[]
+  testimonials   Testimonial[]
 }
 
 model TourPackage {
@@ -239,6 +240,16 @@ model PackageGuide {
   @@unique([packageId, guideId])
   @@index([packageId])
   @@index([guideId])
+}
+
+model Testimonial {
+  id             String       @id @default(cuid())
+  text           String
+  touristName    String
+  rating         Int          @default(5)
+  guideProfileId String
+  guideProfile   GuideProfile @relation(fields: [guideProfileId], references: [id])
+  createdAt      DateTime     @default(now())
 }
 
 model ProcessedWebhookEvent {

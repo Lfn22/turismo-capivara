@@ -471,4 +471,74 @@ export async function guidesRoutes(app: FastifyInstance) {
 
     return reply.status(200).send({ profile })
   })
+
+  // GET /guides/:id/testimonials — depoimentos públicos de um guia
+  app.get('/guides/:id/testimonials', async (request, reply) => {
+    const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
+    let params
+    try {
+      params = guideOnlyIdSchema.parse(request.params)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+      throw err
+    }
+
+    const guide = await prisma.guideProfile.findFirst({
+      where: { id: params.id, user: { approvalStatus: 'APPROVED' } },
+      select: { id: true },
+    })
+    if (!guide) throw new AppError('Guia não encontrado', 404)
+
+    const testimonials = await prisma.testimonial.findMany({
+      where: { guideProfileId: params.id },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, text: true, touristName: true, rating: true, createdAt: true },
+    })
+
+    return reply.status(200).send({ testimonials })
+  })
+
+  // POST /guides/:id/testimonials — turista deixa depoimento
+  app.post('/guides/:id/testimonials', async (request, reply) => {
+    const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
+    const testimonialBodySchema = z.object({
+      text: z.string().min(10, { message: 'Depoimento muito curto' }).max(500, { message: 'Depoimento muito longo' }),
+      touristName: z.string().min(2, { message: 'Nome obrigatório' }).max(100),
+      rating: z.number().int().min(1).max(5).default(5),
+    })
+
+    let params
+    try {
+      params = guideOnlyIdSchema.parse(request.params)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+      throw err
+    }
+
+    let body
+    try {
+      body = testimonialBodySchema.parse(request.body)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+      throw err
+    }
+
+    const guide = await prisma.guideProfile.findFirst({
+      where: { id: params.id, user: { approvalStatus: 'APPROVED' } },
+      select: { id: true },
+    })
+    if (!guide) throw new AppError('Guia não encontrado', 404)
+
+    const testimonial = await prisma.testimonial.create({
+      data: {
+        guideProfileId: params.id,
+        text: body.text,
+        touristName: body.touristName,
+        rating: body.rating,
+      },
+      select: { id: true, text: true, touristName: true, rating: true, createdAt: true },
+    })
+
+    return reply.status(201).send({ testimonial })
+  })
 }
