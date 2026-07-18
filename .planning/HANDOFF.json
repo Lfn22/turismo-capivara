@@ -1,47 +1,77 @@
 {
-  "context": "phase",
-  "phase": "28-map-widget",
-  "phase_dir": ".planning/phases/28-map-widget",
-  "handoff_path": ".planning/phases/28-map-widget/.continue-here.md",
-  "task": 2,
-  "total_tasks": 7,
-  "status": "in_progress",
-  "last_updated": "2026-07-15T09:04:00-03:00",
-  "blocking_constraints": [
+  "version": "1.0",
+  "timestamp": "2026-07-17T23:49:24Z",
+  "phase": null,
+  "phase_name": "Auditoria ad-hoc — Diagnóstico de renderização turista",
+  "phase_dir": null,
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
+  "status": "paused",
+  "completed_tasks": [
     {
-      "name": "MapWidgetClient wrapper",
-      "description": "dynamic({ ssr: false }) requires a 'use client' wrapper in App Router",
-      "severity": "blocking"
+      "id": 1,
+      "name": "Auditoria do fluxo de escrita (guia/admin) — 5 etapas",
+      "status": "done",
+      "notes": "Mapeados formulários, mutations, payloads e campos gravados vs schema Prisma"
     },
     {
-      "name": "prisma db push",
-      "description": "Pre-existing schema drift blocks prisma migrate dev — use db push instead",
-      "severity": "blocking"
+      "id": 2,
+      "name": "Auditoria do fluxo de leitura (turista)",
+      "status": "done",
+      "notes": "Mapeadas rotas públicas, estratégias ISR/force-dynamic, filtros silenciosos"
+    },
+    {
+      "id": 3,
+      "name": "Verificação de banco e infra (análise estática de código)",
+      "status": "done",
+      "notes": "Analisados defaults Prisma, relações, mecanismo R2, env vars necessárias"
+    },
+    {
+      "id": 4,
+      "name": "Relatório completo entregue ao usuário",
+      "status": "done",
+      "notes": "9 achados, plano priorizado, tabelas de mismatch e mutations sem revalidação"
     }
   ],
+  "remaining_tasks": [
+    {
+      "id": 5,
+      "name": "Aguardar aprovação do plano pelo usuário",
+      "status": "blocked_on_human"
+    },
+    {
+      "id": 6,
+      "name": "Implementar correções aprovadas (A1–A9)",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [],
   "human_actions_pending": [
     {
-      "action": "Verify MAPTILER_KEY in apps/web/.env.local",
-      "reason": "Required for map visual rendering tests"
+      "action": "Revisar relatório e aprovar quais correções implementar",
+      "context": "Relatório na conversa. 9 achados classificados. Plano de correção na seção 5.",
+      "blocking": true
     },
     {
-      "action": "Ensure at least one Destination has lat/lng in database",
-      "reason": "Required for UAT Tests 2-4 (visual map tests)"
+      "action": "Confirmar se Tenant.destinationId tem fluxo de configuração (seed, migration, processo manual)",
+      "context": "Achado A4 CRÍTICO: sem vínculo Tenant→Destination, ZERO pacotes aparecem para turistas",
+      "blocking": true
+    },
+    {
+      "action": "Confirmar R2_PUBLIC_URL, R2_BUCKET_NAME, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN no Railway",
+      "context": "Achado A8: uploads retornam 503 se vars ausentes; imagens quebradas se bucket não público",
+      "blocking": false
     }
   ],
-  "session_2026_07_14_15": {
-    "type": "bug-fix investigation",
-    "work_done": [
-      "Fixed 500 errors in super-admin panel: approve operadora, load destinos",
-      "Root cause: Prisma queries without explicit select fetched rejectionReason column not yet in production DB",
-      "Added explicit select to all affected queries in destinations.routes.ts, destinations.service.ts, tenants.routes.ts, auth.routes.ts",
-      "Fixed 4 test assertions in destinations.routes.test.ts",
-      "railway.json: releaseCommand added to run prisma migrate deploy on next deploy",
-      "All changes committed: b451875 (fix dos destinos), 20ceeab, ea5dd1e, 35f8fca"
-    ],
-    "status": "complete — all committed, no uncommitted changes"
-  },
+  "decisions": [
+    {
+      "decision": "Auditoria read-only — nenhum código alterado",
+      "rationale": "Usuário pediu diagnóstico antes de qualquer implementação",
+      "phase": null
+    }
+  ],
   "uncommitted_files": [],
-  "next_action": "Resume /gsd-verify-work 28 at Test 2. Check MAPTILER_KEY in apps/web/.env.local and ensure a Destination row has lat/lng in DB before visual tests.",
-  "context_notes": "Phase 28 fully executed (13/13 verified). MapWidgetClient SSR fix committed. v2.1 milestone 100% code-complete. Super-admin panel 500 errors fixed separately (not Phase 28 scope)."
+  "next_action": "Obter aprovação do usuário para as correções, então implementar na ordem do plano começando pelo A4 (Tenant.destinationId) e A1 (heroImageUrl).",
+  "context_notes": "Auditoria de 5 etapas solicitada para diagnosticar por que conteúdo criado pelo guia não aparece ao turista. Dois achados CRÍTICOS: (1) heroImageUrl nunca gravado — destinos sem imagem; (2) Tenant.destinationId possivelmente sem UI — pacotes invisíveis. Relatório entregue, aguarda aprovação."
 }

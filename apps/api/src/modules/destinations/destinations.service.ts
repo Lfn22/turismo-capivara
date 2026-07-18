@@ -65,6 +65,7 @@ export async function createDestination(
       state: input.state,
       photos: input.photos ?? [],
       highlights: input.highlights ?? [],
+      heroImageUrl: input.heroImageUrl ?? null,
       approvalStatus: userRole === 'ADMIN' ? 'APPROVED' : 'PENDING',
       createdById: userId,
       ...(coords && { lat: coords.lat, lng: coords.lng }),

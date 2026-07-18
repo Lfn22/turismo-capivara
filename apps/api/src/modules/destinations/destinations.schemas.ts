@@ -29,6 +29,7 @@ export const CreateDestinationInput = z.object({
     )
     .max(10, { message: 'Máximo de 10 destaques' })
     .default([]),
+  heroImageUrl: z.string().url({ message: 'URL de imagem inválida' }).nullable().optional(),
 })
 
 export type CreateDestinationInputType = z.infer<typeof CreateDestinationInput>
