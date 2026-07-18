@@ -10,6 +10,13 @@ interface Tenant {
   rejectionReason: string | null
   createdAt: string
   users: Array<{ email: string; name: string }>
+  destinationId: string | null
+}
+
+interface DestinationOption {
+  id: string
+  title: string
+  slug: string
 }
 
 const TENANT_STATUS: Record<string, { label: string; bg: string; color: string }> = {
@@ -39,6 +46,11 @@ export default function SuperAdminOperadorasPage() {
   const [rejectReason, setRejectReason] = useState("")
   const [rejectError, setRejectError] = useState<string | null>(null)
   const [rejectSubmitting, setRejectSubmitting] = useState(false)
+  const [destinations, setDestinations] = useState<DestinationOption[]>([])
+  const [linkTarget, setLinkTarget] = useState<Tenant | null>(null)
+  const [linkDestinationId, setLinkDestinationId] = useState<string>("")
+  const [linkSubmitting, setLinkSubmitting] = useState(false)
+  const [linkError, setLinkError] = useState<string | null>(null)
 
   function loadTenants() {
     setLoading(true)
@@ -79,8 +91,37 @@ export default function SuperAdminOperadorasPage() {
 
   useEffect(() => {
     loadTenants()
+    fetch("/api/admin/destinations?status=APPROVED&limit=100&offset=0")
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => {
+        const list = Array.isArray(data) ? data : (data.destinations ?? [])
+        setDestinations(list)
+      })
+      .catch(() => { /* silencioso */ })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function handleLinkDestination() {
+    if (!linkTarget) return
+    setLinkSubmitting(true)
+    setLinkError(null)
+    try {
+      const res = await fetch(`/api/super-admin/tenants/${linkTarget.id}/link-destination`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destinationId: linkDestinationId || null }),
+      })
+      if (!res.ok) throw new Error()
+      setItems((prev) =>
+        prev.map((t) => t.id === linkTarget.id ? { ...t, destinationId: linkDestinationId || null } : t)
+      )
+      setLinkTarget(null)
+    } catch {
+      setLinkError("Não foi possível vincular o destino. Tente novamente.")
+    } finally {
+      setLinkSubmitting(false)
+    }
+  }
 
   async function handleApprove(tenant: Tenant) {
     setActionLoading(tenant.id)
@@ -341,6 +382,27 @@ export default function SuperAdminOperadorasPage() {
                             Rejeitar Operadora
                           </button>
                         </div>
+                      ) : item.approvalStatus === "APPROVED" ? (
+                        <button
+                          onClick={() => {
+                            setLinkTarget(item)
+                            setLinkDestinationId(item.destinationId ?? "")
+                            setLinkError(null)
+                          }}
+                          style={{
+                            background: "transparent",
+                            color: "var(--ochre)",
+                            border: "1px solid var(--ochre)",
+                            padding: "6px 10px",
+                            borderRadius: "4px",
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {item.destinationId ? "Alterar destino" : "Vincular destino"}
+                        </button>
                       ) : (
                         <span style={{ color: "var(--stone-400)" }}>—</span>
                       )}
@@ -374,6 +436,74 @@ export default function SuperAdminOperadorasPage() {
           )}
         </div>
       )}
+
+      {/* Link Destination Modal */}
+      <Modal
+        open={!!linkTarget}
+        onClose={() => setLinkTarget(null)}
+        title="Vincular Destino"
+      >
+        <p style={{ fontSize: "14px", color: "var(--stone-600)", marginBottom: "16px" }}>
+          Selecione o destino para vincular à operadora <strong>{linkTarget?.name}</strong>.
+        </p>
+        <select
+          value={linkDestinationId}
+          onChange={(e) => setLinkDestinationId(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            border: "1px solid var(--stone-200)",
+            borderRadius: "4px",
+            fontSize: "14px",
+            fontFamily: "var(--font-body)",
+            background: "white",
+            color: "var(--stone-800)",
+            boxSizing: "border-box",
+          }}
+        >
+          <option value="">— Sem destino vinculado —</option>
+          {destinations.map((d) => (
+            <option key={d.id} value={d.id}>{d.title}</option>
+          ))}
+        </select>
+        {linkError && (
+          <p role="alert" style={{ fontSize: "14px", color: "#DC2626", marginTop: "8px" }}>
+            {linkError}
+          </p>
+        )}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "16px" }}>
+          <button
+            onClick={() => setLinkTarget(null)}
+            style={{
+              background: "white",
+              color: "var(--stone-700)",
+              border: "1px solid var(--stone-300)",
+              padding: "8px 16px",
+              borderRadius: "4px",
+              fontSize: "14px",
+              cursor: "pointer",
+            }}
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleLinkDestination}
+            disabled={linkSubmitting}
+            style={{
+              background: linkSubmitting ? "var(--stone-400)" : "var(--ochre)",
+              color: "white",
+              border: "none",
+              padding: "8px 16px",
+              borderRadius: "4px",
+              fontSize: "14px",
+              fontWeight: 600,
+              cursor: linkSubmitting ? "not-allowed" : "pointer",
+            }}
+          >
+            {linkSubmitting ? "Salvando..." : "Salvar"}
+          </button>
+        </div>
+      </Modal>
 
       {/* Rejection Modal */}
       <Modal

@@ -374,4 +374,28 @@ export async function tenantsRoutes(app: FastifyInstance) {
     if (!tenant?.destination) throw new AppError('Destino não encontrado', 404)
     return reply.status(200).send(tenant.destination)
   })
+
+  app.patch('/tenants/:id/link-destination', {
+    preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
+  }, async (request, reply) => {
+    let params, body
+    try {
+      params = z.object({ id: z.string().min(1) }).parse(request.params)
+      body = z.object({ destinationId: z.string().nullable() }).parse(request.body)
+    } catch (err) {
+      if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
+      throw err
+    }
+
+    const tenant = await prisma.tenant.findUnique({ where: { id: params.id }, select: { id: true } })
+    if (!tenant) throw new AppError('Operadora não encontrada', 404)
+
+    await prisma.tenant.update({
+      where: { id: params.id },
+      data: { destinationId: body.destinationId },
+      select: { id: true },
+    })
+
+    return reply.send({ message: 'Destino vinculado com sucesso' })
+  })
 }
