@@ -122,7 +122,8 @@
       "Bash(cat:*)",
       "Bash(sed -n '470,480p' \"C:/projetos/turismo-capivara/apps/api/src/modules/destinations/destinations.routes.ts\")",
       "Bash(sed -n '500,510p' \"C:/projetos/turismo-capivara/apps/api/src/modules/destinations/destinations.routes.ts\")",
-      "Bash(ls C:/projetos/turismo-capivara/apps/web/app/[slug]/)"
+      "Bash(ls C:/projetos/turismo-capivara/apps/web/app/[slug]/)",
+      "Bash(ls:*)"
     ]
   }
 }
