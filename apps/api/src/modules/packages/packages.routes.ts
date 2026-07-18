@@ -239,17 +239,32 @@ export async function packagesRoutes(app: FastifyInstance) {
 
     const user = request.user as { sub: string; role: string }
 
-    const tourPackage = await prisma.tourPackage.create({
-      data: {
-        tenantId: tenant.id,
-        conductorId: user.sub,
-        name: body.name,
-        description: body.description,
-        duration: body.duration,
-        price: body.price,
-        capacity: body.capacity,
-        difficulty: body.difficulty,
-      },
+    const guideProfile = await prisma.guideProfile.findUnique({
+      where: { userId: user.sub },
+      select: { id: true },
+    })
+
+    const tourPackage = await prisma.$transaction(async (tx) => {
+      const pkg = await tx.tourPackage.create({
+        data: {
+          tenantId: tenant.id,
+          conductorId: user.sub,
+          name: body.name,
+          description: body.description,
+          duration: body.duration,
+          price: body.price,
+          capacity: body.capacity,
+          difficulty: body.difficulty,
+        },
+      })
+
+      if (guideProfile) {
+        await tx.packageGuide.create({
+          data: { packageId: pkg.id, guideId: guideProfile.id, active: true },
+        })
+      }
+
+      return pkg
     })
 
     return reply.status(201).send(tourPackage)
