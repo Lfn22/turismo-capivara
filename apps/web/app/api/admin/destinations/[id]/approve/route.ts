@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache"
 import { getToken } from "next-auth/jwt"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -26,6 +27,10 @@ export async function PATCH(
     cache: "no-store",
   })
   const data = await res.text()
+  if (res.ok) {
+    revalidatePath('/destinos', 'page')
+    revalidatePath('/', 'page')
+  }
   return new NextResponse(data, {
     status: res.status,
     headers: { "Content-Type": "application/json" },
