@@ -19,6 +19,40 @@ export async function usersRoutes(app: FastifyInstance) {
       })
       if (!user) throw new AppError('Usuário não encontrado', 404)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       // Query bookings by customerEmail — Booking has no userId field
       const bookings = await prisma.booking.findMany({
         where: { customerEmail: user.email, tenantId: request.user.tenantId },
@@ -48,6 +82,7 @@ export async function usersRoutes(app: FastifyInstance) {
       if (!salt) throw new AppError('Configuração de anonimização ausente', 500)
       const anonymizedEmail = createHash('sha256')
         .update(existing.email + salt)
+        
         .digest('hex')
 
       // Anonymize user PII and matching customerEmail in bookings within a single transaction
