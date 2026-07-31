@@ -15,29 +15,12 @@ export default function HeroSection() {
       <div className="relative z-10 text-center flex flex-col items-center">
         <HeroLogoAnimation />
 
-        <h1 className="fade-up animate font-[family-name:var(--font-display)] font-black tracking-[0.15em]"
-          style={{
-            fontSize: 'clamp(3rem, 6vw, 5rem)',
-            color: 'var(--stone-100)',
-            '--fade-delay': '2.1s',
-          } as React.CSSProperties}>
-          CAPI
-        </h1>
-
-        <p className="fade-up animate text-sm md:text-base tracking-[0.3em] uppercase mt-3"
-          style={{
-            color: 'var(--ochre-light)',
-            '--fade-delay': '2.4s',
-          } as React.CSSProperties}>
-          caminho entre quem explora e quem opera
-        </p>
-
         <Link href="/destinos"
-          className="fade-up animate inline-block mt-10 px-10 py-3.5 font-semibold text-sm tracking-wider uppercase rounded-md no-underline transition-all duration-300"
+          className="fade-up animate inline-block mt-6 px-10 py-3.5 font-semibold text-sm tracking-wider uppercase rounded-md no-underline transition-all duration-300"
           style={{
             background: 'var(--ochre)',
             color: 'white',
-            '--fade-delay': '2.7s',
+            '--fade-delay': '2.3s',
           } as React.CSSProperties}>
           Explorar destinos
         </Link>
