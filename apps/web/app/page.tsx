@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import DestinationCard from '@/src/components/ui/DestinationCard';
+import HeroSection from '@/src/components/home/HeroSection';
+import DestinationsSection from '@/src/components/home/DestinationsSection';
+import GuidesSection from '@/src/components/home/GuidesSection';
+import CTASection from '@/src/components/home/CTASection';
+import RupestreSeparator from '@/src/components/home/RupestreSeparator';
+import ScrollRevealProvider from '@/src/components/home/ScrollRevealProvider';
 
 // Force SSR — build container cannot reach the API at build time
 export const dynamic = 'force-dynamic';
@@ -49,394 +54,46 @@ export default async function HomePage() {
   const previewDestinations = destinations?.slice(0, 6) ?? [];
 
   return (
-    <>
-      <style>{`
-        /* ── Reset ── */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        /* ── Nav ── */
-        .home-nav {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 100;
-          background: var(--stone-900, #1c1917);
-          border-bottom: 1px solid rgba(255,255,255,0.08);
-          padding: 0 clamp(16px, 5vw, 48px);
-          height: 56px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        .home-nav__wordmark {
-          font-family: var(--font-display, Georgia, serif);
-          font-size: 22px;
-          font-weight: 700;
-          color: var(--ochre, #c8961c);
-          letter-spacing: -0.02em;
-          text-decoration: none;
-        }
-        .home-nav__right {
-          display: flex;
-          align-items: center;
-          gap: clamp(16px, 3vw, 32px);
-        }
-        .home-nav__links {
-          display: flex;
-          align-items: center;
-          gap: clamp(16px, 3vw, 32px);
-        }
-        .home-nav__link {
-          font-size: 13px;
-          font-weight: 500;
-          color: var(--stone-400, #a8a29e);
-          text-decoration: none;
-          transition: color 0.15s;
-        }
-        .home-nav__link:hover { color: #fff; }
-        .home-nav__cta {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--stone-900, #1c1917);
-          background: var(--ochre, #c8961c);
-          padding: 8px 18px;
-          border-radius: 2px;
-          text-decoration: none;
-          transition: opacity 0.15s;
-        }
-        .home-nav__cta:hover { opacity: 0.88; }
-
-        /* ── Hero (Section 1 — 50dvh) ── */
-        .home-hero {
-          height: 50dvh;
-          min-height: 360px;
-          margin-top: 56px;
-          background: var(--stone-900, #1c1917);
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          padding: clamp(24px, 5vw, 56px) clamp(16px, 7vw, 80px);
-          position: relative;
-          overflow: hidden;
-        }
-        .home-hero::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(ellipse 70% 60% at 60% 40%, rgba(200,150,28,0.08) 0%, transparent 70%);
-          pointer-events: none;
-        }
-        .home-hero__inner {
-          max-width: 900px;
-          position: relative;
-          text-align: center;
-        }
-        .home-hero__eyebrow {
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          color: var(--ochre, #c8961c);
-          margin-bottom: 0.75rem;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-        .home-hero__eyebrow::before {
-          content: '';
-          display: block;
-          width: 28px;
-          height: 1px;
-          background: var(--ochre, #c8961c);
-          flex-shrink: 0;
-        }
-        .home-hero__wordmark {
-          font-family: var(--font-display, Georgia, serif);
-          font-size: clamp(4rem, 11vw, 9rem);
-          font-weight: 700;
-          line-height: 0.9;
-          letter-spacing: -0.04em;
-          color: #fff;
-          margin-bottom: clamp(0.5rem, 1.5vw, 1.25rem);
-        }
-        .home-hero__tagline {
-          font-size: clamp(0.875rem, 1.6vw, 1.15rem);
-          color: var(--stone-400, #a8a29e);
-          line-height: 1.5;
-          max-width: 480px;
-          margin-bottom: clamp(1.25rem, 2.5vw, 2rem);
-        }
-        .home-hero__actions {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-        }
-        .home-hero__btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--stone-900, #1c1917);
-          background: var(--ochre, #c8961c);
-          padding: 11px 22px;
-          border-radius: 2px;
-          text-decoration: none;
-          transition: opacity 0.15s;
-        }
-        .home-hero__btn:hover { opacity: 0.88; }
-        .home-hero__btn--ghost {
-          color: var(--stone-300, #d6d3d1);
-          background: transparent;
-          border: 1px solid rgba(255,255,255,0.15);
-        }
-        .home-hero__btn--ghost:hover {
-          opacity: 1;
-          border-color: rgba(255,255,255,0.3);
-          color: #fff;
-        }
-
-        /* ── Catalog (Section 2) ── */
-        .home-catalog {
-          min-height: 50dvh;
-          background: var(--stone-50, #fafaf9);
-          display: flex;
-          flex-direction: column;
-          padding: clamp(20px, 3.5vw, 40px) clamp(16px, 5vw, 48px);
-        }
-        .home-catalog__header {
-          display: flex;
-          align-items: baseline;
-          justify-content: space-between;
-          margin-bottom: clamp(14px, 2vw, 22px);
-          flex-shrink: 0;
-          max-width: 1280px;
-          width: 100%;
-          align-self: center;
-        }
-        .home-catalog__eyebrow {
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: var(--ochre, #c8961c);
-          margin-bottom: 4px;
-        }
-        .home-catalog__title {
-          font-family: var(--font-display, Georgia, serif);
-          font-size: clamp(20px, 2.8vw, 32px);
-          font-weight: 700;
-          color: var(--stone-900, #1c1917);
-          line-height: 1.15;
-          letter-spacing: -0.02em;
-        }
-        .home-catalog__link {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--ochre, #c8961c);
-          text-decoration: none;
-          white-space: nowrap;
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          flex-shrink: 0;
-        }
-        .home-catalog__link:hover { opacity: 0.75; }
-        .home-catalog__grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 16px;
-          max-width: 1280px;
-          width: 100%;
-          align-self: center;
-        }
-        .home-catalog__grid .dcard {
-          /* height removed — was clipping card body (names hidden) */
-        }
-        .home-catalog__empty {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex: 1;
-          color: var(--stone-500, #78716c);
-          font-size: 15px;
-        }
-
-        /* ── Footer ── */
-        .home-footer {
-          background: var(--stone-900, #1c1917);
-          border-top: 1px solid rgba(255,255,255,0.06);
-          padding: clamp(40px, 6vw, 64px) clamp(16px, 5vw, 48px);
-        }
-        .home-footer__inner {
-          max-width: 1280px;
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 24px;
-        }
-        .home-footer__brand { display: flex; justify-content: center; }
-        .home-footer__wordmark {
-          font-family: var(--font-display, Georgia, serif);
-          font-size: 18px;
-          font-weight: 700;
-          color: var(--ochre, #c8961c);
-          letter-spacing: -0.02em;
-          margin-bottom: 4px;
-        }
-        .home-footer__tagline {
-          font-size: 12px;
-          color: var(--stone-500, #78716c);
-          letter-spacing: 0.03em;
-        }
-        .home-footer__panel-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--stone-300, #d6d3d1);
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.12);
-          padding: 10px 20px;
-          border-radius: 2px;
-          text-decoration: none;
-          transition: background 0.15s, border-color 0.15s, color 0.15s;
-        }
-        .home-footer__panel-btn:hover {
-          background: rgba(255,255,255,0.1);
-          border-color: rgba(255,255,255,0.22);
-          color: #fff;
-        }
-        .home-footer__copy {
-          font-size: 12px;
-          color: var(--stone-600, #57534e);
-          width: 100%;
-        }
-
-        /* ── Mobile ── */
-        @media (max-width: 768px) {
-          .home-catalog__grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-        @media (max-width: 640px) {
-          .home-nav__links { display: none; }
-          .home-nav__right { gap: 0; }
-          .home-hero, .home-catalog {
-            height: auto;
-            min-height: 50dvh;
-          }
-          .home-catalog__grid { grid-template-columns: 1fr; }
-          .home-catalog__header { flex-direction: column; gap: 8px; }
-          .home-footer__inner { flex-direction: column; align-items: center; }
-        }
-      `}</style>
-
-      {/* Nav */}
-      <nav className="home-nav">
-        <Link href="/" className="home-nav__wordmark">CAPI</Link>
-        <div className="home-nav__right">
-          <div className="home-nav__links">
-            <Link href="/destinos" className="home-nav__link">Destinos</Link>
-          </div>
-          <Link href="/explorar" className="home-nav__cta">Explorar</Link>
+    <ScrollRevealProvider>
+      {/* Nav — simplified, desktop only (mobile uses BottomNav) */}
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 md:px-10 py-4 transition-all duration-400"
+        style={{ background: 'transparent' }}>
+        <Link href="/" className="font-[family-name:var(--font-display)] font-bold text-xl tracking-[3px] no-underline"
+          style={{ color: 'var(--stone-100)' }}>
+          CAPI
+        </Link>
+        <div className="hidden md:flex items-center gap-7">
+          <Link href="/destinos" className="text-sm no-underline transition-colors" style={{ color: 'var(--stone-400)' }}>Destinos</Link>
+          <Link href="/explorar" className="text-sm no-underline transition-colors" style={{ color: 'var(--stone-400)' }}>Explorar</Link>
         </div>
       </nav>
 
-      {/* Section 1 — Hero */}
-      <section className="home-hero">
-        <div className="home-hero__inner">
-          <p className="home-hero__eyebrow">Marketplace de turismo</p>
-          <h1 className="home-hero__wordmark">
-            <Image src="/images/logo.png" alt="CAPI — caminho entre quem explora e quem opera" width={260} height={235} style={{ filter: 'brightness(0) invert(1)', display: 'block', margin: '0 auto' }} priority />
-          </h1>
-          <div className="home-hero__actions">
-            <Link href="/destinos" className="home-hero__btn">
-              Explorar destinos
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2.5"
-                strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 2 — Destinations catalog */}
-      <section className="home-catalog">
-        <div className="home-catalog__header">
-          <div>
-            <p className="home-catalog__eyebrow">Destinos</p>
-            <h2 className="home-catalog__title">Onde você quer explorar?</h2>
-          </div>
-          <Link href="/destinos" className="home-catalog__link">
-            Ver todos
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5"
-              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </div>
-
-        {destinations === null ? (
-          <div className="home-catalog__empty" role="status">
-            Não foi possível carregar os destinos. Tente novamente em instantes.
-          </div>
-        ) : previewDestinations.length > 0 ? (
-          <div className="home-catalog__grid">
-            {previewDestinations.map((destination) => (
-              <DestinationCard
-                key={destination.id}
-                slug={destination.slug}
-                title={destination.title}
-                subtitle={destination.subtitle}
-                state={destination.state}
-                heroImageUrl={destination.heroImageUrl}
-                heroImageBlurDataUrl={destination.heroImageBlurDataUrl}
-                headingLevel="h3"
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="home-catalog__empty" role="status">
-            Nenhum destino cadastrado ainda.
-          </div>
-        )}
-      </section>
+      <HeroSection />
+      <RupestreSeparator />
+      <DestinationsSection destinations={previewDestinations} />
+      <RupestreSeparator variant="double" />
+      <GuidesSection />
+      <CTASection />
 
       {/* Footer */}
-      <footer className="home-footer">
-        <div className="home-footer__inner">
-          <div className="home-footer__brand">
-            <Image src="/images/logo.png" alt="CAPI" width={110} height={99} style={{ filter: 'brightness(0) invert(1)', display: 'block' }} />
-          </div>
-          <Link href="/login" className="home-footer__panel-btn">
+      <footer className="py-12 md:py-16 px-5 md:px-12 text-center"
+        style={{ background: 'var(--stone-900)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="max-w-[1280px] mx-auto flex flex-col items-center gap-6">
+          <Image src="/images/logo.png" alt="CAPI" width={110} height={99}
+            style={{ filter: 'brightness(0) invert(1)', display: 'block' }} />
+          <Link href="/login"
+            className="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold no-underline rounded"
+            style={{ border: '1px solid var(--ochre)', color: 'var(--ochre)' }}>
             Acessar painel
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-              <rect x="14" y="14" width="7" height="7" rx="1" />
-            </svg>
           </Link>
-          <Link
-            href="/onboarding"
-            style={{ fontSize: '12px', color: 'var(--stone-500, #78716c)', textDecoration: 'none' }}
-          >
-            Cadastre sua operadora →
+          <Link href="/onboarding" className="text-xs no-underline" style={{ color: 'var(--stone-500)' }}>
+            Cadastre sua operadora &rarr;
           </Link>
-          <p className="home-footer__copy">© {new Date().getFullYear()} CAPI</p>
+          <p className="text-xs" style={{ color: 'var(--stone-600)' }}>
+            &copy; {new Date().getFullYear()} CAPI
+          </p>
         </div>
       </footer>
-    </>
+    </ScrollRevealProvider>
   );
 }

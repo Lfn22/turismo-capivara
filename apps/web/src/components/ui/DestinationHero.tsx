@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import OrganicDivider from '@/src/components/destination/OrganicDivider';
 
 const FALLBACK_BLUR =
   'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzlDNjMxOCIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzFGMEUwOCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9InVybCgjZykiLz48L3N2Zz4=';
@@ -228,6 +229,7 @@ export default function DestinationHero({
           <div className="dest-hero__scroll-line" />
           <span>Scroll</span>
         </div>
+        <OrganicDivider />
       </section>
     </>
   );

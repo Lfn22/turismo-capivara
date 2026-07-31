@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAPI — Hero Final</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+3:wght@300;400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --stone-50: #fafaf9;
+    --stone-100: #f5f5f4;
+    --stone-200: #e7e5e4;
+    --stone-300: #d6d3d1;
+    --stone-400: #a8a29e;
+    --stone-500: #78716c;
+    --stone-600: #57534e;
+    --stone-700: #44403c;
+    --stone-800: #292524;
+    --stone-900: #1c1917;
+    --ochre: #C4852A;
+    --ochre-light: #D4A04A;
+    --ochre-dark: #A06B1E;
+  }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    margin: 0;
+    overflow-x: hidden;
+    background: var(--stone-900);
+  }
+
+  /* ===== NAV ===== */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 40px;
+    background: transparent;
+    transition: background 0.4s, box-shadow 0.4s;
+  }
+  nav.scrolled {
+    background: rgba(28, 25, 23, 0.92);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .nav-logo svg {
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .nav-logo:hover svg {
+    transform: scale(1.08) rotate(-4deg);
+  }
+  .nav-logo:hover .nav-fig-l { animation: navWave 0.5s ease; }
+  .nav-logo:hover .nav-fig-r { animation: navWave 0.5s ease 0.08s; }
+  @keyframes navWave {
+    0%, 100% { transform: rotate(0); }
+    30% { transform: rotate(-6deg); }
+    70% { transform: rotate(6deg); }
+  }
+  .nav-logo span {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700; font-size: 20px; color: var(--stone-100);
+    letter-spacing: 3px;
+  }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a {
+    color: var(--stone-400); text-decoration: none; font-size: 14px;
+    font-weight: 400; letter-spacing: 0.5px;
+    transition: color 0.3s;
+    position: relative;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute; bottom: -4px; left: 0; right: 0;
+    height: 1.5px; background: var(--ochre);
+    transform: scaleX(0); transform-origin: right;
+    transition: transform 0.3s ease;
+  }
+  .nav-links a:hover { color: var(--ochre-light); }
+  .nav-links a:hover::after { transform: scaleX(1); transform-origin: left; }
+
+  /* ===== HERO ===== */
+  .hero {
+    height: 100vh;
+    min-height: 700px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(175deg, #1a1714 0%, var(--stone-900) 30%, var(--stone-800) 70%, #2a2520 100%);
+  }
+
+  /* Stone texture */
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.12'/%3E%3C/svg%3E");
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* Subtle vignette */
+  .hero::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%);
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative; z-index: 2;
+    text-align: center;
+    display: flex; flex-direction: column;
+    align-items: center;
+  }
+
+  /* ===== LOGO SVG ANIMATION ===== */
+  .hero-logo { margin-bottom: 32px; }
+  .hero-logo svg { overflow: visible; }
+
+  /* Glow */
+  .logo-glow {
+    position: absolute;
+    width: 360px; height: 320px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -58%);
+    background: radial-gradient(ellipse, rgba(196,133,42,0.12) 0%, rgba(196,133,42,0.04) 40%, transparent 70%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .logo-glow.on { animation: glowPulse 3s ease forwards; }
+  @keyframes glowPulse {
+    0% { opacity: 0; transform: translate(-50%, -58%) scale(0.8); }
+    50% { opacity: 1; transform: translate(-50%, -58%) scale(1); }
+    100% { opacity: 0.7; transform: translate(-50%, -58%) scale(1.05); }
+  }
+
+  /* Draw paths */
+  .draw {
+    fill: none;
+    stroke: var(--ochre);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0;
+  }
+  .draw.go {
+    opacity: 1;
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: var(--len);
+    animation: draw var(--dur) cubic-bezier(0.65, 0, 0.35, 1) forwards;
+    animation-delay: var(--del);
+  }
+  @keyframes draw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* Fill elements */
+  .dot-fill {
+    opacity: 0;
+    fill: var(--ochre);
+  }
+  .dot-fill.go {
+    animation: dotPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation-delay: var(--del);
+  }
+  @keyframes dotPop {
+    0% { opacity: 0; transform: scale(0); }
+    70% { opacity: 1; transform: scale(1.3); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* Head circles */
+  .head-fill {
+    opacity: 0;
+    fill: var(--ochre);
+  }
+  .head-fill.go {
+    animation: headIn 0.4s ease forwards;
+    animation-delay: var(--del);
+  }
+  @keyframes headIn {
+    0% { opacity: 0; r: 0; }
+    100% { opacity: 1; }
+  }
+
+  /* Dust particles */
+  .dust-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 3;
+  }
+  .dust {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--ochre);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .dust.fly {
+    animation: dustFly var(--t) ease-out forwards;
+    animation-delay: var(--del);
+  }
+  @keyframes dustFly {
+    0% { opacity: 0; transform: translate(0,0) scale(0); }
+    15% { opacity: 0.9; transform: scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+  }
+
+  /* ===== TEXT ===== */
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 80px; font-weight: 900;
+    color: var(--stone-100);
+    letter-spacing: 14px;
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  .hero-title.go {
+    animation: textUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: var(--del);
+  }
+
+  /* Letter stagger effect */
+  .hero-title span {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  .hero-title.go span {
+    animation: letterUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .hero-title.go span:nth-child(1) { animation-delay: calc(var(--del) + 0.0s); }
+  .hero-title.go span:nth-child(2) { animation-delay: calc(var(--del) + 0.08s); }
+  .hero-title.go span:nth-child(3) { animation-delay: calc(var(--del) + 0.16s); }
+  .hero-title.go span:nth-child(4) { animation-delay: calc(var(--del) + 0.24s); }
+
+  @keyframes letterUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes textUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero-tagline {
+    font-size: 15px;
+    color: var(--stone-500);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 10px;
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  .hero-tagline.go {
+    animation: textUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: var(--del);
+  }
+
+  /* Divider line */
+  .hero-divider {
+    width: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--ochre), transparent);
+    margin: 28px auto;
+  }
+  .hero-divider.go {
+    animation: lineGrow 0.8s ease forwards;
+    animation-delay: var(--del);
+  }
+  @keyframes lineGrow {
+    to { width: 120px; }
+  }
+
+  .hero-cta {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  .hero-cta.go {
+    animation: textUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: var(--del);
+  }
+  .hero-cta a {
+    display: inline-block;
+    padding: 18px 44px;
+    background: var(--ochre);
+    color: var(--stone-50);
+    text-decoration: none;
+    font-weight: 600; font-size: 16px;
+    letter-spacing: 1px;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .hero-cta a::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+    transform: translateX(-100%);
+    transition: transform 0.6s;
+  }
+  .hero-cta a:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 32px rgba(196, 133, 42, 0.35);
+    background: var(--ochre-light);
+  }
+  .hero-cta a:hover::before {
+    transform: translateX(100%);
+  }
+  .hero-cta a:active {
+    transform: translateY(-1px) scale(0.98);
+  }
+
+  /* Scroll hint */
+  .scroll-hint {
+    position: absolute; bottom: 36px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    z-index: 5;
+    opacity: 0;
+  }
+  .scroll-hint.go {
+    animation: textUp 1s ease forwards;
+    animation-delay: var(--del);
+  }
+  .scroll-hint span {
+    font-size: 11px; color: var(--stone-600);
+    letter-spacing: 3px;
+  }
+  .scroll-arrow {
+    width: 20px; height: 20px;
+    border-right: 1.5px solid var(--stone-600);
+    border-bottom: 1.5px solid var(--stone-600);
+    transform: rotate(45deg);
+    animation: scrollBounce 2.5s ease infinite;
+  }
+  @keyframes scrollBounce {
+    0%, 100% { transform: rotate(45deg) translateY(0); opacity: 1; }
+    50% { transform: rotate(45deg) translateY(10px); opacity: 0.4; }
+  }
+
+  /* ===== SCROLL SECTIONS ===== */
+  .section {
+    padding: 120px 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal.vis {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .section-label {
+    font-size: 12px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--ochre); font-weight: 600; margin-bottom: 12px;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px; font-weight: 700;
+    color: var(--stone-800); margin-bottom: 14px;
+    line-height: 1.15;
+  }
+  .section-desc {
+    font-size: 18px; color: var(--stone-500);
+    line-height: 1.7; max-width: 560px;
+  }
+
+  /* Rupestre separator */
+  .rup-sep {
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px 0;
+    opacity: 0; transform: translateY(20px);
+    transition: all 0.8s ease;
+  }
+  .rup-sep.vis { opacity: 1; transform: translateY(0); }
+  .rup-line { stroke: var(--stone-300); stroke-width: 0.8; }
+  .rup-fig { fill: var(--ochre); opacity: 0.4; }
+
+  /* Destination cards */
+  .dest-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px; margin-top: 48px;
+  }
+  .dest-card {
+    border-radius: 14px; overflow: hidden;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+  }
+  .dest-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+  }
+  .dest-img-wrap { overflow: hidden; border-radius: 14px 14px 0 0; }
+  .dest-img {
+    height: 210px;
+    background-size: cover; background-position: center;
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dest-card:hover .dest-img { transform: scale(1.06); }
+  .dest-body { padding: 22px; }
+  .dest-body h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; font-weight: 700;
+    color: var(--stone-800); margin-bottom: 6px;
+  }
+  .dest-body p { font-size: 14px; color: var(--stone-500); line-height: 1.5; }
+  .dest-tag {
+    display: inline-block; margin-top: 12px;
+    padding: 4px 14px;
+    background: rgba(196,133,42,0.08);
+    color: var(--ochre-dark);
+    font-size: 12px; font-weight: 600;
+    border-radius: 20px; letter-spacing: 0.5px;
+    transition: all 0.3s;
+  }
+  .dest-card:hover .dest-tag {
+    background: rgba(196,133,42,0.15);
+  }
+
+  /* Guide section */
+  .guide-sec {
+    background: var(--stone-900);
+    padding: 120px 48px;
+    position: relative; overflow: hidden;
+  }
+  .guide-sec::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='150' height='150' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)' opacity='0.1'/%3E%3C/svg%3E");
+    opacity: 0.4; pointer-events: none;
+  }
+  .guide-sec .section-title { color: var(--stone-100); }
+  .guide-sec .section-desc { color: var(--stone-400); }
+  .guide-sec .section-label { color: var(--ochre-light); }
+
+  .ghost-fig {
+    position: absolute;
+    fill: var(--ochre); opacity: 0.04;
+  }
+  .ghost-fig.gl { left: 4%; top: 15%; width: 140px; }
+  .ghost-fig.gr { right: 6%; bottom: 10%; width: 110px; transform: scaleX(-1); }
+
+  /* CTA */
+  .cta-sec {
+    text-align: center;
+    padding: 120px 48px;
+    background: linear-gradient(180deg, var(--stone-50) 0%, rgba(196,133,42,0.06) 100%);
+  }
+  .cta-sec .section-title {
+    max-width: 550px; margin: 0 auto 12px;
+  }
+  .cta-sec .section-desc {
+    max-width: 450px; margin: 0 auto;
+  }
+  .cta-btn {
+    display: inline-block; margin-top: 36px;
+    padding: 18px 48px;
+    background: var(--ochre); color: white;
+    text-decoration: none; font-weight: 600;
+    font-size: 16px; border-radius: 6px;
+    letter-spacing: 0.5px;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative; overflow: hidden;
+  }
+  .cta-btn:hover {
+    background: var(--ochre-dark);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 28px rgba(196,133,42,0.25);
+  }
+
+  /* Replay */
+  .replay-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    display: flex; justify-content: center; gap: 12px;
+    padding: 10px;
+    background: rgba(196,133,42,0.95);
+    backdrop-filter: blur(8px);
+    transform: translateY(-100%);
+    transition: transform 0.3s;
+  }
+  .replay-bar.show { transform: translateY(0); }
+  .replay-bar button {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white; padding: 6px 18px;
+    border-radius: 4px; cursor: pointer;
+    font-size: 13px; font-weight: 600;
+    transition: background 0.2s;
+  }
+  .replay-bar button:hover { background: rgba(255,255,255,0.3); }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .draw.go { animation: none; opacity: 1; stroke-dashoffset: 0; }
+    .dot-fill.go, .head-fill.go { animation: none; opacity: 1; }
+    .hero-title.go span { animation: none; opacity: 1; transform: none; }
+    .hero-tagline.go, .hero-cta.go, .hero-divider.go,
+    .scroll-hint.go, .logo-glow.on { animation: none; opacity: 1; }
+    .hero-divider.go { width: 120px; }
+    .reveal { transition: none; opacity: 1; transform: none; }
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    nav { padding: 12px 20px; }
+    .nav-links { display: none; }
+    .hero-title, .hero-title.go span { font-size: 52px; letter-spacing: 8px; }
+    .hero-tagline { font-size: 12px; letter-spacing: 2px; }
+    .hero-logo svg { width: 200px; height: 180px; }
+    .section { padding: 72px 24px; }
+    .section-title { font-size: 30px; }
+    .section-desc { font-size: 16px; }
+    .dest-grid {
+      grid-template-columns: 1fr;
+      gap: 20px;
+      overflow-x: auto;
+      display: flex;
+      padding-bottom: 8px;
+      scroll-snap-type: x mandatory;
+    }
+    .dest-card {
+      min-width: 280px;
+      scroll-snap-align: start;
+      flex-shrink: 0;
+    }
+    .guide-sec, .cta-sec { padding: 72px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Replay bar -->
+<div class="replay-bar" id="replayBar">
+  <button onclick="replayAll()">↻ Replay animação completa</button>
+  <button onclick="replayBar.classList.remove('show')">✕</button>
+</div>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <a class="nav-logo" href="#">
+    <svg width="32" height="28" viewBox="0 0 280 240">
+      <path d="M90 150 Q90 50 140 35 Q190 50 190 150" stroke="#C4852A" fill="none" stroke-width="12" stroke-linecap="round"/>
+      <circle cx="140" cy="100" r="10" fill="#C4852A"/>
+      <g fill="#C4852A">
+        <path class="nav-fig-l" d="M35 85 L45 55 L55 85 M28 100 L45 88 L62 100 M35 105 L45 135 L40 165 M55 105 L45 135 L50 165" style="transform-origin:45px 110px;"/>
+        <path class="nav-fig-r" d="M225 85 L235 55 L245 85 M218 100 L235 88 L252 100 M225 105 L235 135 L230 165 M245 105 L235 135 L240 165" style="transform-origin:235px 110px;"/>
+      </g>
+    </svg>
+    <span>CAPI</span>
+  </a>
+  <div class="nav-links">
+    <a href="#">Destinos</a>
+    <a href="#">Roteiros</a>
+    <a href="#">Guias</a>
+    <a href="#">Explorar</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="logo-glow" id="glow"></div>
+  <div class="dust-container" id="dustBox"></div>
+
+  <div class="hero-content">
+    <div class="hero-logo">
+      <svg viewBox="0 0 320 260" width="320" height="260" id="logoSvg">
+        <!-- Left figure -->
+        <circle class="head-fill" cx="72" cy="38" r="11" style="--del:0.15s" />
+        <path class="draw" d="M40 100 L56 72 L72 52" style="--len:120;--dur:0.8s;--del:0.3s" stroke-width="3.5"/>
+        <path class="draw" d="M72 52 L88 72 L104 100" style="--len:120;--dur:0.8s;--del:0.4s" stroke-width="3.5"/>
+        <path class="draw" d="M72 52 L72 128" style="--len:80;--dur:0.6s;--del:0.6s" stroke-width="4.5"/>
+        <path class="draw" d="M72 128 L52 180" style="--len:60;--dur:0.5s;--del:0.85s" stroke-width="3"/>
+        <path class="draw" d="M72 128 L92 180" style="--len:60;--dur:0.5s;--del:0.9s" stroke-width="3"/>
+
+        <!-- Right figure -->
+        <circle class="head-fill" cx="248" cy="38" r="11" style="--del:0.25s"/>
+        <path class="draw" d="M216 100 L232 72 L248 52" style="--len:120;--dur:0.8s;--del:0.35s" stroke-width="3.5"/>
+        <path class="draw" d="M248 52 L264 72 L280 100" style="--len:120;--dur:0.8s;--del:0.45s" stroke-width="3.5"/>
+        <path class="draw" d="M248 52 L248 128" style="--len:80;--dur:0.6s;--del:0.65s" stroke-width="4.5"/>
+        <path class="draw" d="M248 128 L228 180" style="--len:60;--dur:0.5s;--del:0.9s" stroke-width="3"/>
+        <path class="draw" d="M248 128 L268 180" style="--len:60;--dur:0.5s;--del:0.95s" stroke-width="3"/>
+
+        <!-- Arch -->
+        <path class="draw" d="M110 170 Q110 55 160 30 Q210 55 210 170" style="--len:350;--dur:1.2s;--del:1.2s" stroke-width="6"/>
+
+        <!-- Center dot -->
+        <circle class="dot-fill" cx="160" cy="112" r="14" style="--del:1.9s; transform-origin: 160px 112px;"/>
+      </svg>
+    </div>
+
+    <div class="hero-title" id="heroTitle" style="--del:2.1s">
+      <span>C</span><span>A</span><span>P</span><span>I</span>
+    </div>
+    <div class="hero-tagline" id="heroTagline" style="--del:2.5s">
+      Caminho entre quem explora e quem opera
+    </div>
+    <div class="hero-divider" id="heroDivider" style="--del:2.8s"></div>
+    <div class="hero-cta" id="heroCta" style="--del:3.0s">
+      <a href="#">Descobrir destinos</a>
+    </div>
+  </div>
+
+  <div class="scroll-hint" id="scrollHint" style="--del:3.4s">
+    <span>EXPLORE</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- SEPARATOR -->
+<div class="rup-sep" id="sep1">
+  <svg width="300" height="50" viewBox="0 0 300 50">
+    <line class="rup-line" x1="0" y1="25" x2="115" y2="25"/>
+    <g class="rup-fig" transform="translate(128,4) scale(0.42)">
+      <circle cx="50" cy="15" r="8"/>
+      <path d="M30 45 L43 28 L50 22 M50 22 L57 28 L70 45 M50 22 L50 70 M50 70 L35 105 M50 70 L65 105"/>
+    </g>
+    <line class="rup-line" x1="185" y1="25" x2="300" y2="25"/>
+  </svg>
+</div>
+
+<!-- DESTINOS -->
+<section class="section" style="background: var(--stone-50);">
+  <div class="reveal">
+    <div class="section-label">Destinos</div>
+    <div class="section-title">Onde a natureza te espera</div>
+    <div class="section-desc">Cada destino é uma porta para experiências únicas no coração do Brasil.</div>
+  </div>
+  <div class="dest-grid">
+    <div class="dest-card reveal" style="transition-delay: 0.1s">
+      <div class="dest-img-wrap">
+        <div class="dest-img" style="background:linear-gradient(135deg,#5c524a,#44403c);">
+          <svg width="60" height="40" viewBox="0 0 60 40" opacity="0.25"><path d="M5 35 L20 10 L30 25 L40 5 L55 35Z" fill="#a8a29e"/></svg>
+        </div>
+      </div>
+      <div class="dest-body">
+        <h3>Serra da Capivara</h3>
+        <p>Pinturas rupestres de 25 mil anos no coração do Piauí</p>
+        <span class="dest-tag">12 roteiros</span>
+      </div>
+    </div>
+    <div class="dest-card reveal" style="transition-delay: 0.2s">
+      <div class="dest-img-wrap">
+        <div class="dest-img" style="background:linear-gradient(135deg,#57534e,#3d3a36);">
+          <svg width="60" height="40" viewBox="0 0 60 40" opacity="0.25"><path d="M5 35 L15 15 L25 25 L35 8 L45 20 L55 35Z" fill="#a8a29e"/></svg>
+        </div>
+      </div>
+      <div class="dest-body">
+        <h3>Chapada Diamantina</h3>
+        <p>Cachoeiras, grutas e trilhas espetaculares na Bahia</p>
+        <span class="dest-tag">8 roteiros</span>
+      </div>
+    </div>
+    <div class="dest-card reveal" style="transition-delay: 0.3s">
+      <div class="dest-img-wrap">
+        <div class="dest-img" style="background:linear-gradient(135deg,#4a4540,#33302c);">
+          <svg width="60" height="40" viewBox="0 0 60 40" opacity="0.25"><path d="M5 35 L25 12 L35 22 L55 35Z" fill="#a8a29e"/></svg>
+        </div>
+      </div>
+      <div class="dest-body">
+        <h3>Lençóis Maranhenses</h3>
+        <p>Dunas e lagoas cristalinas no Maranhão</p>
+        <span class="dest-tag">5 roteiros</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SEPARATOR 2 -->
+<div class="rup-sep">
+  <svg width="300" height="50" viewBox="0 0 300 50">
+    <line class="rup-line" x1="0" y1="25" x2="95" y2="25"/>
+    <g class="rup-fig" transform="translate(105,5) scale(0.38)">
+      <circle cx="50" cy="15" r="7"/>
+      <path d="M30 42 L50 22 L70 42 M50 22 L50 65 M50 65 L35 95 M50 65 L65 95"/>
+    </g>
+    <g class="rup-fig" transform="translate(160,5) scale(0.38)">
+      <circle cx="50" cy="15" r="7"/>
+      <path d="M30 42 L50 22 L70 42 M50 22 L50 65 M50 65 L35 95 M50 65 L65 95"/>
+    </g>
+    <line class="rup-line" x1="210" y1="25" x2="300" y2="25"/>
+  </svg>
+</div>
+
+<!-- GUIAS -->
+<section class="guide-sec">
+  <svg class="ghost-fig gl" viewBox="0 0 100 160">
+    <path d="M30 35 L50 8 L70 35 M22 52 L50 38 L78 52 M50 38 L50 95 M50 95 L32 140 M50 95 L68 140"/>
+  </svg>
+  <svg class="ghost-fig gr" viewBox="0 0 100 160">
+    <path d="M30 35 L50 8 L70 35 M22 52 L50 38 L78 52 M50 38 L50 95 M50 95 L32 140 M50 95 L68 140"/>
+  </svg>
+  <div style="max-width:1200px;margin:0 auto;position:relative;z-index:2;">
+    <div class="reveal">
+      <div class="section-label">Guias locais</div>
+      <div class="section-title">Quem conhece de verdade</div>
+      <div class="section-desc">Guias nascidos e criados na região. Cada trilha tem uma história, cada pedra tem um nome.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-sec">
+  <div class="reveal">
+    <div class="section-label">Comece agora</div>
+    <div class="section-title">Sua próxima aventura começa com um guia local</div>
+    <div class="section-desc">Reserve seu roteiro com pagamento seguro via PIX. Sem complicação.</div>
+    <a href="#" class="cta-btn">Explorar destinos</a>
+  </div>
+</section>
+
+<script>
+const replayBar = document.getElementById('replayBar');
+
+// ===== DUST ENGINE =====
+function spawnDust(el) {
+  const box = document.getElementById('dustBox');
+  const heroRect = document.querySelector('.hero').getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  const cx = r.left - heroRect.left + r.width / 2;
+  const cy = r.top - heroRect.top + r.height / 2;
+
+  for (let i = 0; i < 6; i++) {
+    const d = document.createElement('div');
+    d.className = 'dust';
+    const size = 2 + Math.random() * 3;
+    d.style.width = size + 'px';
+    d.style.height = size + 'px';
+    d.style.left = (cx + (Math.random() - 0.5) * 30) + 'px';
+    d.style.top = (cy + (Math.random() - 0.5) * 30) + 'px';
+    d.style.setProperty('--dx', ((Math.random() - 0.5) * 80) + 'px');
+    d.style.setProperty('--dy', (Math.random() * -50 - 15) + 'px');
+    d.style.setProperty('--t', (1 + Math.random()) + 's');
+    d.style.setProperty('--del', (Math.random() * 0.3) + 's');
+    box.appendChild(d);
+    d.classList.add('fly');
+    setTimeout(() => d.remove(), 3000);
+  }
+}
+
+// ===== HERO PLAY =====
+function playHero() {
+  const svg = document.getElementById('logoSvg');
+  const glow = document.getElementById('glow');
+
+  // Reset all
+  svg.querySelectorAll('.draw, .dot-fill, .head-fill').forEach(el => {
+    el.classList.remove('go');
+  });
+  ['heroTitle','heroTagline','heroDivider','heroCta','scrollHint'].forEach(id => {
+    document.getElementById(id).classList.remove('go');
+  });
+  glow.classList.remove('on');
+
+  // Force reflow
+  void svg.offsetWidth;
+
+  // Fire draws
+  svg.querySelectorAll('.draw').forEach(el => {
+    el.classList.add('go');
+    const del = parseFloat(getComputedStyle(el).getPropertyValue('--del')) * 1000;
+    setTimeout(() => spawnDust(el), del + 200);
+  });
+
+  // Fire fills
+  svg.querySelectorAll('.dot-fill, .head-fill').forEach(el => {
+    el.classList.add('go');
+  });
+
+  // Glow
+  setTimeout(() => glow.classList.add('on'), 1800);
+
+  // Text sequence
+  setTimeout(() => document.getElementById('heroTitle').classList.add('go'), 0);
+  setTimeout(() => document.getElementById('heroTagline').classList.add('go'), 0);
+  setTimeout(() => document.getElementById('heroDivider').classList.add('go'), 0);
+  setTimeout(() => document.getElementById('heroCta').classList.add('go'), 0);
+  setTimeout(() => document.getElementById('scrollHint').classList.add('go'), 0);
+
+  // Show replay bar after animation
+  setTimeout(() => replayBar.classList.add('show'), 4000);
+}
+
+function replayAll() {
+  replayBar.classList.remove('show');
+  document.getElementById('dustBox').innerHTML = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(playHero, 400);
+}
+
+// ===== SCROLL REVEAL =====
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) e.target.classList.add('vis');
+  });
+}, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+
+document.querySelectorAll('.reveal, .rup-sep').forEach(el => revealObs.observe(el));
+
+// ===== NAV SCROLL =====
+const mainNav = document.getElementById('mainNav');
+window.addEventListener('scroll', () => {
+  mainNav.classList.toggle('scrolled', window.scrollY > 80);
+}, { passive: true });
+
+// Start
+setTimeout(playHero, 300);
+</script>
+</body>
+</html>

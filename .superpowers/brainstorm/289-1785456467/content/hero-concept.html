@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAPI — Conceito Hero + Scroll</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+3:wght@300;400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --stone-50: #fafaf9;
+    --stone-100: #f5f5f4;
+    --stone-200: #e7e5e4;
+    --stone-300: #d6d3d1;
+    --stone-400: #a8a29e;
+    --stone-500: #78716c;
+    --stone-600: #57534e;
+    --stone-700: #44403c;
+    --stone-800: #292524;
+    --stone-900: #1c1917;
+    --ochre: #C4852A;
+    --ochre-light: #D4A04A;
+    --ochre-dark: #A06B1E;
+    --ochre-bg: rgba(196, 133, 42, 0.08);
+  }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--stone-50);
+    color: var(--stone-800);
+    overflow-x: hidden;
+  }
+
+  /* ===== NAV ===== */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 40px;
+    background: rgba(28, 25, 23, 0.85);
+    backdrop-filter: blur(12px);
+    transition: background 0.4s;
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+  }
+  .nav-logo svg { transition: transform 0.3s ease; }
+  .nav-logo:hover svg { transform: scale(1.08) rotate(-3deg); }
+  .nav-logo span {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700; font-size: 20px; color: var(--stone-100);
+    letter-spacing: 2px;
+  }
+  .nav-links { display: flex; gap: 28px; }
+  .nav-links a {
+    color: var(--stone-300); text-decoration: none; font-size: 14px;
+    font-weight: 400; letter-spacing: 0.5px; transition: color 0.3s;
+  }
+  .nav-links a:hover { color: var(--ochre-light); }
+
+  /* ===== HERO ===== */
+  .hero {
+    height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: linear-gradient(170deg, var(--stone-900) 0%, var(--stone-800) 40%, var(--stone-700) 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Texture overlay */
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative; z-index: 2;
+    text-align: center;
+  }
+
+  /* Animated logo SVG */
+  .hero-logo {
+    width: 280px; height: 240px;
+    margin: 0 auto 32px;
+  }
+
+  /* SVG draw animation */
+  .draw-path {
+    stroke-dasharray: 800;
+    stroke-dashoffset: 800;
+    animation: drawIn 2s ease forwards;
+    fill: none;
+    stroke: var(--ochre);
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+  .draw-path.figure-left { animation-delay: 0.2s; }
+  .draw-path.arch { animation-delay: 0.8s; }
+  .draw-path.figure-right { animation-delay: 0.4s; }
+  .draw-path.dot {
+    animation: dotAppear 0.6s ease forwards;
+    animation-delay: 1.6s;
+    opacity: 0;
+    fill: var(--ochre);
+  }
+
+  @keyframes drawIn {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes dotAppear {
+    to { opacity: 1; }
+  }
+
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 72px; font-weight: 900;
+    color: var(--stone-100);
+    letter-spacing: 12px;
+    opacity: 0;
+    animation: fadeUp 1s ease forwards;
+    animation-delay: 1.8s;
+  }
+  .hero-tagline {
+    font-size: 16px; color: var(--stone-400);
+    letter-spacing: 3px; text-transform: uppercase;
+    margin-top: 12px;
+    opacity: 0;
+    animation: fadeUp 1s ease forwards;
+    animation-delay: 2.2s;
+  }
+  .hero-cta {
+    margin-top: 48px;
+    opacity: 0;
+    animation: fadeUp 1s ease forwards;
+    animation-delay: 2.6s;
+  }
+  .hero-cta a {
+    display: inline-block;
+    padding: 16px 40px;
+    background: var(--ochre);
+    color: var(--stone-50);
+    text-decoration: none;
+    font-family: 'Source Sans 3', sans-serif;
+    font-weight: 600; font-size: 16px;
+    letter-spacing: 1px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+  }
+  .hero-cta a:hover {
+    background: var(--ochre-light);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(196, 133, 42, 0.3);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Scroll indicator */
+  .scroll-hint {
+    position: absolute; bottom: 32px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    opacity: 0;
+    animation: fadeUp 1s ease forwards;
+    animation-delay: 3s;
+  }
+  .scroll-hint span { font-size: 12px; color: var(--stone-500); letter-spacing: 2px; }
+  .scroll-arrow {
+    width: 24px; height: 24px;
+    border-right: 2px solid var(--stone-500);
+    border-bottom: 2px solid var(--stone-500);
+    transform: rotate(45deg);
+    animation: bounce 2s ease infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: rotate(45deg) translateY(0); }
+    50% { transform: rotate(45deg) translateY(8px); }
+  }
+
+  /* ===== SECTIONS ===== */
+  .section {
+    padding: 120px 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* Rupestre separator */
+  .rupestre-sep {
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px 0;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s ease;
+  }
+  .rupestre-sep.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .rupestre-sep svg {
+    width: 300px;
+    height: 60px;
+  }
+  .rupestre-sep .sep-line {
+    stroke: var(--stone-300);
+    stroke-width: 1;
+  }
+  .rupestre-sep .sep-figure {
+    fill: var(--ochre);
+    opacity: 0.5;
+  }
+
+  .section-label {
+    font-size: 12px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--ochre); font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 40px; font-weight: 700;
+    color: var(--stone-800);
+    margin-bottom: 16px;
+  }
+  .section-desc {
+    font-size: 18px; color: var(--stone-500);
+    line-height: 1.7; max-width: 600px;
+  }
+
+  /* Scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ===== DESTINATION CARDS ===== */
+  .dest-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 48px;
+  }
+  .dest-card {
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+  }
+  .dest-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+  }
+  .dest-img {
+    height: 200px;
+    background-size: cover; background-position: center;
+    position: relative;
+    transition: transform 0.6s ease;
+  }
+  .dest-card:hover .dest-img { transform: scale(1.05); }
+  .dest-img-wrapper { overflow: hidden; border-radius: 12px 12px 0 0; }
+  .dest-body { padding: 20px; }
+  .dest-body h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; font-weight: 700;
+    color: var(--stone-800);
+    margin-bottom: 6px;
+  }
+  .dest-body p {
+    font-size: 14px; color: var(--stone-500);
+    line-height: 1.5;
+  }
+  .dest-tag {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 4px 12px;
+    background: var(--ochre-bg);
+    color: var(--ochre-dark);
+    font-size: 12px; font-weight: 600;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== GUIDE SECTION ===== */
+  .guide-section {
+    background: var(--stone-900);
+    padding: 120px 40px;
+    color: var(--stone-100);
+    position: relative;
+    overflow: hidden;
+  }
+  .guide-section::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .guide-section .section-desc { color: var(--stone-400); }
+  .guide-section .section-title { color: var(--stone-100); }
+
+  /* Rupestre figures floating */
+  .rupestre-float {
+    position: absolute;
+    opacity: 0.06;
+    fill: var(--ochre);
+  }
+  .rupestre-float.left { left: 5%; top: 20%; width: 120px; }
+  .rupestre-float.right { right: 8%; bottom: 15%; width: 100px; transform: scaleX(-1); }
+
+  /* ===== CTA SECTION ===== */
+  .cta-section {
+    text-align: center;
+    padding: 120px 40px;
+    background: linear-gradient(180deg, var(--stone-50) 0%, var(--ochre-bg) 100%);
+  }
+  .cta-section .section-title { max-width: 600px; margin: 0 auto 16px; }
+  .cta-btn {
+    display: inline-block;
+    margin-top: 32px;
+    padding: 18px 48px;
+    background: var(--ochre);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 16px;
+    border-radius: 6px;
+    transition: all 0.3s;
+    letter-spacing: 0.5px;
+  }
+  .cta-btn:hover {
+    background: var(--ochre-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(196, 133, 42, 0.25);
+  }
+
+  /* ===== ANNOTATION ===== */
+  .annotation {
+    position: fixed; bottom: 16px; right: 16px;
+    background: var(--ochre);
+    color: white;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 200;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    animation: pulse 3s ease infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  /* Replay button */
+  .replay-btn {
+    position: fixed; top: 16px; right: 16px; z-index: 200;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white; padding: 8px 16px;
+    border-radius: 6px; cursor: pointer;
+    font-size: 13px; backdrop-filter: blur(8px);
+    transition: all 0.3s;
+  }
+  .replay-btn:hover { background: rgba(255,255,255,0.2); }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <svg width="32" height="28" viewBox="0 0 280 240">
+      <!-- Simplified logo mark -->
+      <path d="M60 120 Q60 60 140 40 Q220 60 220 120" stroke="#C4852A" fill="none" stroke-width="12" stroke-linecap="round"/>
+      <circle cx="140" cy="100" r="12" fill="#C4852A"/>
+      <g fill="#C4852A">
+        <path d="M30 80 L40 50 L50 80 M25 95 L40 85 L55 95 M30 100 L40 130 L35 160 M50 100 L40 130 L45 160"/>
+        <path d="M230 80 L240 50 L250 80 M225 95 L240 85 L255 95 M230 100 L240 130 L235 160 M250 100 L240 130 L245 160"/>
+      </g>
+    </svg>
+    <span>CAPI</span>
+  </div>
+  <div class="nav-links">
+    <a href="#">Destinos</a>
+    <a href="#">Roteiros</a>
+    <a href="#">Guias</a>
+    <a href="#">Explorar</a>
+  </div>
+</nav>
+
+<button class="replay-btn" onclick="location.reload()">↻ Replay animação</button>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-logo">
+      <svg viewBox="0 0 280 240" width="280" height="240">
+        <!-- Left figure - drawn stroke by stroke -->
+        <path class="draw-path figure-left" d="M50 90 L65 55 L80 90" />
+        <path class="draw-path figure-left" d="M35 110 L65 95 L95 110" style="animation-delay: 0.4s"/>
+        <path class="draw-path figure-left" d="M50 115 L65 150 L58 190" style="animation-delay: 0.5s"/>
+        <path class="draw-path figure-left" d="M80 115 L65 150 L72 190" style="animation-delay: 0.6s"/>
+
+        <!-- Right figure -->
+        <path class="draw-path figure-right" d="M200 90 L215 55 L230 90" />
+        <path class="draw-path figure-right" d="M185 110 L215 95 L245 110" style="animation-delay: 0.6s"/>
+        <path class="draw-path figure-right" d="M200 115 L215 150 L208 190" style="animation-delay: 0.7s"/>
+        <path class="draw-path figure-right" d="M230 115 L215 150 L222 190" style="animation-delay: 0.8s"/>
+
+        <!-- Arch -->
+        <path class="draw-path arch" d="M90 150 Q90 50 140 35 Q190 50 190 150" style="animation-delay: 1s; stroke-width: 4;"/>
+
+        <!-- Center dot -->
+        <circle class="draw-path dot" cx="140" cy="110" r="10"/>
+      </svg>
+    </div>
+    <div class="hero-title">CAPI</div>
+    <div class="hero-tagline">Caminho entre quem explora e quem opera</div>
+    <div class="hero-cta">
+      <a href="#">Descobrir destinos</a>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <span>EXPLORE</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- Rupestre separator -->
+<div class="rupestre-sep reveal">
+  <svg viewBox="0 0 300 60">
+    <line class="sep-line" x1="0" y1="30" x2="110" y2="30"/>
+    <g class="sep-figure" transform="translate(130, 5) scale(0.5)">
+      <path d="M30 40 L40 15 L50 40 M25 55 L40 45 L55 55 M30 60 L40 85 L35 110 M50 60 L40 85 L45 110"/>
+    </g>
+    <line class="sep-line" x1="190" y1="30" x2="300" y2="30"/>
+  </svg>
+</div>
+
+<!-- DESTINOS SECTION -->
+<section class="section">
+  <div class="reveal">
+    <div class="section-label">Destinos</div>
+    <div class="section-title">Onde a natureza te espera</div>
+    <div class="section-desc">Cada destino é uma porta para experiências únicas no coração do Brasil.</div>
+  </div>
+  <div class="dest-grid">
+    <div class="dest-card reveal" style="transition-delay: 0.1s">
+      <div class="dest-img-wrapper">
+        <div class="dest-img" style="background: linear-gradient(135deg, var(--stone-700), var(--stone-600)); display: flex; align-items: center; justify-content: center;">
+          <svg width="60" height="40" viewBox="0 0 60 40" opacity="0.3">
+            <path d="M5 35 L20 10 L30 25 L40 5 L55 35Z" fill="var(--stone-400)"/>
+          </svg>
+        </div>
+      </div>
+      <div class="dest-body">
+        <h3>Serra da Capivara</h3>
+        <p>Pinturas rupestres de 25 mil anos no coração do Piauí</p>
+        <span class="dest-tag">12 roteiros</span>
+      </div>
+    </div>
+    <div class="dest-card reveal" style="transition-delay: 0.2s">
+      <div class="dest-img-wrapper">
+        <div class="dest-img" style="background: linear-gradient(135deg, var(--stone-600), var(--stone-500)); display: flex; align-items: center; justify-content: center;">
+          <svg width="60" height="40" viewBox="0 0 60 40" opacity="0.3">
+            <path d="M5 35 L15 15 L25 25 L35 8 L45 20 L55 35Z" fill="var(--stone-400)"/>
+          </svg>
+        </div>
+      </div>
+      <div class="dest-body">
+        <h3>Chapada Diamantina</h3>
+        <p>Cachoeiras, grutas e trilhas na Bahia</p>
+        <span class="dest-tag">8 roteiros</span>
+      </div>
+    </div>
+    <div class="dest-card reveal" style="transition-delay: 0.3s">
+      <div class="dest-img-wrapper">
+        <div class="dest-img" style="background: linear-gradient(135deg, var(--stone-500), var(--stone-400)); display: flex; align-items: center; justify-content: center;">
+          <svg width="60" height="40" viewBox="0 0 60 40" opacity="0.3">
+            <path d="M5 35 L25 12 L35 22 L55 35Z" fill="var(--stone-300)"/>
+          </svg>
+        </div>
+      </div>
+      <div class="dest-body">
+        <h3>Lençóis Maranhenses</h3>
+        <p>Dunas e lagoas cristalinas no Maranhão</p>
+        <span class="dest-tag">5 roteiros</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Rupestre separator 2 -->
+<div class="rupestre-sep reveal">
+  <svg viewBox="0 0 300 60">
+    <line class="sep-line" x1="0" y1="30" x2="100" y2="30"/>
+    <g class="sep-figure" transform="translate(110, 8) scale(0.45)">
+      <path d="M20 40 L30 15 L40 40 M15 55 L30 45 L45 55 M20 60 L30 85 L25 110 M40 60 L30 85 L35 110"/>
+    </g>
+    <g class="sep-figure" transform="translate(155, 8) scale(0.45)">
+      <path d="M20 40 L30 15 L40 40 M15 55 L30 45 L45 55 M20 60 L30 85 L25 110 M40 60 L30 85 L35 110"/>
+    </g>
+    <line class="sep-line" x1="200" y1="30" x2="300" y2="30"/>
+  </svg>
+</div>
+
+<!-- GUIAS SECTION -->
+<section class="guide-section">
+  <!-- Floating rupestre figures -->
+  <svg class="rupestre-float left" viewBox="0 0 100 160">
+    <path d="M30 40 L50 10 L70 40 M20 60 L50 45 L80 60 M30 65 L50 100 L40 140 M70 65 L50 100 L60 140"/>
+  </svg>
+  <svg class="rupestre-float right" viewBox="0 0 100 160">
+    <path d="M30 40 L50 10 L70 40 M20 60 L50 45 L80 60 M30 65 L50 100 L40 140 M70 65 L50 100 L60 140"/>
+  </svg>
+
+  <div style="max-width: 1200px; margin: 0 auto; position: relative; z-index: 2;">
+    <div class="reveal">
+      <div class="section-label" style="color: var(--ochre-light);">Guias locais</div>
+      <div class="section-title">Quem conhece de verdade</div>
+      <div class="section-desc">Guias nascidos e criados na região. Cada trilha tem uma história, cada pedra tem um nome.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="reveal">
+    <div class="section-label">Comece agora</div>
+    <div class="section-title">Sua próxima aventura começa com um guia local</div>
+    <div class="section-desc" style="margin: 0 auto;">Reserve seu roteiro com pagamento seguro via PIX. Sem complicação.</div>
+    <a href="#" class="cta-btn">Explorar destinos</a>
+  </div>
+</section>
+
+<div class="annotation">🎨 Mockup conceitual — scroll para ver tudo</div>
+
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

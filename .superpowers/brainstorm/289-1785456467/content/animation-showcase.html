@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAPI — Animações</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Sans+3:wght@300;400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --stone-50: #fafaf9;
+    --stone-100: #f5f5f4;
+    --stone-200: #e7e5e4;
+    --stone-300: #d6d3d1;
+    --stone-400: #a8a29e;
+    --stone-500: #78716c;
+    --stone-600: #57534e;
+    --stone-700: #44403c;
+    --stone-800: #292524;
+    --stone-900: #1c1917;
+    --ochre: #C4852A;
+    --ochre-light: #D4A04A;
+    --ochre-dark: #A06B1E;
+    --ochre-bg: rgba(196, 133, 42, 0.08);
+  }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--stone-100);
+    color: var(--stone-800);
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    text-align: center;
+    padding: 40px 20px 8px;
+    font-size: 28px;
+    color: var(--stone-800);
+  }
+  .page-sub {
+    text-align: center;
+    font-size: 14px;
+    color: var(--stone-500);
+    margin-bottom: 40px;
+  }
+
+  /* ===== SHOWCASE SECTIONS ===== */
+  .showcase {
+    max-width: 900px;
+    margin: 0 auto 60px;
+    padding: 0 24px;
+  }
+  .showcase-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--ochre);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .showcase-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--stone-800);
+    margin-bottom: 6px;
+  }
+  .showcase-desc {
+    font-size: 14px;
+    color: var(--stone-500);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  /* ===== DEMO STAGE ===== */
+  .stage {
+    background: var(--stone-900);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  }
+  .stage-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .stage-dots {
+    display: flex; gap: 6px;
+  }
+  .stage-dots span {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+  }
+  .replay {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--stone-400);
+    padding: 5px 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+  .replay:hover {
+    background: rgba(255,255,255,0.15);
+    color: var(--stone-200);
+  }
+  .stage-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Texture */
+  .stage-body::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  /* ===== ANIMATION 1: HERO LOGO DRAW ===== */
+  #anim1 .logo-container {
+    text-align: center;
+    position: relative;
+    z-index: 2;
+  }
+  #anim1 svg { overflow: visible; }
+
+  /* Glow behind figures */
+  .logo-glow {
+    position: absolute;
+    width: 300px; height: 300px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -55%);
+    background: radial-gradient(circle, rgba(196,133,42,0.15) 0%, transparent 70%);
+    opacity: 0;
+    animation: glowIn 2s ease forwards 1.8s;
+  }
+  @keyframes glowIn {
+    to { opacity: 1; }
+  }
+
+  /* Draw strokes */
+  .hero-draw {
+    stroke-dasharray: 500;
+    stroke-dashoffset: 500;
+    fill: none;
+    stroke: var(--ochre);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .hero-draw.animate { animation: strokeDraw 1.2s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
+
+  @keyframes strokeDraw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* Fill after draw */
+  .hero-fill {
+    opacity: 0;
+    fill: var(--ochre);
+  }
+  .hero-fill.animate { animation: fillIn 0.8s ease forwards; }
+
+  @keyframes fillIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Particle dust */
+  .dust {
+    position: absolute;
+    width: 3px; height: 3px;
+    background: var(--ochre);
+    border-radius: 50%;
+    opacity: 0;
+  }
+  .dust.animate {
+    animation: dustFloat 2s ease forwards;
+  }
+  @keyframes dustFloat {
+    0% { opacity: 0; transform: translate(0, 0) scale(0); }
+    20% { opacity: 0.8; transform: scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+  }
+
+  /* Title reveal */
+  .hero-text-capi {
+    font-family: 'Playfair Display', serif;
+    font-size: 64px; font-weight: 900;
+    color: var(--stone-100);
+    letter-spacing: 10px;
+    opacity: 0;
+    transform: translateY(20px);
+    margin-top: 24px;
+  }
+  .hero-text-capi.animate {
+    animation: textReveal 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes textReveal {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero-text-tag {
+    font-size: 13px;
+    color: var(--stone-500);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0;
+    transform: translateY(12px);
+    margin-top: 8px;
+  }
+  .hero-text-tag.animate {
+    animation: textReveal 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* ===== ANIMATION 2: SCROLL REVEAL CARDS ===== */
+  #anim2 .stage-body {
+    flex-direction: column;
+    padding: 40px 32px;
+    align-items: stretch;
+    gap: 20px;
+    min-height: 450px;
+  }
+
+  .scroll-card {
+    display: flex;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .scroll-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .scroll-card-img {
+    width: 140px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, var(--stone-700), var(--stone-600));
+    display: flex; align-items: center; justify-content: center;
+  }
+  .scroll-card-body {
+    padding: 18px 20px;
+    flex: 1;
+  }
+  .scroll-card-body h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px; font-weight: 700;
+    color: var(--stone-100);
+    margin-bottom: 4px;
+  }
+  .scroll-card-body p {
+    font-size: 13px; color: var(--stone-400);
+    line-height: 1.4;
+  }
+  .scroll-card-tag {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 10px;
+    background: rgba(196,133,42,0.15);
+    color: var(--ochre-light);
+    font-size: 11px; font-weight: 600;
+    border-radius: 12px;
+  }
+
+  /* ===== ANIMATION 3: MICRO-INTERACTIONS ===== */
+  #anim3 .stage-body {
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 40px 32px;
+    justify-content: center;
+  }
+
+  .micro-demo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 180px;
+  }
+  .micro-label {
+    font-size: 11px;
+    color: var(--stone-400);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* Button hover */
+  .demo-btn {
+    padding: 14px 28px;
+    background: var(--ochre);
+    color: white;
+    border: none;
+    font-family: 'Source Sans 3', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .demo-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.5s, height 0.5s;
+  }
+  .demo-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(196, 133, 42, 0.35);
+  }
+  .demo-btn:hover::after {
+    width: 200px; height: 200px;
+  }
+  .demo-btn:active {
+    transform: translateY(-1px) scale(0.98);
+  }
+
+  /* Card hover */
+  .demo-card {
+    width: 180px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .demo-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+    border-color: rgba(196,133,42,0.3);
+  }
+  .demo-card-img {
+    height: 100px;
+    background: linear-gradient(135deg, var(--stone-700), var(--stone-600));
+    transition: transform 0.6s ease;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .demo-card:hover .demo-card-img {
+    transform: scale(1.08);
+  }
+  .demo-card-text {
+    padding: 12px;
+  }
+  .demo-card-text h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 14px; color: var(--stone-100);
+    margin-bottom: 3px;
+  }
+  .demo-card-text p {
+    font-size: 11px; color: var(--stone-500);
+  }
+
+  /* Logo hover */
+  .demo-logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  .demo-logo-wrap:hover {
+    background: rgba(255,255,255,0.08);
+  }
+  .demo-logo-wrap svg {
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .demo-logo-wrap:hover svg {
+    transform: scale(1.1) rotate(-5deg);
+  }
+  .demo-logo-wrap:hover .figure-l {
+    animation: figureWave 0.6s ease;
+  }
+  .demo-logo-wrap:hover .figure-r {
+    animation: figureWave 0.6s ease 0.1s;
+  }
+  @keyframes figureWave {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-8deg); }
+    75% { transform: rotate(8deg); }
+  }
+  .demo-logo-wrap span {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--stone-100);
+    letter-spacing: 2px;
+  }
+
+  /* Tag hover */
+  .demo-tag {
+    padding: 6px 16px;
+    background: rgba(196,133,42,0.12);
+    color: var(--ochre-light);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+  }
+  .demo-tag:hover {
+    background: rgba(196,133,42,0.2);
+    border-color: rgba(196,133,42,0.3);
+    transform: scale(1.05);
+  }
+
+  /* ===== ANIMATION 4: PAGE TRANSITION ===== */
+  #anim4 .stage-body {
+    min-height: 350px;
+    cursor: pointer;
+  }
+  .transition-container {
+    position: relative;
+    width: 100%;
+    height: 350px;
+    overflow: hidden;
+  }
+  .trans-page {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1;
+  }
+  .trans-page.out {
+    opacity: 0;
+    transform: translateX(-60px) scale(0.95);
+    z-index: 1;
+  }
+  .trans-page.in {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    z-index: 2;
+  }
+  .trans-page.waiting {
+    opacity: 0;
+    transform: translateX(60px) scale(0.95);
+    z-index: 0;
+  }
+  .trans-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--ochre);
+    z-index: 10;
+    transform: scaleX(0);
+    transform-origin: left;
+    pointer-events: none;
+  }
+  .trans-overlay.sweep {
+    animation: sweepThrough 0.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  }
+  @keyframes sweepThrough {
+    0% { transform: scaleX(0); transform-origin: left; }
+    45% { transform: scaleX(1); transform-origin: left; }
+    55% { transform: scaleX(1); transform-origin: right; }
+    100% { transform: scaleX(0); transform-origin: right; }
+  }
+  /* Rupestre stamp in overlay */
+  .trans-stamp {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    z-index: 11;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .trans-stamp.show {
+    animation: stampIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes stampIn {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(-20deg); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(1.1) rotate(0deg); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8) rotate(5deg); }
+  }
+
+  .trans-page h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    color: var(--stone-100);
+    margin-bottom: 6px;
+  }
+  .trans-page p {
+    font-size: 14px;
+    color: var(--stone-400);
+  }
+  .trans-hint {
+    position: absolute;
+    bottom: 16px;
+    font-size: 12px;
+    color: var(--stone-500);
+    letter-spacing: 1px;
+    z-index: 3;
+  }
+
+  /* ===== ANNOTATION ===== */
+  .annotation {
+    position: fixed; bottom: 16px; right: 16px;
+    background: var(--ochre);
+    color: white;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 200;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+</style>
+</head>
+<body>
+
+<h1>Catálogo de Animações — CAPI</h1>
+<p class="page-sub">Cada animação ao vivo. Clique "Replay" para rever.</p>
+
+<!-- ===== 1. HERO LOGO DRAW ===== -->
+<div class="showcase">
+  <div class="showcase-label">Animação 1</div>
+  <div class="showcase-title">Hero — Logo Rupestre Ganha Vida</div>
+  <div class="showcase-desc">As figuras são desenhadas traço por traço como pintura rupestre sendo revelada. Partículas de poeira se desprendem. O arco se forma. O nome CAPI surge da pedra.</div>
+
+  <div class="stage" id="anim1">
+    <div class="stage-header">
+      <div class="stage-dots"><span></span><span></span><span></span></div>
+      <button class="replay" onclick="replayHero()">↻ Replay</button>
+    </div>
+    <div class="stage-body">
+      <div class="logo-glow" id="heroGlow"></div>
+
+      <!-- Dust particles -->
+      <div id="dustContainer"></div>
+
+      <div class="logo-container">
+        <svg viewBox="0 0 300 240" width="300" height="240" id="heroSvg">
+          <!-- Left figure -->
+          <g class="figure-group" id="figLeft">
+            <!-- Head -->
+            <circle class="hero-fill" cx="65" cy="42" r="10" data-delay="300"/>
+            <!-- Arms up -->
+            <path class="hero-draw" d="M35 95 L50 70 L65 58" data-delay="500"/>
+            <path class="hero-draw" d="M65 58 L80 70 L95 95" data-delay="600"/>
+            <!-- Body -->
+            <path class="hero-draw" d="M65 58 L65 120" data-delay="800" style="stroke-width:4"/>
+            <!-- Legs -->
+            <path class="hero-draw" d="M65 120 L45 170" data-delay="1000"/>
+            <path class="hero-draw" d="M65 120 L85 170" data-delay="1050"/>
+          </g>
+
+          <!-- Right figure -->
+          <g class="figure-group" id="figRight">
+            <circle class="hero-fill" cx="235" cy="42" r="10" data-delay="400"/>
+            <path class="hero-draw" d="M205 95 L220 70 L235 58" data-delay="550"/>
+            <path class="hero-draw" d="M235 58 L250 70 L265 95" data-delay="650"/>
+            <path class="hero-draw" d="M235 58 L235 120" data-delay="850" style="stroke-width:4"/>
+            <path class="hero-draw" d="M235 120 L215 170" data-delay="1050"/>
+            <path class="hero-draw" d="M235 120 L255 170" data-delay="1100"/>
+          </g>
+
+          <!-- Arch -->
+          <path class="hero-draw" d="M100 160 Q100 50 150 30 Q200 50 200 160" data-delay="1300" style="stroke-width:5"/>
+
+          <!-- Center dot -->
+          <circle class="hero-fill" cx="150" cy="105" r="12" data-delay="1700"/>
+        </svg>
+
+        <div class="hero-text-capi" id="heroTitle" data-delay="2000">CAPI</div>
+        <div class="hero-text-tag" id="heroTag" data-delay="2300">Caminho entre quem explora e quem opera</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 2. SCROLL REVEAL ===== -->
+<div class="showcase">
+  <div class="showcase-label">Animação 2</div>
+  <div class="showcase-title">Scroll Reveal — Conteúdo Surge do Chão</div>
+  <div class="showcase-desc">Cards e seções sobem suavemente com stagger (delay entre eles). Simula o scroll da página. Cada elemento entra no momento certo.</div>
+
+  <div class="stage" id="anim2">
+    <div class="stage-header">
+      <div class="stage-dots"><span></span><span></span><span></span></div>
+      <button class="replay" onclick="replayScroll()">↻ Replay</button>
+    </div>
+    <div class="stage-body">
+      <div class="scroll-card" id="sc1">
+        <div class="scroll-card-img">
+          <svg width="40" height="30" viewBox="0 0 60 40" opacity="0.3"><path d="M5 35 L20 10 L30 25 L40 5 L55 35Z" fill="var(--stone-400)"/></svg>
+        </div>
+        <div class="scroll-card-body">
+          <h3>Serra da Capivara</h3>
+          <p>Pinturas rupestres de 25 mil anos no coração do Piauí</p>
+          <span class="scroll-card-tag">12 roteiros</span>
+        </div>
+      </div>
+      <div class="scroll-card" id="sc2">
+        <div class="scroll-card-img">
+          <svg width="40" height="30" viewBox="0 0 60 40" opacity="0.3"><path d="M5 35 L15 15 L25 25 L35 8 L55 35Z" fill="var(--stone-400)"/></svg>
+        </div>
+        <div class="scroll-card-body">
+          <h3>Chapada Diamantina</h3>
+          <p>Cachoeiras, grutas e trilhas espetaculares na Bahia</p>
+          <span class="scroll-card-tag">8 roteiros</span>
+        </div>
+      </div>
+      <div class="scroll-card" id="sc3">
+        <div class="scroll-card-img">
+          <svg width="40" height="30" viewBox="0 0 60 40" opacity="0.3"><path d="M5 35 L25 12 L55 35Z" fill="var(--stone-400)"/></svg>
+        </div>
+        <div class="scroll-card-body">
+          <h3>Lençóis Maranhenses</h3>
+          <p>Dunas e lagoas cristalinas no Maranhão</p>
+          <span class="scroll-card-tag">5 roteiros</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 3. MICRO-INTERACTIONS ===== -->
+<div class="showcase">
+  <div class="showcase-label">Animação 3</div>
+  <div class="showcase-title">Micro-interações — Hover & Touch</div>
+  <div class="showcase-desc">Cada elemento responde ao toque. Passe o mouse sobre cada um para ver o efeito.</div>
+
+  <div class="stage" id="anim3">
+    <div class="stage-header">
+      <div class="stage-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div class="stage-body">
+      <div class="micro-demo">
+        <div class="micro-label">Botão CTA</div>
+        <button class="demo-btn">Reservar agora</button>
+      </div>
+
+      <div class="micro-demo">
+        <div class="micro-label">Card destino</div>
+        <div class="demo-card">
+          <div class="demo-card-img">
+            <svg width="40" height="30" viewBox="0 0 60 40" opacity="0.3"><path d="M5 35 L20 10 L40 5 L55 35Z" fill="var(--stone-400)"/></svg>
+          </div>
+          <div class="demo-card-text">
+            <h4>Serra da Capivara</h4>
+            <p>12 roteiros</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="micro-demo">
+        <div class="micro-label">Logo nav</div>
+        <div class="demo-logo-wrap">
+          <svg width="28" height="24" viewBox="0 0 280 240">
+            <path d="M90 150 Q90 50 140 35 Q190 50 190 150" stroke="#C4852A" fill="none" stroke-width="14" stroke-linecap="round"/>
+            <circle cx="140" cy="100" r="12" fill="#C4852A"/>
+            <g fill="#C4852A">
+              <path class="figure-l" d="M30 80 L40 50 L50 80 M25 95 L40 85 L55 95 M30 100 L40 130 L35 160 M50 100 L40 130 L45 160" style="transform-origin:40px 100px;"/>
+              <path class="figure-r" d="M230 80 L240 50 L250 80 M225 95 L240 85 L255 95 M230 100 L240 130 L235 160 M250 100 L240 130 L245 160" style="transform-origin:240px 100px;"/>
+            </g>
+          </svg>
+          <span>CAPI</span>
+        </div>
+      </div>
+
+      <div class="micro-demo">
+        <div class="micro-label">Tag de roteiro</div>
+        <span class="demo-tag">12 roteiros</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 4. PAGE TRANSITION ===== -->
+<div class="showcase" style="margin-bottom: 80px;">
+  <div class="showcase-label">Animação 4</div>
+  <div class="showcase-title">Transição entre Páginas</div>
+  <div class="showcase-desc">Um sweep ochre com selo rupestre aparece brevemente durante a navegação. Clique para simular a transição.</div>
+
+  <div class="stage" id="anim4">
+    <div class="stage-header">
+      <div class="stage-dots"><span></span><span></span><span></span></div>
+      <button class="replay" onclick="triggerTransition()">↻ Navegar</button>
+    </div>
+    <div class="stage-body">
+      <div class="transition-container" onclick="triggerTransition()">
+        <div class="trans-page in" id="pageA">
+          <svg width="40" height="35" viewBox="0 0 280 240" style="margin-bottom:12px;">
+            <path d="M90 150 Q90 50 140 35 Q190 50 190 150" stroke="#C4852A" fill="none" stroke-width="14"/>
+            <circle cx="140" cy="100" r="12" fill="#C4852A"/>
+            <g fill="#C4852A"><path d="M30 80 L40 50 L50 80 M25 95 L40 85 L55 95 M30 100 L40 130 L35 160 M50 100 L40 130 L45 160"/><path d="M230 80 L240 50 L250 80 M225 95 L240 85 L255 95 M230 100 L240 130 L235 160 M250 100 L240 130 L245 160"/></g>
+          </svg>
+          <h3>Home</h3>
+          <p>Descubra destinos incríveis</p>
+        </div>
+        <div class="trans-page waiting" id="pageB">
+          <svg width="40" height="30" viewBox="0 0 60 40" style="margin-bottom:12px;" opacity="0.5"><path d="M5 35 L20 10 L30 25 L40 5 L55 35Z" fill="var(--stone-400)"/></svg>
+          <h3>Serra da Capivara</h3>
+          <p>O berço da arte rupestre</p>
+        </div>
+        <div class="trans-overlay" id="transOverlay"></div>
+        <svg class="trans-stamp" id="transStamp" width="60" height="60" viewBox="0 0 100 100">
+          <g fill="white" opacity="0.9">
+            <path d="M30 40 L50 10 L70 40 M20 55 L50 42 L80 55 M30 60 L50 90 L40 120 M70 60 L50 90 L60 120" transform="scale(0.7) translate(20,10)"/>
+          </g>
+        </svg>
+        <div class="trans-hint">clique para navegar</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="annotation">🎨 Animações ao vivo — interaja com cada demo</div>
+
+<script>
+// ===== HERO ANIMATION =====
+function createDust(container, x, y, count) {
+  for (let i = 0; i < count; i++) {
+    const dust = document.createElement('div');
+    dust.className = 'dust';
+    dust.style.left = (x + Math.random() * 40 - 20) + 'px';
+    dust.style.top = (y + Math.random() * 40 - 20) + 'px';
+    dust.style.setProperty('--dx', (Math.random() * 60 - 30) + 'px');
+    dust.style.setProperty('--dy', (Math.random() * -40 - 10) + 'px');
+    dust.style.animationDelay = (Math.random() * 0.5) + 's';
+    container.appendChild(dust);
+    dust.classList.add('animate');
+    setTimeout(() => dust.remove(), 2500);
+  }
+}
+
+function playHero() {
+  const svg = document.getElementById('heroSvg');
+  const title = document.getElementById('heroTitle');
+  const tag = document.getElementById('heroTag');
+  const glow = document.getElementById('heroGlow');
+  const dustC = document.getElementById('dustContainer');
+
+  // Reset
+  svg.querySelectorAll('.hero-draw, .hero-fill').forEach(el => {
+    el.classList.remove('animate');
+    void el.offsetWidth;
+  });
+  title.classList.remove('animate');
+  tag.classList.remove('animate');
+  glow.style.animation = 'none';
+  void glow.offsetWidth;
+  glow.style.animation = '';
+
+  // Animate each element with its delay
+  svg.querySelectorAll('.hero-draw, .hero-fill').forEach(el => {
+    const delay = parseInt(el.dataset.delay || el.getAttribute('data-delay') || 0);
+    setTimeout(() => {
+      el.classList.add('animate');
+      // Dust on draw
+      const rect = el.getBoundingClientRect();
+      const stageRect = svg.closest('.stage-body').getBoundingClientRect();
+      createDust(dustC, rect.x - stageRect.x + rect.width/2, rect.y - stageRect.y + rect.height/2, 4);
+    }, delay);
+  });
+
+  setTimeout(() => { title.classList.add('animate'); }, 2000);
+  setTimeout(() => { tag.classList.add('animate'); }, 2300);
+}
+
+function replayHero() {
+  playHero();
+}
+
+// Auto-play on load
+setTimeout(playHero, 500);
+
+// ===== SCROLL REVEAL =====
+function replayScroll() {
+  ['sc1','sc2','sc3'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.classList.remove('visible');
+    void el.offsetWidth;
+    setTimeout(() => el.classList.add('visible'), 200 + i * 200);
+  });
+}
+setTimeout(replayScroll, 1000);
+
+// ===== PAGE TRANSITION =====
+let currentPage = 'A';
+function triggerTransition() {
+  const overlay = document.getElementById('transOverlay');
+  const stamp = document.getElementById('transStamp');
+  const pageA = document.getElementById('pageA');
+  const pageB = document.getElementById('pageB');
+
+  overlay.classList.remove('sweep');
+  stamp.classList.remove('show');
+  void overlay.offsetWidth;
+
+  overlay.classList.add('sweep');
+  stamp.classList.add('show');
+
+  setTimeout(() => {
+    if (currentPage === 'A') {
+      pageA.className = 'trans-page out';
+      pageB.className = 'trans-page in';
+      currentPage = 'B';
+    } else {
+      pageB.className = 'trans-page out';
+      pageA.className = 'trans-page in';
+      currentPage = 'A';
+    }
+  }, 350);
+
+  setTimeout(() => {
+    overlay.classList.remove('sweep');
+    stamp.classList.remove('show');
+    const outPage = currentPage === 'A' ? pageB : pageA;
+    outPage.className = 'trans-page waiting';
+  }, 900);
+}
+</script>
+</body>
+</html>
