@@ -1,56 +1,87 @@
-# Code Conventions
+# Conventions — turismo-capivara
 
-**Analysis Date:** 2026-04-17
+> Last mapped: 2026-09-06
 
-## Language & Toolchain
+## Code Style
 
-Both apps use TypeScript with `"strict": true`. No shared Prettier or ESLint config at the monorepo root.
+- **TypeScript** strict mode across both apps
+- **No ESLint/Prettier config** at root — only `eslint-config-next` for web
+- **Imports:** Relative paths in API; `@/*` alias in Web
+- **Semicolons:** Not enforced (mixed usage, mostly without)
+- **Quotes:** Single quotes predominant
 
-- **API (`apps/api`):** TypeScript 5, compiled with `tsc` to CommonJS, target ES2022. No linter configured.
-- **Web (`apps/web`):** TypeScript 5, Next.js bundler resolution, `eslint-config-next/core-web-vitals` + `eslint-config-next/typescript` via `apps/web/eslint.config.mjs`. No Prettier config.
+## API Patterns
 
-## Naming Patterns
+### Route Plugins
+Routes export async Fastify plugin functions registered in `app.ts`:
 
-- **API route files:** `[domain].routes.ts` — `auth.routes.ts`, `bookings.routes.ts`, etc.
-- **Shared utilities:** PascalCase for class files (`AppError.ts`), camelCase for function files (`authenticate.ts`)
-- **Web pages:** Always `page.tsx` inside a named directory (Next.js App Router)
-- **API modules:** `src/modules/[domain]/` — lowercase plural domain names
-- **Route directories (web):** Portuguese kebab-case — `roteiros/detalhe/`, `dashboard/reservas/`
-- **Route handler functions:** `async function [domain]Routes(app: FastifyInstance)` — camelCase with `Routes` suffix
-- **Event handlers:** `handle[Action]` pattern — `handleSubmit`, `handleConfirm`, `handleCancel`
-- **React state:** Portuguese names — `erro` (not `error`), `sucesso`, `loading`
-- **Constants/lookup maps:** SCREAMING_SNAKE_CASE — `STATUS`, `DIFFICULTY`
-- **Interfaces:** PascalCase, no `I` prefix — `Booking`, `Roteiro`, `DepartureSlot`
+```typescript
+export async function bookingsRoutes(app: FastifyInstance) {
+  app.post('/...', { preHandler: [authenticate, authorize([...])] }, async (req, reply) => {
+    // handler logic inline
+  })
+}
+```
 
-## Import Style
+### Validation — Zod Schemas
+Schemas in `{module}.schemas.ts`, types inferred and exported:
 
-- API: single quotes; Web: double quotes — **inconsistency between apps**
-- No barrel `index.ts` files — each module imported directly by path
-- `@/*` alias available in web (maps to `./`) but not currently used
+```typescript
+// bookings.schemas.ts
+export const createBookingSchema = z.object({ ... })
+export type CreateBookingInput = z.infer<typeof createBookingSchema>
+```
 
-## Styling
+Validation called inline in route handlers: `schema.parse(request.body)`.
 
-- Primary approach: inline `style` objects throughout nearly all pages
-- `apps/web/app/roteiros/[slug]/page.tsx` is an outlier using Tailwind CSS `className` — indicates a migration in progress
-- Reusable style objects extracted as `const` below the component when reused
-- CSS custom properties used extensively: `var(--stone-900)`, `var(--ochre)`, `var(--font-display)`
+### Error Handling
+- `throw new AppError('Message in PT-BR', statusCode)` for business errors
+- Global `setErrorHandler` in `app.ts` catches `AppError` and Zod `ZodError`
+- Response format: `{ message: string }` — NOT `{ error }` field
+- All user-facing messages in Portuguese
 
-## Error Handling
+### Auth Middleware Chain
+```typescript
+{ preHandler: [authenticate] }                    // JWT only
+{ preHandler: [authenticate, authorize(['ADMIN'])] }  // JWT + role
+```
 
-- API routes return `reply.status(xxx).send({ message: '...' })` directly
-- `AppError` class exists at `apps/api/src/shared/errors/AppError.ts` but is **not thrown** in current route handlers
-- Transaction errors: plain `new Error('SLOT_NOT_FOUND')` string codes thrown inside `prisma.$transaction`, caught and mapped to HTTP responses
-- Web client components: `useState<string | null>(null)` for `erro`, displayed inline, reset in `finally` blocks
-- Web server components: return `null` or `[]` on fetch errors with a `console.error(...)` call before the fallback
+- `authenticate` — JWT verify + cross-tenant slug ownership check
+- `authorize(roles)` — role whitelist check
 
-## Logging
+### Database Access
+- Direct `prisma.model.method()` calls in route handlers
+- Singleton Prisma client from `apps/api/src/database.ts`
+- `prisma.$transaction()` for booking operations (anti-overbooking)
+- IDs are CUIDs (`@default(cuid())`) — never UUID
 
-- API: Fastify built-in logger (`logger: true`), Prisma `log: ['query', 'error', 'warn']`
-- Web: `console.error(...)` only — no structured logging or error reporting service
+### Email Templates
+- Inline HTML strings returned from functions in `emails/` directories
+- Pattern: `function buildXxxEmail(data): { to, subject, html }`
 
-## Module Design
+## Web Patterns
 
-- No service layer — all business logic lives inside route handler functions
-- Prisma client is a singleton at `apps/api/src/database.ts`, imported everywhere as `prisma`
-- Web pages are self-contained — data-fetching functions, type definitions, and constants all colocated in each `page.tsx`
-- Types are redefined per page (e.g., `Roteiro` interface appears in multiple files with slight variations)
+### App Router
+- Route groups: `(public)`, `(painel)`, `(admin)` for layout separation
+- Dynamic `[slug]` segment for multi-tenant routing
+- API routes in `app/api/` proxy to Fastify backend
+- Server components by default; `"use client"` for interactive components
+
+### Components
+- PascalCase file names
+- Tailwind CSS for all styling (v4)
+- `@radix-ui/react-dialog` for modals
+- `sonner` for toast notifications
+- Custom CSS in `src/styles/` (animations, rupestre theme)
+
+### Authentication (Web)
+- next-auth v4 with credentials provider
+- Session-based, stores JWT from API
+- Protected routes via layout middleware
+
+## Environment Variables
+
+- Validated at startup via Zod in `apps/api/src/shared/env.ts`
+- `process.exit(1)` on validation failure
+- `CORS_ORIGIN` required in production
+- Mercado Pago tokens optional (mock fallback)

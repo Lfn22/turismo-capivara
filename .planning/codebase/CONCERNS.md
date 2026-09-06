@@ -1,74 +1,89 @@
-# Concerns & Technical Debt
+# Concerns — turismo-capivara
 
-**Analysis Date:** 2026-04-17
+> Last mapped: 2026-09-06
 
-## High Severity
+## Security — HIGH
 
-**1. Booking PATCH endpoints have no authentication**
-`PATCH /cancel` and `PATCH /confirm` in `apps/api/src/modules/bookings/bookings.routes.ts` have zero middleware. Any anonymous caller can cancel or confirm any booking by ID.
+### Input Validation Gaps
+- Zod schemas exist for bookings, packages, destinations — but **not all routes validate payload in runtime**
+- Some routes may accept unvalidated input directly from `request.body`
+- Phase 1 (Security Hardening) targets this
 
-**2. No input validation anywhere**
-Every route body uses TypeScript `as { ... }` casting with no runtime validation. Missing `pax`, empty `email`, etc. silently reach the database.
+### CORS Configuration
+- `CORS_ORIGIN` defaults to `'http://localhost:3000'` when env var is missing
+- Required in production via `validateEnv()`, but fallback exists in `app.ts` registration
+- Single origin only — no multi-origin support
 
-**3. Cross-tenant slot injection**
-`POST /tenants/:slug/bookings` accepts any `slotId` without verifying it belongs to the route's tenant. A slot from Tenant B can be consumed via Tenant A's endpoint.
+### Booking Endpoints Auth
+- Some booking PATCH endpoints (cancel/confirm) may lack JWT auth middleware
+- Phase 1 critical fix item
 
-**4. Hardcoded fallback JWT secret**
-`apps/api/src/app.ts`: `?? 'desenvolvimento-secret-trocar-em-producao'`. If `JWT_SECRET` is unset, all tokens are forgeable.
+### CPF Storage — LGPD
+- CPF hashed with HMAC-SHA256 (good) — never stored in plaintext
+- `CPF_SECRET` and `ANONYMIZATION_SALT` required env vars
+- No data retention/deletion automation yet
 
-**5. CORS locked to `localhost:3000`**
-`apps/api/src/app.ts`. The deployed production frontend is blocked by CORS.
+## Architecture — MEDIUM
 
-**6. `@fastify/helmet` installed but never registered**
-Listed in `package.json`, never imported in `app.ts`. No HTTP security headers are sent.
+### No Service Layer Consistency
+- Most business logic lives in route handlers (fat controllers)
+- Only `payment.service.ts`, `packages.service.ts`, `destinations.service.ts`, `uploads.service.ts` have service extraction
+- Makes unit testing harder — tests must go through HTTP layer
 
-## Medium Severity
+### No Shared Packages
+- Monorepo has no `packages/` directory for shared types/utilities
+- Web and API duplicate type definitions
+- No shared validation schemas between frontend and backend
 
-**7. No rate limiting on auth or booking endpoints**
-Login and public booking routes are unbounded, enabling brute-force attacks and slot exhaustion.
+### Web API Proxy Layer
+- `apps/web/app/api/` contains many proxy routes to the Fastify API
+- Adds latency and maintenance overhead
+- Could be simplified with direct client-to-API calls + CORS
 
-**8. Booking cancel blindly resets slot to `OPEN`**
-Does not check whether the slot was `CANCELLED` or `COMPLETED` first.
+## Testing — MEDIUM
 
-**9. `authorize` middleware does not validate JWT tenant against route tenant**
-An ADMIN from Tenant A can read Tenant B's bookings.
+### No Frontend Tests
+- Zero test coverage for Next.js app
+- No component testing, no E2E testing
 
-**10. Duplicate divergent middleware files**
-`apps/api/src/shared/errors/middlewares/` is dead code that nearly mirrors `apps/api/src/shared/middlewares/`, with slightly different error messages.
+### Mock-Only Backend Tests
+- All API tests mock Prisma — no real database integration tests
+- Risk: mock/prod divergence (queries succeed in mocks but fail against real DB)
+- No migration testing
 
-**11. Dead duplicate page**
-`apps/web/app/roteiros/slug/page.tsx` is an older Tailwind-based version of `apps/web/app/roteiros/detalhe/page.tsx`. Uses a different booking URL format.
+### No CI Pipeline
+- No GitHub Actions or CI config detected at project root
+- Tests run locally only
+- No automated quality gates
 
-**12. Tenant slug hardcoded in 5+ frontend files**
-`"serra-viva"` is hardcoded throughout the frontend. The multi-tenant API design is bypassed entirely by the web client.
+## Code Quality — LOW
 
-**13. `Voucher` model defined in schema but never implemented**
-Defined in `schema.prisma` but never created anywhere in the source. `Voucher.pdfUrl` and homepage copy mentioning Pix/WhatsApp indicate planned features not yet built.
+### No Linting Config
+- No ESLint/Prettier config at root level
+- Only `eslint-config-next` in web app
+- No enforced code style across monorepo
 
-**14. Redis in `docker-compose.yml` but never used**
-No Redis client dependency exists anywhere in the codebase.
+### TODO/FIXME Items
+- Scattered TODO comments in codebase (limited count found)
 
-**15. `GET /tenants` exposes all tenants without authentication.**
+## Performance — LOW
 
-## Low Severity
+### Prisma Query Logging
+- `log: ['query', 'error', 'warn']` in production database client
+- Query logging in prod impacts performance — should be conditional on `NODE_ENV`
 
-**16. No pagination on `GET /tenants/:slug/bookings`**
-Unbounded `findMany()`.
+### No Caching
+- No Redis or in-memory cache
+- All requests hit database directly
+- Destination/package listings could benefit from caching
 
-**17. Seed uses hardcoded `senha123` with no production guard**
-`apps/api/prisma/seed.ts`.
+## Deployment — LOW
 
-**18. `schema.prisma` datasource has no `url` field**
-Relies on `prisma.config.ts`; confusing for contributors expecting standard Prisma conventions.
+### Railway Single-Region
+- Deployed to Railway (single region assumed)
+- No CDN for static assets mentioned
+- No health check endpoint documented (may exist)
 
-**19. Two `.env` example files in `apps/web/`**
-`.env.example` and `.env.exemple` (typo); both identical.
-
-**20. Empty `packages/` and root `src/` directories**
-Dead scaffolding in the repo.
-
-**21. Zero tests in the entire codebase**
-No test runner configured, no test files exist.
-
-**22. `AppError` class defined but never used**
-`apps/api/src/shared/errors/AppError.ts` is dead code; routes use raw string-thrown errors instead.
+### No Seed/Migration CI
+- `prisma db push` or manual migrations assumed
+- No automated migration pipeline

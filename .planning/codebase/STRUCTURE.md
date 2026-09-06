@@ -1,69 +1,153 @@
-# Directory Structure
+# Structure — turismo-capivara
 
-**Analysis Date:** 2026-04-17
+> Last mapped: 2026-09-06
+
+## Root Layout
 
 ```
 turismo-capivara/
 ├── apps/
-│   ├── api/                         # Fastify REST API (@turismo/api)
-│   │   ├── src/
-│   │   │   ├── app.ts               # Entry point: Fastify instance, plugin + route registration
-│   │   │   ├── database.ts          # Singleton Prisma client export
-│   │   │   ├── modules/
-│   │   │   │   ├── auth/auth.routes.ts
-│   │   │   │   ├── tenants/tenants.routes.ts
-│   │   │   │   ├── packages/packages.routes.ts
-│   │   │   │   └── bookings/bookings.routes.ts
-│   │   │   └── shared/
-│   │   │       ├── middlewares/authenticate.ts
-│   │   │       ├── middlewares/authorize.ts
-│   │   │       ├── errors/AppError.ts
-│   │   │       ├── errors/middlewares/   # STALE — duplicate of shared/middlewares
-│   │   │       ├── errors/types/         # STALE — duplicate of shared/types
-│   │   │       └── types/fastify.d.ts
-│   │   ├── prisma/
-│   │   │   ├── schema.prisma
-│   │   │   ├── seed.ts
-│   │   │   └── migrations/
-│   │   ├── dist/                    # Compiled output (tsc, CommonJS)
-│   │   ├── package.json             # name: @turismo/api
-│   │   ├── tsconfig.json
-│   │   ├── prisma.config.ts
-│   │   ├── railway.json             # Railway deployment config
-│   │   ├── Procfile
-│   │   └── AGENTS.md
-│   └── web/                         # Next.js 16 frontend (@turismo/web)
-│       ├── app/
-│       │   ├── layout.tsx           # Root layout, fonts
-│       │   ├── page.tsx             # Landing page (static)
-│       │   ├── globals.css
-│       │   ├── roteiros/
-│       │   │   ├── page.tsx         # Package listing (Server Component)
-│       │   │   ├── detalhe/page.tsx # Package detail + slots (Server Component, ?id= query)
-│       │   │   └── slug/page.tsx    # STALE — older Tailwind draft (params.slug)
-│       │   ├── reservar/page.tsx    # Booking form (Client Component)
-│       │   └── dashboard/
-│       │       ├── page.tsx         # Login form (Client Component)
-│       │       └── reservas/page.tsx # Admin booking list (Client Component)
-│       ├── public/
-│       ├── next.config.ts
-│       └── package.json             # name: @turismo/web
-├── packages/                        # EMPTY — reserved for shared libs
-├── src/                             # EMPTY — leftover scaffold
-├── docker-compose.yml               # postgres:16 + redis:7 for local dev
-├── Dockerfile                       # Builds API only; runs prisma migrate deploy + node dist/app.js
-├── turbo.json
-├── pnpm-workspace.yaml
-└── package.json                     # Root: turbo dev/build scripts
+│   ├── api/              # Fastify API
+│   └── web/              # Next.js frontend
+├── .planning/            # GSD planning artifacts
+├── package.json          # Workspace root
+├── turbo.json            # Turborepo config
+├── pnpm-lock.yaml
+└── pnpm-workspace.yaml
 ```
 
-## Key Files
+## API (`apps/api/`)
 
-| File | Purpose |
-|------|---------|
-| `apps/api/src/app.ts` | Fastify instance setup, CORS, JWT, route registration |
-| `apps/api/src/database.ts` | Singleton Prisma client |
-| `apps/api/prisma/schema.prisma` | Database schema |
-| `apps/web/app/layout.tsx` | Root layout and fonts |
-| `Dockerfile` | Production build for Railway (API only) |
-| `docker-compose.yml` | Local dev: PostgreSQL + Redis |
+```
+apps/api/
+├── prisma/
+│   ├── schema.prisma     # Database schema
+│   └── seed.ts           # Seed data
+├── src/
+│   ├── app.ts            # Main entry — plugin registration + server start
+│   ├── server.ts         # Thin server wrapper
+│   ├── database.ts       # Prisma singleton
+│   ├── modules/
+│   │   ├── auth/
+│   │   │   ├── auth.routes.ts
+│   │   │   └── routes/   # Sub-routes (lookup-tenant, password-reset)
+│   │   ├── bookings/
+│   │   │   ├── bookings.routes.ts
+│   │   │   ├── bookings.schemas.ts
+│   │   │   ├── emails/   # Email templates
+│   │   │   ├── expiry.job.ts
+│   │   │   └── __tests__/
+│   │   ├── dashboard/
+│   │   │   └── dashboard.routes.ts
+│   │   ├── destinations/
+│   │   │   ├── destinations.routes.ts
+│   │   │   ├── destinations.schemas.ts
+│   │   │   └── destinations.service.ts
+│   │   ├── guides/
+│   │   │   └── guides.routes.ts
+│   │   ├── packages/
+│   │   │   ├── packages.routes.ts
+│   │   │   ├── packages.schemas.ts
+│   │   │   └── packages.service.ts
+│   │   ├── tenants/
+│   │   │   ├── tenants.routes.ts
+│   │   │   ├── emails/
+│   │   │   └── __tests__/
+│   │   ├── uploads/
+│   │   │   ├── uploads.routes.ts
+│   │   │   └── uploads.service.ts
+│   │   ├── users/
+│   │   │   └── users.routes.ts
+│   │   └── webhooks/
+│   │       └── webhooks.routes.ts
+│   ├── services/
+│   │   └── payment.service.ts
+│   ├── shared/
+│   │   ├── config/
+│   │   │   └── r2.ts
+│   │   ├── email.ts
+│   │   ├── env.ts
+│   │   ├── errors/
+│   │   │   └── AppError.ts
+│   │   ├── middlewares/
+│   │   │   ├── authenticate.ts
+│   │   │   └── authorize.ts
+│   │   ├── sentry.ts
+│   │   ├── types/
+│   │   │   └── fastify.d.ts
+│   │   └── utils/
+│   │       └── hash.ts
+│   └── __tests__/
+│       ├── helpers/
+│       │   └── build-app.ts
+│       ├── bookings-b1.test.ts
+│       ├── bookings-create.test.ts
+│       ├── checkout.test.ts
+│       ├── cancel-self.test.ts
+│       ├── dashboard.test.ts
+│       ├── rate-limit.test.ts
+│       ├── self-service.test.ts
+│       ├── sentry.test.ts
+│       └── tenants.test.ts
+└── vitest.config.ts
+```
+
+## Web (`apps/web/`)
+
+```
+apps/web/
+├── app/
+│   ├── layout.tsx            # Root layout
+│   ├── globals.css
+│   ├── page.tsx              # Landing page
+│   ├── actions/              # Server actions (waitlist)
+│   ├── [slug]/
+│   │   ├── login/page.tsx
+│   │   ├── cadastro/page.tsx
+│   │   ├── (public)/         # Public tenant pages
+│   │   │   ├── roteiros/     # Tour packages
+│   │   │   ├── guias/        # Guides
+│   │   │   ├── reservar/     # Booking
+│   │   │   ├── checkout/     # Payment
+│   │   │   ├── confirmacao/  # Confirmation
+│   │   │   └── minha-reserva/# My booking
+│   │   ├── (painel)/         # Operator panel (authenticated)
+│   │   │   └── painel/
+│   │   │       ├── dashboard/
+│   │   │       ├── reservas/
+│   │   │       ├── roteiros/
+│   │   │       ├── destinos/
+│   │   │       ├── disponibilidade/
+│   │   │       └── perfil/
+│   │   └── (admin)/          # Admin pages
+│   │       └── admin/guias/
+│   └── api/                  # Next.js API routes (proxy to Fastify)
+│       ├── auth/
+│       ├── [slug]/bookings/
+│       ├── [slug]/dashboard/
+│       ├── tenants/
+│       ├── admin/destinations/
+│       └── super-admin/tenants/
+├── src/
+│   ├── components/
+│   │   ├── home/             # Landing page components
+│   │   ├── layout/           # Nav, bottom nav, public layout
+│   │   ├── ui/               # Shared UI components
+│   │   ├── destination/      # Destination-specific
+│   │   ├── painel/           # Panel components
+│   │   └── roteiro/          # Tour detail components
+│   ├── styles/
+│   │   ├── animations.css
+│   │   └── rupestre.css
+│   └── lib/                  # Utilities
+└── next.config.ts
+```
+
+## Naming Conventions
+
+- **Modules:** `{domain}.routes.ts`, `{domain}.schemas.ts`, `{domain}.service.ts`
+- **Tests:** `{domain}.routes.test.ts` (co-located) or `__tests__/{name}.test.ts` (integration)
+- **Emails:** `{event}-email.ts` in `emails/` subdirectory
+- **Components:** PascalCase `.tsx` files
+- **Pages:** PT-BR slugs (`roteiros`, `reservar`, `confirmacao`, `guias`)
+- **Route groups:** Next.js `(public)`, `(painel)`, `(admin)` for layout grouping

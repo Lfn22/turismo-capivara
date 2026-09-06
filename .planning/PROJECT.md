@@ -1,6 +1,19 @@
 # CAPI — Marketplace de Turismo
 
-*Atualizado em 2026-07-28*
+*Atualizado em 2026-09-06*
+
+## Current Milestone: v3.0 Governança & Destinos Compartilhados
+
+**Goal:** Remover SUPER_ADMIN, implementar aprovação de tenants via API key + código email, destinos compartilhados N:M entre operadoras, e dashboard read-only cross-tenant para o dono da plataforma.
+
+**Target features:**
+- Remoção do role SUPER_ADMIN e todas as rotas/páginas associadas
+- Aprovação de tenant via API key + código de confirmação por email
+- Destinos compartilhados (N:M) — qualquer operadora pode operar em destinos existentes
+- Detecção de duplicatas de destinos (slug + geocoding)
+- Dashboard read-only cross-tenant para o dono da plataforma
+- Suspensão de tenant via script (operações destrutivas manuais)
+- Audit log para ações administrativas via API key
 
 ## O que é
 
@@ -39,7 +52,9 @@ Toda entidade pertence a um `Tenant` (operadora), isolado por `slug`. Destinos s
 
 ### Roles
 
-`SUPER_ADMIN` · `ADMIN` · `ATENDENTE` · `CONDUTOR` (guia) · `CLIENTE` (turista)
+`ADMIN` · `ATENDENTE` · `CONDUTOR` (guia) · `CLIENTE` (turista)
+
+> **v3.0:** SUPER_ADMIN removido. Operações da plataforma via API key + equipe técnica.
 
 ### Database (12 models)
 
@@ -180,6 +195,10 @@ Toda entidade pertence a um `Tenant` (operadora), isolado por `slug`. Destinos s
 
 | Decisão | Motivo | Status |
 |---------|--------|--------|
+| Remover SUPER_ADMIN | Reduz superfície de ataque; dono opera via API key + cURL/script | v3.0 |
+| Aprovação via API key + código email | Mecanismo mais seguro que painel web; ações de escrita fora do browser | v3.0 |
+| Destinos compartilhados N:M | Múltiplas operadoras no mesmo destino; catálogo cresce organicamente | v3.0 |
+| Dashboard dono read-only | Leitura é low-risk; escrita é high-risk e passa por script/equipe | v3.0 |
 | Multi-tenant por slug | Operadoras isoladas, mas destinos compartilhados entre tenants | Validado |
 | Regiões como tags, não entidades | Simplicidade — sem hierarquia de permissões regionais | Validado |
 | CPF hasheado HMAC-SHA256 | LGPD compliance; lookup por email+código sem CPF plaintext | Validado |

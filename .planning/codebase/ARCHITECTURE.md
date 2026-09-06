@@ -1,48 +1,93 @@
-# Architecture
+# Architecture — turismo-capivara
 
-**Analysis Date:** 2026-04-17
+> Last mapped: 2026-09-06
 
-## Overview
+## Pattern
 
-Monorepo managed by Turborepo + pnpm workspaces with two apps:
-- `@turismo/api` — Fastify 5 REST API
-- `@turismo/web` — Next.js 16 frontend
+**Monorepo + Modular Monolith**
 
-`packages/` is empty (reserved for shared libs, never used).
+- pnpm workspace with Turborepo orchestration
+- API: Fastify modular plugin architecture
+- Web: Next.js App Router with server/client components
+- Shared nothing between apps (no shared packages yet)
 
-## API Architecture
+## Multi-Tenant Design
 
-**Pattern:** Flat module-per-domain. No service/repository layer. Business logic lives entirely inside route handlers (`*.routes.ts`).
-
-**Modules:** `auth`, `tenants`, `packages`, `bookings`
-
-**Database:** Prisma 7 with `@prisma/adapter-pg` (native pg driver). Single exported client at `apps/api/src/database.ts`.
-
-**Multi-tenancy:** URL-scoped via `/:slug` path param. Every route resolves the Tenant first. JWT carries `tenantId` but the `authorize` middleware does not cross-check JWT tenant against the URL slug (security gap).
-
-**Booking creation** uses a `prisma.$transaction` to atomically check capacity, increment `slot.booked`, and create the `Booking`.
-
-**Auth:** JWT (`@fastify/jwt`), 1-day expiry, bcrypt password hashing. `authenticate` + `authorize` are Fastify `onRequest` hooks. Token stored in `localStorage` on the frontend.
-
-## Frontend Architecture
-
-**Pattern:** Next.js App Router. Server components fetch with `next: { revalidate: 300 }`. Client components (`"use client"`) manage forms and dashboard via `useEffect` + `fetch`.
-
-No API client abstraction — URLs constructed inline per page. Tenant slug hardcoded as `"serra-viva"` in multiple pages, bypassing the multi-tenant API design.
-
-## Data Flow
+All entities scoped to a `Tenant`, isolated by `slug` in URL params.
 
 ```
-Browser → Next.js page (Server Component)
-  → fetch() to API (hardcoded slug)
-    → Fastify route handler
-      → authenticate/authorize hooks
-        → Prisma → PostgreSQL
+URL: /[slug]/roteiros → Tenant resolved from slug
+JWT: contains tenantId → cross-tenant check in authenticate middleware
 ```
 
-## Key Architectural Issues
+**Roles:** ADMIN, ATENDENTE, CONDUTOR (guide), CLIENTE (tourist), SUPER_ADMIN
 
-- CORS hardcoded to `http://localhost:3000` — blocks production frontend
-- No service layer — all logic in route handlers
-- `AppError` class defined but unused
-- `@fastify/helmet` installed but never registered
+## API Layers
+
+```
+Request → Fastify Route Plugin
+  → Middleware (authenticate → authorize)
+  → Route Handler (inline in routes file)
+  → Prisma Client (database.ts singleton)
+  → Response
+```
+
+**Key pattern:** Routes are Fastify plugins registered in `app.ts`. Each module exports a plugin function. Business logic lives directly in route handlers — no separate service layer for most modules.
+
+**Exceptions with service layer:**
+- `apps/api/src/services/payment.service.ts` — Mercado Pago abstraction
+- `apps/api/src/modules/packages/packages.service.ts`
+- `apps/api/src/modules/destinations/destinations.service.ts`
+- `apps/api/src/modules/uploads/uploads.service.ts`
+
+## Entry Points
+
+- **API:** `apps/api/src/app.ts` — builds Fastify app, registers plugins (cors, helmet, jwt, rate-limit, cron, raw-body), registers route modules, starts server
+- **API server:** `apps/api/src/server.ts` — thin wrapper, imports app
+- **Web:** `apps/web/app/layout.tsx` — Next.js root layout
+
+## Data Flow — Booking
+
+```
+Tourist → Web (checkout page)
+  → Next.js API route (proxy)
+  → Fastify /bookings POST
+  → Prisma $transaction (anti-overbooking)
+  → Mercado Pago PIX creation
+  → Response with paymentUrl + qrCode
+  → Webhook confirms payment
+  → Email sent via Resend
+  → Voucher generated
+```
+
+## Data Flow — Auth
+
+```
+Login → Web (next-auth)
+  → API /auth/login
+  → bcrypt verify
+  → JWT signed with tenantId, userId, role
+  → Stored client-side via next-auth session
+```
+
+## Plugin Registration Order (app.ts)
+
+1. `validateEnv()` + `initSentry()` (before Fastify creation)
+2. Fastify instance created
+3. `Sentry.setupFastifyErrorHandler(app)` (before custom error handler)
+4. `rawBody` plugin
+5. `cors` plugin
+6. `helmet` plugin
+7. `rateLimit` plugin
+8. `jwt` plugin
+9. `fastifyCron` plugin
+10. Route modules (tenants, packages, bookings, auth, users, dashboard, webhooks, uploads, guides, destinations)
+11. Custom `setErrorHandler` — catches `AppError` and Zod errors
+12. Server listen
+
+## Error Handling
+
+- `AppError` class: `apps/api/src/shared/errors/AppError.ts` — `message` + `statusCode`
+- Global error handler in `app.ts` — returns `{ message }` field
+- Error messages in Portuguese (PT-BR)
+- Zod validation errors caught and formatted in global handler
