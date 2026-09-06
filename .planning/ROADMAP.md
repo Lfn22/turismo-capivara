@@ -388,3 +388,127 @@ Plans:
 | 26. Frontend Discovery Pages | 0/TBD | Not started | - |
 | 27. Partner Panel — Slot Creation | 0/TBD | Not started | - |
 | 28. Map Widget | 3/3 | Complete | 2026-07-08 |
+
+
+---
+
+## v3.0 — Governança & Destinos Compartilhados
+
+**Goal:** Remover SUPER_ADMIN, implementar aprovação de tenants via API key + código email, destinos compartilhados N:M entre operadoras, e dashboard read-only cross-tenant para o dono da plataforma.
+**Origin:** Decisão estratégica — superfície de ataque reduzida; catálogo de destinos cresce organicamente via multi-operadora.
+**Requirements:** 38 (ADMIN×5, GOV×11, AUDIT×4, DEST×10, VIT×3, DASH×5)
+
+### Phases
+
+- [ ] **Phase 29: Schema Aditivo & Backfill** — TenantDestination N:M, ApiKey, AuditLog, confirmação de tenant, campo destinationId em TourPackage + backfill (NUNCA junto com migração destrutiva)
+- [ ] **Phase 30: Remoção SUPER_ADMIN** — migração de dados (SUPER_ADMIN → ADMIN), limpeza de rotas/código, remoção do enum (somente após schema aditivo estar estável)
+- [ ] **Phase 31: Módulo API Key & Audit Log** — geração/hash de API key, middleware de autenticação por x-admin-key, imutabilidade do AuditLog, consulta com filtros
+- [ ] **Phase 32: Governança de Tenants** — aprovação/rejeição/suspensão via API key, código de confirmação por email, expiração + rate limit, bloqueio de login
+- [ ] **Phase 33: Destinos Compartilhados N:M** — join/leave de operadora em destino, detecção de duplicatas, permissões de edição, soft delete de vínculo
+- [ ] **Phase 34: Vitrine Multi-Operadora** — página pública do destino lista roteiros de todas as operadoras, filtros, seção de operadoras ativas
+- [ ] **Phase 35: Dashboard do Dono** — métricas cross-tenant via API key, read-only, sem PII
+
+---
+
+### Phase 29: Schema Aditivo & Backfill
+**Goal**: Banco preparado para N:M de destinos, autenticação por API key e audit log — sem risco de perda de dados legados
+**Depends on**: Phase 28
+**Requirements**: DEST-01, DEST-02, DEST-10
+**Success Criteria** (what must be TRUE):
+  1. Tabela `TenantDestination` existe com `@@unique([tenantId, destinationId])` e campos status, createdById
+  2. Todos os tenants com `destinationId` existente têm row correspondente em `TenantDestination` (backfill verificado)
+  3. Tabela `ApiKey` existe com campos hash SHA-256, prefix, expiresAt, lastUsedAt
+  4. Tabela `AuditLog` existe com campos actorType, action, targetType, targetId, ipAddress, metadata JSON, createdAt — sem UPDATE/DELETE permitidos por convenção
+  5. `Tenant` tem campos `confirmationCode`, `confirmationCodeExpiresAt`, `confirmationAttempts`, `confirmedAt`
+  6. `TourPackage` tem campo `destinationId` (nullable FK para Destination)
+**Plans**: 1 plan
+Plans:
+- [ ] 29-01-PLAN.md — Schema aditivo: TenantDestination, ApiKey, AuditLog, campos Tenant/TourPackage + migration com backfill SQL
+
+### Phase 30: Remoção SUPER_ADMIN
+**Goal**: Role SUPER_ADMIN eliminado do codebase — nenhum usuário, código ou rota depende dele
+**Depends on**: Phase 29
+**Requirements**: ADMIN-01, ADMIN-02, ADMIN-03, ADMIN-04, ADMIN-05
+**Success Criteria** (what must be TRUE):
+  1. Nenhum user no banco tem role SUPER_ADMIN (todos migrados para ADMIN)
+  2. Enum `Role` no schema Prisma não contém `SUPER_ADMIN`
+  3. `authenticate.ts` não tem bypass de cross-tenant check para SUPER_ADMIN
+  4. Nenhuma rota usa `authorize(['SUPER_ADMIN'])` — rotas exclusivas removidas ou ajustadas
+  5. Páginas `/super-admin/*` e API proxy routes correspondentes removidas do frontend
+**Plans**: TBD
+
+### Phase 31: Módulo API Key & Audit Log
+**Goal**: Dono da plataforma pode autenticar via API key e todas as ações ficam registradas em log imutável consultável
+**Depends on**: Phase 29
+**Requirements**: GOV-09, GOV-10, GOV-11, AUDIT-01, AUDIT-02, AUDIT-03, AUDIT-04
+**Success Criteria** (what must be TRUE):
+  1. POST /admin/api-keys gera chave exibida uma única vez em texto claro; armazenada como hash SHA-256
+  2. Middleware `requireApiKey` valida x-admin-key com `timingSafeEqual`; rejeita com 401 se inválido
+  3. Rotas admin têm rate limit de 5 req/min independente do rate limit global
+  4. Toda requisição autenticada via API key cria row em AuditLog (actorType, action, targetType, targetId, ipAddress, metadata, timestamp)
+  5. AuditLog não contém PII (sem nome, email, CPF no metadata)
+  6. GET /admin/audit-logs retorna log filtrado por action e date range
+**Plans**: TBD
+
+### Phase 32: Governança de Tenants
+**Goal**: Dono aprova, rejeita e suspende operadoras via API key; admin do tenant confirma email antes de operar
+**Depends on**: Phase 31
+**Requirements**: GOV-01, GOV-02, GOV-03, GOV-04, GOV-05, GOV-06, GOV-07, GOV-08
+**Success Criteria** (what must be TRUE):
+  1. POST /admin/tenants/:id/approve com API key altera status para APPROVED e envia código de 6 dígitos por email ao admin do tenant
+  2. POST /admin/tenants/:id/reject com API key e motivo rejeita tenant e notifica por email
+  3. POST /tenants/confirm-email com slug + código confirma tenant (preenche confirmedAt); código expira em 15 min; bloqueia após 5 tentativas por 15 min
+  4. Login retorna 403 se tenant não está APPROVED ou confirmedAt é nulo
+  5. POST /admin/tenants/:id/suspend com API key muda status para SUSPENDED; login fica bloqueado; dados preservados
+  6. Tenant suspenso tem status SUSPENDED no banco — nenhuma row de dados é deletada
+**Plans**: TBD
+
+### Phase 33: Destinos Compartilhados N:M
+**Goal**: ADMIN pode vincular sua operadora a destinos existentes; duplicatas são detectadas; permissões de edição são respeitadas
+**Depends on**: Phase 29
+**Requirements**: DEST-03, DEST-04, DEST-05, DEST-06, DEST-07, DEST-08, DEST-09
+**Success Criteria** (what must be TRUE):
+  1. POST /destinations/:id/join vincula operadora autenticada ao destino; row em TenantDestination com status ACTIVE
+  2. DELETE /destinations/:id/leave muda TenantDestination.status para SUSPENDED (soft delete do vínculo)
+  3. Destination criada por ADMIN fica APPROVED direto — sem aprovação externa
+  4. POST /destinations com nome similar a existente retorna 409 com lista de destinos similares e sugestão de join
+  5. PATCH /destinations/:id só é permitido ao createdById do destino; outros ADMINs recebem 403
+  6. Roteiro associado a destino via TourPackage.destinationId retorna destinationId nas queries relevantes
+**Plans**: TBD
+
+### Phase 34: Vitrine Multi-Operadora
+**Goal**: Turista vê na página do destino todos os roteiros de todas as operadoras ativas, com filtros e lista de operadoras
+**Depends on**: Phase 33
+**Requirements**: VIT-01, VIT-02, VIT-03
+**Success Criteria** (what must be TRUE):
+  1. /destinos/[slug] lista roteiros de TODAS as operadoras com TenantDestination.status ACTIVE naquele destino
+  2. Turista filtra roteiros por operadora, preço e dificuldade sem recarregar a página
+  3. Seção de operadoras ativas exibe nome e logo de cada operadora vinculada ao destino
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 35: Dashboard do Dono
+**Goal**: Dono consulta métricas cross-tenant via API key em endpoint read-only sem exposição de PII
+**Depends on**: Phase 31
+**Requirements**: DASH-01, DASH-02, DASH-03, DASH-04, DASH-05
+**Success Criteria** (what must be TRUE):
+  1. GET /admin/dashboard com API key válida retorna métricas agregadas cross-tenant
+  2. Resposta inclui total de tenants por status, total de bookings por status, total de guias, total de destinos
+  3. Resposta inclui receita total de bookings confirmados e top 5 destinos por número de bookings
+  4. Nenhum endpoint POST/PATCH/DELETE existe no módulo /admin/dashboard
+  5. Nenhum campo de PII individual (nome de turista, email, CPF) aparece na resposta
+**Plans**: TBD
+
+---
+
+## Progress v3.0
+
+| Phase | Plans Complete | Status | Concluído |
+|-------|----------------|--------|-----------|
+| 29. Schema Aditivo & Backfill | 0/TBD | Not started | - |
+| 30. Remoção SUPER_ADMIN | 0/TBD | Not started | - |
+| 31. Módulo API Key & Audit Log | 0/TBD | Not started | - |
+| 32. Governança de Tenants | 0/TBD | Not started | - |
+| 33. Destinos Compartilhados N:M | 0/TBD | Not started | - |
+| 34. Vitrine Multi-Operadora | 0/TBD | Not started | - |
+| 35. Dashboard do Dono | 0/TBD | Not started | - |
