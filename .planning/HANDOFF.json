@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-09-08T23:11:45.653Z",
+  "phase": "29",
+  "phase_name": "schema-aditivo-backfill",
+  "phase_dir": ".planning/phases/29-schema-aditivo-backfill",
+  "plan": 1,
+  "task": 2,
+  "total_tasks": 2,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Atualizar schema.prisma com novos enums, models e campos", "status": "done", "commit": "456c87d"},
+    {"id": 2, "name": "Gerar migration e aplicar com backfill SQL", "status": "done", "commit": "ea8f2ad"}
+  ],
+  "remaining_tasks": [],
+  "blockers": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {"decision": "Migration manual + prisma migrate deploy (em vez de migrate dev --create-only)", "rationale": "Drift no banco Railway impediu migrate dev; migration SQL criada manualmente com backfill inline", "phase": "29"}
+  ],
+  "uncommitted_files": [
+    ".planning/STATE.md",
+    ".planning/REQUIREMENTS.md",
+    ".planning/phases/29-schema-aditivo-backfill/29-01-PLAN.md"
+  ],
+  "next_action": "Rodar /gsd-verify-work 29 para UAT do schema — verificar que tabelas TenantDestination, ApiKey, AuditLog existem, backfill está correto, e Prisma Client compila",
+  "context_notes": "Phase 29 execution complete (plan 29-01, 2/2 tasks done). Pending: verification/UAT. STATE.md updated to reflect execution. Uncommitted planning file changes are from earlier sessions (web UI work, requirements updates)."
+}

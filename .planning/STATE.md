@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
 milestone: v3.0
-milestone_name: "Governança & Destinos Compartilhados"
-status: planning
-stopped_at: null
-last_updated: "2026-09-06T11:00:00-03:00"
-last_activity: 2026-09-06 — Milestone v3.0 started
+milestone_name: Governança & Destinos Compartilhados
+status: executing
+last_updated: "2026-09-06T15:09:01.574Z"
+last_activity: 2026-09-06 -- Phase 29-01 executed (2 commits)
 progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 7
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
+  percent: 14
 ---
 
 # STATE.md — Turismo Capivara
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-09-06)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-09-06 — Milestone v3.0 started
+Phase: 29 — Schema Aditivo & Backfill
+Plan: 29-01 ✅
+Status: Executed — pending verification
+Last activity: 2026-09-06 -- Phase 29-01 executed with 2 commits
 
 ## Decisões estratégicas
 
@@ -60,6 +59,9 @@ Last activity: 2026-09-06 — Milestone v3.0 started
 - v2.1: IDs são CUIDs (`cuid()`) — validar com regex permissiva, nunca UUID pattern
 - v2.1: Conflito de agenda usa janela `startsAt` até `startsAt + durationMaxHours*60 + bufferMinutes` — dentro de `prisma.$transaction`
 - v2.1: Tiles Maptiler servidos via proxy Next.js route — API key nunca exposta ao client
+- v3.0: API key armazenada como hash SHA-256; comparação com `timingSafeEqual` — nunca comparação direta de string
+- v3.0: Migrations aditivas e destrutivas em fases separadas (Phase 29 aditivo, Phase 30 destrutivo)
+- v3.0: AuditLog imutável por convenção (sem rotas de UPDATE/DELETE) — não usar soft delete aqui
 
 ## Performance histórica
 
@@ -81,6 +83,11 @@ Last activity: 2026-09-06 — Milestone v3.0 started
 - Verificação de email no signup (ONBOARD-04)
 - Cache de POIs com Redis/Upstash
 - i18n — next-intl
+- Report system (flag de conteúdo entre ADMINs)
+- Preço predatório — alerta se preço < 50% da média do destino
+- Optimistic locking com campo version em Destination
+- Status TERMINATED para tenant (remoção definitiva)
+- Materialized views para dashboard se queries > 2s
 
 ## Accumulated Context
 
@@ -91,10 +98,10 @@ Last activity: 2026-09-06 — Milestone v3.0 started
 - v1.2 UI/UX Polish shipped (2026-06-11) — Phases 11–15
 - v1.3 → v2.0 MVP Stability merged (2026-06-26) — Phases 16–23
 - v2.1 Multi-Guide & Discovery shipped (2026-07-08) — Phases 24–28, 18 requirements
-- v3.0 Governança & Destinos Compartilhados started (2026-09-06)
+- v3.0 Governança & Destinos Compartilhados started (2026-09-06) — Phases 29–35, 38 requirements
 
 ## Session Continuity
 
-Last session: 2026-09-06T11:00:00-03:00
-Stopped at: Milestone v3.0 started — defining requirements
+Last session: 2026-09-06T15:08:26.796Z
+Stopped at: Phase 29 context gathered
 Resume file: None
