@@ -57,14 +57,14 @@ export default async function HomePage() {
     <ScrollRevealProvider>
       {/* Nav — simplified, desktop only (mobile uses BottomNav) */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 md:px-10 py-4 transition-all duration-400"
-        style={{ background: 'transparent' }}>
+        style={{ background: 'var(--stone-100)' }}>
         <Link href="/" className="font-[family-name:var(--font-display)] font-bold text-xl tracking-[3px] no-underline"
-          style={{ color: 'var(--stone-100)' }}>
+          style={{ color: 'var(--stone-800)' }}>
           CAPI
         </Link>
         <div className="hidden md:flex items-center gap-7">
-          <Link href="/destinos" className="text-sm no-underline transition-colors" style={{ color: 'var(--stone-400)' }}>Destinos</Link>
-          <Link href="/explorar" className="text-sm no-underline transition-colors" style={{ color: 'var(--stone-400)' }}>Explorar</Link>
+          <Link href="/destinos" className="text-sm no-underline transition-colors" style={{ color: 'var(--stone-600)' }}>Destinos</Link>
+          <Link href="/explorar" className="text-sm no-underline transition-colors" style={{ color: 'var(--stone-600)' }}>Explorar</Link>
         </div>
       </nav>
 
@@ -82,7 +82,7 @@ export default async function HomePage() {
           <Image src="/images/logo.png" alt="CAPI" width={110} height={99}
             style={{ filter: 'brightness(0) invert(1)', display: 'block' }} />
           <Link href="/login"
-            className="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold no-underline rounded"
+            className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold no-underline rounded-full"
             style={{ border: '1px solid var(--ochre)', color: 'var(--ochre)' }}>
             Acessar painel
           </Link>

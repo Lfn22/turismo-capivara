@@ -36,15 +36,35 @@ export default function DestinationCard({
           display: block;
           text-decoration: none;
           color: inherit;
-          border-radius: 4px;
+          border-radius: 12px;
           overflow: hidden;
           background: #fff;
           border: 1px solid var(--stone-200, #e7e5e4);
-          transition: box-shadow 0.2s, transform 0.2s;
+          transition: box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                      transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          position: relative;
+        }
+        .dcard::before {
+          content: '';
+          position: absolute;
+          inset: -1px;
+          border-radius: inherit;
+          background: linear-gradient(135deg, rgba(196,133,42,0.2), transparent 60%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          pointer-events: none;
+          z-index: 1;
         }
         .dcard:hover {
-          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(196, 133, 42, 0.15),
+                      0 4px 12px rgba(0, 0, 0, 0.06);
+          transform: scale(1.03);
+        }
+        .dcard:hover::before {
+          opacity: 1;
+        }
+        .dcard:active {
+          transform: scale(0.98);
         }
         .dcard:focus-visible {
           outline: 2px solid var(--ochre, #c2783c);
@@ -54,7 +74,7 @@ export default function DestinationCard({
           position: relative;
           width: 100%;
           aspect-ratio: 16 / 9;
-          background: var(--stone-800, #292524);
+          background: var(--stone-200, #E8DDD0);
           overflow: hidden;
         }
         .dcard__image-placeholder {
@@ -63,8 +83,8 @@ export default function DestinationCard({
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, var(--stone-800, #292524), var(--stone-700, #44403c));
-          color: var(--stone-600, #57534e);
+          background: var(--stone-200, #E8DDD0);
+          color: var(--stone-400, #B8A090);
         }
         .dcard__body {
           padding: 20px;

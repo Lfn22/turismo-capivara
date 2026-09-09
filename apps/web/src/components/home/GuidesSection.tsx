@@ -12,7 +12,7 @@ export default function GuidesSection() {
           </p>
           <h2 className="font-[family-name:var(--font-display)] font-bold text-2xl md:text-[2.5rem] leading-tight mb-4"
             style={{ color: 'var(--stone-100)' }}>
-            Quem conhece de verdade
+            Quem conhece <em style={{ color: 'var(--ochre-light)', fontStyle: 'italic' }}>de verdade</em>
           </h2>
           <p className="text-lg leading-relaxed max-w-[560px]"
             style={{ color: 'var(--stone-400)' }}>

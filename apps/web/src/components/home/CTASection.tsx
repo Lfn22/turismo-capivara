@@ -11,15 +11,16 @@ export default function CTASection() {
         </p>
         <h2 className="font-[family-name:var(--font-display)] font-bold text-2xl md:text-[2.5rem] leading-tight max-w-[550px] mx-auto mb-4"
           style={{ color: 'var(--stone-800)' }}>
-          Sua proxima aventura comeca aqui
+          Sua próxima <em style={{ color: 'var(--ochre)', fontStyle: 'italic' }}>aventura</em>{' '}
+          começa aqui
         </h2>
         <p className="text-base md:text-lg max-w-[480px] mx-auto"
           style={{ color: 'var(--stone-500)' }}>
-          Encontre guias locais, escolha seu roteiro e reserve com seguranca.
+          Encontre guias locais, escolha seu roteiro e reserve com segurança.
         </p>
         <Link href="/destinos"
-          className="inline-block mt-8 px-12 py-4 font-semibold text-base rounded-md no-underline transition-all duration-300"
-          style={{ background: 'var(--ochre)', color: 'white' }}>
+          className="inline-block mt-8 px-12 py-4 font-semibold text-base rounded-full no-underline transition-all duration-300"
+          style={{ border: '2px solid var(--ochre)', color: 'var(--ochre)', background: 'transparent' }}>
           Explorar destinos
         </Link>
       </div>

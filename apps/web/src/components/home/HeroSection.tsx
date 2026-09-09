@@ -1,43 +1,40 @@
 import Link from 'next/link';
-import HeroLogoAnimation from './HeroLogoAnimation';
+import Image from 'next/image';
 import '@/src/styles/animations.css';
-import '@/src/styles/rupestre.css';
 
 export default function HeroSection() {
   return (
-    <section className="relative flex flex-col items-center justify-center overflow-hidden stone-texture vignette"
+    <section className="relative flex flex-col items-center justify-center overflow-hidden"
       style={{
-        height: '100dvh',
-        minHeight: '700px',
-        background: 'linear-gradient(175deg, #1a1714 0%, var(--stone-900) 30%, var(--stone-800) 70%, #2a2520 100%)',
+        minHeight: '100dvh',
+        background: 'var(--stone-100)',
       }}>
 
-      <div className="relative z-10 text-center flex flex-col items-center">
-        <HeroLogoAnimation />
+      <div className="relative z-10 text-center flex flex-col items-center pt-24 pb-16">
+        <Image
+          src="/images/logo.png"
+          alt="CAPI — caminho entre quem explora e quem opera"
+          width={260}
+          height={234}
+          priority
+          className="fade-up animate"
+          style={{ '--fade-delay': '0.2s' } as React.CSSProperties}
+        />
+
+        <p className="fade-up animate mt-2 text-xs tracking-[0.2em] uppercase"
+          style={{ color: 'var(--stone-500)', '--fade-delay': '0.6s' } as React.CSSProperties}>
+          Caminho entre quem explora e quem opera
+        </p>
 
         <Link href="/destinos"
-          className="fade-up animate inline-block mt-6 px-10 py-3.5 font-semibold text-sm tracking-wider uppercase rounded-md no-underline transition-all duration-300"
+          className="fade-up animate btn-tactile inline-block mt-8 px-10 py-3.5 font-semibold text-sm tracking-wider uppercase rounded-full no-underline"
           style={{
             background: 'var(--ochre)',
             color: 'white',
-            '--fade-delay': '2.3s',
+            '--fade-delay': '1s',
           } as React.CSSProperties}>
           Explorar destinos
         </Link>
-      </div>
-
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-        <span className="text-[10px] tracking-[0.2em] uppercase"
-          style={{ color: 'var(--stone-600)' }}>
-          scroll
-        </span>
-        <div className="w-5 h-5 border-r-[1.5px] border-b-[1.5px]"
-          style={{
-            borderColor: 'var(--stone-600)',
-            animation: 'scrollBounce 2.5s ease infinite',
-            transform: 'rotate(45deg)',
-          }} />
       </div>
     </section>
   );
