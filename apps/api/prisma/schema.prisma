@@ -76,6 +76,7 @@ model User {
   tourPackages        TourPackage[]        @relation("ConductorPackages")
   passwordResetTokens PasswordResetToken[]
   destinations        Destination[]        @relation("DestinationCreator")
+  tenantDestinationsCreated TenantDestination[] @relation("TenantDestinationCreator")
 
   @@unique([tenantId, email])
 }
@@ -298,6 +299,7 @@ model TenantDestination {
 
   tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   destination Destination @relation(fields: [destinationId], references: [id])
+  createdBy   User?       @relation("TenantDestinationCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@unique([tenantId, destinationId])
   @@index([tenantId])
@@ -309,7 +311,7 @@ model ApiKey {
   id         String    @id @default(cuid())
   prefix     String    @unique
   keyHash    String    @unique
-  actorType  String
+  actorType  AuditActorType
   expiresAt  DateTime?
   lastUsedAt DateTime?
   revokedAt  DateTime?
