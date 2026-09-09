@@ -31,14 +31,14 @@ export default function GuideCard({ guide, href }: GuideCardProps) {
           color: inherit;
           background: #fff;
           border: 1px solid var(--stone-200);
-          border-radius: 3px;
+          border-radius: 12px;
           overflow: hidden;
-          transition: box-shadow 0.2s, transform 0.2s;
+          transition: box-shadow 0.25s ease, transform 0.25s ease;
         }
 
         .gcard:hover {
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
-          transform: translateY(-2px);
+          box-shadow: 0 8px 28px rgba(0, 0, 0, 0.10);
+          transform: translateY(-3px);
         }
 
         /* Foto */
@@ -83,7 +83,7 @@ export default function GuideCard({ guide, href }: GuideCardProps) {
         }
 
         .gcard__tag {
-          font-size: 0.68rem;
+          font-size: 0.75rem;
           font-weight: 600;
           letter-spacing: 0.06em;
           text-transform: uppercase;
