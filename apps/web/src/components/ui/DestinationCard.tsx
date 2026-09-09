@@ -58,13 +58,13 @@ export default function DestinationCard({
         .dcard:hover {
           box-shadow: 0 12px 32px rgba(196, 133, 42, 0.15),
                       0 4px 12px rgba(0, 0, 0, 0.06);
-          transform: scale(1.03);
+          transform: translateY(-3px);
         }
         .dcard:hover::before {
           opacity: 1;
         }
         .dcard:active {
-          transform: scale(0.98);
+          transform: translateY(0);
         }
         .dcard:focus-visible {
           outline: 2px solid var(--ochre, #c2783c);
