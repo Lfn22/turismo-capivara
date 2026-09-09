@@ -6,6 +6,8 @@ RUN npm install -g pnpm
 
 COPY package.json ./
 
+ENV PNPM_ALLOW_BUILD="@prisma/engines esbuild prisma"
+
 RUN pnpm install --no-frozen-lockfile
 
 COPY . .
