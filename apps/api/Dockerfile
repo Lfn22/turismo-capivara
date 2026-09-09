@@ -2,11 +2,11 @@ FROM node:22.12.0-alpine
 
 WORKDIR /app
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.32.1
 
 COPY package.json ./
 
-ENV PNPM_ALLOW_BUILD="@prisma/engines esbuild prisma"
+RUN printf 'onlyBuiltDependencies:\n  - "@prisma/engines"\n  - esbuild\n  - prisma\nallowBuilds:\n  "@prisma/engines": true\n  esbuild: true\n  prisma: true\n' > pnpm-workspace.yaml
 
 RUN pnpm install --no-frozen-lockfile
 
