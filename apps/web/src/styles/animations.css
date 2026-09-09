@@ -71,11 +71,125 @@
   50% { transform: rotate(45deg) translateY(10px); opacity: 0.4; }
 }
 
+/* ── Direction D: Card hover glow ── */
+.card-hover {
+  transition: transform 0.3s var(--ease-out-expo),
+              box-shadow 0.3s var(--ease-out-expo);
+}
+.card-hover:hover {
+  transform: scale(1.03);
+  box-shadow: 0 12px 32px rgba(196, 133, 42, 0.18),
+              0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.card-hover:active {
+  transform: scale(0.98);
+}
+
+/* ── Direction D: Tactile button ── */
+.btn-tactile {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-tactile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(196, 133, 42, 0.3);
+}
+.btn-tactile:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 2px 8px rgba(196, 133, 42, 0.2);
+}
+
+/* ── Direction D: Icon bounce on hover ── */
+.icon-bounce {
+  transition: transform 0.3s var(--ease-spring);
+}
+.icon-bounce:hover {
+  transform: translateY(-3px);
+}
+
+/* ── Direction D: Floating oscillation ── */
+@keyframes floatOscillate {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+.float-oscillate {
+  animation: floatOscillate var(--float-duration, 4s) ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
+}
+
+/* ── Direction D: Dust particle ── */
+@keyframes dustFloat {
+  0% { opacity: 0; transform: translate(0, 0) scale(0); }
+  20% { opacity: var(--dust-opacity, 0.6); transform: scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx, 20px), var(--dy, -40px)) scale(0); }
+}
+.dust-particle {
+  position: absolute;
+  width: var(--dust-size, 3px);
+  height: var(--dust-size, 3px);
+  background: var(--ochre);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  animation: dustFloat var(--dust-duration, 3s) ease infinite;
+  animation-delay: var(--dust-delay, 0s);
+}
+
+/* ── Direction D: Pulse dot (active nav) ── */
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.8); opacity: 0.4; }
+}
+.pulse-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--ochre);
+  border-radius: 50%;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+/* ── Direction D: Slide in from sides ── */
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity 0.8s var(--ease-out-expo),
+              transform 0.8s var(--ease-out-expo);
+}
+.reveal-right {
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.8s var(--ease-out-expo),
+              transform 0.8s var(--ease-out-expo);
+}
+.reveal-left.visible,
+.reveal-right.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── Direction D: Heart pop (favorite) ── */
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.3); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.heart-pop {
+  animation: heartPop 0.4s var(--ease-spring);
+}
+
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .reveal { transition: none; opacity: 1; transform: none; }
+  .reveal,
+  .reveal-left,
+  .reveal-right { transition: none; opacity: 1; transform: none; }
   .draw-stroke.animate,
   .fade-up.animate,
   .dot-pop.animate { animation: none; opacity: 1; transform: none; }
   .draw-stroke.animate { stroke-dashoffset: 0; }
+  .float-oscillate,
+  .dust-particle { animation: none; opacity: 0; }
+  .card-hover:hover { transform: none; }
+  .btn-tactile:hover,
+  .btn-tactile:active { transform: none; }
+  .pulse-dot { animation: none; }
 }

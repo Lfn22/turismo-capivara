@@ -28,6 +28,7 @@
 
   --ochre-bg: rgba(196, 133, 42, 0.08);
   --ochre-glow: rgba(196, 133, 42, 0.15);
+  --ochre-glow-strong: rgba(196, 133, 42, 0.25);
 }
 
 :root {

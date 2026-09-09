@@ -21,7 +21,7 @@ export default function DestinationsSection({ destinations }: Props) {
   return (
     <section className="py-16 md:py-24 px-5 md:px-12 max-w-[1280px] mx-auto">
       <div className="reveal">
-        <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-3"
+        <p className="petro-decoration text-xs font-semibold tracking-[0.25em] uppercase mb-3"
           style={{ color: 'var(--ochre)' }}>
           Destinos
         </p>

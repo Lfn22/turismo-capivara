@@ -15,7 +15,7 @@ export default function ScrollRevealProvider({ children }: { children: React.Rea
       { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
     );
 
-    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+    document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
   }, []);
