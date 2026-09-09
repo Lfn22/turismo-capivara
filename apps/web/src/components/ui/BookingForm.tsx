@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import '@/src/styles/animations.css';
 
 function isValidCPF(cpf: string): boolean {
   if (/^(\d)\1{10}$/.test(cpf)) return false
@@ -107,7 +108,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           value={form.guestName}
           onChange={handleChange}
           placeholder="Seu nome"
-          className="w-full px-3 py-2.5 text-[0.95rem] rounded-lg outline-none box-border"
+          className="field-input"
           style={{
             border: '1px solid var(--stone-300)',
             color: 'var(--stone-900)',
@@ -129,7 +130,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           value={form.email}
           onChange={handleChange}
           placeholder="seu@email.com"
-          className="w-full px-3 py-2.5 text-[0.95rem] rounded-lg outline-none box-border"
+          className="field-input"
           style={{
             border: '1px solid var(--stone-300)',
             color: 'var(--stone-900)',
@@ -151,7 +152,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           value={form.phone}
           onChange={handleChange}
           placeholder="(11) 99999-9999"
-          className="w-full px-3 py-2.5 text-[0.95rem] rounded-lg outline-none box-border"
+          className="field-input"
           style={{
             border: '1px solid var(--stone-300)',
             color: 'var(--stone-900)',
@@ -183,7 +184,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
             }
           }}
           placeholder="000.000.000-00"
-          className="w-full px-3 py-2.5 text-[0.95rem] rounded-lg outline-none box-border"
+          className="field-input"
           style={{
             border: cpfError ? '1px solid #b91c1c' : '1px solid var(--stone-300)',
             color: 'var(--stone-900)',
@@ -209,7 +210,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           required
           value={form.pax}
           onChange={handleChange}
-          className="px-3 py-2.5 text-[0.95rem] rounded-lg outline-none box-border"
+          className="field-input"
           style={{
             width: '100px',
             border: '1px solid var(--stone-300)',
@@ -222,7 +223,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
 
       {error && (
         <p
-          className="m-0 px-3 py-2.5 rounded-lg text-sm"
+          className="field-input"
           style={{
             backgroundColor: '#fef2f2',
             color: '#b91c1c',
@@ -236,17 +237,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
         type="submit"
         disabled={loading}
         aria-busy={loading}
-        className="px-6 py-3 rounded-[10px] font-semibold text-base transition-colors"
-        style={{
-          backgroundColor: loading ? 'var(--stone-400)' : 'var(--ochre)',
-          color: 'var(--stone-50)',
-          border: 'none',
-          cursor: loading ? 'not-allowed' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.5rem',
-        }}
+        className="btn btn-primary btn-lg w-full"
       >
         {loading ? (
           <>

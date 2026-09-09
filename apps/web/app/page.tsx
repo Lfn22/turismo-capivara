@@ -86,8 +86,7 @@ export default async function HomePage() {
           <Image src="/images/logo.png" alt="CAPI" width={110} height={99}
             style={{ filter: 'brightness(0) invert(1)', display: 'block' }} />
           <Link href="/login"
-            className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold no-underline rounded-full"
-            style={{ border: '1px solid var(--ochre)', color: 'var(--ochre)' }}>
+            className="btn btn-outline btn-md">
             Acessar painel
           </Link>
           <Link href="/onboarding" className="text-xs no-underline" style={{ color: 'var(--stone-500)' }}>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import '@/src/styles/animations.css';
 
 export default function CTASection() {
   return (
@@ -19,8 +20,7 @@ export default function CTASection() {
           Encontre guias locais, escolha seu roteiro e reserve com segurança.
         </p>
         <Link href="/destinos"
-          className="inline-block mt-8 px-12 py-4 font-semibold text-base rounded-full no-underline transition-all duration-300"
-          style={{ border: '2px solid var(--ochre)', color: 'var(--ochre)', background: 'transparent' }}>
+          className="btn btn-outline btn-lg mt-8">
           Explorar destinos
         </Link>
       </div>
