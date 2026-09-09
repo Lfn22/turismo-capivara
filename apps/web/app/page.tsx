@@ -57,7 +57,11 @@ export default async function HomePage() {
     <ScrollRevealProvider>
       {/* Nav — simplified, desktop only (mobile uses BottomNav) */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 md:px-10 py-4 transition-all duration-400"
-        style={{ background: 'var(--stone-100)' }}>
+        style={{
+          background: 'rgba(245, 240, 232, 0.85)',
+          backdropFilter: 'blur(12px) saturate(1.4)',
+          WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
+        }}>
         <Link href="/" className="font-[family-name:var(--font-display)] font-bold text-xl tracking-[3px] no-underline"
           style={{ color: 'var(--stone-800)' }}>
           CAPI

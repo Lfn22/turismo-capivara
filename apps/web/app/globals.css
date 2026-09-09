@@ -77,6 +77,37 @@ button {
   font-size: 16px;
 }
 
+/* ── Focus rings ───────────────────────────────────────────── */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--ochre);
+  outline-offset: 1px;
+  border-color: var(--ochre) !important;
+  box-shadow: 0 0 0 3px var(--ochre-glow);
+  transition: outline-color 0.15s, box-shadow 0.15s;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--ochre);
+  outline-offset: 2px;
+}
+
+/* ── Scroll indicator bounce ───────────────────────────────── */
+@keyframes scrollBounceKf {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(8px); opacity: 0.15; }
+}
+
+.scrollBounce {
+  animation: scrollBounceKf 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrollBounce { animation: none; }
+}
+
 /* ── Hero entrance animation ─────────────────────────────────── */
 @keyframes heroFadeSlide {
   from {
