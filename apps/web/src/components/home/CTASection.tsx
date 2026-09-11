@@ -3,14 +3,14 @@ import '@/src/styles/animations.css';
 
 export default function CTASection() {
   return (
-    <section className="text-center py-16 md:py-24 px-5 md:px-12"
+    <section className="py-14 md:py-20 px-5 md:px-12 text-center"
       style={{ background: 'linear-gradient(180deg, var(--stone-50) 0%, var(--ochre-bg) 100%)' }}>
-      <div className="reveal">
+      <div className="max-w-[600px] mx-auto reveal">
         <p className="text-xs font-semibold tracking-[0.25em] uppercase mb-3"
           style={{ color: 'var(--ochre)' }}>
           Comece agora
         </p>
-        <h2 className="font-[family-name:var(--font-display)] font-bold text-2xl md:text-[2.5rem] leading-tight max-w-[550px] mx-auto mb-4"
+        <h2 className="font-bold text-2xl md:text-[2.5rem] leading-tight mb-4"
           style={{ color: 'var(--stone-800)' }}>
           Sua próxima <em style={{ color: 'var(--ochre)', fontStyle: 'italic' }}>aventura</em>{' '}
           começa aqui

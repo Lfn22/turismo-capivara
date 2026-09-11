@@ -1,28 +1,47 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-08T23:11:45.653Z",
-  "phase": "29",
-  "phase_name": "schema-aditivo-backfill",
-  "phase_dir": ".planning/phases/29-schema-aditivo-backfill",
-  "plan": 1,
-  "task": 2,
-  "total_tasks": 2,
-  "status": "paused",
+  "timestamp": "2026-09-11T00:16:56.163Z",
+  "phase": "ui-polish",
+  "phase_name": "frontend-layout-alignment",
+  "phase_dir": null,
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
+  "status": "in_progress",
   "completed_tasks": [
-    {"id": 1, "name": "Atualizar schema.prisma com novos enums, models e campos", "status": "done", "commit": "456c87d"},
-    {"id": 2, "name": "Gerar migration e aplicar com backfill SQL", "status": "done", "commit": "ea8f2ad"}
+    {"id": 1, "name": "Hero compactado (100dvh → clamp 55vh)", "status": "done"},
+    {"id": 2, "name": "DestinationCard grid flex + altura uniforme", "status": "done"},
+    {"id": 3, "name": "globals.css: removido margin:0 conflitante com Tailwind v4 layers", "status": "done"},
+    {"id": 4, "name": "GuidesSection centralizado", "status": "done"},
+    {"id": 5, "name": "CTASection centralizado com max-w container", "status": "done"},
+    {"id": 6, "name": "RupestreSeparator reduzido (py-3, scale menor)", "status": "done"},
+    {"id": 7, "name": "HeroSection tagline duplicada removida", "status": "done"}
   ],
-  "remaining_tasks": [],
+  "remaining_tasks": [
+    {"id": 8, "name": "Verificar se outras páginas não quebraram com remoção do margin:0 reset", "status": "not_started"},
+    {"id": 9, "name": "Testar com API rodando para ver DestinationsSection grid", "status": "not_started"},
+    {"id": 10, "name": "Comparar com Figma design final e ajustar detalhes", "status": "not_started"},
+    {"id": 11, "name": "Testar responsivo mobile (360px, 768px)", "status": "not_started"}
+  ],
   "blockers": [],
-  "human_actions_pending": [],
+  "human_actions_pending": [
+    {"action": "Rodar API local para testar grid de destinos", "context": "DestinationsSection renderiza null sem dados", "blocking": false}
+  ],
   "decisions": [
-    {"decision": "Migration manual + prisma migrate deploy (em vez de migrate dev --create-only)", "rationale": "Drift no banco Railway impediu migrate dev; migration SQL criada manualmente com backfill inline", "phase": "29"}
+    {"decision": "Remover margin:0 do global reset", "rationale": "Tailwind v4 Preflight já reseta margins. O * { margin: 0 } unlayered vencia sobre @layer utilities, quebrando mx-auto, mb-4 etc.", "phase": "ui-polish"},
+    {"decision": "DestinationCard flex column + height:100%", "rationale": "Grid stretch default com conteúdo top-aligned — cards mesma altura sem distorção", "phase": "ui-polish"},
+    {"decision": "Hero clamp(420px, 55vh, 640px)", "rationale": "Compacto como Figma, responsivo entre mobile e desktop", "phase": "ui-polish"},
+    {"decision": "Inline style padding no hero CTA", "rationale": "Tailwind padding classes perdiam para padding:0 no reset", "phase": "ui-polish"}
   ],
   "uncommitted_files": [
-    ".planning/STATE.md",
-    ".planning/REQUIREMENTS.md",
-    ".planning/phases/29-schema-aditivo-backfill/29-01-PLAN.md"
+    "apps/web/app/globals.css",
+    "apps/web/src/components/home/HeroSection.tsx",
+    "apps/web/src/components/home/GuidesSection.tsx",
+    "apps/web/src/components/home/CTASection.tsx",
+    "apps/web/src/components/home/RupestreSeparator.tsx",
+    "apps/web/src/components/home/DestinationsSection.tsx",
+    "apps/web/src/components/ui/DestinationCard.tsx"
   ],
-  "next_action": "Rodar /gsd-verify-work 29 para UAT do schema — verificar que tabelas TenantDestination, ApiKey, AuditLog existem, backfill está correto, e Prisma Client compila",
-  "context_notes": "Phase 29 execution complete (plan 29-01, 2/2 tasks done). Pending: verification/UAT. STATE.md updated to reflect execution. Uncommitted planning file changes are from earlier sessions (web UI work, requirements updates)."
+  "next_action": "Verificar cross-page (login, onboarding, destinos, painel). Testar com API. Ajustar detalhes vs Figma. Testar mobile.",
+  "context_notes": "Root cause: * { margin: 0 } unlayered no globals.css vencia Tailwind v4 @layer utilities — mx-auto não funcionava em nenhum lugar. Removido. padding:0 mantido. Seções agora centralizadas e proporcionais."
 }

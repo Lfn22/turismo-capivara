@@ -33,7 +33,9 @@ export default function DestinationCard({
     <>
       <style precedence="default">{`
         .dcard {
-          display: block;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
           text-decoration: none;
           color: inherit;
           border-radius: 12px;
@@ -88,6 +90,7 @@ export default function DestinationCard({
         }
         .dcard__body {
           padding: 20px;
+          flex: 1;
         }
         .dcard__state {
           font-size: 11px;
