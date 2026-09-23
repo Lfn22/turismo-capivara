@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Governança & Destinos Compartilhados
 status: executing
-last_updated: "2026-09-06T15:09:01.574Z"
-last_activity: 2026-09-06 -- Phase 29-01 executed (2 commits)
+last_updated: "2026-09-23T01:00:03.237Z"
+last_activity: 2026-09-23 -- Phase 36 planning complete
 progress:
   total_phases: 7
   completed_phases: 1
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-09-06)
 
 Phase: 29 — Schema Aditivo & Backfill
 Plan: 29-01 ✅
-Status: Executed — pending verification
-Last activity: 2026-09-06 -- Phase 29-01 executed with 2 commits
+Status: Ready to execute
+Last activity: 2026-09-23 -- Phase 36 planning complete
 
 ## Decisões estratégicas
 
@@ -102,6 +102,6 @@ Last activity: 2026-09-06 -- Phase 29-01 executed with 2 commits
 
 ## Session Continuity
 
-Last session: 2026-09-06T15:08:26.796Z
-Stopped at: Phase 29 context gathered
+Last session: 2026-09-23T01:00:03.220Z
+Stopped at: Phase 36 UI-SPEC approved
 Resume file: None
