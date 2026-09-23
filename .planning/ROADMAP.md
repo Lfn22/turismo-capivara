@@ -512,3 +512,24 @@ Plans:
 | 33. Destinos Compartilhados N:M | 0/TBD | Not started | - |
 | 34. Vitrine Multi-Operadora | 0/TBD | Not started | - |
 | 35. Dashboard do Dono | 0/TBD | Not started | - |
+
+---
+
+## Milestone v4.0 — Fundamentos de Marca + Marketplace
+
+### Phase 36: Fundamentos — Marca + Design System
+**Goal**: Identidade única em todo o site e utilitários que as demais fases consomem
+**Depends on**: Phase 29 (schema estável)
+**Requirements**: MKT-01, MKT-02, MKT-03, MKT-04, MKT-05
+**Success Criteria** (what must be TRUE):
+  1. Design tokens (cores, espaçamentos, radii) centralizados em variáveis CSS/Tailwind consumidas por todo o app
+  2. Tipografia Playfair Display + Source Sans 3 aplicada globalmente sem flash de fonte (FOUT)
+  3. Header e footer persistentes com logo animado CapiLogoAnimated renderizando em todas as rotas
+  4. Favicon, manifest.json e og-image configurados e funcionais
+  5. lib/format.ts com funções de formatação (moeda, data, telefone) cobertas por testes unitários
+**Plans**: 4 planos
+Plans:
+- [ ] 36-01-PLAN.md — Design tokens (globals.css) + metadata de marca (layout.tsx)
+- [ ] 36-02-PLAN.md — Header / Footer públicos + mover CapiLogoAnimated
+- [ ] 36-03-PLAN.md — lib/format.ts com testes TDD
+- [ ] 36-04-PLAN.md — Favicon, ícones PWA e og-image
