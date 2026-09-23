@@ -1,14 +1,36 @@
 @import "tailwindcss";
 
 @theme {
-  --spacing-1: 8px;
-  --spacing-2: 16px;
-  --spacing-3: 24px;
-  --spacing-4: 32px;
-  --spacing-6: 48px;
-  --spacing-8: 64px;
-  --spacing-12: 96px;
+  /* ── Colors ─────────────────────────────────────────────────── */
+  --color-primary: var(--color-primary);
+  --color-primary-light: var(--color-primary-light);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-accent: var(--color-accent);
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-text: var(--color-text);
+  --color-text-muted: var(--color-text-muted);
+  --color-success: var(--color-success);
+  --color-error: var(--color-error);
+  --color-warning: var(--color-warning);
 
+  /* ── Border radius ───────────────────────────────────────────── */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+
+  /* ── Spacing ─────────────────────────────────────────────────── */
+  --spacing-xs: var(--spacing-xs);
+  --spacing-sm: var(--spacing-sm);
+  --spacing-md: var(--spacing-md);
+  --spacing-lg: var(--spacing-lg);
+  --spacing-xl: var(--spacing-xl);
+  --spacing-2xl: var(--spacing-2xl);
+  --spacing-3xl: var(--spacing-3xl);
+
+  /* ── Typography ──────────────────────────────────────────────── */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
@@ -19,19 +41,65 @@
   --text-4xl: 3rem;
   --text-5xl: 4.5rem;
 
+  /* ── Shadows ─────────────────────────────────────────────────── */
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
   --shadow-md: 0 8px 24px rgba(0,0,0,0.1);
   --shadow-lg: 0 16px 40px rgba(0,0,0,0.12);
 
+  /* ── Easing ──────────────────────────────────────────────────── */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
+  /* ── Ochre glow (legacy — remover na Phase 37) ───────────────── */
   --ochre-bg: rgba(196, 133, 42, 0.08);
   --ochre-glow: rgba(196, 133, 42, 0.15);
   --ochre-glow-strong: rgba(196, 133, 42, 0.25);
 }
 
 :root {
+  /* ── Brand colors (CAPI) ─────────────────────────────────────── */
+  --color-primary: #8B5E3C;
+  --color-primary-light: #C49A6C;
+  --color-primary-dark: #5C3D2E;
+  --color-accent: #C75B39;
+
+  /* ── Background / Surface / Text ────────────────────────────── */
+  --color-bg: #FAF5EF;
+  --color-surface: #FFFFFF;
+  --color-text: #3D2B1F;
+  --color-text-muted: #8B7D6B;
+
+  /* ── Semantic ────────────────────────────────────────────────── */
+  --color-success: #5B8C3A;
+  --color-error: #C74B45;
+  --color-warning: #D97706;
+
+  /* ── Spacing ─────────────────────────────────────────────────── */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+
+  /* ── Border radius ───────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ── Z-index ─────────────────────────────────────────────────── */
+  --z-header: 40;
+  --z-modal: 50;
+  --z-tooltip: 60;
+
+  /* ── Typography ──────────────────────────────────────────────── */
+  --font-heading: var(--font-playfair);
+  --font-body: var(--font-source);
+
+  /* legacy — remover na Phase 37 */
   --stone-50: #FAFAF7;
   --stone-100: #F5F0E8;
   --stone-200: #E8DDD0;
@@ -47,7 +115,6 @@
   --ochre-dark: #9C6318;
   --brand: #C4852A;
   --font-display: var(--font-playfair);
-  --font-body: var(--font-source);
 }
 
 *,
@@ -59,15 +126,23 @@
 
 body {
   font-family: var(--font-body, Georgia, serif);
-  background-color: var(--stone-50);
-  color: var(--stone-800);
+  background-color: var(--color-bg);
+  color: var(--color-text);
   line-height: 1.6;
 }
 
 h1, h2, h3, h4 {
-  font-family: var(--font-display, Georgia, serif);
+  font-family: var(--font-heading, Georgia, serif);
   line-height: 1.2;
   letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: clamp(28px, 7vw, 32px);
+}
+
+h2 {
+  font-size: clamp(20px, 5vw, 24px);
 }
 
 input,
@@ -82,16 +157,16 @@ button {
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--ochre);
+  outline: 2px solid var(--color-primary);
   outline-offset: 1px;
-  border-color: var(--ochre) !important;
-  box-shadow: 0 0 0 3px var(--ochre-glow);
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(139, 94, 60, 0.15);
   transition: outline-color 0.15s, box-shadow 0.15s;
 }
 
 button:focus-visible,
 a:focus-visible {
-  outline: 2px solid var(--ochre);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
