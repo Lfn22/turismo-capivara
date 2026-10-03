@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { posthog } from '@/src/lib/posthog';
 import { SlotPicker as CapiSlotPicker, type SlotDay, type SlotTime } from '@/src/components/ui/capi';
 
 interface Slot {
@@ -73,6 +74,8 @@ export default function SlotPicker({ slots, packageId, slug }: SlotPickerProps) 
 
   function handleSelect(slotId: string) {
     setSelectedId(slotId);
+    const slot = slots.find((s) => s.id === slotId);
+    posthog.capture('slot_selected', { packageId, date: slot?.startsAt, slotId });
     router.push(`/${slug}/reservar?slotId=${slotId}&packageId=${packageId}`);
   }
 

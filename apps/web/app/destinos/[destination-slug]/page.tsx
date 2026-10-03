@@ -6,6 +6,7 @@ import DestinationHighlights from '@/src/components/ui/DestinationHighlights';
 import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
 import PublicLayout from '@/src/components/layout/PublicLayout';
 import { Button } from '@/src/components/ui/capi';
+import { TrackView } from '@/src/components/tracking/TrackView';
 import MapWidgetClient, { type PartnerData } from '@/src/components/ui/MapWidgetClient';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -118,6 +119,7 @@ export default async function DestinationPage({ params }: Props) {
 
   return (
     <PublicLayout>
+      <TrackView event="destination_viewed" properties={{ slug, name: destination.title }} />
       <style>{`
         .dest { background: var(--bg-page); }
         .dest__section { padding-block: var(--space-10); scroll-margin-top: var(--space-16); }

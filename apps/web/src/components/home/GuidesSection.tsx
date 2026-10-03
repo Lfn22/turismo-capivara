@@ -1,5 +1,6 @@
 import { ArrowRight, BadgeCheck, Footprints, Mountain, type LucideIcon } from 'lucide-react';
 import { Button } from '@/src/components/ui/capi';
+import GuideCard from '@/src/components/ui/GuideCard';
 
 const highlights: Array<{ icon: LucideIcon; text: string }> = [
   { icon: Mountain, text: 'Nascidos e criados na região' },
@@ -7,8 +8,22 @@ const highlights: Array<{ icon: LucideIcon; text: string }> = [
   { icon: Footprints, text: 'Cada trilha tem uma história' },
 ];
 
-/** Guias locais em destaque. Sem dados de guias na home: bloco editorial que leva ao Explorar. */
-export default function GuidesSection() {
+interface Guide {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+  specialties: string[];
+}
+
+interface Props {
+  guides?: Guide[];
+}
+
+/**
+ * Guias locais em destaque. Com dados da API: carrossel de GuideCard (snap no mobile, grade no desktop).
+ * Sem dados: bloco editorial que leva ao Explorar.
+ */
+export default function GuidesSection({ guides = [] }: Props) {
   return (
     <section className="capi-section" aria-labelledby="home-guias-title">
       <div className="capi-container">
@@ -26,7 +41,7 @@ export default function GuidesSection() {
               Guias nascidos e criados na região. Cada trilha tem uma história, cada pedra tem um nome.
             </p>
             <Button href="/explorar" variant="secondary" iconRight={ArrowRight}>
-              Conhecer os guias
+              {guides.length > 0 ? 'Ver todos os guias' : 'Conhecer os guias'}
             </Button>
           </div>
 
@@ -48,6 +63,19 @@ export default function GuidesSection() {
             ))}
           </ul>
         </div>
+
+        {guides.length > 0 ? (
+          <div className="capi-scroller" style={{ marginTop: 'var(--space-10)' }} role="region" aria-label="Guias em destaque">
+            {guides.slice(0, 8).map((g) => (
+              <div key={g.id}>
+                <GuideCard
+                  guide={{ id: g.id, name: g.name, photoUrl: g.photoUrl, specialties: g.specialties, packageCount: 0 }}
+                  href={`/guias/${g.id}`}
+                />
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
     </section>
   );

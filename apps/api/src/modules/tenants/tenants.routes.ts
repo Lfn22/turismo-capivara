@@ -10,6 +10,7 @@ import { getResend, getEmailFrom } from '../../shared/email'
 import { Sentry } from '../../shared/sentry'
 import { approvalEmailText } from './emails/approval-email'
 import { rejectionEmailText } from './emails/rejection-email'
+import { auditLog } from '../../shared/audit.js'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -120,7 +121,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
           data: {
             tenantId: tenant.id,
             name: body.name,
-            email: body.email,
+            email: body.email.toLowerCase().trim(),
             password: hashedPassword,
             role: 'ADMIN',
             approvalStatus: 'APPROVED',
@@ -271,6 +272,8 @@ export async function tenantsRoutes(app: FastifyInstance) {
       data: { approvalStatus: 'APPROVED' },
       select: { id: true },
     })
+
+    auditLog(prisma, { actorType: 'USER', actorId: (request.user as { sub: string }).sub, action: 'tenant.approved', targetType: 'TENANT', targetId: params.id, ipAddress: request.ip, metadata: { tenantName: tenant.slug } })
 
     const resend = getResend()
     if (resend && tenant.users[0]) {

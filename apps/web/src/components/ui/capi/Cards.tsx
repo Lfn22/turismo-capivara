@@ -156,10 +156,14 @@ export function GuideCard({ guide: g, href }: { guide: GuideCardData; href: stri
             {g.specialties.slice(0, 3).map((s) => <Badge key={s}>{s}</Badge>)}
           </div>
         ) : null}
-        <p className="capi-guide__foot">
-          {g.packageCount} {g.packageCount === 1 ? "roteiro" : "roteiros"}
-          {g.yearsActive ? ` · ${g.yearsActive} anos guiando` : ""}
-        </p>
+        {g.packageCount > 0 || g.yearsActive ? (
+          <p className="capi-guide__foot">
+            {[
+              g.packageCount > 0 ? `${g.packageCount} ${g.packageCount === 1 ? "roteiro" : "roteiros"}` : null,
+              g.yearsActive ? `${g.yearsActive} anos guiando` : null,
+            ].filter(Boolean).join(" · ")}
+          </p>
+        ) : null}
       </div>
       <ChevronRight size={20} strokeWidth={1.75} className="capi-guide__chev" aria-hidden="true" />
     </Link>

@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await params
+
+  if (!SLUG_RE.test(slug)) {
+    return NextResponse.json({ error: 'slug inválido' }, { status: 400 })
+  }
+
   const body = await request.text()
 
   let res: Response

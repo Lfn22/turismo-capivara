@@ -499,11 +499,21 @@ export async function guidesRoutes(app: FastifyInstance) {
   })
 
   // POST /guides/:id/testimonials — turista deixa depoimento
-  app.post('/guides/:id/testimonials', async (request, reply) => {
+  app.post('/guides/:id/testimonials', {
+    preHandler: [authenticate],
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+      },
+    },
+  }, async (request, reply) => {
+    const user = request.user as { sub: string; tenantId: string; role: string; name?: string }
     const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
     const testimonialBodySchema = z.object({
       text: z.string().min(10, { message: 'Depoimento muito curto' }).max(500, { message: 'Depoimento muito longo' }),
-      touristName: z.string().min(2, { message: 'Nome obrigatório' }).max(100),
+      // touristName accepted from body but falls back to JWT name if available
+      touristName: z.string().min(2, { message: 'Nome obrigatório' }).max(100).optional(),
       rating: z.number().int().min(1).max(5).default(5),
     })
 
@@ -529,11 +539,13 @@ export async function guidesRoutes(app: FastifyInstance) {
     })
     if (!guide) throw new AppError('Guia não encontrado', 404)
 
+    // TODO: add userId field to Testimonial model (schema migration needed) to link testimonial to authenticated user
+    const resolvedName = body.touristName ?? user.name ?? 'Turista'
     const testimonial = await prisma.testimonial.create({
       data: {
         guideProfileId: params.id,
         text: body.text,
-        touristName: body.touristName,
+        touristName: resolvedName,
         rating: body.rating,
       },
       select: { id: true, text: true, touristName: true, rating: true, createdAt: true },

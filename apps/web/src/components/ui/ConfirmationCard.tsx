@@ -97,7 +97,7 @@ export default function ConfirmationCard({ booking }: ConfirmationCardProps) {
             <p className="m-0 text-xs font-semibold uppercase tracking-wider text-fg-secondary">Código da reserva</p>
             <p className="m-0 font-mono text-2xl font-bold tracking-widest text-fg">#{code}</p>
           </div>
-          <StatusBadge kind="booking" status={booking.status} />
+          <span role="status" aria-live="polite"><StatusBadge kind="booking" status={booking.status} /></span>
         </div>
 
         <dl className="m-0 flex flex-col gap-3">

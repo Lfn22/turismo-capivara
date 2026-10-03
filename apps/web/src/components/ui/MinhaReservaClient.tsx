@@ -292,7 +292,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
           ) : booking.status === 'PENDING' ? (
             <Badge tone="warning" dot>Aguardando pagamento</Badge>
           ) : (
-            <StatusBadge kind="booking" status={booking.status} />
+            <span role="status" aria-live="polite"><StatusBadge kind="booking" status={booking.status} /></span>
           )}
         </div>
         <dl className="m-0 flex flex-col gap-3">

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, Minus, Plus } from 'lucide-react';
 import { Alert, Button, IconButton, Input } from '@/src/components/ui/capi';
 import '@/src/styles/animations.css';
+import { posthog } from '@/src/lib/posthog';
 
 const PAX_MIN = 1;
 const PAX_MAX = 20;
@@ -62,9 +63,18 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (cpfError !== null) return;
     setLoading(true);
     setError(null);
+
+    const rawCpf = form.cpf.replace(/\D/g, '');
+    if (rawCpf.length !== 11 || !isValidCPF(rawCpf)) {
+      setCpfError(rawCpf.length !== 11 ? 'CPF deve ter 11 dígitos' : 'CPF inválido');
+      setLoading(false);
+      return;
+    }
+    setCpfError(null);
+
+    posthog.capture('booking_started', { packageId, pax: form.pax });
 
     try {
       const res = await fetch(`/api/${slug}/bookings`, {
@@ -194,7 +204,11 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           onChange={handleChange}
           onBlur={(e) => {
             const val = e.target.value.replace(/\D/g, '');
-            if (val.length === 11 && !isValidCPF(val)) {
+            if (val.length === 0) {
+              setCpfError(null);
+            } else if (val.length !== 11) {
+              setCpfError('CPF deve ter 11 dígitos');
+            } else if (!isValidCPF(val)) {
               setCpfError('CPF inválido');
             } else {
               setCpfError(null);

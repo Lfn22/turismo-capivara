@@ -1,5 +1,9 @@
 import { MercadoPagoConfig, Payment } from 'mercadopago'
+import pino from 'pino'
 import { AppError } from '../shared/errors/AppError'
+import { paymentsFailedCounter } from '../shared/metrics'
+
+const logger = pino({ name: 'payment-service' })
 
 export interface PixPaymentResult {
   paymentId: string
@@ -32,7 +36,7 @@ async function attemptCreatePayment(
     if (process.env.NODE_ENV === 'production') {
       throw new AppError('Serviço de pagamento temporariamente indisponível', 503)
     }
-    console.warn('[PaymentService] MP_ACCESS_TOKEN ausente. Retornando pagamento Pix simulado (MOCK).')
+    logger.warn('MP_ACCESS_TOKEN ausente — retornando pagamento Pix simulado (MOCK)')
     return {
       paymentId: `mock_${Date.now()}`,
       paymentUrl: 'https://mercadopago.com.br/mock-checkout',
@@ -93,7 +97,7 @@ export async function createPixPayment(
     }
   }
 
-  console.error('[PaymentService] createPixPayment falhou após 3 tentativas:', lastError)
+  logger.error({ err: lastError }, 'createPixPayment falhou após 3 tentativas')
   throw new AppError('Serviço de pagamento indisponível', 502)
 }
 
@@ -101,9 +105,14 @@ export async function createPixPayment(
 export async function cancelPixPayment(paymentId: string): Promise<void> {
   const token = process.env.MP_ACCESS_TOKEN
   if (!token) return // dev mock — nothing to cancel
-  await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+  const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ status: 'cancelled' }),
   })
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    paymentsFailedCounter.add(1, { reason: 'cancel_pix_failed' })
+    throw new Error(`cancelPixPayment falhou (HTTP ${response.status}): ${body}`)
+  }
 }

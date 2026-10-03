@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft, Clock, Mountain, Users } from 'lucide-react';
 import GuideCard, { GuideCardGuide } from '@/src/components/ui/GuideCard';
 import FloatingCTA from '@/src/components/roteiro/FloatingCTA';
+import { TrackView } from '@/src/components/tracking/TrackView';
 import {
   BookingSummary,
   Button,
@@ -133,6 +134,7 @@ export default async function RoteiroDetailPage({ params }: Props) {
 
   return (
     <>
+      <TrackView event="package_viewed" properties={{ packageId: id, destinationSlug: slug }} />
       <style>{`
         .rdet { min-height: 100dvh; background: var(--bg-page); }
         .rdet__top { padding-top: calc(56px + var(--space-3)); }

@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next"
 import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google"
 import "./globals.css"
+import { Suspense } from "react"
 import { Providers } from "./providers"
+import { PostHogProvider } from "@/src/components/providers/PostHogProvider"
 
 // Interface: Plus Jakarta Sans. Momentos de marca (hero, nome de destino): Playfair Display.
 const jakarta = Plus_Jakarta_Sans({
@@ -57,7 +59,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" data-theme="light" className={`${jakarta.variable} ${playfair.variable}`}>
-      <body className="antialiased"><Providers>{children}</Providers></body>
+      <body className="antialiased">
+        <Providers>
+          <Suspense fallback={null}>
+            <PostHogProvider>{children}</PostHogProvider>
+          </Suspense>
+        </Providers>
+      </body>
     </html>
   )
 }
