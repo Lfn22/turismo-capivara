@@ -56,7 +56,7 @@ export default async function HomePage() {
   return (
     <ScrollRevealProvider>
       {/* Nav — simplified, desktop only (mobile uses BottomNav) */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 md:px-10 py-4 transition-all duration-400"
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 md:px-10 py-8 transition-all duration-400"
         style={{
           background: 'rgba(245, 240, 232, 0.85)',
           backdropFilter: 'blur(12px) saturate(1.4)',
@@ -80,9 +80,9 @@ export default async function HomePage() {
       <CTASection />
 
       {/* Footer */}
-      <footer className="py-12 md:py-16 px-5 md:px-12 text-center"
+      <footer className="py-24 md:py-16 px-5 md:px-24 text-center"
         style={{ background: 'var(--stone-900)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="max-w-[1280px] mx-auto flex flex-col items-center gap-6">
+        <div className="max-w-[1280px] mx-auto flex flex-col items-center gap-12">
           <Image src="/images/logo.png" alt="CAPI" width={110} height={99}
             style={{ filter: 'brightness(0) invert(1)', display: 'block' }} />
           <Link href="/login"

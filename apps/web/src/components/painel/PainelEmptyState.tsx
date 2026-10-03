@@ -14,18 +14,18 @@ export default function PainelEmptyState({
   actionHref,
 }: Props) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <svg className="w-12 h-12 mb-4" fill="none" stroke="currentColor"
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <svg className="w-24 h-24 mb-8" fill="none" stroke="currentColor"
         strokeWidth="1" viewBox="0 0 24 24" aria-hidden="true"
         style={{ color: 'var(--stone-300)' }}>
         <path d={icon} strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <p className="text-sm mb-4" style={{ color: 'var(--stone-400)' }}>
+      <p className="text-sm mb-8" style={{ color: 'var(--stone-400)' }}>
         {message}
       </p>
       {actionLabel && actionHref && (
         <Link href={actionHref}
-          className="px-5 py-2 text-sm font-semibold rounded-md no-underline"
+          className="px-5 py-4 text-sm font-semibold rounded-md no-underline"
           style={{ background: 'var(--ochre)', color: 'white' }}>
           {actionLabel}
         </Link>

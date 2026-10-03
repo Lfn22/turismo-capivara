@@ -1,17 +1,19 @@
-import type { Metadata } from "next"
-import { Playfair_Display, Source_Sans_3 } from "next/font/google"
+import type { Metadata, Viewport } from "next"
+import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google"
 import "./globals.css"
 import { Providers } from "./providers"
 
-const playfair = Playfair_Display({
+// Interface: Plus Jakarta Sans. Momentos de marca (hero, nome de destino): Playfair Display.
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-playfair",
+  variable: "--font-jakarta",
   display: "swap",
 })
 
-const sourceSans = Source_Sans_3({
+const playfair = Playfair_Display({
   subsets: ["latin"],
-  variable: "--font-source",
+  weight: ["600", "700"],
+  variable: "--font-playfair",
   display: "swap",
 })
 
@@ -20,14 +22,21 @@ export const metadata: Metadata = {
   description: 'Encontre guias certificados, compare roteiros e reserve com PIX.',
 }
 
+export const viewport: Viewport = {
+  themeColor: "#f7f5f2",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+}
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className={`${playfair.variable} ${sourceSans.variable}`} style={{ backgroundColor: 'var(--stone-50)' }}>
-      <body className="antialiased" style={{ backgroundColor: 'var(--stone-50)' }}><Providers>{children}</Providers></body>
+    <html lang="pt-BR" data-theme="light" className={`${jakarta.variable} ${playfair.variable}`}>
+      <body className="antialiased"><Providers>{children}</Providers></body>
     </html>
   )
 }

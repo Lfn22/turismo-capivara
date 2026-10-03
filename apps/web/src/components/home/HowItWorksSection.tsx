@@ -51,11 +51,11 @@ export default function HowItWorksSection() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-16 md:py-24 px-5 md:px-12 relative stone-card"
+    <section ref={sectionRef} className="py-16 md:py-24 px-5 md:px-24 relative stone-card"
       style={{ background: 'var(--stone-100)' }}>
       <div className="max-w-[900px] mx-auto">
-        <div className="reveal text-center mb-12">
-          <p className="petro-decoration text-xs font-semibold tracking-[0.25em] uppercase mb-3"
+        <div className="reveal text-center mb-24">
+          <p className="petro-decoration text-xs font-semibold tracking-[0.25em] uppercase mb-6"
             style={{ color: 'var(--ochre)' }}>
             Como funciona
           </p>
@@ -65,7 +65,7 @@ export default function HowItWorksSection() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-16">
           {steps.map((step, i) => (
             <div key={i} className={`reveal flex flex-col items-center text-center`}
               style={{ transitionDelay: `${0.15 * (i + 1)}s` }}>
@@ -90,12 +90,12 @@ export default function HowItWorksSection() {
               </div>
 
               {/* Step number */}
-              <span className="text-xs font-bold tracking-[0.15em] uppercase mb-2"
+              <span className="text-xs font-bold tracking-[0.15em] uppercase mb-4"
                 style={{ color: 'var(--ochre-dark)' }}>
                 Passo {i + 1}
               </span>
 
-              <h3 className="font-[family-name:var(--font-display)] font-bold text-lg mb-2"
+              <h3 className="font-[family-name:var(--font-display)] font-bold text-lg mb-4"
                 style={{ color: 'var(--stone-800)' }}>
                 {step.title}
               </h3>

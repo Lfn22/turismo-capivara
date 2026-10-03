@@ -72,9 +72,9 @@ export default function StatsBar() {
         borderTop: '1px solid rgba(196,133,42,0.1)',
         borderBottom: '1px solid rgba(196,133,42,0.1)',
       }}>
-      <div className="max-w-[900px] mx-auto py-8 px-5 grid grid-cols-3 gap-4 text-center">
+      <div className="max-w-[900px] mx-auto py-16 px-5 grid grid-cols-3 gap-8 text-center">
         {stats.map((stat, i) => (
-          <div key={i} className="flex flex-col items-center gap-1">
+          <div key={i} className="flex flex-col items-center gap-2">
             <span className="font-[family-name:var(--font-display)] font-bold text-2xl md:text-4xl"
               style={{ color: 'var(--ochre-light)' }}>
               <AnimatedCounter target={stat.value} suffix={stat.suffix} active={active} />

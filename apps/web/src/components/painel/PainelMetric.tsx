@@ -9,7 +9,7 @@ export default function PainelMetric({ label, value, trend }: Props) {
 
   return (
     <div className="rounded-xl p-5" style={{ background: 'white', boxShadow: 'var(--shadow-sm)' }}>
-      <p className="text-xs font-medium mb-1" style={{ color: 'var(--stone-500)' }}>
+      <p className="text-xs font-medium mb-2" style={{ color: 'var(--stone-500)' }}>
         {label}
       </p>
       <p className="font-[family-name:var(--font-display)] font-bold text-2xl"

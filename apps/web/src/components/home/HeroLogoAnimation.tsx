@@ -1,6 +1,6 @@
 export default function HeroLogoAnimation() {
   return (
-    <div className="mb-4 w-[min(420px,80vw)]">
+    <div className="mb-8 w-[min(420px,80vw)]">
       <object
         data="/images/logo-animated.svg"
         type="image/svg+xml"

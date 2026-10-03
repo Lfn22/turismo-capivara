@@ -97,7 +97,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div>
-        <label htmlFor="guestName" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
+        <label htmlFor="guestName" className="block text-sm font-medium mb-2" style={{ color: 'var(--stone-700)' }}>
           Nome completo
         </label>
         <input
@@ -119,7 +119,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
       </div>
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
+        <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: 'var(--stone-700)' }}>
           E-mail
         </label>
         <input
@@ -141,7 +141,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
       </div>
 
       <div>
-        <label htmlFor="phone" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
+        <label htmlFor="phone" className="block text-sm font-medium mb-2" style={{ color: 'var(--stone-700)' }}>
           Telefone / WhatsApp
         </label>
         <input
@@ -163,7 +163,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
       </div>
 
       <div>
-        <label htmlFor="cpf" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
+        <label htmlFor="cpf" className="block text-sm font-medium mb-2" style={{ color: 'var(--stone-700)' }}>
           CPF
         </label>
         <input
@@ -193,12 +193,12 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           disabled={loading}
         />
         {cpfError && (
-          <p className="m-0 mt-1 text-sm" style={{ color: '#b91c1c' }}>{cpfError}</p>
+          <p className="m-0 mt-2 text-sm" style={{ color: '#b91c1c' }}>{cpfError}</p>
         )}
       </div>
 
       <div>
-        <label htmlFor="pax" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
+        <label htmlFor="pax" className="block text-sm font-medium mb-2" style={{ color: 'var(--stone-700)' }}>
           Número de pessoas
         </label>
         <input

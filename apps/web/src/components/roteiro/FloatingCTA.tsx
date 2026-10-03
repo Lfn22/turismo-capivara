@@ -8,7 +8,7 @@ interface Props {
 
 export default function FloatingCTA({ price, label, href }: Props) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center gap-3 md:hidden"
+    <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center gap-6 md:hidden"
       style={{
         padding: '12px 20px env(safe-area-inset-bottom, 24px)',
         background: 'rgba(250,250,249,0.95)',
@@ -23,7 +23,7 @@ export default function FloatingCTA({ price, label, href }: Props) {
         <div className="text-xs" style={{ color: 'var(--stone-500)' }}>{label}</div>
       </div>
       <a href={href}
-        className="px-7 py-3 font-semibold text-sm rounded-md no-underline"
+        className="px-7 py-6 font-semibold text-sm rounded-md no-underline"
         style={{ background: 'var(--ochre)', color: 'white' }}>
         Reservar
       </a>

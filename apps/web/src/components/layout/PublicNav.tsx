@@ -10,7 +10,7 @@ interface PublicNavProps {
 export default function PublicNav({ tenantName, slug, backHref }: PublicNavProps) {
   return (
     <nav
-      className="sticky top-0 z-[100] flex items-center justify-between px-5 md:px-6 h-14"
+      className="sticky top-0 z-[100] flex items-center justify-between px-5 md:px-12 h-14"
       style={{
         backgroundColor: 'rgba(31, 14, 8, 0.92)',
         backdropFilter: 'blur(12px) saturate(1.4)',
@@ -25,7 +25,7 @@ export default function PublicNav({ tenantName, slug, backHref }: PublicNavProps
         <span style={{ color: 'var(--stone-500)', fontSize: '0.75rem' }}>·</span>
         <span className="font-bold text-base tracking-tight">{tenantName}</span>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-6">
         {backHref && (
           <Link
             href={backHref}

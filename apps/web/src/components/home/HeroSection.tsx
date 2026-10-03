@@ -36,13 +36,13 @@ export default function HeroSection() {
           <CapiLogoAnimated maxWidth="clamp(240px, 38vw, 420px)" />
         </div>
 
-        <p className="fade-up animate mt-4 text-xs md:text-sm tracking-[0.2em] uppercase"
+        <p className="fade-up animate mt-8 text-xs md:text-sm tracking-[0.2em] uppercase"
           style={{ color: 'var(--stone-500)', '--fade-delay': '2.2s' } as React.CSSProperties}>
           Caminho entre quem explora e quem opera
         </p>
 
         <Link href="/destinos"
-          className="fade-up animate btn-tactile inline-block mt-8 px-10 py-3.5 font-semibold text-sm tracking-wider uppercase rounded-full no-underline"
+          className="fade-up animate btn-tactile inline-block mt-16 px-10 py-3.5 font-semibold text-sm tracking-wider uppercase rounded-full no-underline"
           style={{
             background: 'var(--ochre)',
             color: 'white',
@@ -52,7 +52,7 @@ export default function HeroSection() {
         </Link>
 
         {/* Scroll indicator */}
-        <div className="fade-up animate absolute bottom-8 left-1/2 -translate-x-1/2"
+        <div className="fade-up animate absolute bottom-16 left-1/2 -translate-x-1/2"
           style={{ '--fade-delay': '3.2s' } as React.CSSProperties}>
           <div className="scrollBounce" style={{
             width: '1.5px',
