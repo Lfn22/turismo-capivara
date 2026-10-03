@@ -4,7 +4,7 @@ interface Props {
 
 export default function RupestreSeparator({ variant = 'single' }: Props) {
   return (
-    <div className="reveal flex items-center justify-center py-3">
+    <div className="reveal flex items-center justify-center py-1 md:py-3">
       <svg width="240" height="40" viewBox="0 0 240 40" aria-hidden="true">
         <line x1="0" y1="20" x2={variant === 'double' ? 70 : 90} y2="20"
           stroke="var(--stone-300)" strokeWidth="0.8" />

@@ -350,6 +350,8 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', gap: '0.75rem' }}>
           <h1 style={headingStyle}>Minha Reserva</h1>
           <span
+            role="status"
+            aria-live="polite"
             style={{
               backgroundColor: statusStyle.bg,
               color: statusStyle.color,

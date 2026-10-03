@@ -65,7 +65,7 @@ export default function HowItWorksSection() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
           {steps.map((step, i) => (
             <div key={i} className={`reveal flex flex-col items-center text-center`}
               style={{ transitionDelay: `${0.15 * (i + 1)}s` }}>

@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import '@/src/styles/animations.css';
+import { posthog } from '@/src/lib/posthog';
 
 function isValidCPF(cpf: string): boolean {
   if (/^(\d)\1{10}$/.test(cpf)) return false
@@ -57,9 +58,18 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (cpfError !== null) return;
     setLoading(true);
     setError(null);
+
+    const rawCpf = form.cpf.replace(/\D/g, '');
+    if (rawCpf.length !== 11 || !isValidCPF(rawCpf)) {
+      setCpfError(rawCpf.length !== 11 ? 'CPF deve ter 11 dígitos' : 'CPF inválido');
+      setLoading(false);
+      return;
+    }
+    setCpfError(null);
+
+    posthog.capture('booking_started', { packageId, pax: form.pax });
 
     try {
       const res = await fetch(`/api/${slug}/bookings`, {
@@ -177,7 +187,11 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           onChange={handleChange}
           onBlur={(e) => {
             const val = e.target.value.replace(/\D/g, '');
-            if (val.length === 11 && !isValidCPF(val)) {
+            if (val.length === 0) {
+              setCpfError(null);
+            } else if (val.length !== 11) {
+              setCpfError('CPF deve ter 11 dígitos');
+            } else if (!isValidCPF(val)) {
               setCpfError('CPF inválido');
             } else {
               setCpfError(null);
@@ -185,6 +199,8 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           }}
           placeholder="000.000.000-00"
           className="field-input"
+          aria-invalid={cpfError ? true : undefined}
+          aria-describedby={cpfError ? "cpf-error" : undefined}
           style={{
             border: cpfError ? '1px solid #b91c1c' : '1px solid var(--stone-300)',
             color: 'var(--stone-900)',
@@ -193,7 +209,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           disabled={loading}
         />
         {cpfError && (
-          <p className="m-0 mt-1 text-sm" style={{ color: '#b91c1c' }}>{cpfError}</p>
+          <p id="cpf-error" role="alert" className="m-0 mt-1 text-sm" style={{ color: '#b91c1c' }}>{cpfError}</p>
         )}
       </div>
 
@@ -223,6 +239,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
 
       {error && (
         <p
+          role="alert"
           className="field-input"
           style={{
             backgroundColor: '#fef2f2',

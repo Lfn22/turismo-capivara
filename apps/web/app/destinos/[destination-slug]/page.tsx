@@ -4,6 +4,7 @@ import Link from 'next/link';
 import DestinationHero from '@/src/components/ui/DestinationHero';
 import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
 import BackButton from '@/src/components/ui/BackButton';
+import { TrackView } from '@/src/components/tracking/TrackView';
 import MapWidgetClient, { type PartnerData } from '@/src/components/ui/MapWidgetClient';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -125,6 +126,7 @@ export default async function DestinationPage({ params }: Props) {
 
   return (
     <>
+      <TrackView event="destination_viewed" properties={{ slug, name: destination.title }} />
       <style>{`
         /* ── Reset ── */
         * { box-sizing: border-box; margin: 0; padding: 0; }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { posthog } from '@/src/lib/posthog';
 
 interface Slot {
   id: string;
@@ -42,12 +43,14 @@ export default function SlotPicker({ slots, packageId, slug }: SlotPickerProps) 
 
   function handleSelect(slotId: string) {
     setSelectedId(slotId);
+    const slot = availableSlots.find((s) => s.id === slotId);
+    posthog.capture('slot_selected', { packageId, date: slot?.startsAt, slotId });
     router.push(`/${slug}/reservar?slotId=${slotId}&packageId=${packageId}`);
   }
 
   if (availableSlots.length === 0) {
     return (
-      <p style={{ color: '#78716c', fontSize: '0.9rem', margin: '1rem 0' }}>
+      <p style={{ color: 'var(--stone-500)', fontSize: '0.9rem', margin: '1rem 0' }}>
         Nenhuma data disponível no momento.
       </p>
     );
@@ -55,6 +58,8 @@ export default function SlotPicker({ slots, packageId, slug }: SlotPickerProps) 
 
   return (
     <div
+      role="group"
+      aria-label="Selecione uma data disponível"
       style={{
         overflowX: 'auto',
         display: 'flex',
@@ -70,6 +75,8 @@ export default function SlotPicker({ slots, packageId, slug }: SlotPickerProps) 
           <button
             key={slot.id}
             onClick={() => handleSelect(slot.id)}
+            aria-pressed={isSelected}
+            aria-label={`${formatDate(slot.startsAt)} às ${formatTime(slot.startsAt)}, ${remaining} ${remaining === 1 ? 'vaga' : 'vagas'}`}
             style={{
               flexShrink: 0,
               display: 'flex',
@@ -77,9 +84,9 @@ export default function SlotPicker({ slots, packageId, slug }: SlotPickerProps) 
               alignItems: 'center',
               padding: '0.625rem 1rem',
               borderRadius: '10px',
-              border: isSelected ? '2px solid #d97706' : '2px solid #e7e5e4',
-              backgroundColor: isSelected ? '#d97706' : '#ffffff',
-              color: isSelected ? '#ffffff' : '#1c1917',
+              border: isSelected ? '2px solid var(--color-warning)' : '2px solid var(--stone-200)',
+              backgroundColor: isSelected ? 'var(--color-warning)' : 'var(--color-surface)',
+              color: isSelected ? '#ffffff' : 'var(--stone-900)',
               cursor: 'pointer',
               fontSize: '0.85rem',
               fontWeight: 500,

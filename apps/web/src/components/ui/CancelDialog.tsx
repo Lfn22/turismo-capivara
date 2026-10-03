@@ -77,7 +77,7 @@ export default function CancelDialog({ open, onOpenChange, onConfirm, loading }:
               padding: '14px',
               borderRadius: '4px',
               border: 'none',
-              background: '#DC2626',
+              background: 'var(--color-error)',
               color: 'white',
               fontSize: '16px',
               fontWeight: 600,

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAPI Hero Background Tones</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    color: #e0d6cc;
+    font-family: 'Source Sans 3', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    margin-bottom: 4px;
+    color: #C4852A;
+  }
+  .subtitle { font-size: 14px; color: #888; margin-bottom: 24px; }
+
+  .layout {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 1100px;
+  }
+
+  /* Phone mockup */
+  .phone-frame {
+    width: 375px;
+    height: 720px;
+    border-radius: 40px;
+    border: 3px solid #333;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
+    height: 28px;
+    background: #111;
+    border-radius: 0 0 18px 18px;
+    z-index: 10;
+  }
+  .hero {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: background 0.4s ease;
+  }
+  /* Stone texture overlay */
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-svg { width: 200px; height: auto; }
+  .capi-text {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: 72px;
+    letter-spacing: 12px;
+    color: #3D2415;
+    line-height: 1;
+  }
+  .tagline {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: #3D2415;
+    text-transform: lowercase;
+    text-align: center;
+    max-width: 260px;
+    line-height: 1.5;
+  }
+  .scroll-indicator {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    opacity: 0.5;
+  }
+  .scroll-indicator span {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #3D2415;
+    text-transform: uppercase;
+  }
+  .scroll-indicator .arrow {
+    width: 20px;
+    height: 20px;
+    border-right: 1.5px solid #3D2415;
+    border-bottom: 1.5px solid #3D2415;
+    transform: rotate(45deg);
+    animation: bounce 2s infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: rotate(45deg) translateY(0); }
+    50% { transform: rotate(45deg) translateY(6px); }
+  }
+
+  /* Controls */
+  .controls {
+    flex: 1;
+    min-width: 300px;
+    max-width: 460px;
+  }
+  .group {
+    margin-bottom: 24px;
+  }
+  .group-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #C4852A;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #222;
+  }
+  .swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .swatch {
+    width: 70px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: transform 0.15s;
+  }
+  .swatch:hover { transform: scale(1.08); }
+  .swatch-circle {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    transition: border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .swatch.active .swatch-circle {
+    border-color: #C4852A;
+    box-shadow: 0 0 12px rgba(196, 133, 42, 0.4);
+  }
+  .swatch-label {
+    font-size: 9px;
+    color: #666;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  /* Contrast indicator */
+  .contrast-panel {
+    margin-top: 20px;
+    padding: 16px;
+    background: #111;
+    border-radius: 12px;
+    border: 1px solid #222;
+  }
+  .contrast-panel h3 {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .contrast-value {
+    font-size: 36px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .contrast-label {
+    font-size: 12px;
+    color: #888;
+  }
+  .contrast-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: #222;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .contrast-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s, background 0.4s;
+  }
+  .gradient-stops {
+    margin-top: 12px;
+    font-size: 11px;
+    color: #555;
+    font-family: monospace;
+    line-height: 1.6;
+  }
+
+  /* Before preview */
+  .before-preview {
+    margin-top: 20px;
+    padding: 16px;
+    background: #111;
+    border-radius: 12px;
+    border: 1px solid #222;
+  }
+  .before-preview h3 {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .before-mini {
+    width: 100%;
+    height: 80px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(175deg, #44311e 0%, #3D2415 30%, #2c1a0e 70%, #1F0E08 100%);
+    position: relative;
+  }
+  .before-mini span {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: 28px;
+    letter-spacing: 6px;
+    color: #3D2415;
+  }
+  .before-label {
+    font-size: 10px;
+    color: #666;
+    text-align: center;
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Hero Background Tones</h1>
+<p class="subtitle">Texto CAPI em #3D2415 (fixo) — mude o fundo para criar contraste</p>
+
+<div class="layout">
+  <!-- Phone Mockup -->
+  <div class="phone-frame">
+    <div class="phone-notch"></div>
+    <div class="hero" id="hero">
+      <div class="hero-content">
+        <!-- Petroglyph SVG -->
+        <svg class="logo-svg" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Arch -->
+          <path d="M40 90 Q100 10 160 90" stroke="#C4852A" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <!-- Left figure -->
+          <circle cx="70" cy="55" r="5" fill="#C4852A"/>
+          <line x1="70" y1="60" x2="70" y2="78" stroke="#C4852A" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="70" y1="66" x2="60" y2="60" stroke="#C4852A" stroke-width="2" stroke-linecap="round"/>
+          <line x1="70" y1="66" x2="80" y2="60" stroke="#C4852A" stroke-width="2" stroke-linecap="round"/>
+          <line x1="70" y1="78" x2="62" y2="88" stroke="#C4852A" stroke-width="2" stroke-linecap="round"/>
+          <line x1="70" y1="78" x2="78" y2="88" stroke="#C4852A" stroke-width="2" stroke-linecap="round"/>
+          <!-- Right figure -->
+          <circle cx="130" cy="55" r="5" fill="#C4852A"/>
+          <line x1="130" y1="60" x2="130" y2="78" stroke="#C4852A" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="130" y1="66" x2="120" y2="60" stroke="#C4852A" stroke-width="2" stroke-linecap="round"/>
+          <line x1="130" y1="66" x2="140" y2="60" stroke="#C4852A" stroke-width="2" stroke-linecap="round"/>
+          <line x1="130" y1="78" x2="122" y2="88" stroke="#C4852A" stroke-width="2" stroke-linecap="round"/>
+          <line x1="130" y1="78" x2="138" y2="88" stroke="#C4852A" stroke-width="2" stroke-linecap="round"/>
+          <!-- Central dot -->
+          <circle cx="100" cy="50" r="4" fill="#C4852A"/>
+          <!-- Small dots -->
+          <circle cx="85" cy="42" r="2" fill="#C4852A" opacity="0.6"/>
+          <circle cx="115" cy="42" r="2" fill="#C4852A" opacity="0.6"/>
+        </svg>
+        <div class="capi-text">CAPI</div>
+        <div class="tagline">caminho entre quem explora e quem opera</div>
+      </div>
+      <div class="scroll-indicator">
+        <span>explorar</span>
+        <div class="arrow"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="group" id="group1"></div>
+    <div class="group" id="group2"></div>
+    <div class="group" id="group3"></div>
+    <div class="group" id="group4"></div>
+
+    <div class="contrast-panel">
+      <h3>Contraste texto / fundo</h3>
+      <div class="contrast-value" id="contrastValue">—</div>
+      <div class="contrast-label" id="contrastLabel">Selecione um fundo</div>
+      <div class="contrast-bar"><div class="contrast-bar-fill" id="contrastBar"></div></div>
+      <div class="gradient-stops" id="gradientStops"></div>
+    </div>
+
+    <div class="before-preview">
+      <h3>Antes (invisível)</h3>
+      <div class="before-mini"><span>CAPI</span></div>
+      <div class="before-label">Gradiente atual — texto some no fundo</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TEXT_COLOR = '#3D2415';
+
+const groups = [
+  {
+    id: 'group1',
+    title: 'Mais escuro',
+    desc: 'Escuro o bastante para #3D2415 parecer claro',
+    options: [
+      { name: 'Near black', gradient: 'linear-gradient(175deg, #0a0604 0%, #120b07 30%, #1a100a 70%, #0f0906 100%)', dominant: '#120b07' },
+      { name: 'Very dark', gradient: 'linear-gradient(175deg, #0d0907 0%, #150e09 30%, #1F0E08 70%, #120a06 100%)', dominant: '#150e09' },
+      { name: 'Stone-900 flat', gradient: 'linear-gradient(175deg, #1a1108 0%, #1F0E08 50%, #1a1108 100%)', dominant: '#1F0E08' },
+    ]
+  },
+  {
+    id: 'group2',
+    title: 'Mais frio',
+    desc: 'Contraste de temperatura com marrom quente',
+    options: [
+      { name: 'Cool charcoal', gradient: 'linear-gradient(175deg, #151518 0%, #1a1a20 30%, #1e1e25 70%, #15151a 100%)', dominant: '#1a1a20' },
+      { name: 'Slate dark', gradient: 'linear-gradient(175deg, #141618 0%, #1a1d20 30%, #1e2225 70%, #151718 100%)', dominant: '#1a1d20' },
+      { name: 'Deep teal-black', gradient: 'linear-gradient(175deg, #0f1412 0%, #141a18 30%, #182220 70%, #101514 100%)', dominant: '#141a18' },
+    ]
+  },
+  {
+    id: 'group3',
+    title: 'Quente mas mais escuro',
+    desc: 'Mantém o tom quente, mas mais profundo',
+    options: [
+      { name: 'Deep mahogany', gradient: 'linear-gradient(175deg, #140a06 0%, #1c0f08 30%, #22140c 70%, #160b07 100%)', dominant: '#1c0f08' },
+      { name: 'Burnt umber', gradient: 'linear-gradient(175deg, #120906 0%, #1a0e08 30%, #200f08 70%, #140a06 100%)', dominant: '#1a0e08' },
+      { name: 'Current darker', gradient: 'linear-gradient(175deg, #100804 0%, #180d06 30%, #1F0E08 70%, #150a05 100%)', dominant: '#180d06' },
+    ]
+  },
+  {
+    id: 'group4',
+    title: 'Textura mista',
+    desc: 'Gradiente que evita a zona #3D2415',
+    options: [
+      { name: 'Skip stone-800', gradient: 'linear-gradient(175deg, #1a1714 0%, #1F0E08 30%, #2a1a10 70%, #1F0E08 100%)', dominant: '#1F0E08' },
+      { name: 'Darker center', gradient: 'linear-gradient(175deg, #1F0E08 0%, #150a05 50%, #1F0E08 100%)', dominant: '#150a05' },
+    ]
+  }
+];
+
+function hexToRgb(hex) {
+  hex = hex.replace('#', '');
+  return {
+    r: parseInt(hex.substring(0, 2), 16),
+    g: parseInt(hex.substring(2, 4), 16),
+    b: parseInt(hex.substring(4, 6), 16)
+  };
+}
+
+function relativeLuminance(rgb) {
+  const [rs, gs, bs] = [rgb.r, rgb.g, rgb.b].map(c => {
+    c = c / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+function contrastRatio(hex1, hex2) {
+  const l1 = relativeLuminance(hexToRgb(hex1));
+  const l2 = relativeLuminance(hexToRgb(hex2));
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function extractStops(gradient) {
+  const matches = gradient.match(/#[0-9a-fA-F]{6}/g);
+  return matches || [];
+}
+
+const hero = document.getElementById('hero');
+let activeSwatch = null;
+
+groups.forEach(group => {
+  const container = document.getElementById(group.id);
+  container.innerHTML = `<div class="group-title">${group.title}</div><div class="swatches"></div>`;
+  const swatchesEl = container.querySelector('.swatches');
+
+  group.options.forEach((opt, i) => {
+    const swatch = document.createElement('div');
+    swatch.className = 'swatch';
+    swatch.innerHTML = `
+      <div class="swatch-circle" style="background: ${opt.gradient}"></div>
+      <div class="swatch-label">${opt.name}</div>
+    `;
+    swatch.addEventListener('click', () => {
+      if (activeSwatch) activeSwatch.classList.remove('active');
+      swatch.classList.add('active');
+      activeSwatch = swatch;
+      hero.style.background = opt.gradient;
+      updateContrast(opt);
+    });
+    swatchesEl.appendChild(swatch);
+  });
+});
+
+function updateContrast(opt) {
+  const ratio = contrastRatio(TEXT_COLOR, opt.dominant);
+  const ratioStr = ratio.toFixed(2) + ':1';
+  document.getElementById('contrastValue').textContent = ratioStr;
+
+  let label, color, barWidth;
+  if (ratio >= 4.5) {
+    label = 'AA — Boa legibilidade';
+    color = '#4ade80';
+    barWidth = Math.min(ratio / 7 * 100, 100);
+  } else if (ratio >= 3) {
+    label = 'AA large — Aceitável para texto grande';
+    color = '#fbbf24';
+    barWidth = ratio / 7 * 100;
+  } else {
+    label = 'Insuficiente — Texto pouco legível';
+    color = '#f87171';
+    barWidth = ratio / 7 * 100;
+  }
+
+  document.getElementById('contrastValue').style.color = color;
+  document.getElementById('contrastLabel').textContent = label;
+  const bar = document.getElementById('contrastBar');
+  bar.style.width = barWidth + '%';
+  bar.style.background = color;
+
+  const stops = extractStops(opt.gradient);
+  document.getElementById('gradientStops').textContent = 'Stops: ' + stops.join(' → ');
+}
+
+// Select first option by default
+document.querySelector('.swatch').click();
+</script>
+</body>
+</html>

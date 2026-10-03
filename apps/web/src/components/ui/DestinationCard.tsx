@@ -58,9 +58,11 @@ export default function DestinationCard({
           z-index: 1;
         }
         .dcard:hover {
-          box-shadow: 0 12px 32px rgba(196, 133, 42, 0.15),
-                      0 4px 12px rgba(0, 0, 0, 0.06);
-          transform: translateY(-3px);
+          box-shadow: 0 20px 48px rgba(196, 133, 42, 0.22),
+                      0 8px 24px rgba(0, 0, 0, 0.10),
+                      0 2px 8px rgba(0, 0, 0, 0.06);
+          transform: translateY(-6px);
+          filter: brightness(1.02) saturate(1.06);
         }
         .dcard:hover::before {
           opacity: 1;

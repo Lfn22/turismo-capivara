@@ -2,30 +2,33 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-const stats = [
-  { value: 120, suffix: '+', label: 'Roteiros' },
-  { value: 45, suffix: '', label: 'Guias Locais' },
-  { value: 2800, suffix: '+', label: 'Aventureiros' },
-];
+interface Props {
+  destinations: number;
+  guides: number;
+  packages: number;
+}
 
 function AnimatedCounter({ target, suffix, active }: { target: number; suffix: string; active: boolean }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    if (!active) return;
-    const duration = 1800;
-    const steps = 40;
-    const increment = target / steps;
-    let current = 0;
-    let step = 0;
+    if (!active || target === 0) return;
 
+    // Respeita prefers-reduced-motion: mostra valor final imediatamente
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setCount(target);
+      return;
+    }
+
+    const steps = 40;
+    const duration = 1800;
+
+    let step = 0;
     const timer = setInterval(() => {
       step++;
-      // Ease-out cubic
       const t = step / steps;
       const eased = 1 - Math.pow(1 - t, 3);
-      current = Math.round(eased * target);
-      setCount(current);
+      setCount(Math.round(eased * target));
 
       if (step >= steps) {
         setCount(target);
@@ -43,7 +46,7 @@ function AnimatedCounter({ target, suffix, active }: { target: number; suffix: s
   );
 }
 
-export default function StatsBar() {
+export default function StatsBar({ destinations, guides, packages }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false);
 
@@ -65,21 +68,29 @@ export default function StatsBar() {
     return () => observer.disconnect();
   }, []);
 
+  const stats = [
+    { value: destinations, suffix: '', label: 'Destinos' },
+    { value: guides, suffix: '', label: 'Guias Locais' },
+    ...(packages > 0 ? [{ value: packages, suffix: '', label: 'Roteiros' }] : []),
+  ];
+
   return (
-    <div ref={ref} className="relative stone-card overflow-hidden"
+    <div ref={ref} className="relative overflow-hidden"
       style={{
         background: 'linear-gradient(135deg, var(--stone-800), var(--stone-900))',
-        borderTop: '1px solid rgba(196,133,42,0.1)',
-        borderBottom: '1px solid rgba(196,133,42,0.1)',
+        borderTop: '1px solid rgba(196,133,42,0.15)',
+        borderBottom: '1px solid rgba(196,133,42,0.15)',
+        boxShadow: 'inset 0 1px 0 rgba(196,133,42,0.08), inset 0 -1px 0 rgba(196,133,42,0.08)',
       }}>
-      <div className="max-w-[900px] mx-auto py-8 px-5 grid grid-cols-3 gap-4 text-center">
+      <div className="max-w-[900px] mx-auto py-8 px-5 grid gap-4 text-center"
+          style={{ gridTemplateColumns: `repeat(${stats.length}, 1fr)` }}>
         {stats.map((stat, i) => (
           <div key={i} className="flex flex-col items-center gap-1">
             <span className="font-[family-name:var(--font-display)] font-bold text-2xl md:text-4xl"
               style={{ color: 'var(--ochre-light)' }}>
               <AnimatedCounter target={stat.value} suffix={stat.suffix} active={active} />
             </span>
-            <span className="text-[10px] md:text-xs font-semibold tracking-[0.15em] uppercase"
+            <span className="text-xs font-semibold tracking-[0.15em] uppercase"
               style={{ color: 'var(--stone-400)' }}>
               {stat.label}
             </span>

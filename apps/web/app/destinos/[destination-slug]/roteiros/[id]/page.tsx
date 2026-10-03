@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import GuideCard, { GuideCardGuide } from '@/src/components/ui/GuideCard';
+import { TrackView } from '@/src/components/tracking/TrackView';
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ async function fetchPackageGuides(id: string): Promise<GuideCardGuide[]> {
 async function fetchPackageDetail(
   destinationSlug: string,
   packageId: string,
-): Promise<{ id: string; name: string; description: string } | null> {
+): Promise<{ id: string; name: string; description: string; tenantSlug: string } | null> {
   try {
     const res = await fetch(`${API_URL}/destinations/${destinationSlug}/packages`, {
       next: { revalidate: 300 },
@@ -164,6 +165,25 @@ export default async function RoteiroDetailPage({ params }: Props) {
           color: var(--stone-700, #44403c);
         }
 
+        /* ── CTA button ── */
+        .rdet__cta {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 20px;
+          padding: 14px 28px;
+          background: var(--ochre, #c2783c);
+          color: #fff;
+          font-size: 15px;
+          font-weight: 600;
+          border-radius: 8px;
+          text-decoration: none;
+          transition: background 0.15s;
+        }
+        .rdet__cta:hover {
+          background: #a8632f;
+        }
+
         /* ── Mobile adjustments ── */
         @media (max-width: 480px) {
           .rdet__grid {
@@ -172,6 +192,7 @@ export default async function RoteiroDetailPage({ params }: Props) {
         }
       `}</style>
 
+      <TrackView event="package_viewed" properties={{ packageId: id, destinationSlug: slug }} />
       <div className="rdet">
         {/* Header */}
         <header className="rdet__header">
@@ -196,6 +217,15 @@ export default async function RoteiroDetailPage({ params }: Props) {
           <p className="rdet__subtitle">
             {pkg?.description ?? 'Escolha o guia ideal para sua aventura.'}
           </p>
+          {pkg?.tenantSlug && (
+            <Link
+              href={`/${pkg.tenantSlug}/roteiros/${pkg.id}`}
+              className="rdet__cta"
+            >
+              Reservar agora
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+            </Link>
+          )}
         </header>
 
         {/* Body */}

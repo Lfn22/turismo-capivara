@@ -54,7 +54,7 @@ export async function lookupTenantRoute(app: FastifyInstance) {
       }
 
       return reply.status(200).send({
-        message: 'Tenant encontrado.',
+        message: 'Se este email estiver cadastrado, as informações do tenant foram retornadas.',
         tenant: {
           tenantName: user.tenant.name,
           tenantSlug: user.tenant.slug,

@@ -95,6 +95,8 @@ export default function ConfirmationCard({ booking }: ConfirmationCardProps) {
           Reserva recebida
         </h2>
         <p
+          role="status"
+          aria-live="polite"
           style={{
             margin: '0.3rem 0 0',
             fontSize: '0.85rem',

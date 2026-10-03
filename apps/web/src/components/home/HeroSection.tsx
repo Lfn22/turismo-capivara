@@ -8,8 +8,8 @@ export default function HeroSection() {
   return (
     <section className="relative flex flex-col items-center justify-center overflow-hidden"
       style={{
-        minHeight: 'clamp(420px, 55vh, 640px)',
-        background: 'linear-gradient(180deg, var(--stone-100) 0%, var(--stone-200) 100%)',
+        minHeight: 'clamp(320px, 55vh, 640px)',
+        background: 'linear-gradient(135deg, var(--stone-100) 0%, var(--stone-200) 40%, rgba(196,133,42,0.06) 70%, var(--stone-200) 100%)',
       }}>
 
       {/* Stone texture overlay */}
@@ -26,7 +26,7 @@ export default function HeroSection() {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -55%)',
-          background: 'radial-gradient(circle, var(--ochre-glow) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, var(--ochre-glow-strong) 0%, var(--ochre-glow) 40%, transparent 70%)',
           borderRadius: '50%',
         }}
       />
@@ -37,14 +37,11 @@ export default function HeroSection() {
         </div>
 
         <Link href="/destinos"
-          className="fade-up animate btn-tactile inline-block mt-6 font-semibold text-sm tracking-wider uppercase rounded-full no-underline"
+          className="fade-up animate btn btn-primary btn-lg mt-6"
           style={{
-            background: 'var(--ochre)',
-            color: 'white',
-            padding: '12px 32px',
             '--fade-delay': '2.4s',
           } as React.CSSProperties}>
-          Explorar destinos
+          Encontrar roteiro
         </Link>
       </div>
     </section>

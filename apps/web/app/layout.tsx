@@ -1,12 +1,16 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Playfair_Display, Source_Sans_3 } from "next/font/google"
 import "./globals.css"
 import { Providers } from "./providers"
 import Header from "@/src/components/layout/Header"
 import Footer from "@/src/components/layout/Footer"
+import { Suspense } from "react"
+import { PostHogProvider } from "@/src/components/providers/PostHogProvider"
+import BottomNav from "@/src/components/layout/BottomNav"
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
+  style: ["normal", "italic"],
   variable: "--font-playfair",
   display: "swap",
 })
@@ -16,6 +20,8 @@ const sourceSans = Source_Sans_3({
   variable: "--font-source",
   display: "swap",
 })
+
+export const viewport: Viewport = { themeColor: '#1F0E08' }
 
 export const metadata: Metadata = {
   title: { template: '%s | CAPI', default: 'CAPI' },
@@ -52,9 +58,14 @@ export default function RootLayout({
     <html lang="pt-BR" className={`${playfair.variable} ${sourceSans.variable}`} style={{ backgroundColor: 'var(--color-bg)' }}>
       <body className="antialiased" style={{ backgroundColor: 'var(--color-bg)' }}>
         <Providers>
-          <Header />
-          <main>{children}</main>
-          <Footer />
+          <Suspense fallback={null}>
+            <PostHogProvider>
+              <Header />
+              <main>{children}</main>
+              <Footer />
+              <BottomNav />
+            </PostHogProvider>
+          </Suspense>
         </Providers>
       </body>
     </html>

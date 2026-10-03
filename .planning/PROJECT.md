@@ -54,17 +54,17 @@ Toda entidade pertence a um `Tenant` (operadora), isolado por `slug`. Destinos s
 
 `ADMIN` · `ATENDENTE` · `CONDUTOR` (guia) · `CLIENTE` (turista)
 
-> **v3.0:** SUPER_ADMIN removido. Operações da plataforma via API key + equipe técnica.
+> **v3.0:** SUPER_ADMIN ainda existe no schema, agendado para remoção (Phase 30). Operações da plataforma via API key + equipe técnica.
 
-### Database (12 models)
+### Database (15 models)
 
-`Destination` · `Tenant` · `User` · `GuideProfile` · `TourPackage` · `DepartureSlot` · `Booking` · `Voucher` · `PackageGuide` · `Testimonial` · `PasswordResetToken` · `ProcessedWebhookEvent`
+`Destination` · `Tenant` · `User` · `GuideProfile` · `TourPackage` · `DepartureSlot` · `Booking` · `Voucher` · `PackageGuide` · `Testimonial` · `PasswordResetToken` · `ProcessedWebhookEvent` · `TenantDestination` · `ApiKey` · `AuditLog`
 
 **Relações-chave:**
 - `PackageGuide` — N:N entre `TourPackage` e `GuideProfile` (qualificação guia↔roteiro)
 - `DepartureSlot.guideId` — guia atribuído por saída, com checagem de conflito de agenda
 - `Booking` — pertence a `DepartureSlot` e `Tenant`, com pagamento PIX integrado
-- `Destination ← Tenant` — múltiplos tenants por destino
+- `Destination ↔ Tenant` — coexistem a FK legada 1:N (`Tenant.destinationId`) e o modelo N:M `TenantDestination` (Phase 30 removerá a FK legada)
 
 ### API (10 módulos)
 

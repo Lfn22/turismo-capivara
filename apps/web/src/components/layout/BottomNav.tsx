@@ -19,7 +19,7 @@ export default function BottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-around md:hidden"
+    <nav aria-label="Navegação principal" className="fixed bottom-0 left-0 right-0 z-50 flex justify-around md:hidden"
       style={{
         background: 'rgba(250,250,249,0.95)',
         backdropFilter: 'blur(12px)',
@@ -29,7 +29,7 @@ export default function BottomNav() {
       }}>
       {NAV_ITEMS.map((item) => (
         <Link key={item.href} href={item.href}
-          className="flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] no-underline transition-colors"
+          className="flex flex-col items-center gap-0.5 px-3 py-1 text-xs no-underline transition-colors"
           style={{ color: isActive(item.href) ? 'var(--ochre)' : 'var(--stone-500)' }}>
           <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor"
             strokeWidth="1.5" viewBox="0 0 24 24" aria-hidden="true">

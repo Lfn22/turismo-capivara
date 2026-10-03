@@ -26,19 +26,23 @@ export default function GuideCard({ guide, href }: GuideCardProps) {
     <>
       <style>{`
         .gcard {
-          display: block;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
           text-decoration: none;
           color: inherit;
           background: #fff;
           border: 1px solid var(--stone-200);
           border-radius: 12px;
           overflow: hidden;
-          transition: box-shadow 0.25s ease, transform 0.25s ease;
+          transition: box-shadow 0.2s ease, transform 0.2s ease;
         }
 
         .gcard:hover {
-          box-shadow: 0 8px 28px rgba(0, 0, 0, 0.10);
-          transform: translateY(-3px);
+          box-shadow: 0 20px 48px rgba(0, 0, 0, 0.14),
+                      0 8px 20px rgba(196, 133, 42, 0.12);
+          transform: translateY(-6px);
+          filter: brightness(1.02) saturate(1.06);
         }
 
         /* Foto */
@@ -60,6 +64,9 @@ export default function GuideCard({ guide, href }: GuideCardProps) {
         /* Body */
         .gcard__body {
           padding: 1rem 1.1rem 1.1rem;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
         }
 
         .gcard__name {
@@ -90,13 +97,15 @@ export default function GuideCard({ guide, href }: GuideCardProps) {
           color: var(--ochre-dark);
           background: var(--stone-100);
           border: 1px solid var(--stone-200);
-          padding: 0.18rem 0.55rem;
+          padding: 0.35rem 0.65rem;
+          min-height: 28px;
           border-radius: 2px;
           white-space: nowrap;
         }
 
         /* Footer: roteiros + rating */
         .gcard__footer {
+          margin-top: auto;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -168,10 +177,12 @@ export default function GuideCard({ guide, href }: GuideCardProps) {
           )}
 
           <div className="gcard__footer">
-            <span className="gcard__packages">
-              {guide.packageCount}{' '}
-              {guide.packageCount === 1 ? 'roteiro' : 'roteiros'}
-            </span>
+            {guide.packageCount > 0 && (
+              <span className="gcard__packages">
+                {guide.packageCount}{' '}
+                {guide.packageCount === 1 ? 'roteiro' : 'roteiros'}
+              </span>
+            )}
 
             {guide.rating != null && (
               <span className="gcard__rating" aria-label={`Avaliação: ${guide.rating}`}>

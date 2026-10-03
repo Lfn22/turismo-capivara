@@ -4,7 +4,6 @@ import prisma from '../../database'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { AppError } from '../../shared/errors/AppError'
-import { createPixPayment } from '../../services/payment.service'
 import { hashCpf } from '../../shared/utils/hash'
 import { getResend, getEmailFrom } from '../../shared/email'
 import { bookingCreatedEmailText, bookingCreatedSubject } from './emails/booking-created-email'
@@ -13,6 +12,8 @@ import { randomBytes } from 'crypto'
 import { bookingCancelledEmailText } from './emails/booking-cancelled-email'
 import { bookingGuideNotificationEmailText, bookingGuideNotificationSubject } from './emails/booking-guide-notification-email'
 import * as paymentService from '../../services/payment.service'
+import { auditLog } from '../../shared/audit.js'
+import { bookingsCreatedCounter } from '../../shared/metrics.js'
 
 function isValidCPF(cpf: string): boolean {
   // Rejeitar sequências de dígitos iguais (00000000000, 11111111111, etc.)
@@ -204,7 +205,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
     const bookingId = randomBytes(16).toString('hex')
     let paymentResult
     try {
-      paymentResult = await createPixPayment({
+      paymentResult = await paymentService.createPixPayment({
         bookingId,
         transactionAmount: Number(pkg.price) * pax,
         description: `Reserva — ${pkg.name}`,
@@ -227,7 +228,10 @@ export async function bookingsRoutes(app: FastifyInstance) {
     }
 
     // Tx 2: Create booking with paymentId already in hand — never exists without PIX data (PAY-02)
-    const booking = await prisma.$transaction(async (tx) => {
+    // CR-05: wrap Tx2 in try/catch — if DB fails after PIX succeeds, cancel the MP payment + restore slot
+    let booking
+    try {
+    booking = await prisma.$transaction(async (tx) => {
       const cancelToken = randomBytes(32).toString('hex')
       return tx.booking.create({
         data: {
@@ -249,8 +253,23 @@ export async function bookingsRoutes(app: FastifyInstance) {
         },
       })
     })
-
-    const updatedBooking = booking
+    } catch (tx2Err) {
+      // CR-05: compensate — cancel MP payment + restore slot
+      await paymentService.cancelPixPayment(paymentResult.paymentId).catch((e) => {
+        app.log.error(e, '[booking-create] cancelPixPayment falhou após falha no Tx2')
+      })
+      await prisma.$transaction(async (tx) => {
+        const s3 = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
+        await tx.departureSlot.update({
+          where: { id: slotId },
+          data: {
+            booked: { decrement: pax },
+            ...(s3?.status === 'FULL' ? { status: 'OPEN' } : {}),
+          },
+        })
+      })
+      throw tx2Err
+    }
 
     // NOTIF-01: Notify customer of pending booking with PIX details (fire-and-forget)
     const resend = getResend()
@@ -261,12 +280,12 @@ export async function bookingsRoutes(app: FastifyInstance) {
           to: [customerEmail],
           subject: bookingCreatedSubject,
           text: bookingCreatedEmailText({
-            bookingId: updatedBooking.id,
+            bookingId: booking.id,
             customerName,
             qrCode: paymentResult.qrCode,
             paymentUrl: paymentResult.paymentUrl ?? '',
-            expiresAt: updatedBooking.expiresAt ?? new Date(),
-            cancelToken: updatedBooking.cancelToken,
+            expiresAt: booking.expiresAt ?? new Date(),
+            cancelToken: booking.cancelToken,
             tenantSlug: slug,
           }),
         })
@@ -284,7 +303,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
           to: [guideEmail],
           subject: bookingGuideNotificationSubject,
           text: bookingGuideNotificationEmailText({
-            bookingId: updatedBooking.id,
+            bookingId: booking.id,
             customerName,
             pax,
             packageName: pkg.name,
@@ -296,18 +315,22 @@ export async function bookingsRoutes(app: FastifyInstance) {
         })
     }
 
+    bookingsCreatedCounter.add(1, { tenant: slug })
+
+    auditLog(prisma, { actorType: 'USER', action: 'booking.created', targetType: 'BOOKING', targetId: booking.id, ipAddress: request.ip, metadata: { tenantSlug: slug, pax: body.pax, slotId: body.slotId } })
+
     return reply.status(201).send({
-      id: updatedBooking.id,
-      tenantId: updatedBooking.tenantId,
-      slotId: updatedBooking.slotId,
-      customerName: updatedBooking.customerName,
-      customerEmail: updatedBooking.customerEmail,
-      pax: updatedBooking.pax,
-      status: updatedBooking.status,
-      paymentId: updatedBooking.paymentId,
-      paymentUrl: updatedBooking.paymentUrl,
-      expiresAt: updatedBooking.expiresAt,
-      createdAt: updatedBooking.createdAt,
+      id: booking.id,
+      tenantId: booking.tenantId,
+      slotId: booking.slotId,
+      customerName: booking.customerName,
+      customerEmail: booking.customerEmail,
+      pax: booking.pax,
+      status: booking.status,
+      paymentId: booking.paymentId,
+      paymentUrl: booking.paymentUrl,
+      expiresAt: booking.expiresAt,
+      createdAt: booking.createdAt,
       qrCode: paymentResult.qrCode,
     })
   })
@@ -460,6 +483,8 @@ export async function bookingsRoutes(app: FastifyInstance) {
           })
       }
 
+      auditLog(prisma, { actorType: 'USER', action: 'booking.cancelled', targetType: 'BOOKING', targetId: booking.id, ipAddress: request.ip, metadata: { tenantSlug: slug, previousStatus: booking.status } })
+
       return reply.status(200).send({ message: 'Reserva cancelada com sucesso' })
     }
   )
@@ -483,6 +508,13 @@ export async function bookingsRoutes(app: FastifyInstance) {
       }
       const { slug } = request.params
       const { email, code, cpf } = parsed.data
+
+      if (cpf && !/^\d{11}$/.test(cpf)) {
+        return reply.status(400).send({ error: 'CPF deve conter 11 dígitos numéricos' })
+      }
+      if (cpf && !isValidCPF(cpf)) {
+        return reply.status(400).send({ error: 'CPF inválido' })
+      }
 
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
       if (!tenant) throw new AppError('Tenant não encontrado', 404)
@@ -581,6 +613,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
   app.get(
     '/tenants/:slug/bookings/:id',
+    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       let params
       try {
@@ -751,7 +784,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
   app.get(
     '/tenants/:slug/bookings',
     {
-      onRequest: [authenticate, authorize(['ADMIN', 'ATENDENTE'])],
+      preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE'])],
     },
     async (request, reply) => {
       let params

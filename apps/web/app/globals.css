@@ -2,33 +2,33 @@
 
 @theme {
   /* ── Colors ─────────────────────────────────────────────────── */
-  --color-primary: var(--color-primary);
-  --color-primary-light: var(--color-primary-light);
-  --color-primary-dark: var(--color-primary-dark);
-  --color-accent: var(--color-accent);
-  --color-bg: var(--color-bg);
-  --color-surface: var(--color-surface);
-  --color-text: var(--color-text);
-  --color-text-muted: var(--color-text-muted);
-  --color-success: var(--color-success);
-  --color-error: var(--color-error);
-  --color-warning: var(--color-warning);
+  --color-primary: #8B5E3C;
+  --color-primary-light: #C49A6C;
+  --color-primary-dark: #5C3D2E;
+  --color-accent: #C75B39;
+  --color-bg: #FAF5EF;
+  --color-surface: #FFFFFF;
+  --color-text: #3D2B1F;
+  --color-text-muted: #6B5D4F;
+  --color-success: #5B8C3A;
+  --color-error: #C74B45;
+  --color-warning: #D97706;
 
   /* ── Border radius ───────────────────────────────────────────── */
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-  --radius-xl: var(--radius-xl);
-  --radius-full: var(--radius-full);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
 
   /* ── Spacing ─────────────────────────────────────────────────── */
-  --spacing-xs: var(--spacing-xs);
-  --spacing-sm: var(--spacing-sm);
-  --spacing-md: var(--spacing-md);
-  --spacing-lg: var(--spacing-lg);
-  --spacing-xl: var(--spacing-xl);
-  --spacing-2xl: var(--spacing-2xl);
-  --spacing-3xl: var(--spacing-3xl);
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
 
   /* ── Typography ──────────────────────────────────────────────── */
   --text-xs: 0.75rem;
@@ -67,7 +67,7 @@
   --color-bg: #FAF5EF;
   --color-surface: #FFFFFF;
   --color-text: #3D2B1F;
-  --color-text-muted: #8B7D6B;
+  --color-text-muted: #6B5D4F;
 
   /* ── Semantic ────────────────────────────────────────────────── */
   --color-success: #5B8C3A;
@@ -89,6 +89,11 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-full: 9999px;
+
+  /* ── Badge / Status ───────────────────────────────────────────── */
+  --color-badge-easy: #5B8C3A;
+  --color-badge-moderate: #D97706;
+  --color-badge-hard: #C74B45;
 
   /* ── Z-index ─────────────────────────────────────────────────── */
   --z-header: 40;
@@ -115,6 +120,12 @@
   --ochre-dark: #9C6318;
   --brand: #C4852A;
   --font-display: var(--font-playfair);
+
+  /* ── Header glass ──────────────────────────────────────────── */
+  --header-bg: rgba(31, 14, 8, 0.3);
+  --header-bg-solid: #1F0E08;
+  --border-subtle: rgba(212, 196, 176, 0.15);
+  --border-strong: rgba(212, 196, 176, 0.3);
 }
 
 *,
@@ -122,6 +133,11 @@
 *::after {
   box-sizing: border-box;
   padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 64px;
 }
 
 body {

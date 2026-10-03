@@ -20,8 +20,8 @@ async function createTenantData(
   tenantId: string,
   adminEmail: string,
   adminName: string,
-  guia1: { name: string; email: string; cpf: string; bio: string; especialidades: string[]; regioes: string[] },
-  guia2: { name: string; email: string; cpf: string; bio: string; especialidades: string[]; regioes: string[] },
+  guia1: { name: string; email: string; cpf: string; bio: string; especialidades: string[]; regioes: string[]; photoUrl?: string },
+  guia2: { name: string; email: string; cpf: string; bio: string; especialidades: string[]; regioes: string[]; photoUrl?: string },
   pacotes: { name: string; description: string; duration: number; price: number; capacity: number; difficulty: string }[]
 ) {
   await prisma.user.create({
@@ -51,6 +51,7 @@ async function createTenantData(
     data: {
       userId: guiaAprovado.id,
       bio: guia1.bio,
+      photoUrl: guia1.photoUrl ?? null,
       especialidades: guia1.especialidades,
       regioes: guia1.regioes,
     },
@@ -72,6 +73,7 @@ async function createTenantData(
     data: {
       userId: guiaPendente.id,
       bio: guia2.bio,
+      photoUrl: guia2.photoUrl ?? null,
       especialidades: guia2.especialidades,
       regioes: guia2.regioes,
     },
@@ -115,6 +117,7 @@ async function createTenantData(
           customerCpfHash: hashCpf('11122233344'),
           pax: 2,
           status: 'PENDING',
+          cancelToken: `seed-cancel-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
         },
       })
       await prisma.departureSlot.update({
@@ -133,6 +136,7 @@ async function main() {
   await prisma.voucher.deleteMany()
   await prisma.booking.deleteMany()
   await prisma.departureSlot.deleteMany()
+  await prisma.packageGuide.deleteMany()
   await prisma.tourPackage.deleteMany()
   await prisma.guideProfile.deleteMany()
   await prisma.user.deleteMany()
@@ -158,7 +162,7 @@ async function main() {
       subtitle: 'Arte rupestre e patrimônio mundial',
       description:
         'O Parque Nacional Serra da Capivara é um dos maiores acervos de arte rupestre do mundo, com mais de 30 mil anos de história humana registrada nas pedras.',
-      heroImageUrl: null,
+      heroImageUrl: 'https://images.unsplash.com/photo-1580820726687-ac2885e50f18?w=1200&q=80',
       photos: [],
       state: 'PI',
       highlights: ['Arte Rupestre', 'Patrimônio UNESCO', 'Trilhas', 'Arqueologia'],
@@ -181,7 +185,7 @@ async function main() {
       subtitle: 'Dunas, fervedouros e cerrado intocado',
       description:
         'O Jalapão é um dos destinos mais selvagens do Brasil, com fervedouros de água cristalina, dunas de areia dourada e paisagens do cerrado preservadas.',
-      heroImageUrl: null,
+      heroImageUrl: 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=1200&q=80',
       photos: [],
       state: 'TO',
       highlights: ['Fervedouros', 'Dunas', 'Cerrado', 'Cachoeiras'],
@@ -204,7 +208,7 @@ async function main() {
       subtitle: 'Vale do São Francisco e turismo do vinho',
       description:
         'Petrolina surpreende com o turismo gastronômico e vinícola às margens do Rio São Francisco, além de passeios de barco e culinária típica nordestina.',
-      heroImageUrl: null,
+      heroImageUrl: 'https://images.unsplash.com/photo-1551524559-8af4e6624178?w=1200&q=80',
       photos: [],
       state: 'PE',
       highlights: ['Vinícolas', 'Rio São Francisco', 'Gastronomia', 'Passeios de Barco'],
@@ -257,6 +261,7 @@ async function main() {
       bio: 'Guia certificada com 12 anos de experiência nos sítios arqueológicos do PNSC. Especialista em arte rupestre pré-histórica.',
       especialidades: ['Arqueologia', 'Arte Rupestre', 'Fotografia'],
       regioes: ['Serra da Capivara', 'Piauí'],
+      photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80',
     },
     {
       name: 'Roberto Trilheiro',
@@ -265,6 +270,7 @@ async function main() {
       bio: 'Condutor local com conhecimento profundo das trilhas e da fauna do parque.',
       especialidades: ['Trilhas', 'Fauna', 'Sobrevivência'],
       regioes: ['Serra da Capivara'],
+      photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
     },
     [
       {
@@ -299,6 +305,7 @@ async function main() {
       bio: 'Guia certificada do Jalapão com 8 anos conduzindo grupos pelos fervedouros e dunas do Tocantins.',
       especialidades: ['Fervedouros', 'Dunas', 'Cerrado', 'Cachoeiras'],
       regioes: ['Jalapão', 'Tocantins'],
+      photoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80',
     },
     {
       name: 'Diego Aventureiro',
@@ -307,6 +314,7 @@ async function main() {
       bio: 'Condutor especializado em expedições off-road e acampamentos no cerrado do Jalapão.',
       especialidades: ['Off-road', 'Camping', 'Fotografia'],
       regioes: ['Jalapão'],
+      photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80',
     },
     [
       {
@@ -341,6 +349,7 @@ async function main() {
       bio: 'Guia especializado em enoturismo no Vale do São Francisco, com certificação em sommelerie e 10 anos no setor.',
       especialidades: ['Vinícolas', 'Gastronomia', 'Enoturismo'],
       regioes: ['Vale do São Francisco', 'Petrolina', 'Juazeiro'],
+      photoUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&q=80',
     },
     {
       name: 'Juliana Rio',
@@ -349,6 +358,7 @@ async function main() {
       bio: 'Condutora local especializada em passeios fluviais e cultura ribeirinha do São Francisco.',
       especialidades: ['Passeios de Barco', 'Cultura Ribeirinha', 'Pesca'],
       regioes: ['Petrolina', 'Rio São Francisco'],
+      photoUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&q=80',
     },
     [
       {

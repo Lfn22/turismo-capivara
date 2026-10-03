@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Governança & Destinos Compartilhados
 status: executing
-last_updated: "2026-09-23T01:00:03.237Z"
-last_activity: 2026-09-23 -- Phase 36 planning complete
+last_updated: "2026-10-03T12:51:00.000Z"
+last_activity: 2026-10-03 -- Documentation audit fixes
 progress:
   total_phases: 7
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 14
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
+  percent: 29
 ---
 
 # STATE.md — Turismo Capivara
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-09-06)
 
 ## Current Position
 
-Phase: 29 — Schema Aditivo & Backfill
-Plan: 29-01 ✅
-Status: Ready to execute
-Last activity: 2026-09-23 -- Phase 36 planning complete
+Phase: 36 — Fundamentos Marca & Design System (complete)
+Plan: 36-04 ✅
+Status: Phase 36 complete; UI audit done; Phase 37+ pending
+Last activity: 2026-10-03 -- Documentation audit fixes
 
 ## Decisões estratégicas
 
@@ -52,7 +52,7 @@ Last activity: 2026-09-23 -- Phase 36 planning complete
 - Prisma: usar `prisma.$transaction` para bookings (anti-overbooking)
 - Rate limiting: `@fastify/rate-limit` global via `fastify.register` — webhook MP isento via `config: { rateLimit: false }`
 - Sentry: `initSentry()` antes do `buildApp()` — `setupFastifyErrorHandler(app)` filtra `AppError` (não envia ao Sentry)
-- CPF: HMAC-SHA256 com `ANONYMIZATION_SALT` — `hashCpf()` em `apps/api/src/shared/hash.ts`
+- CPF: HMAC-SHA256 com `ANONYMIZATION_SALT` — `hashCpf()` em `apps/api/src/shared/utils/hash.ts`
 - Email: Resend via `getResend()` em `apps/api/src/shared/email.ts` — fire-and-forget com `void`
 - fastify-cron: expiry job registrado em `app.ts` após todos os plugins — `FOR UPDATE SKIP LOCKED` + advisory lock PostgreSQL
 - Self-service: opaque 404 para lookup inválido — não revela se email ou código existem individualmente
@@ -102,6 +102,6 @@ Last activity: 2026-09-23 -- Phase 36 planning complete
 
 ## Session Continuity
 
-Last session: 2026-09-23T01:00:03.220Z
-Stopped at: Phase 36 UI-SPEC approved
+Last session: 2026-10-03T12:51:00.000Z
+Stopped at: Documentation audit fixes
 Resume file: None

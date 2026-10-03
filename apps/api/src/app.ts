@@ -1,4 +1,7 @@
 import 'dotenv/config'
+import { initTelemetry } from './shared/telemetry'
+initTelemetry()
+
 import { validateEnv } from './shared/env'
 import { initSentry, Sentry } from './shared/sentry'
 
@@ -31,8 +34,27 @@ import { dashboardRoutes } from './modules/dashboard/dashboard.routes'
 import { createBookingExpiryJob } from './modules/bookings/expiry.job'
 import { AppError } from './shared/errors/AppError'
 
+const isProd = process.env.NODE_ENV === 'production'
+
 const app = Fastify({
-  logger: true,
+  logger: {
+    level: process.env.LOG_LEVEL ?? (isProd ? 'info' : 'debug'),
+    ...(isProd
+      ? {}
+      : { transport: { target: 'pino-pretty' } }),
+    serializers: {
+      req(request) {
+        const params = request.params as Record<string, string> | undefined
+        const user = (request as any).user as { sub?: string } | undefined
+        return {
+          method: request.method,
+          url: request.url,
+          tenantSlug: params?.slug,
+          userId: user?.sub,
+        }
+      },
+    },
+  },
   trustProxy: true,
   genReqId: () => crypto.randomUUID(),
   connectionTimeout: 30000,
