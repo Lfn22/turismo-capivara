@@ -1,21 +1,13 @@
+import { StatCard } from '@/src/components/ui/capi';
+
 interface Props {
   label: string;
   value: string | number;
   trend?: 'up' | 'down' | 'neutral';
 }
 
+/** Legado: mantém a API antiga e renderiza o StatCard do CAPI v2. */
 export default function PainelMetric({ label, value, trend }: Props) {
-  const trendColor = trend === 'up' ? 'var(--ochre)' : trend === 'down' ? '#dc2626' : 'var(--stone-500)';
-
-  return (
-    <div className="rounded-xl p-5" style={{ background: 'white', boxShadow: 'var(--shadow-sm)' }}>
-      <p className="text-xs font-medium mb-2" style={{ color: 'var(--stone-500)' }}>
-        {label}
-      </p>
-      <p className="font-[family-name:var(--font-display)] font-bold text-2xl"
-        style={{ color: trendColor }}>
-        {value}
-      </p>
-    </div>
-  );
+  const tone = trend === 'up' ? 'var(--text-primary)' : trend === 'down' ? 'var(--danger)' : undefined;
+  return <StatCard label={label} value={tone ? <span style={{ color: tone }}>{value}</span> : value} />;
 }

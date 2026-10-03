@@ -4,7 +4,18 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PhotoUploadArea } from '@/src/components/ui/PhotoUploadArea'
-import BackButton from '@/src/components/ui/BackButton'
+import { Check, Plus, X } from 'lucide-react'
+import {
+  Badge,
+  Button,
+  EmptyState,
+  IconButton,
+  Input,
+  PageHeader,
+  Skeleton,
+  StatusBadge,
+} from '@/src/components/ui/capi'
+import PainelCard from '@/src/components/painel/PainelCard'
 
 interface PackageData {
   id: string
@@ -19,28 +30,14 @@ interface PackageData {
   conductorId?: string
 }
 
-const DIFFICULTY: Record<string, { label: string; bg: string; color: string }> = {
-  EASY: { label: 'Fácil', bg: '#F0FDF4', color: '#15803D' },
-  MODERATE: { label: 'Moderado', bg: '#FEF9EC', color: '#B45309' },
-  HARD: { label: 'Difícil', bg: '#FEF2F2', color: '#DC2626' },
-  EXTREME: { label: 'Extremo', bg: '#FEF2F2', color: '#7F1D1D' },
+function DifficultyBadge({ difficulty }: { difficulty: PackageData['difficulty'] }) {
+  if (difficulty === 'EXTREME') return <Badge tone="danger">Extremo</Badge>
+  return <StatusBadge kind="difficulty" status={difficulty ?? 'MODERATE'} />
 }
 
 function formatPrice(price: string | number) {
   const n = typeof price === 'string' ? parseFloat(price) : price
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
-const INPUT_STYLE: React.CSSProperties = {
-  width: '100%',
-  fontSize: '16px',
-  padding: '8px 12px',
-  borderRadius: '4px',
-  border: '1px solid var(--stone-300, #d6d3d1)',
-  background: '#fff',
-  color: 'var(--stone-900, #1c1917)',
-  boxSizing: 'border-box',
-  fontFamily: 'inherit',
 }
 
 export default function RoteiroDetailPage() {
@@ -146,258 +143,164 @@ export default function RoteiroDetailPage() {
 
   if (loading) {
     return (
-      <p style={{ textAlign: 'center', padding: '48px 24px', fontSize: '16px', color: 'var(--stone-500)' }}>
-        Carregando roteiro...
-      </p>
+      <div className="capi-container capi-container--text" style={{ paddingInline: 0 }} aria-busy="true">
+        <span className="sr-only-capi">Carregando roteiro...</span>
+        <div className="mb-6 flex flex-col gap-3">
+          <Skeleton width={90} height={14} />
+          <Skeleton width="70%" height={30} />
+          <Skeleton width={140} height={22} radius={999} />
+        </div>
+        <div className="flex flex-col gap-4">
+          {[0, 1].map((i) => (
+            <PainelCard key={i}>
+              <Skeleton width="40%" height={18} />
+              <div className="mt-4">
+                <Skeleton lines={3} />
+              </div>
+            </PainelCard>
+          ))}
+        </div>
+      </div>
     )
   }
 
   if (loadError || !pkg) {
     return (
-      <p style={{ textAlign: 'center', padding: '48px 24px', fontSize: '16px', color: 'var(--stone-500)' }}>
-        Roteiro não encontrado.
-      </p>
+      <EmptyState
+        title="Roteiro não encontrado."
+        description="Ele pode ter sido removido ou o link está incorreto."
+        action={
+          <Button href={`/${slug}/painel/roteiros`} variant="secondary">
+            Voltar para roteiros
+          </Button>
+        }
+      />
     )
   }
 
-  const diff = DIFFICULTY[pkg.difficulty] ?? DIFFICULTY.MODERATE
-
   return (
-    <>
-      <style precedence="default">{`
-        .roteiro-detail-section {
-          background: white;
-          border: 1px solid var(--stone-200, #e7e5e4);
-          border-radius: 8px;
-          padding: 24px;
-          margin-bottom: 24px;
+    <div className="capi-container capi-container--text" style={{ paddingInline: 0 }}>
+      <style>{`
+        .roteiro-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--space-4); margin: var(--space-4) 0 0; padding-top: var(--space-4); border-top: 1px solid var(--border); }
+        .roteiro-facts dt { margin: 0 0 4px; font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+        .roteiro-facts dd { margin: 0; font-size: 16px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+        .highlight-row { display: flex; align-items: flex-end; gap: var(--space-2); }
+        .highlight-row > :first-child { flex: 1; min-width: 0; }
+        /* Ação de salvar fixa no rodapé do celular, acima da bottom nav */
+        .painel-form-actions {
+          position: sticky; z-index: var(--z-sticky);
+          bottom: calc(var(--bottombar-height) + env(safe-area-inset-bottom, 0px));
+          display: flex; flex-direction: column; gap: var(--space-2);
+          margin: var(--space-6) calc(var(--gutter-mobile) * -1) 0;
+          padding: var(--space-3) var(--gutter-mobile);
+          background: var(--surface); border-top: 1px solid var(--border);
         }
-        .roteiro-detail-section h2 {
-          font-family: var(--font-display, Georgia, serif);
-          font-size: 18px;
-          color: var(--stone-900, #1c1917);
-          margin: 0 0 16px;
-        }
-        .roteiro-detail-section h3 {
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--stone-700, #44403c);
-          margin: 0 0 12px;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-        }
-        .highlight-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
-        .highlight-remove-btn {
-          flex-shrink: 0;
-          width: 32px;
-          height: 32px;
-          min-height: 44px;
-          min-width: 44px;
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          color: var(--stone-400, #a8a29e);
-          font-size: 18px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 4px;
-        }
-        .highlight-remove-btn:hover {
-          color: #DC2626;
-          background: #FEF2F2;
+        @media (min-width: 768px) {
+          .painel-form-actions {
+            position: static; flex-direction: row; justify-content: flex-end;
+            margin: var(--space-6) 0 0; padding: 0; background: none; border: 0;
+          }
         }
       `}</style>
 
-      <BackButton />
-
-      {/* Page header */}
-      <div style={{ marginBottom: '32px' }}>
-        <p
-          style={{
-            fontSize: '11px',
-            color: 'var(--ochre)',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            marginBottom: '8px',
-          }}
-        >
-          Painel do Guia
-        </p>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
-          <h1
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '24px',
-              color: 'var(--stone-900)',
-              lineHeight: 1.2,
-              margin: 0,
-            }}
-          >
-            {pkg.name}
-          </h1>
-          <span
-            style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              fontSize: '11px',
-              fontWeight: 600,
-              background: diff.bg,
-              color: diff.color,
-              whiteSpace: 'nowrap',
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              alignSelf: 'center',
-            }}
-          >
-            {diff.label}
-          </span>
-        </div>
+      <PageHeader
+        backHref={`/${slug}/painel/roteiros`}
+        backLabel="Roteiros"
+        eyebrow="Roteiro"
+        title={pkg.name}
+      />
+      <div className="-mt-3 mb-6 flex flex-wrap items-center gap-2">
+        <DifficultyBadge difficulty={pkg.difficulty} />
+        <Badge tone={pkg.active ? 'success' : 'neutral'} dot>
+          {pkg.active ? 'Ativo' : 'Inativo'}
+        </Badge>
       </div>
 
-      {/* Info card */}
-      <div className="roteiro-detail-section">
-        <h2>Informações do roteiro</h2>
-        <p style={{ fontSize: '14px', color: 'var(--stone-500)', margin: '0 0 12px', lineHeight: 1.6 }}>
-          {pkg.description}
-        </p>
-        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-          <div>
-            <p style={{ fontSize: '11px', color: 'var(--stone-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
-              Preço
-            </p>
-            <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--stone-800)', margin: 0 }}>
-              {formatPrice(pkg.price)}
-            </p>
-          </div>
-          <div>
-            <p style={{ fontSize: '11px', color: 'var(--stone-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
-              Capacidade
-            </p>
-            <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--stone-800)', margin: 0 }}>
-              {pkg.capacity} {pkg.capacity === 1 ? 'pessoa' : 'pessoas'}
-            </p>
-          </div>
-          <div>
-            <p style={{ fontSize: '11px', color: 'var(--stone-400)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
-              Status
-            </p>
-            <p
-              style={{
-                fontSize: '13px',
-                fontWeight: 600,
-                color: pkg.active ? '#15803D' : 'var(--stone-400)',
-                margin: 0,
-              }}
-            >
-              {pkg.active ? 'Ativo' : 'Inativo'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Enrichment section */}
-      <div className="roteiro-detail-section">
-        <h2>Enriquecer roteiro</h2>
+      <div className="flex flex-col gap-4">
+        {/* Info card */}
+        <PainelCard title="Informações do roteiro">
+          <p className="text-fg-secondary" style={{ fontSize: 15, lineHeight: 1.6 }}>
+            {pkg.description}
+          </p>
+          <dl className="roteiro-facts">
+            <div>
+              <dt>Preço por pessoa</dt>
+              <dd>{formatPrice(pkg.price)}</dd>
+            </div>
+            <div>
+              <dt>Capacidade</dt>
+              <dd>
+                {pkg.capacity} {pkg.capacity === 1 ? 'pessoa' : 'pessoas'}
+              </dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>{pkg.active ? 'Ativo' : 'Inativo'}</dd>
+            </div>
+          </dl>
+        </PainelCard>
 
         {/* Photos */}
-        <div style={{ marginBottom: '32px' }}>
-          <h3>Fotos do roteiro</h3>
+        <PainelCard title="Fotos do roteiro">
+          <p className="mb-4 text-fg-secondary" style={{ fontSize: 14 }}>
+            Até 5 fotos, em JPEG, PNG ou WebP.
+          </p>
           <PhotoUploadArea
             photos={photos}
             onAdd={handleAddPhoto}
             onRemove={handleRemovePhoto}
             maxPhotos={5}
           />
-        </div>
+        </PainelCard>
 
         {/* Highlights */}
-        <div>
-          <h3>Experiências incluídas</h3>
+        <PainelCard title="Experiências incluídas">
           {highlights.length === 0 && (
-            <p style={{ fontSize: '14px', color: 'var(--stone-400)', marginBottom: '16px' }}>
+            <p className="mb-4 text-fg-secondary" style={{ fontSize: 14 }}>
               Nenhuma experiência adicionada. Descreva o que o turista irá vivenciar.
             </p>
           )}
-          {highlights.map((h, idx) => (
-            <div key={idx} className="highlight-row">
-              <input
-                type="text"
-                value={h}
-                onChange={(e) => handleHighlightChange(idx, e.target.value)}
-                placeholder={`Experiência ${idx + 1} (ex: Trilha até a Pedra Furada)`}
-                maxLength={200}
-                style={{ ...INPUT_STYLE, flex: 1 }}
-              />
-              <button
-                type="button"
-                className="highlight-remove-btn"
-                onClick={() => handleRemoveHighlight(idx)}
-                aria-label="Remover experiência"
-              >
-                ×
-              </button>
-            </div>
-          ))}
+          <div className="flex flex-col gap-3">
+            {highlights.map((h, idx) => (
+              <div key={idx} className="highlight-row">
+                <Input
+                  label={`Experiência ${idx + 1}`}
+                  hideLabel
+                  value={h}
+                  onChange={(e) => handleHighlightChange(idx, e.target.value)}
+                  placeholder={`Experiência ${idx + 1} (ex: Trilha até a Pedra Furada)`}
+                  maxLength={200}
+                />
+                <IconButton
+                  icon={X}
+                  label="Remover experiência"
+                  onClick={() => handleRemoveHighlight(idx)}
+                />
+              </div>
+            ))}
+          </div>
 
           {highlights.length < 10 && (
-            <button
-              type="button"
-              onClick={handleAddHighlight}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--ochre, #c2783c)',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                padding: '8px 0',
-                minHeight: '44px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              + Adicionar experiência
-            </button>
+            <div className="mt-3">
+              <Button variant="ghost" iconLeft={Plus} onClick={handleAddHighlight}>
+                Adicionar experiência
+              </Button>
+            </div>
           )}
           {highlights.length >= 10 && (
-            <p style={{ fontSize: '12px', color: 'var(--stone-400)', marginTop: '8px' }}>
+            <p className="mt-3 text-fg-tertiary" style={{ fontSize: 13 }}>
               Máximo de 10 experiências atingido.
             </p>
           )}
-        </div>
-
-        {/* Save */}
-        <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--stone-200)' }}>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              width: '100%',
-              minHeight: '44px',
-              padding: '12px',
-              background: 'var(--ochre, #c2783c)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '16px',
-              fontWeight: 600,
-              cursor: saving ? 'not-allowed' : 'pointer',
-              opacity: saving ? 0.65 : 1,
-              letterSpacing: '0.04em',
-            }}
-          >
-            {saving ? 'Salvando...' : 'Salvar alterações'}
-          </button>
-        </div>
+        </PainelCard>
       </div>
-    </>
+
+      {/* Save */}
+      <div className="painel-form-actions">
+        <Button iconLeft={Check} onClick={handleSave} loading={saving} fullWidth>
+          {saving ? 'Salvando...' : 'Salvar alterações'}
+        </Button>
+      </div>
+    </div>
   )
 }

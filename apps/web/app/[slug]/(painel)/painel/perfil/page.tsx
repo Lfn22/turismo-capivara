@@ -3,6 +3,8 @@ import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import BackButton from "@/src/components/ui/BackButton"
 import { PhotoUploadArea } from "@/src/components/ui/PhotoUploadArea"
+import { MapPin, ShieldCheck } from "lucide-react"
+import { Alert, Avatar, Badge, Button, Input, PageHeader, Skeleton, Textarea } from "@/src/components/ui/capi"
 
 interface GuideProfileData {
   id: string
@@ -148,294 +150,252 @@ export default function PerfilPage({
     setPortfolioPhotos((prev) => prev.filter((u) => u !== url))
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "8px 12px",
-    border: "1px solid var(--stone-300)",
-    borderRadius: "4px",
-    fontSize: "16px",
-    color: "var(--stone-800)",
-    background: "white",
-    boxSizing: "border-box",
-  }
-
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    fontSize: "14px",
-    color: "var(--stone-700)",
-    marginBottom: "4px",
-    fontWeight: 600,
-  }
-
   const isApproved = profile?.user?.approvalStatus === "APPROVED"
+  const approvalStatus = profile?.user?.approvalStatus
+  const approvalAlert =
+    approvalStatus === "APPROVED"
+      ? { tone: "success" as const, title: "Perfil aprovado", text: "Seu perfil está visível para os turistas no marketplace." }
+      : approvalStatus === "REJECTED"
+      ? { tone: "danger" as const, title: "Perfil não aprovado", text: "Revise suas informações e fale com o suporte para uma nova análise." }
+      : approvalStatus
+      ? { tone: "warning" as const, title: "Perfil em análise", text: "Enquanto a equipe revisa seu cadastro, complete a bio, as especialidades e o portfólio." }
+      : null
+
+  const parseList = (value: string) =>
+    value
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean)
+  const especialidadesList = parseList(especialidades)
+  const regioesList = parseList(regioes)
 
   return (
-    <>
-      <BackButton />
-      {/* Page header */}
-      <div style={{ marginBottom: "32px" }}>
-        <p
-          style={{
-            fontSize: "11px",
-            color: "var(--ochre)",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            marginBottom: "8px",
-          }}
-        >
-          Painel do Guia
-        </p>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            flexWrap: "wrap",
-          }}
-        >
-          <h1
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "24px",
-              color: "var(--stone-900)",
-              lineHeight: 1.2,
-              margin: 0,
-            }}
-          >
-            Meu Perfil
-          </h1>
-
-          {/* GUIDE-02: Badge de guia verificado */}
-          {isApproved && (
-            <span
-              aria-label="Guia verificado pela plataforma"
-              style={{
-                background: "var(--ochre)",
-                color: "white",
-                fontSize: "11px",
-                fontWeight: 600,
-                padding: "4px 8px",
-                borderRadius: "4px",
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Guia Verificado
-            </span>
-          )}
-        </div>
-      </div>
-
-      {loading ? (
-        <div style={{ maxWidth: "640px" }}>
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              style={{
-                height: "56px",
-                marginBottom: "16px",
-                borderRadius: "4px",
-                background:
-                  "linear-gradient(90deg, var(--stone-100) 25%, var(--stone-200) 50%, var(--stone-100) 75%)",
-                backgroundSize: "200%",
-                animation: "shimmer 1.5s infinite",
-              }}
-            />
-          ))}
-        </div>
-      ) : loadError ? (
-        <p style={{ fontSize: "16px", color: "var(--stone-500)" }}>
-          Erro ao carregar dados. Tente novamente.
-        </p>
-      ) : (
-        <form
-          onSubmit={handleSave}
-          style={{
-            maxWidth: "640px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "20px",
-          }}
-        >
-          {/* Nome (read-only) */}
-          <div>
-            <label style={labelStyle}>Nome</label>
-            <input
-              type="text"
-              value={profile?.user?.name ?? ""}
-              readOnly
-              disabled
-              style={{
-                ...inputStyle,
-                background: "var(--stone-100)",
-                color: "var(--stone-500)",
-                cursor: "not-allowed",
-              }}
-            />
-          </div>
-
-          {/* CPF (read-only se disponivel) */}
-          {profile?.user &&
-            "cpf" in profile.user &&
-            profile.user.cpf && (
-              <div>
-                <label style={labelStyle}>CPF / CNPJ</label>
-                <input
-                  type="text"
-                  value={String(profile.user.cpf)}
-                  readOnly
-                  disabled
-                  style={{
-                    ...inputStyle,
-                    background: "var(--stone-100)",
-                    color: "var(--stone-500)",
-                    cursor: "not-allowed",
-                  }}
-                />
-              </div>
-            )}
-
-          {/* Bio */}
-          <div>
-            <label htmlFor="bio" style={labelStyle}>
-              Bio
-            </label>
-            <textarea
-              id="bio"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              rows={4}
-              style={{
-                ...inputStyle,
-                resize: "vertical",
-                minHeight: "96px",
-                fontFamily: "inherit",
-              }}
-              placeholder="Conte sua historia como guia..."
-            />
-          </div>
-
-          {/* Especialidades */}
-          <div>
-            <label htmlFor="especialidades" style={labelStyle}>
-              Especialidades
-            </label>
-            <input
-              id="especialidades"
-              type="text"
-              value={especialidades}
-              onChange={(e) => setEspecialidades(e.target.value)}
-              placeholder="Ex: arqueologia, trilha, fotografia (separadas por vírgula)"
-              style={inputStyle}
-            />
-            <p
-              style={{
-                fontSize: "14px",
-                color: "var(--stone-400)",
-                marginTop: "4px",
-              }}
-            >
-              Separe com vírgulas
-            </p>
-          </div>
-
-          {/* Regioes */}
-          <div>
-            <label htmlFor="regioes" style={labelStyle}>
-              Regiões atendidas
-            </label>
-            <input
-              id="regioes"
-              type="text"
-              value={regioes}
-              onChange={(e) => setRegioes(e.target.value)}
-              placeholder="Ex: Serra da Capivara, Piauí (separadas por vírgula)"
-              style={inputStyle}
-            />
-            <p
-              style={{
-                fontSize: "14px",
-                color: "var(--stone-400)",
-                marginTop: "4px",
-              }}
-            >
-              Separe com vírgulas
-            </p>
-          </div>
-
-          {/* Portfólio de Fotos (GUIDE-04) */}
-          <div>
-            <label style={labelStyle}>Portfólio de Fotos</label>
-            <p style={{ fontSize: "14px", color: "var(--stone-400)", marginTop: 0, marginBottom: "8px" }}>
-              Faça upload das fotos do seu portfólio (máx. 5, até 5MB cada).
-            </p>
-            <PhotoUploadArea
-              photos={portfolioPhotos}
-              onAdd={handleUploadPhoto}
-              onRemove={handleRemovePhoto}
-              maxPhotos={5}
-            />
-          </div>
-
-          {/* Save button + feedback */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "16px",
-              flexWrap: "wrap",
-            }}
-          >
-            <button
-              type="submit"
-              disabled={saving}
-              style={{
-                background: saving ? "var(--stone-400)" : "var(--ochre)",
-                color: "white",
-                padding: "8px 20px",
-                borderRadius: "4px",
-                fontSize: "14px",
-                fontWeight: 600,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-                border: "none",
-                cursor: saving ? "not-allowed" : "pointer",
-                minHeight: "44px",
-              }}
-            >
-              {saving ? "Salvando..." : "Salvar Alterações"}
-            </button>
-
-            {saveSuccess && (
-              <p
-                role="status"
-                aria-live="polite"
-                style={{ fontSize: "14px", color: "#15803D", margin: 0 }}
-              >
-                Perfil atualizado com sucesso.
-              </p>
-            )}
-
-            {saveError && (
-              <p
-                role="alert"
-                aria-live="assertive"
-                style={{ fontSize: "14px", color: "#DC2626", margin: 0 }}
-              >
-                {saveError}
-              </p>
-            )}
-          </div>
-        </form>
-      )}
-
-      <style>{`
-        @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
+    <div className="capi-container capi-container--text" style={{ paddingInline: 0 }}>
+      <style precedence="default">{`
+        .perfil-id {
+          display: flex;
+          align-items: center;
+          gap: var(--space-4);
+          margin-bottom: var(--space-6);
+          padding: var(--space-5);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          background: var(--surface);
+          font-family: var(--font-sans);
+        }
+        .perfil-id__name { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--text); overflow-wrap: anywhere; }
+        .perfil-id__email { margin: 2px 0 0; font-size: 14px; color: var(--text-secondary); overflow-wrap: anywhere; }
+        .perfil-id__badge { margin-top: var(--space-2); }
+        .perfil-form {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-8);
+          padding-bottom: calc(var(--space-20) + var(--space-4));
+          font-family: var(--font-sans);
+        }
+        @media (min-width: 768px) { .perfil-form { padding-bottom: 0; } }
+        .perfil-section { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+        .perfil-section + .perfil-section { padding-top: var(--space-8); border-top: 1px solid var(--border); }
+        .perfil-head { display: flex; flex-direction: column; gap: var(--space-1); }
+        .perfil-title { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--text); }
+        .perfil-desc { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+        .perfil-tags { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: calc(var(--space-2) * -1); }
+        .perfil-bar {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: calc(var(--bottombar-height) + env(safe-area-inset-bottom, 0px));
+          z-index: var(--z-sticky);
+          display: flex;
+          padding: var(--space-3) var(--space-4);
+          background: var(--surface);
+          border-top: 1px solid var(--border);
+          box-shadow: var(--shadow-md);
+        }
+        .perfil-bar .capi-btn { flex: 1; }
+        @media (min-width: 768px) {
+          .perfil-bar {
+            position: static;
+            justify-content: flex-end;
+            padding: var(--space-6) 0 0;
+            background: transparent;
+            box-shadow: none;
+          }
+          .perfil-bar .capi-btn { flex: 0 0 auto; }
         }
       `}</style>
-    </>
+
+      <BackButton fallbackHref={slug ? `/${slug}/painel` : "/"} />
+
+      <PageHeader
+        eyebrow="Painel do guia"
+        title="Meu perfil"
+        description="Como os turistas veem você na sua página de guia."
+      />
+
+      {loading ? (
+        <div aria-busy="true">
+          <div className="perfil-id">
+            <Skeleton width={80} height={80} radius={999} />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <Skeleton width="60%" height={18} />
+              <Skeleton width="40%" height={14} />
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                <Skeleton width={120} height={14} />
+                <Skeleton height={48} radius={12} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : loadError ? (
+        <Alert tone="danger" title="Não foi possível carregar seu perfil">
+          Recarregue a página para tentar de novo.
+        </Alert>
+      ) : (
+        <>
+          <div className="perfil-id">
+            <Avatar name={profile?.user?.name} src={profile?.photoUrl} size={80} verified={isApproved} />
+            <div style={{ minWidth: 0 }}>
+              <p className="perfil-id__name">{profile?.user?.name || "Guia"}</p>
+              {profile?.user?.email ? <p className="perfil-id__email">{profile.user.email}</p> : null}
+              {/* GUIDE-02: Badge de guia verificado */}
+              {isApproved && (
+                <div className="perfil-id__badge">
+                  <Badge tone="brand" icon={ShieldCheck} title="Guia verificado pela plataforma">
+                    Guia verificado
+                  </Badge>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {approvalAlert && (
+            <Alert tone={approvalAlert.tone} title={approvalAlert.title} className="mb-8">
+              {approvalAlert.text}
+            </Alert>
+          )}
+
+          <form onSubmit={handleSave} className="perfil-form">
+            <section className="perfil-section">
+              <div className="perfil-head">
+                <h2 className="perfil-title">Dados pessoais</h2>
+                <p className="perfil-desc">Para alterar estes dados, fale com o suporte.</p>
+              </div>
+
+              <Input
+                label="Nome"
+                type="text"
+                value={profile?.user?.name ?? ""}
+                readOnly
+                disabled
+              />
+
+              {profile?.user &&
+                "cpf" in profile.user &&
+                profile.user.cpf && (
+                  <Input
+                    label="CPF / CNPJ"
+                    type="text"
+                    value={String(profile.user.cpf)}
+                    readOnly
+                    disabled
+                  />
+                )}
+            </section>
+
+            <section className="perfil-section">
+              <div className="perfil-head">
+                <h2 className="perfil-title">Sobre você</h2>
+                <p className="perfil-desc">Sua experiência, o que gosta de mostrar e por que guia.</p>
+              </div>
+
+              <Textarea
+                id="bio"
+                label="Bio"
+                optional
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={5}
+                placeholder="Conte sua história como guia…"
+              />
+            </section>
+
+            <section className="perfil-section">
+              <div className="perfil-head">
+                <h2 className="perfil-title">Especialidades e regiões</h2>
+                <p className="perfil-desc">Ajudam o turista a encontrar o guia certo para o passeio.</p>
+              </div>
+
+              <Input
+                id="especialidades"
+                label="Especialidades"
+                optional
+                type="text"
+                value={especialidades}
+                onChange={(e) => setEspecialidades(e.target.value)}
+                placeholder="Ex.: arqueologia, trilha, fotografia"
+                hint="Separe com vírgulas."
+              />
+              {especialidadesList.length > 0 && (
+                <div className="perfil-tags" aria-label="Especialidades informadas">
+                  {especialidadesList.map((item, i) => (
+                    <Badge key={`${item}-${i}`}>{item}</Badge>
+                  ))}
+                </div>
+              )}
+
+              <Input
+                id="regioes"
+                label="Regiões atendidas"
+                optional
+                type="text"
+                value={regioes}
+                onChange={(e) => setRegioes(e.target.value)}
+                placeholder="Ex.: Serra da Capivara, Piauí"
+                hint="Separe com vírgulas."
+              />
+              {regioesList.length > 0 && (
+                <div className="perfil-tags" aria-label="Regiões informadas">
+                  {regioesList.map((item, i) => (
+                    <Badge key={`${item}-${i}`} icon={MapPin}>{item}</Badge>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Portfólio de Fotos (GUIDE-04) */}
+            <section className="perfil-section">
+              <div className="perfil-head">
+                <h2 className="perfil-title">Portfólio de fotos</h2>
+                <p className="perfil-desc">Até 5 fotos dos seus passeios, com até 5MB cada.</p>
+              </div>
+              <PhotoUploadArea
+                photos={portfolioPhotos}
+                onAdd={handleUploadPhoto}
+                onRemove={handleRemovePhoto}
+                maxPhotos={5}
+              />
+            </section>
+
+            {saveSuccess && <Alert tone="success">Perfil atualizado com sucesso.</Alert>}
+            {saveError && (
+              <Alert tone="danger" title="Não foi possível salvar">
+                {saveError}
+              </Alert>
+            )}
+
+            <div className="perfil-bar">
+              <Button type="submit" loading={saving}>
+                {saving ? "Salvando…" : "Salvar alterações"}
+              </Button>
+            </div>
+          </form>
+        </>
+      )}
+    </div>
   )
 }
