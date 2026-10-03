@@ -241,7 +241,8 @@
   --font-body: var(--font-sans);
 }
 
-/* ── Base ─────────────────────────────────────────────────── */
+/* ── Base (em @layer base para não anular utilitários Tailwind) ── */
+@layer base {
 *,
 *::before,
 *::after {
@@ -297,6 +298,7 @@ button {
 
 img, svg, video {
   max-width: 100%;
+}
 }
 
 /* ── Foco ─────────────────────────────────────────────────── */
