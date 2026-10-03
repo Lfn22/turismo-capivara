@@ -336,7 +336,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
               <div className="w-full text-left">
                 <p className="m-0 mb-1.5 text-sm font-semibold text-fg">Chave PIX (copia e cola)</p>
                 <div
-                  className="overflow-hidden text-ellipsis whitespace-nowrap rounded-lg border border-line bg-subtle px-3 py-2 font-mono text-xs text-fg-secondary"
+                  className="max-h-24 select-all overflow-y-auto break-all rounded-lg border border-line bg-subtle px-3 py-2 font-mono text-xs text-fg-secondary"
                   title={booking.qrCode}
                 >
                   {booking.qrCode}

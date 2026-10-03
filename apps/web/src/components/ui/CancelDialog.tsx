@@ -20,7 +20,7 @@ export default function CancelDialog({ open, onOpenChange, onConfirm, loading }:
       open={open}
       onClose={handleClose}
       title="Cancelar esta reserva?"
-      description="Sua vaga neste horário será liberada e esta ação não pode ser desfeita."
+      description="A vaga neste horário será liberada e esta ação não pode ser desfeita."
       footer={
         <>
           <Button variant="secondary" onClick={handleClose} disabled={loading}>

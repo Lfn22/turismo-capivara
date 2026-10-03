@@ -27,7 +27,7 @@
 .capi-btn--secondary:hover:not(:disabled) { background: var(--bg-subtle); }
 .capi-btn--ghost { background: transparent; color: var(--text); }
 .capi-btn--ghost:hover:not(:disabled) { background: var(--bg-subtle); }
-.capi-btn--danger { background: var(--danger-solid); color: #ffffff; }
+.capi-btn--danger { background: var(--danger-solid); color: var(--sand-0); }
 .capi-btn--danger:hover:not(:disabled) { filter: brightness(.92); }
 .capi-btn--link { min-height: auto; padding: 0; background: none; color: var(--text-primary); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .capi-btn--link:hover { text-decoration-thickness: 2px; }
@@ -47,9 +47,9 @@
 .capi-iconbtn--secondary { background: var(--surface); border-color: var(--border); box-shadow: var(--shadow-xs); }
 .capi-iconbtn--primary { background: var(--primary); color: var(--on-primary); }
 .capi-iconbtn--primary:hover { background: var(--primary-hover); }
-.capi-iconbtn--glass { background: rgba(255,255,255,.92); color: #1c1916; box-shadow: var(--shadow-sm); }
-.capi-iconbtn--glass:hover { background: #ffffff; }
-.capi-iconbtn__badge { position: absolute; top: 6px; right: 6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--danger-solid); color: #fff; font: 600 10px/16px var(--font-sans); text-align: center; }
+.capi-iconbtn--glass { background: color-mix(in srgb, var(--sand-0) 92%, transparent); color: var(--sand-900); box-shadow: var(--shadow-sm); }
+.capi-iconbtn--glass:hover { background: var(--sand-0); }
+.capi-iconbtn__badge { position: absolute; top: 6px; right: 6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--danger-solid); color: var(--sand-0); font: 600 10px/16px var(--font-sans); text-align: center; }
 
 /* ── Input ────────────────────────────────────────────── */
 .capi-field { display: flex; flex-direction: column; gap: 6px; width: 100%; font-family: var(--font-sans); }
@@ -128,7 +128,7 @@ textarea.capi-field__control { min-height: 112px; line-height: 1.55; resize: ver
   position: absolute; inset: auto 0 0 0; display: flex; flex-direction: column; gap: 6px;
   padding: var(--space-10) var(--space-4) var(--space-4);
   background: linear-gradient(to top, var(--scrim-photo), transparent);
-  color: #fcfbf9;
+  color: var(--sand-25);
 }
 .capi-dest__state { display: inline-flex; align-items: center; gap: 4px; font: 600 12px/1.3 var(--font-sans); letter-spacing: .08em; text-transform: uppercase; opacity: .92; }
 .capi-dest__title { margin: 0; font: 700 24px/1.15 var(--font-display); letter-spacing: -.01em; }
@@ -335,12 +335,12 @@ textarea.capi-field__control { min-height: 112px; line-height: 1.55; resize: ver
 .capi-logo { display: inline-flex; align-items: center; text-decoration: none; color: var(--text); border-radius: var(--radius-sm); }
 .capi-logo img { height: 36px; width: auto; display: block; }
 .capi-logo.is-inverse img, [data-theme="dark"] .capi-logo img { filter: brightness(0) invert(1); }
-.capi-logo.is-inverse { color: #fcfbf9; }
+.capi-logo.is-inverse { color: var(--sand-25); }
 .capi-logo__word { font: 700 22px/1 var(--font-display); letter-spacing: .14em; }
 .capi-logo:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
 .capi-topnav { position: sticky; top: 0; z-index: var(--z-nav); font-family: var(--font-sans); background: var(--glass); -webkit-backdrop-filter: saturate(1.6) blur(16px); backdrop-filter: saturate(1.6) blur(16px); border-bottom: 1px solid var(--border); }
 .capi-topnav.is-static { position: relative; }
-.capi-topnav.is-transparent { position: absolute; left: 0; right: 0; background: linear-gradient(to bottom, rgba(18,10,4,.45), transparent); border-bottom-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; color: #fcfbf9; }
+.capi-topnav.is-transparent { position: absolute; left: 0; right: 0; background: linear-gradient(to bottom, rgba(18,10,4,.45), transparent); border-bottom-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; color: var(--sand-25); }
 .capi-topnav.is-transparent.is-static { position: relative; }
 .capi-topnav__inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); height: 56px; max-width: var(--container-wide); margin: 0 auto; padding: 0 var(--gutter-mobile); }
 .capi-topnav__start, .capi-topnav__end { display: flex; align-items: center; gap: var(--space-2); }
@@ -351,8 +351,8 @@ textarea.capi-field__control { min-height: 112px; line-height: 1.55; resize: ver
 .capi-topnav__link:hover { color: var(--text); background: var(--bg-subtle); }
 .capi-topnav__link.is-active { color: var(--text); font-weight: 600; }
 .capi-topnav.is-transparent .capi-topnav__link { color: rgba(252,251,249,.88); }
-.capi-topnav.is-transparent .capi-topnav__link:hover, .capi-topnav.is-transparent .capi-topnav__link.is-active { color: #fff; background: rgba(255,255,255,.12); }
-.capi-topnav.is-transparent .capi-iconbtn--ghost { color: #fcfbf9; }
+.capi-topnav.is-transparent .capi-topnav__link:hover, .capi-topnav.is-transparent .capi-topnav__link.is-active { color: var(--sand-0); background: rgba(255,255,255,.12); }
+.capi-topnav.is-transparent .capi-iconbtn--ghost { color: var(--sand-25); }
 .capi-topnav.is-transparent .capi-iconbtn--ghost:hover { background: rgba(255,255,255,.14); }
 @media (min-width: 768px) {
   .capi-topnav__inner { height: var(--topbar-height); padding: 0 var(--gutter-tablet); }
@@ -398,7 +398,9 @@ textarea.capi-field__control { min-height: 112px; line-height: 1.55; resize: ver
 .capi-sidebar__who p:first-child { font-size: 14px; font-weight: 600; color: var(--text); }
 .capi-sidebar__who p:last-child { font-size: 12px; color: var(--text-secondary); }
 .capi-sidebar.is-collapsed { width: var(--sidebar-collapsed); padding: var(--space-4) var(--space-2); align-items: center; }
-.capi-sidebar.is-collapsed .capi-sidebar__label, .capi-sidebar.is-collapsed .capi-sidebar__count, .capi-sidebar.is-collapsed .capi-sidebar__who, .capi-sidebar.is-collapsed .capi-sidebar__user .capi-iconbtn { display: none; }
+.capi-sidebar.is-collapsed .capi-sidebar__count, .capi-sidebar.is-collapsed .capi-sidebar__who, .capi-sidebar.is-collapsed .capi-sidebar__user .capi-iconbtn { display: none; }
+/* Recolhida: rótulo só para leitor de tela (o link mantém nome acessível). */
+.capi-sidebar.is-collapsed .capi-sidebar__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .capi-sidebar.is-collapsed .capi-sidebar__item { justify-content: center; padding: 0; width: var(--touch-target); }
 .capi-sidebar.is-collapsed .capi-sidebar__brand { padding: 0 0 var(--space-3); }
 

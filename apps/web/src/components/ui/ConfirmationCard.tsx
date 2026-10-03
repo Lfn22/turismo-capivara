@@ -39,7 +39,7 @@ function calendarUrl(title: string, isoString: string): string {
 }
 
 const HEADLINE: Record<string, { title: string; text: string }> = {
-  CONFIRMED: { title: 'Reserva confirmada!', text: 'Está tudo certo. Guarde o código abaixo para o check-in.' },
+  CONFIRMED: { title: 'Reserva confirmada!', text: 'Está tudo certo. Guarde o código abaixo para consultar sua reserva.' },
   COMPLETED: { title: 'Reserva concluída', text: 'Obrigado por viajar com a gente.' },
   CHECKED_IN: { title: 'Check-in feito', text: 'Aproveite o passeio!' },
   PENDING: { title: 'Reserva recebida', text: 'Assim que o PIX for confirmado, sua vaga fica garantida.' },
@@ -49,7 +49,8 @@ const HEADLINE: Record<string, { title: string; text: string }> = {
 export default function ConfirmationCard({ booking }: ConfirmationCardProps) {
   const headline = HEADLINE[booking.status] ?? { title: 'Reserva recebida', text: '' };
   const isConfirmed = booking.status === 'CONFIRMED' || booking.status === 'COMPLETED' || booking.status === 'CHECKED_IN';
-  const code = booking.id.slice(0, 8).toUpperCase();
+  // Mesmo código que Minha reserva pede (6 últimos caracteres do id).
+  const code = booking.id.slice(-6).toUpperCase();
 
   const details: Array<{ icon: LucideIcon; label: string; value: string }> = [
     ...(booking.packageName ? [{ icon: MapIcon, label: 'Roteiro', value: booking.packageName }] : []),

@@ -111,7 +111,7 @@ export function PackageCard({ package: p, href }: { package: PackageCardData; hr
           {p.rating !== undefined ? <Rating value={p.rating} count={p.reviewCount} size={14} /> : null}
         </div>
         <p className="capi-pkg__meta">
-          <span><Clock size={14} strokeWidth={1.75} aria-hidden="true" />{formatDuration(p.durationMinutes)}</span>
+          {p.durationMinutes > 0 ? <span><Clock size={14} strokeWidth={1.75} aria-hidden="true" />{formatDuration(p.durationMinutes)}</span> : null}
           {p.groupSize ? <span><Users size={14} strokeWidth={1.75} aria-hidden="true" />até {p.groupSize}</span> : null}
           {p.guideName ? <span><User size={14} strokeWidth={1.75} aria-hidden="true" />{p.guideName}</span> : null}
         </p>
