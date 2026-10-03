@@ -1,3 +1,6 @@
+import { CalendarDays, CalendarPlus, CircleCheck, Clock, Map as MapIcon, Search, User, Users, type LucideIcon } from 'lucide-react';
+import { Button, StatusBadge } from '@/src/components/ui/capi';
+
 interface Booking {
   id: string;
   status: string;
@@ -12,147 +15,121 @@ interface ConfirmationCardProps {
   booking: Booking;
 }
 
-function formatDateTime(isoString?: string): string {
-  if (!isoString) return '—';
-  const date = new Date(isoString);
-  return date.toLocaleString('pt-BR', {
+function formatDate(isoString: string): string {
+  return new Date(isoString).toLocaleDateString('pt-BR', {
     weekday: 'long',
     day: '2-digit',
     month: 'long',
     year: 'numeric',
+  });
+}
+
+function formatTime(isoString: string): string {
+  return new Date(isoString).toLocaleTimeString('pt-BR', {
     hour: '2-digit',
     minute: '2-digit',
   });
 }
 
-function statusLabel(status: string): string {
-  const map: Record<string, string> = {
-    PENDING: 'Aguardando pagamento',
-    CONFIRMED: 'Confirmada',
-    CANCELLED: 'Cancelada',
-    COMPLETED: 'Concluída',
-  };
-  return map[status] ?? status;
+/** Link "Adicionar à agenda" (Google Agenda) a partir do horário de saída. */
+function calendarUrl(title: string, isoString: string): string {
+  const stamp = new Date(isoString).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const params = new URLSearchParams({ action: 'TEMPLATE', text: title, dates: `${stamp}/${stamp}` });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-function statusColor(status: string): string {
-  const map: Record<string, string> = {
-    CONFIRMED: '#16a34a',
-    PENDING: '#d97706',
-    CANCELLED: '#dc2626',
-    COMPLETED: '#2563eb',
-  };
-  return map[status] ?? 'var(--stone-700)';
-}
+const HEADLINE: Record<string, { title: string; text: string }> = {
+  CONFIRMED: { title: 'Reserva confirmada!', text: 'Está tudo certo. Guarde o código abaixo para consultar sua reserva.' },
+  COMPLETED: { title: 'Reserva concluída', text: 'Obrigado por viajar com a gente.' },
+  CHECKED_IN: { title: 'Check-in feito', text: 'Aproveite o passeio!' },
+  PENDING: { title: 'Reserva recebida', text: 'Assim que o PIX for confirmado, sua vaga fica garantida.' },
+  CANCELLED: { title: 'Reserva cancelada', text: 'Esta reserva não está mais ativa.' },
+};
 
 export default function ConfirmationCard({ booking }: ConfirmationCardProps) {
+  const headline = HEADLINE[booking.status] ?? { title: 'Reserva recebida', text: '' };
+  const isConfirmed = booking.status === 'CONFIRMED' || booking.status === 'COMPLETED' || booking.status === 'CHECKED_IN';
+  // Mesmo código que Minha reserva pede (6 últimos caracteres do id).
+  const code = booking.id.slice(-6).toUpperCase();
+
+  const details: Array<{ icon: LucideIcon; label: string; value: string }> = [
+    ...(booking.packageName ? [{ icon: MapIcon, label: 'Roteiro', value: booking.packageName }] : []),
+    { icon: User, label: 'Hóspede', value: booking.guestName },
+    ...(booking.slotStartsAt
+      ? [
+          { icon: CalendarDays, label: 'Data', value: formatDate(booking.slotStartsAt) },
+          { icon: Clock, label: 'Saída', value: formatTime(booking.slotStartsAt) },
+        ]
+      : []),
+    { icon: Users, label: 'Pessoas', value: `${booking.pax} ${booking.pax === 1 ? 'pessoa' : 'pessoas'}` },
+  ];
+
   return (
-    <div
-      style={{
-        backgroundColor: 'var(--stone-50)',
-        border: '1px solid var(--stone-200)',
-        borderRadius: '16px',
-        padding: '2rem',
-        maxWidth: '480px',
-        margin: '0 auto',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          marginBottom: '1.5rem',
-        }}
-      >
-        <div
-          style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            backgroundColor: '#f0fdf4',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '0.75rem',
-          }}
-        >
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#16a34a"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+    <div className="flex flex-col gap-4">
+      {/* Faixa de marca */}
+      <section className="flex flex-col items-center gap-3 rounded-2xl bg-surface-brand px-5 py-8 text-center">
+        {isConfirmed && (
+          <span
+            className="inline-flex h-14 w-14 items-center justify-center rounded-full"
+            style={{ background: 'var(--success-subtle)', color: 'var(--success)' }}
           >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        </div>
-        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--stone-900)' }}>
-          Reserva recebida
-        </h2>
-        <p
-          style={{
-            margin: '0.3rem 0 0',
-            fontSize: '0.85rem',
-            color: statusColor(booking.status),
-            fontWeight: 600,
-          }}
-        >
-          {statusLabel(booking.status)}
-        </p>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-        <Row label="Reserva" value={`#${booking.id.slice(0, 8).toUpperCase()}`} />
-        <Row label="Hóspede" value={booking.guestName} />
-        {booking.packageName && <Row label="Roteiro" value={booking.packageName} />}
-        {booking.slotStartsAt && (
-          <Row label="Data" value={formatDateTime(booking.slotStartsAt)} />
+            <CircleCheck size={30} strokeWidth={1.75} aria-hidden="true" />
+          </span>
         )}
-        <Row
-          label="Pessoas"
-          value={`${booking.pax} ${booking.pax === 1 ? 'pessoa' : 'pessoas'}`}
-        />
-      </div>
-      <a
-        href={`/${booking.slug}/minha-reserva`}
-        style={{
-          display: 'block',
-          textAlign: 'center',
-          color: 'var(--ochre)',
-          fontWeight: 700,
-          fontSize: '1rem',
-          textDecoration: 'none',
-          padding: '12px 0',
-          marginTop: '1rem',
-        }}
-      >
-        Consultar minha reserva
-      </a>
-    </div>
-  );
-}
+        <h1 className="font-display m-0 text-3xl" style={{ color: 'var(--text-on-brand)' }}>
+          {headline.title}
+        </h1>
+        {headline.text && (
+          <p className="m-0 text-sm" style={{ color: 'var(--text-on-brand-secondary)' }}>
+            {headline.text}
+          </p>
+        )}
+      </section>
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        borderBottom: '1px solid var(--stone-100)',
-        paddingBottom: '0.625rem',
-        gap: '1rem',
-      }}
-    >
-      <span style={{ fontSize: '0.85rem', color: 'var(--stone-500)', flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--stone-900)', textAlign: 'right' }}>
-        {value}
-      </span>
+      {/* Card da reserva */}
+      <section
+        aria-label="Detalhes da reserva"
+        className="rounded-2xl border border-line bg-surface p-5"
+        style={{ boxShadow: 'var(--shadow-sm)' }}
+      >
+        <div className="mb-4 flex items-start justify-between gap-3 border-b border-line pb-4">
+          <div>
+            <p className="m-0 text-xs font-semibold uppercase tracking-wider text-fg-secondary">Código da reserva</p>
+            <p className="m-0 font-mono text-2xl font-bold tracking-widest text-fg">#{code}</p>
+          </div>
+          <StatusBadge kind="booking" status={booking.status} />
+        </div>
+
+        <dl className="m-0 flex flex-col gap-3">
+          {details.map(({ icon: Icon, label, value }) => (
+            <div key={label} className="flex items-start gap-3">
+              <dt className="flex shrink-0 items-center gap-2 text-sm text-fg-secondary" style={{ minWidth: 104 }}>
+                <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
+                {label}
+              </dt>
+              <dd className="m-0 ml-auto text-right text-sm font-medium text-fg first-letter:uppercase">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      {/* Ações */}
+      <div className="flex flex-col gap-3">
+        <Button href={`/${booking.slug}/minha-reserva`} size="lg" fullWidth iconLeft={Search}>
+          Consultar minha reserva
+        </Button>
+        {booking.slotStartsAt && booking.status !== 'CANCELLED' && (
+          <Button
+            href={calendarUrl(booking.packageName ?? 'Passeio', booking.slotStartsAt)}
+            target="_blank"
+            variant="secondary"
+            fullWidth
+            iconLeft={CalendarPlus}
+          >
+            Adicionar à agenda
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

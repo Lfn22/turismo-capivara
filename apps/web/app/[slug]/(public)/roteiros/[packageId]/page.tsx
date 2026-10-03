@@ -1,5 +1,16 @@
+import { ArrowLeft, CalendarX, Check, Clock, SearchX } from 'lucide-react'
 import SlotPicker from '@/src/components/ui/SlotPicker'
-import BackButton from '@/src/components/ui/BackButton'
+import {
+  Avatar,
+  Badge,
+  BookingBar,
+  BookingSummary,
+  Button,
+  EmptyState,
+  ListGroup,
+  ListRow,
+  StatusBadge,
+} from '@/src/components/ui/capi'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 
@@ -32,13 +43,15 @@ interface Guide {
   approvalStatus?: string
 }
 
-const DIFFICULTY: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  EASY:     { label: 'Fácil',     bg: '#f0fdf4', text: '#166534', border: '#bbf7d0' },
-  MEDIUM:   { label: 'Moderado', bg: '#fffbeb', text: '#92400e', border: '#fde68a' },
-  HARD:     { label: 'Difícil',  bg: '#fef2f2', text: '#991b1b', border: '#fecaca' },
-  FACIL:    { label: 'Fácil',     bg: '#f0fdf4', text: '#166534', border: '#bbf7d0' },
-  MODERADO: { label: 'Moderado', bg: '#fffbeb', text: '#92400e', border: '#fde68a' },
-  DIFICIL:  { label: 'Difícil',  bg: '#fef2f2', text: '#991b1b', border: '#fecaca' },
+/** Normaliza a dificuldade vinda da API para o enum do StatusBadge (EASY | MODERATE | HARD). */
+const DIFFICULTY_KEY: Record<string, 'EASY' | 'MODERATE' | 'HARD'> = {
+  EASY: 'EASY',
+  MEDIUM: 'MODERATE',
+  MODERATE: 'MODERATE',
+  HARD: 'HARD',
+  FACIL: 'EASY',
+  MODERADO: 'MODERATE',
+  DIFICIL: 'HARD',
 }
 
 function formatPrice(price: number) {
@@ -73,39 +86,18 @@ export default async function RoteirDetalhe({
 
   if (!pkg) {
     return (
-      <main
-        style={{
-          maxWidth: '600px',
-          margin: '4rem auto',
-          padding: '0 1.5rem',
-          textAlign: 'center',
-        }}
-      >
-        <h1
-          style={{
-            fontFamily: 'var(--font-display, serif)',
-            fontSize: '1.5rem',
-            color: '#1c1917',
-            marginBottom: '0.75rem',
-          }}
-        >
-          Roteiro não encontrado
-        </h1>
-        <p style={{ color: '#78716c', margin: '0 0 1.5rem' }}>
-          Este roteiro pode ter sido removido ou o link está incorreto.
-        </p>
-        <a
-          href={`/${slug}/roteiros`}
-          style={{
-            color: '#C4852A',
-            textDecoration: 'none',
-            fontWeight: 600,
-            fontSize: '0.95rem',
-          }}
-        >
-          ← Ver todos os roteiros
-        </a>
-      </main>
+      <div className="capi-container capi-container--text capi-section">
+        <EmptyState
+          icon={SearchX}
+          title="Roteiro não encontrado"
+          description="Este roteiro pode ter sido removido ou o link está incorreto."
+          action={
+            <Button href={`/${slug}/roteiros`} variant="secondary" iconLeft={ArrowLeft}>
+              Ver todos os roteiros
+            </Button>
+          }
+        />
+      </div>
     )
   }
 
@@ -122,312 +114,142 @@ export default async function RoteirDetalhe({
     }
   }
 
-  const diff = DIFFICULTY[pkg.difficulty] ?? {
-    label: pkg.difficulty,
-    bg: '#f5f5f4',
-    text: '#78716c',
-    border: '#e7e5e4',
-  }
+  const difficulty = DIFFICULTY_KEY[pkg.difficulty]
 
   const openSlots = (pkg.departureSlots ?? []).filter(
     (s) => s.status === 'OPEN' && s.booked < s.capacity
   )
+  const hasSlots = openSlots.length > 0
 
   return (
-    <main
-      style={{
-        maxWidth: '760px',
-        margin: '0 auto',
-        padding: 'clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 2rem)',
-      }}
-    >
-      <BackButton />
-      {/* Breadcrumb */}
-      <nav style={{ marginBottom: '1.5rem' }}>
-        <a
-          href={`/${slug}/roteiros`}
-          style={{
-            fontSize: '0.85rem',
-            color: '#78716c',
-            textDecoration: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+    <div className={hasSlots ? 'capi-has-bottombar capi-has-bottombar--book' : undefined}>
+      <div className="capi-container py-6 md:py-10">
+        <Button href={`/${slug}/roteiros`} variant="ghost" size="sm" iconLeft={ArrowLeft} className="mb-4">
           Todos os roteiros
-        </a>
-      </nav>
+        </Button>
 
-      {/* Hero */}
-      <header style={{ marginBottom: '2rem' }}>
-        {/* Badges */}
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.875rem' }}>
-          <span
-            style={{
-              fontSize: '0.7rem',
-              fontWeight: 600,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              backgroundColor: diff.bg,
-              color: diff.text,
-              border: `1px solid ${diff.border}`,
-              borderRadius: '999px',
-              padding: '0.25rem 0.75rem',
-            }}
-          >
-            {diff.label}
-          </span>
-          {pkg.duration && (
-            <span
-              style={{
-                fontSize: '0.7rem',
-                fontWeight: 500,
-                color: '#78716c',
-                backgroundColor: '#f5f5f4',
-                border: '1px solid #e7e5e4',
-                borderRadius: '999px',
-                padding: '0.25rem 0.75rem',
-              }}
-            >
-              {formatDuration(pkg.duration)}
-            </span>
-          )}
-        </div>
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+          {/* Conteúdo */}
+          <div className="min-w-0">
+            {/* Galeria: carrossel no mobile, grade no desktop */}
+            {pkg.photos && pkg.photos.length > 0 && (
+              <div className="capi-scroller mb-8" aria-label="Fotos do roteiro">
+                {pkg.photos.map((photoUrl, idx) => (
+                  <div
+                    key={idx}
+                    className="overflow-hidden bg-muted"
+                    style={{ aspectRatio: '4 / 3', borderRadius: 'var(--radius-lg)' }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photoUrl}
+                      alt={`Foto ${idx + 1} do roteiro ${pkg.name}`}
+                      className="block h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
-        {/* Title */}
-        <h1
-          style={{
-            fontFamily: 'var(--font-display, serif)',
-            fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
-            fontWeight: 700,
-            color: '#1c1917',
-            margin: '0 0 0.75rem',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.2,
-          }}
-        >
-          {pkg.name}
-        </h1>
+            <header className="mb-8">
+              <div className="mb-3 flex flex-wrap gap-2">
+                {difficulty ? (
+                  <StatusBadge kind="difficulty" status={difficulty} />
+                ) : (
+                  <Badge>{pkg.difficulty}</Badge>
+                )}
+                {pkg.duration && (
+                  <Badge icon={Clock}>{formatDuration(pkg.duration)}</Badge>
+                )}
+              </div>
 
-        {/* Price */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem', marginBottom: '1rem' }}>
-          <span
-            style={{
-              fontFamily: 'var(--font-display, serif)',
-              fontSize: '2rem',
-              fontWeight: 700,
-              color: '#C4852A',
-            }}
-          >
-            {formatPrice(pkg.price)}
-          </span>
-          <span style={{ fontSize: '0.875rem', color: '#a8a29e' }}>por pessoa</span>
-        </div>
+              <h1 className="font-display m-0 mb-3 text-3xl md:text-4xl">{pkg.name}</h1>
 
-        {/* Description */}
-        {pkg.description && (
-          <p
-            style={{
-              margin: 0,
-              fontSize: '1rem',
-              color: '#44403c',
-              lineHeight: 1.7,
-            }}
-          >
-            {pkg.description}
-          </p>
-        )}
-      </header>
+              <p className="m-0 mb-4 lg:hidden">
+                <span className="text-sm text-fg-secondary">a partir de </span>
+                <strong className="text-2xl text-fg">{formatPrice(pkg.price)}</strong>
+                <span className="text-sm text-fg-secondary"> /pessoa</span>
+              </p>
 
-      {/* Guide card */}
-      {guide && (
-        <a
-          href={`/${slug}/guias/${guide.id}`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.875rem',
-            padding: '0.875rem 1rem',
-            backgroundColor: '#fafaf7',
-            border: '1px solid #e7e5e4',
-            borderRadius: '10px',
-            textDecoration: 'none',
-            marginBottom: '2rem',
-          }}
-        >
-          <div
-            style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '50%',
-              backgroundColor: '#e7e5e4',
-              flexShrink: 0,
-              overflow: 'hidden',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.125rem',
-              color: '#78716c',
-            }}
-          >
-            {guide.photo && /^https?:\/\//.test(guide.photo) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={guide.photo}
-                alt={guide.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            ) : (
-              guide.name.charAt(0).toUpperCase()
+              {pkg.description && (
+                <p className="m-0 leading-relaxed text-fg-secondary">{pkg.description}</p>
+              )}
+            </header>
+
+            {/* Guia */}
+            {guide && (
+              <section className="mb-8">
+                <h2 className="m-0 mb-3 text-lg">Seu condutor</h2>
+                <ListGroup>
+                  <ListRow
+                    href={`/${slug}/guias/${guide.id}`}
+                    leading={
+                      <Avatar
+                        name={guide.name}
+                        src={guide.photo && /^https?:\/\//.test(guide.photo) ? guide.photo : null}
+                        size={48}
+                        verified={guide.approvalStatus === 'APPROVED'}
+                      />
+                    }
+                    title={guide.name}
+                    subtitle={guide.approvalStatus === 'APPROVED' ? 'Condutor verificado' : 'Condutor'}
+                  />
+                </ListGroup>
+              </section>
+            )}
+
+            {/* Experiências incluídas */}
+            {pkg.highlights && pkg.highlights.length > 0 && (
+              <section className="mb-8">
+                <h2 className="font-display m-0 mb-4 text-2xl">Experiências incluídas</h2>
+                <ul className="m-0 flex list-none flex-col gap-3 p-0">
+                  {pkg.highlights.map((highlight, idx) => (
+                    <li key={idx} className="flex items-start gap-3 text-fg">
+                      <span className="mt-0.5 inline-flex shrink-0 text-success">
+                        <Check size={18} strokeWidth={2} aria-hidden="true" />
+                      </span>
+                      <span className="leading-relaxed">{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
           </div>
-          <div>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: '#78716c' }}>Condutor</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-              <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#1c1917' }}>
-                {guide.name}
-              </p>
-              {guide.approvalStatus === 'APPROVED' && (
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#15803d"
-                  strokeWidth="2.5"
-                  aria-label="Guia verificado"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              )}
-            </div>
-          </div>
-          <svg
-            style={{ marginLeft: 'auto', color: '#a8a29e' }}
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </a>
+
+          {/* Reserva: abaixo do conteúdo no mobile, coluna sticky no desktop */}
+          <section id="datas" aria-label="Datas e reserva" className="scroll-mt-24 lg:sticky lg:top-24">
+            <BookingSummary
+              title={pkg.name}
+              subtitle={
+                <>
+                  a partir de <strong className="text-fg">{formatPrice(pkg.price)}</strong> /pessoa
+                </>
+              }
+              details={[
+                ...(pkg.duration ? [{ label: 'Duração', value: formatDuration(pkg.duration) }] : []),
+                { label: 'Datas abertas', value: String(openSlots.length) },
+              ]}
+              action={
+                hasSlots ? (
+                  <SlotPicker slots={pkg.departureSlots ?? []} packageId={pkg.id} slug={slug} />
+                ) : (
+                  <EmptyState
+                    compact
+                    icon={CalendarX}
+                    title="Nenhuma data disponível"
+                    description="Novas saídas aparecem aqui assim que forem abertas."
+                  />
+                )
+              }
+              note={hasSlots ? 'Pagamento seguro via PIX' : undefined}
+            />
+          </section>
+        </div>
+      </div>
+
+      {hasSlots && (
+        <BookingBar price={formatPrice(pkg.price)} href="#datas" ctaLabel="Ver datas" />
       )}
-
-      {/* Fotos do roteiro */}
-      {pkg.photos && pkg.photos.length > 0 && (
-        <section style={{ marginBottom: '2rem' }}>
-          <h2
-            style={{
-              fontFamily: 'var(--font-display, serif)',
-              fontSize: '1.25rem',
-              fontWeight: 700,
-              color: '#1c1917',
-              margin: '0 0 1rem',
-            }}
-          >
-            Fotos do roteiro
-          </h2>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))',
-              gap: '12px',
-            }}
-          >
-            {pkg.photos.map((photoUrl, idx) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={idx}
-                src={photoUrl}
-                alt={`Foto ${idx + 1} do roteiro ${pkg.name}`}
-                style={{
-                  width: '100%',
-                  aspectRatio: '4/3',
-                  objectFit: 'cover',
-                  borderRadius: '8px',
-                  display: 'block',
-                }}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Experiências incluídas */}
-      {pkg.highlights && pkg.highlights.length > 0 && (
-        <section style={{ marginBottom: '2rem' }}>
-          <h2
-            style={{
-              fontFamily: 'var(--font-display, serif)',
-              fontSize: '1.25rem',
-              fontWeight: 700,
-              color: '#1c1917',
-              margin: '0 0 1rem',
-            }}
-          >
-            Experiências incluídas
-          </h2>
-          <ul style={{ margin: 0, paddingLeft: '1.25rem', listStyle: 'disc' }}>
-            {pkg.highlights.map((highlight, idx) => (
-              <li
-                key={idx}
-                style={{
-                  fontSize: '0.95rem',
-                  color: '#44403c',
-                  lineHeight: 1.6,
-                  marginBottom: '0.375rem',
-                }}
-              >
-                {highlight}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Slot picker section */}
-      <section>
-        <h2
-          style={{
-            fontFamily: 'var(--font-display, serif)',
-            fontSize: '1.25rem',
-            fontWeight: 700,
-            color: '#1c1917',
-            margin: '0 0 1rem',
-          }}
-        >
-          Escolha uma data
-        </h2>
-
-        {openSlots.length === 0 ? (
-          <div
-            style={{
-              padding: '1.5rem',
-              backgroundColor: '#fafaf7',
-              border: '1px solid #e7e5e4',
-              borderRadius: '10px',
-              textAlign: 'center',
-              color: '#78716c',
-              fontSize: '0.95rem',
-            }}
-          >
-            Nenhuma data disponível no momento.
-          </div>
-        ) : (
-          <SlotPicker
-            slots={pkg.departureSlots ?? []}
-            packageId={pkg.id}
-            slug={slug}
-          />
-        )}
-      </section>
-    </main>
+    </div>
   )
 }

@@ -1,7 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { Link2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Alert, Button, IconButton, Input, Modal, Textarea } from '@/src/components/ui/capi';
 
 interface Props {
   slug: string;
@@ -43,6 +45,8 @@ export default function DestinationPhotoEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  // Estável: o Modal reexecuta o efeito de foco sempre que onClose muda.
+  const closeModal = useCallback(() => setOpen(false), []);
 
   if (role !== 'ADMIN' && role !== 'SUPER_ADMIN' && role !== 'CONDUTOR') return null;
 
@@ -96,108 +100,136 @@ export default function DestinationPhotoEditor({
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        style={{
-          position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 100,
-          background: 'var(--ochre, #c2783c)', color: '#fff', border: 'none',
-          borderRadius: '2rem', padding: '0.65rem 1.25rem', fontSize: '0.8rem',
-          fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center',
-          gap: '0.4rem', boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      <style precedence="default">{`
+        .dpe-fab {
+          position: fixed;
+          right: var(--space-6);
+          bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+          z-index: var(--z-nav);
+          box-shadow: var(--shadow-lg);
+          border-radius: var(--radius-pill);
+        }
+        .dpe { display: flex; flex-direction: column; gap: var(--space-6); font-family: var(--font-sans); }
+        .dpe__section { display: flex; flex-direction: column; gap: var(--space-4); }
+        .dpe__section + .dpe__section { padding-top: var(--space-6); border-top: 1px solid var(--border); }
+        .dpe__title { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.35; color: var(--text); }
+        .dpe__label { margin: 0; font-size: 14px; font-weight: 600; color: var(--text); }
+        .dpe__desc { margin: 4px 0 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary); }
+        .dpe__row { display: flex; align-items: flex-end; gap: var(--space-2); }
+        .dpe__row > :first-child { flex: 1; min-width: 0; }
+        .dpe__row > .capi-iconbtn { flex: none; margin-bottom: 2px; }
+      `}</style>
+
+      <Button iconLeft={Pencil} className="dpe-fab" onClick={() => setOpen(true)}>
         Editar destino
-      </button>
+      </Button>
 
-      {open && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
-        >
-          <div style={{ background: '#fff', borderRadius: '1rem', padding: 'clamp(1.5rem, 4vw, 2rem)', width: '100%', maxWidth: '560px', maxHeight: '90dvh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <Modal
+        open={open}
+        onClose={closeModal}
+        title="Editar destino"
+        description="Textos e fotos da página pública do destino."
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeModal} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave} loading={saving}>
+              {saving ? 'Salvando…' : 'Salvar alterações'}
+            </Button>
+          </>
+        }
+      >
+        <div className="dpe">
+          {/* ── Texto ── */}
+          <section className="dpe__section">
+            <h3 className="dpe__title">Conteúdo</h3>
 
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1c1917', margin: 0 }}>Editar destino</h2>
+            <Input
+              label="Frase de impacto (“Sobre o destino”)"
+              optional
+              value={taglineVal}
+              onChange={(e) => setTaglineVal(e.target.value)}
+              placeholder="Ex.: A natureza que cura quem chega"
+              hint="Substitui o texto padrão “Um lugar que transforma quem visita”."
+            />
 
-            {/* ── Texto ── */}
-            <p style={sectionLabel}>Conteúdo</p>
+            <Input label="Título" value={titleVal} onChange={(e) => setTitleVal(e.target.value)} />
 
-            <div>
-              <label style={labelStyle}>Frase de impacto ("Sobre o destino")</label>
-              <input value={taglineVal} onChange={(e) => setTaglineVal(e.target.value)} placeholder="Ex: A natureza que cura quem chega" style={inputStyle} />
-              <p style={{ fontSize: '0.72rem', color: '#78716c', margin: '0.25rem 0 0' }}>Substitui o texto padrão "Um lugar que transforma quem visita"</p>
-            </div>
+            <Input
+              label="Subtítulo"
+              optional
+              value={subtitleVal}
+              onChange={(e) => setSubtitleVal(e.target.value)}
+              placeholder="Frase curta de apoio"
+            />
 
-            <div>
-              <label style={labelStyle}>Título</label>
-              <input value={titleVal} onChange={(e) => setTitleVal(e.target.value)} style={inputStyle} />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Subtítulo</label>
-              <input value={subtitleVal} onChange={(e) => setSubtitleVal(e.target.value)} placeholder="Frase curta de apoio" style={inputStyle} />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Descrição</label>
-              <textarea
-                value={descriptionVal}
-                onChange={(e) => setDescriptionVal(e.target.value)}
-                rows={5}
-                placeholder="Texto descritivo. Separe parágrafos com uma linha em branco."
-                style={{ ...inputStyle, resize: 'vertical' }}
-              />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Pontos de interesse</label>
-              <p style={{ fontSize: '0.72rem', color: '#78716c', margin: '0 0 0.5rem' }}>Um por linha — aparecem nos cards da seção escura</p>
-              {highlightInputs.map((h, i) => (
-                <div key={i} style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.4rem' }}>
-                  <input
-                    value={h}
-                    onChange={(e) => setHighlight(i, e.target.value)}
-                    placeholder={`Ponto ${i + 1}`}
-                    style={{ ...inputStyle, flex: 1 }}
-                  />
-                  <button onClick={() => removeHighlight(i)} style={{ ...btnBase, background: '#fef2f2', color: '#dc2626', padding: '0.5rem 0.75rem' }}>✕</button>
-                </div>
-              ))}
-              <button onClick={addHighlight} style={{ ...btnBase, background: '#f5f5f4', color: '#44403c', fontSize: '0.75rem', marginTop: '0.25rem' }}>+ Adicionar ponto</button>
-            </div>
-
-            {/* ── Fotos ── */}
-            <p style={{ ...sectionLabel, borderTop: '1px solid #e7e5e4', paddingTop: '1rem' }}>Fotos</p>
+            <Textarea
+              label="Descrição"
+              optional
+              value={descriptionVal}
+              onChange={(e) => setDescriptionVal(e.target.value)}
+              rows={5}
+              placeholder="Texto descritivo."
+              hint="Separe parágrafos com uma linha em branco."
+            />
 
             <div>
-              <label style={labelStyle}>Foto do card (listagem)</label>
-              <input type="url" value={hero} onChange={(e) => setHero(e.target.value)} placeholder="https://res.cloudinary.com/..." style={inputStyle} />
+              <p className="dpe__label">Pontos de interesse</p>
+              <p className="dpe__desc">Um por campo. Aparecem nos cards da seção escura.</p>
             </div>
-
-            {Array.from({ length: 5 }, (_, i) => (
-              <div key={i}>
-                <label style={labelStyle}>Foto destaque {i + 1}</label>
-                <input type="url" value={photoInputs[i]} onChange={(e) => setPhoto(i, e.target.value)} placeholder="https://res.cloudinary.com/..." style={inputStyle} />
+            {highlightInputs.map((h, i) => (
+              <div key={i} className="dpe__row">
+                <Input
+                  label={`Ponto ${i + 1}`}
+                  hideLabel
+                  value={h}
+                  onChange={(e) => setHighlight(i, e.target.value)}
+                  placeholder={`Ponto ${i + 1}`}
+                />
+                <IconButton icon={Trash2} label={`Remover ponto ${i + 1}`} onClick={() => removeHighlight(i)} />
               </div>
             ))}
-
-            {error && <p style={{ fontSize: '0.8rem', color: '#dc2626', margin: 0 }}>{error}</p>}
-            {success && <p style={{ fontSize: '0.8rem', color: '#16a34a', margin: 0 }}>Salvo com sucesso!</p>}
-
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => setOpen(false)} disabled={saving} style={{ ...btnBase, background: '#f5f5f4', color: '#44403c' }}>Cancelar</button>
-              <button onClick={handleSave} disabled={saving} style={{ ...btnBase, background: 'var(--ochre, #c2783c)', color: '#fff', opacity: saving ? 0.7 : 1 }}>
-                {saving ? 'Salvando...' : 'Salvar'}
-              </button>
+            <div>
+              <Button variant="secondary" size="sm" iconLeft={Plus} onClick={addHighlight}>
+                Adicionar ponto
+              </Button>
             </div>
-          </div>
+          </section>
+
+          {/* ── Fotos ── */}
+          <section className="dpe__section">
+            <h3 className="dpe__title">Fotos</h3>
+
+            <Input
+              label="Foto do card (listagem)"
+              optional
+              type="url"
+              value={hero}
+              onChange={(e) => setHero(e.target.value)}
+              placeholder="https://res.cloudinary.com/..."
+              leadingIcon={Link2}
+            />
+
+            {Array.from({ length: 5 }, (_, i) => (
+              <Input
+                key={i}
+                label={`Foto destaque ${i + 1}`}
+                optional
+                type="url"
+                value={photoInputs[i]}
+                onChange={(e) => setPhoto(i, e.target.value)}
+                placeholder="https://res.cloudinary.com/..."
+                leadingIcon={Link2}
+              />
+            ))}
+          </section>
+
+          {error && <Alert tone="danger" title="Não foi possível salvar">{error}</Alert>}
+          {success && <Alert tone="success">Alterações salvas.</Alert>}
         </div>
-      )}
+      </Modal>
     </>
   );
 }
-
-const sectionLabel: React.CSSProperties = { fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#a8a29e', margin: 0 };
-const labelStyle: React.CSSProperties = { display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#44403c', marginBottom: '0.3rem' };
-const inputStyle: React.CSSProperties = { width: '100%', padding: '0.5rem 0.75rem', border: '1px solid #d6d3d1', borderRadius: '0.5rem', fontSize: '0.8rem', color: '#1c1917', background: '#fafaf9', boxSizing: 'border-box' };
-const btnBase: React.CSSProperties = { padding: '0.5rem 1.25rem', borderRadius: '0.5rem', border: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' };

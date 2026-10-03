@@ -1,3 +1,5 @@
+import { TicketX } from 'lucide-react';
+import { Button, EmptyState } from '@/src/components/ui/capi';
 import ConfirmationCard from '@/src/components/ui/ConfirmationCard';
 import ConfirmationClient from '@/src/components/ui/ConfirmationClient';
 
@@ -28,17 +30,17 @@ export default async function ConfirmacaoPage({
 
   if (!bookingId || !email) {
     return (
-      <div
-        style={{
-          maxWidth: '480px',
-          margin: '0 auto',
-          padding: '3rem 1.5rem',
-          textAlign: 'center',
-        }}
-      >
-        <p style={{ color: '#78716c', fontSize: '1rem' }}>
-          Dados de confirmação inválidos.
-        </p>
+      <div className="capi-container capi-container--form py-8">
+        <EmptyState
+          icon={TicketX}
+          title="Dados de confirmação inválidos"
+          description="Consulte sua reserva com o e-mail e o código que enviamos."
+          action={
+            <Button href={`/${slug}/minha-reserva`} variant="secondary">
+              Consultar minha reserva
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -62,17 +64,17 @@ export default async function ConfirmacaoPage({
 
   if (loadError || !booking) {
     return (
-      <div
-        style={{
-          maxWidth: '480px',
-          margin: '0 auto',
-          padding: '3rem 1.5rem',
-          textAlign: 'center',
-        }}
-      >
-        <p style={{ color: '#78716c', fontSize: '1rem' }}>
-          Reserva não encontrada.
-        </p>
+      <div className="capi-container capi-container--form py-8">
+        <EmptyState
+          icon={TicketX}
+          title="Reserva não encontrada"
+          description="Confira o link ou consulte sua reserva com o e-mail e o código."
+          action={
+            <Button href={`/${slug}/minha-reserva`} variant="secondary">
+              Consultar minha reserva
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -88,13 +90,7 @@ export default async function ConfirmacaoPage({
   };
 
   return (
-    <div
-      style={{
-        maxWidth: '480px',
-        margin: '0 auto',
-        padding: '2.5rem 1.5rem',
-      }}
-    >
+    <div className="capi-container capi-container--form py-6 md:py-10">
       <ConfirmationCard booking={cardBooking} />
       {(booking.qrCode || booking.expiresAt) && (
         <ConfirmationClient

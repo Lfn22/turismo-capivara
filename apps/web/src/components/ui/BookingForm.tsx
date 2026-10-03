@@ -2,7 +2,12 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowRight, Minus, Plus } from 'lucide-react';
+import { Alert, Button, IconButton, Input } from '@/src/components/ui/capi';
 import '@/src/styles/animations.css';
+
+const PAX_MIN = 1;
+const PAX_MAX = 20;
 
 function isValidCPF(cpf: string): boolean {
   if (/^(\d)\1{10}$/.test(cpf)) return false
@@ -94,82 +99,94 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
     }
   }
 
+  function changePax(delta: number) {
+    setForm((prev) => ({
+      ...prev,
+      pax: Math.min(PAX_MAX, Math.max(PAX_MIN, prev.pax + delta)),
+    }));
+  }
+
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div>
-        <label htmlFor="guestName" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
-          Nome completo
-        </label>
-        <input
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {/* Pessoas */}
+      <section aria-labelledby="pax-label" className="rounded-2xl border border-line bg-surface p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p id="pax-label" className="m-0 font-semibold text-fg">Número de pessoas</p>
+            <p className="m-0 text-sm text-fg-secondary">Até {PAX_MAX} por reserva</p>
+          </div>
+          <div className="flex items-center gap-2" role="group" aria-labelledby="pax-label">
+            <IconButton
+              icon={Minus}
+              label="Remover uma pessoa"
+              variant="secondary"
+              onClick={() => changePax(-1)}
+              disabled={loading || form.pax <= PAX_MIN}
+            />
+            <output
+              htmlFor="pax"
+              aria-live="polite"
+              className="min-w-8 text-center text-lg font-bold tabular-nums text-fg"
+            >
+              {form.pax}
+            </output>
+            <IconButton
+              icon={Plus}
+              label="Adicionar uma pessoa"
+              variant="secondary"
+              onClick={() => changePax(1)}
+              disabled={loading || form.pax >= PAX_MAX}
+            />
+            <input id="pax" name="pax" type="hidden" value={form.pax} />
+          </div>
+        </div>
+      </section>
+
+      {/* Dados do responsável */}
+      <section aria-labelledby="guest-title" className="flex flex-col gap-4">
+        <h2 id="guest-title" className="m-0 text-lg">Quem vai na reserva</h2>
+        <Input
           id="guestName"
           name="guestName"
           type="text"
+          label="Nome completo"
           required
+          autoComplete="name"
           value={form.guestName}
           onChange={handleChange}
           placeholder="Seu nome"
-          className="field-input"
-          style={{
-            border: '1px solid var(--stone-300)',
-            color: 'var(--stone-900)',
-            backgroundColor: 'var(--stone-50)',
-          }}
           disabled={loading}
         />
-      </div>
-
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
-          E-mail
-        </label>
-        <input
+        <Input
           id="email"
           name="email"
           type="email"
+          label="E-mail"
+          hint="Enviamos o código da reserva para este e-mail."
           required
+          autoComplete="email"
           value={form.email}
           onChange={handleChange}
           placeholder="seu@email.com"
-          className="field-input"
-          style={{
-            border: '1px solid var(--stone-300)',
-            color: 'var(--stone-900)',
-            backgroundColor: 'var(--stone-50)',
-          }}
           disabled={loading}
         />
-      </div>
-
-      <div>
-        <label htmlFor="phone" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
-          Telefone / WhatsApp
-        </label>
-        <input
+        <Input
           id="phone"
           name="phone"
           type="tel"
+          label="Telefone / WhatsApp"
           required
+          autoComplete="tel"
           value={form.phone}
           onChange={handleChange}
           placeholder="(11) 99999-9999"
-          className="field-input"
-          style={{
-            border: '1px solid var(--stone-300)',
-            color: 'var(--stone-900)',
-            backgroundColor: 'var(--stone-50)',
-          }}
           disabled={loading}
         />
-      </div>
-
-      <div>
-        <label htmlFor="cpf" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
-          CPF
-        </label>
-        <input
+        <Input
           id="cpf"
           name="cpf"
           type="text"
+          label="CPF"
           required
           inputMode="numeric"
           maxLength={14}
@@ -183,79 +200,28 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
               setCpfError(null);
             }
           }}
+          error={cpfError}
           placeholder="000.000.000-00"
-          className="field-input"
-          style={{
-            border: cpfError ? '1px solid #b91c1c' : '1px solid var(--stone-300)',
-            color: 'var(--stone-900)',
-            backgroundColor: 'var(--stone-50)',
-          }}
           disabled={loading}
         />
-        {cpfError && (
-          <p className="m-0 mt-1 text-sm" style={{ color: '#b91c1c' }}>{cpfError}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="pax" className="block text-sm font-medium mb-1" style={{ color: 'var(--stone-700)' }}>
-          Número de pessoas
-        </label>
-        <input
-          id="pax"
-          name="pax"
-          type="number"
-          min={1}
-          max={20}
-          required
-          value={form.pax}
-          onChange={handleChange}
-          className="field-input"
-          style={{
-            width: '100px',
-            border: '1px solid var(--stone-300)',
-            color: 'var(--stone-900)',
-            backgroundColor: 'var(--stone-50)',
-          }}
-          disabled={loading}
-        />
-      </div>
+      </section>
 
       {error && (
-        <p
-          className="field-input"
-          style={{
-            backgroundColor: '#fef2f2',
-            color: '#b91c1c',
-          }}
-        >
+        <Alert tone="danger" title="Não foi possível concluir a reserva">
           {error}
-        </p>
+        </Alert>
       )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        aria-busy={loading}
-        className="btn btn-primary btn-lg w-full"
+      {/* CTA: fixo no rodapé no mobile, no fluxo do formulário a partir de 1024px */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0"
       >
-        {loading ? (
-          <>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              aria-hidden="true"
-              style={{ animation: 'spin 0.75s linear infinite' }}
-            >
-              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.3" />
-              <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            Processando…
-          </>
-        ) : 'Confirmar reserva'}
-      </button>
+        <div className="mx-auto" style={{ maxWidth: 'var(--container-form)' }}>
+          <Button type="submit" size="lg" fullWidth loading={loading} iconRight={loading ? undefined : ArrowRight}>
+            {loading ? 'Processando…' : 'Ir para pagamento'}
+          </Button>
+        </div>
+      </div>
     </form>
   );
 }

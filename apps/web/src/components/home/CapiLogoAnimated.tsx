@@ -1,2 +1,2 @@
-// Re-export from new canonical location (moved to components/layout/ in phase 36-02)
-export { default } from "@/components/layout/CapiLogoAnimated";
+// Re-export: o componente canônico fica em components/layout (fase 36-02).
+export { default } from "@/src/components/layout/CapiLogoAnimated";

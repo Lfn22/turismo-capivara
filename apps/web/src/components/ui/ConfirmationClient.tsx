@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import QRCode from 'react-qr-code'
+import { Clock } from 'lucide-react'
+import { Alert, Badge } from '@/src/components/ui/capi'
 
 interface ConfirmationClientProps {
   qrCode: string | null
@@ -36,55 +38,43 @@ export default function ConfirmationClient({ qrCode, expiresAt, slug: _slug, sta
   if (!isPending) return null
 
   return (
-    <div style={{ marginTop: '1.5rem' }}>
+    <section
+      aria-labelledby="pix-pending-title"
+      className="mt-4 flex flex-col items-center gap-4 rounded-2xl border border-line bg-surface p-5 text-center"
+      style={{ boxShadow: 'var(--shadow-sm)' }}
+    >
+      <h2 id="pix-pending-title" className="m-0 text-lg">Pagamento via PIX</h2>
       {seconds !== null && seconds > 0 && (
-        <div style={{
-          background: '#fffbeb',
-          border: '1px solid #fde68a',
-          borderRadius: '12px',
-          padding: '16px',
-          textAlign: 'center',
-          marginBottom: '1rem',
-          minHeight: '48px',
-        }}>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--stone-500)' }}>
-            Tempo para confirmação do PIX
-          </p>
-          <span style={{
-            fontVariantNumeric: 'tabular-nums',
-            fontSize: '1.25rem',
-            fontWeight: 700,
-            color: '#92400e',
-          }}>
+        <Badge tone="warning" icon={Clock}>
+          Tempo para confirmação do PIX:{' '}
+          <span className="tabular-nums">
             {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}
           </span>
-        </div>
+        </Badge>
       )}
       {seconds === 0 && (
-        <p style={{ color: '#991b1b', textAlign: 'center', fontWeight: 700 }}>PIX expirado</p>
+        <Alert tone="danger" title="PIX expirado" className="w-full text-left" />
       )}
       {qrCode && (
-        <figure style={{ margin: 0, padding: '16px 0' }}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <figure className="m-0 flex flex-col items-center gap-2">
+          <div
+            className="rounded-xl p-3"
+            style={{ background: 'var(--sand-0)', color: 'var(--sand-900)', border: '1px solid var(--border)' }}
+          >
             <QRCode
               value={qrCode}
               size={200}
               level="M"
-              bgColor="#FAFAF7"
-              fgColor="#1F0E08"
-              style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+              bgColor="transparent"
+              fgColor="currentColor"
+              style={{ display: 'block', height: 'auto', maxWidth: '100%', width: 'min(200px, 60vw)' }}
             />
           </div>
-          <figcaption style={{
-            fontSize: '0.8rem',
-            color: 'var(--stone-500)',
-            textAlign: 'center',
-            marginTop: '8px',
-          }}>
+          <figcaption className="text-sm text-fg-secondary">
             Escaneie com o app do seu banco
           </figcaption>
         </figure>
       )}
-    </div>
+    </section>
   )
 }

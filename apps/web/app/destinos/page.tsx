@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+import { MapPin, RotateCw } from 'lucide-react';
 import DestinationCard from '@/src/components/ui/DestinationCard';
+import PublicLayout from '@/src/components/layout/PublicLayout';
+import { Alert, Button, EmptyState, TopNav } from '@/src/components/ui/capi';
 
 // Force SSR — build container cannot reach the API at build time
 export const dynamic = 'force-dynamic';
@@ -44,133 +47,118 @@ export default async function DestinosPage() {
   const destinations = await fetchDestinations();
 
   return (
-    <>
+    <PublicLayout>
       <style>{`
-        /* ── Layout ── */
-        .destinos {
-          min-height: 100dvh;
-          background: var(--stone-50, #fafaf9);
-        }
+        .destinos { min-height: 100dvh; background: var(--bg-page); }
+        .destinos__nav.capi-topnav { position: relative; }
+        .destinos__navlogo img { height: 36px; width: auto; display: block; }
 
-        /* ── Header ── */
-        .destinos__header {
-          background: var(--stone-900, #1c1917);
-          color: #fff;
-          padding: clamp(64px, 10vw, 96px) clamp(16px, 5vw, 64px) clamp(40px, 6vw, 56px);
+        .destinos__header { padding-block: var(--space-8) var(--space-6); }
+        @media (min-width: 768px) { .destinos__header { padding-block: var(--space-12) var(--space-8); } }
+        .destinos__overline {
+          margin-bottom: var(--space-2);
+          font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+          color: var(--text-primary);
         }
-
-        .destinos__eyebrow {
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: var(--ochre, #c2783c);
-          margin: 0 0 12px;
-        }
-
         .destinos__title {
-          font-family: var(--font-display, Georgia, serif);
-          font-size: clamp(32px, 5vw, 52px);
-          font-weight: 700;
-          line-height: 1.1;
-          margin: 0 0 12px;
-          color: #fff;
+          margin-bottom: var(--space-2);
+          font-family: var(--font-display);
+          font-size: clamp(34px, 5vw, 48px); font-weight: 700; line-height: 1.1;
+          color: var(--text);
         }
+        .destinos__lead { max-width: 560px; font-size: 16px; line-height: 1.55; color: var(--text-secondary); }
 
-        .destinos__subtitle {
-          font-size: 16px;
-          color: var(--stone-400, #a8a29e);
-          margin: 0;
-          max-width: 480px;
+        .destinos__body { padding-bottom: var(--space-16); }
+        .destinos__count {
+          margin-bottom: var(--space-5);
+          font-size: 14px; font-weight: 500; color: var(--text-secondary);
+          font-variant-numeric: tabular-nums;
         }
-
-        /* ── Body ── */
-        .destinos__body {
-          max-width: 1280px;
-          margin: 0 auto;
-          padding: clamp(32px, 5vw, 56px) clamp(16px, 5vw, 64px);
-        }
-
-        /* ── Grid ── */
-        .destinos__grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 24px;
-        }
-
-        /* ── Empty state ── */
-        .destinos__empty {
-          text-align: center;
-          padding: clamp(48px, 10vw, 96px) 16px;
-          color: var(--stone-500, #78716c);
-        }
-
-        .destinos__empty-title {
-          font-family: var(--font-display, Georgia, serif);
-          font-size: clamp(22px, 4vw, 28px);
-          color: var(--stone-700, #44403c);
-          margin: 0 0 8px;
-        }
-
-        .destinos__empty-sub {
-          font-size: 15px;
-          margin: 0;
-        }
-
-        /* ── Mobile ── */
-        @media (max-width: 480px) {
-          .destinos__grid {
-            grid-template-columns: 1fr;
-          }
-        }
+        .destinos__count strong { color: var(--text); font-weight: 700; }
       `}</style>
 
       <div className="destinos">
-        {/* Header */}
-        <header className="destinos__header">
-          <Link href="/" style={{ display: 'inline-block', marginBottom: '1rem' }}><Image src="/images/logo.png" alt="CAPI" width={90} height={81} style={{ filter: 'brightness(0) invert(1)', display: 'block' }} /></Link>
-          <p className="destinos__eyebrow">Destinos</p>
+        <TopNav
+          className="destinos__nav"
+          links={[
+            { href: '/destinos', label: 'Destinos' },
+            { href: '/explorar', label: 'Explorar' },
+          ]}
+          logo={
+            <Link
+              href="/"
+              aria-label="CAPI — página inicial"
+              className="destinos__navlogo inline-flex items-center"
+              style={{ minHeight: 'var(--touch-target)' }}
+            >
+              <Image src="/images/logo.png" alt="CAPI" width={40} height={36} priority />
+            </Link>
+          }
+          actions={
+            <Button href="/login" variant="secondary" size="sm">
+              Entrar
+            </Button>
+          }
+        />
+
+        <header className="capi-container destinos__header">
+          <p className="destinos__overline">Destinos</p>
           <h1 className="destinos__title">Onde você quer explorar?</h1>
-          <p className="destinos__subtitle">
+          <p className="destinos__lead">
             Destinos com guias certificados, roteiros únicos e experiências que
             só existem aqui.
           </p>
         </header>
 
-        {/* Body */}
-        <main className="destinos__body">
+        <main className="capi-container destinos__body">
           {destinations === null ? (
-            <div className="destinos__empty" role="status">
-              <p className="destinos__empty-title">Erro ao carregar destinos</p>
-              <p className="destinos__empty-sub">
-                Não foi possível conectar ao servidor. Tente novamente em instantes.
-              </p>
-            </div>
+            <Alert
+              tone="danger"
+              title="Erro ao carregar destinos"
+              action={
+                <Button href="/destinos" variant="secondary" size="sm" iconLeft={RotateCw}>
+                  Tentar novamente
+                </Button>
+              }
+            >
+              Não foi possível conectar ao servidor. Tente novamente em instantes.
+            </Alert>
           ) : destinations.length > 0 ? (
-            <div className="destinos__grid">
-              {destinations.map((destination) => (
-                <DestinationCard
-                  key={destination.id}
-                  slug={destination.slug}
-                  title={destination.title}
-                  subtitle={destination.subtitle}
-                  state={destination.state}
-                  heroImageUrl={destination.heroImageUrl}
-                  heroImageBlurDataUrl={destination.heroImageBlurDataUrl}
-                  headingLevel="h2"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="destinos__empty" role="status">
-              <p className="destinos__empty-title">Nenhum destino cadastrado</p>
-              <p className="destinos__empty-sub">
-                Novos destinos serão adicionados em breve.
+            <>
+              <p className="destinos__count">
+                <strong>{destinations.length}</strong>{' '}
+                {destinations.length === 1 ? 'destino' : 'destinos'}
               </p>
-            </div>
+              <div className="capi-grid-cards">
+                {destinations.map((destination, i) => (
+                  <DestinationCard
+                    key={destination.id}
+                    slug={destination.slug}
+                    title={destination.title}
+                    subtitle={destination.subtitle}
+                    state={destination.state}
+                    heroImageUrl={destination.heroImageUrl}
+                    heroImageBlurDataUrl={destination.heroImageBlurDataUrl}
+                    headingLevel="h2"
+                    priority={i < 2}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <EmptyState
+              icon={MapPin}
+              title="Nenhum destino cadastrado"
+              description="Novos destinos serão adicionados em breve. Enquanto isso, conheça os guias da plataforma."
+              action={
+                <Button href="/explorar" variant="secondary">
+                  Explorar guias
+                </Button>
+              }
+            />
           )}
         </main>
       </div>
-    </>
+    </PublicLayout>
   );
 }

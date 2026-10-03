@@ -28,29 +28,33 @@ export default async function PainelLayout({
   return (
     <>
       <style>{`
-        @media (max-width: 767px) {
-          .painel-main {
-            padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 16px) !important;
-            padding-left: 16px !important;
-            padding-right: 16px !important;
-            padding-top: 24px !important;
-          }
+        /* Celular: top bar + conteúdo em coluna; ≥768px: sidebar + conteúdo lado a lado */
+        .painel-shell { min-height: 100dvh; background: var(--bg-page); }
+        .painel-main {
+          min-width: 0;
+          padding: var(--space-6) var(--gutter-mobile);
+          padding-bottom: calc(var(--bottombar-height) + env(safe-area-inset-bottom, 0px) + var(--space-6));
+        }
+        .painel-main__inner { width: 100%; max-width: var(--container-wide); margin-inline: auto; }
+        @media (min-width: 768px) {
+          .painel-shell { display: flex; }
+          .painel-main { flex: 1; padding: var(--space-8) var(--gutter-tablet); }
+        }
+        @media (min-width: 1024px) {
+          .painel-main { padding: var(--space-8); }
         }
       `}</style>
       <ErrorBoundary>
         <Toaster position="top-right" richColors />
-        <div style={{ display: "flex", minHeight: "100dvh" }}>
-          <SidebarNav slug={slug} />
-          <main
-            className="painel-main"
-            style={{
-              flex: 1,
-              background: "var(--stone-50)",
-              padding: "32px 24px",
-              minWidth: 0,
-            }}
-          >
-            {children}
+        <div className="painel-shell">
+          <SidebarNav
+            slug={slug}
+            userName={session.user?.name}
+            userEmail={session.user?.email}
+            role={role}
+          />
+          <main className="painel-main">
+            <div className="painel-main__inner">{children}</div>
           </main>
         </div>
       </ErrorBoundary>

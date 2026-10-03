@@ -2,7 +2,9 @@
 
 import { useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import BackButton from "@/src/components/ui/BackButton"
+import { Check } from "lucide-react"
+import { Alert, Button, Input, PageHeader, Select, Textarea } from "@/src/components/ui/capi"
+import PainelCard from "@/src/components/painel/PainelCard"
 
 const DIFFICULTIES = [
   { value: "EASY", label: "Fácil" },
@@ -63,139 +65,127 @@ export default function NovoRoteiroPage() {
   }
 
   return (
-    <>
-      <BackButton />
-      <div style={{ marginBottom: "32px" }}>
-        <p style={{ fontSize: "11px", color: "var(--ochre)", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "8px" }}>
-          Painel do Guia
-        </p>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "24px", color: "var(--stone-900)", lineHeight: 1.2 }}>
-          Novo Roteiro
-        </h1>
-      </div>
+    <div className="capi-container capi-container--text" style={{ paddingInline: 0 }}>
+      <style>{`
+        /* Ação de salvar fixa no rodapé do celular, acima da bottom nav */
+        .painel-form-actions {
+          position: sticky; z-index: var(--z-sticky);
+          bottom: calc(var(--bottombar-height) + env(safe-area-inset-bottom, 0px));
+          display: flex; flex-direction: column-reverse; gap: var(--space-2);
+          margin: var(--space-6) calc(var(--gutter-mobile) * -1) 0;
+          padding: var(--space-3) var(--gutter-mobile);
+          background: var(--surface); border-top: 1px solid var(--border);
+        }
+        @media (min-width: 768px) {
+          .painel-form-actions {
+            position: static; flex-direction: row; justify-content: flex-end;
+            margin: var(--space-6) 0 0; padding: 0; background: none; border: 0;
+          }
+        }
+      `}</style>
+
+      <PageHeader
+        backHref={`/${slug}/painel/roteiros`}
+        backLabel="Roteiros"
+        eyebrow="Painel do guia"
+        title="Novo roteiro"
+        description="Preencha o básico agora. Fotos e experiências você adiciona depois."
+      />
 
       {error && (
-        <div style={{ marginBottom: "16px", padding: "12px 16px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", color: "#dc2626", fontSize: "14px" }}>
-          {error}
+        <div className="mb-4">
+          <Alert tone="danger" title="Não foi possível criar o roteiro">
+            {error}
+          </Alert>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} style={{ maxWidth: "640px" }}>
-        <div style={{ marginBottom: "16px" }}>
-          <label style={{ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "6px", color: "var(--stone-700)" }}>
-            Nome do roteiro *
-          </label>
-          <input
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            required
-            placeholder="Ex: Trilha Serra da Capivara — Nível Iniciante"
-            style={{ width: "100%", border: "1px solid var(--stone-300)", borderRadius: "6px", padding: "8px 12px", fontSize: "14px", boxSizing: "border-box" }}
-          />
-        </div>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <PainelCard title="Sobre o roteiro">
+          <div className="flex flex-col gap-4">
+            <Input
+              name="name"
+              label="Nome do roteiro"
+              value={form.name}
+              onChange={handleChange}
+              required
+              placeholder="Ex: Trilha Serra da Capivara — Nível Iniciante"
+            />
+            <Textarea
+              name="description"
+              label="Descrição"
+              value={form.description}
+              onChange={handleChange}
+              required
+              rows={4}
+              placeholder="Descreva o roteiro, o que está incluso, pontos de interesse..."
+            />
+          </div>
+        </PainelCard>
 
-        <div style={{ marginBottom: "16px" }}>
-          <label style={{ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "6px", color: "var(--stone-700)" }}>
-            Descrição *
-          </label>
-          <textarea
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            required
-            rows={4}
-            placeholder="Descreva o roteiro, o que está incluso, pontos de interesse..."
-            style={{ width: "100%", border: "1px solid var(--stone-300)", borderRadius: "6px", padding: "8px 12px", fontSize: "14px", boxSizing: "border-box", resize: "vertical" }}
-          />
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "6px", color: "var(--stone-700)" }}>
-              Preço por pessoa (R$) *
-            </label>
-            <input
+        <PainelCard title="Preço e duração">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
               name="price"
               type="number"
+              inputMode="decimal"
               min="0"
               step="0.01"
+              label="Preço por pessoa (R$)"
               value={form.price}
               onChange={handleChange}
               required
               placeholder="150.00"
-              style={{ width: "100%", border: "1px solid var(--stone-300)", borderRadius: "6px", padding: "8px 12px", fontSize: "14px", boxSizing: "border-box" }}
             />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "6px", color: "var(--stone-700)" }}>
-              Duração (horas) *
-            </label>
-            <input
+            <Input
               name="duration"
               type="number"
+              inputMode="numeric"
               min="1"
               max="72"
+              label="Duração (horas)"
               value={form.duration}
               onChange={handleChange}
               required
               placeholder="6"
-              style={{ width: "100%", border: "1px solid var(--stone-300)", borderRadius: "6px", padding: "8px 12px", fontSize: "14px", boxSizing: "border-box" }}
             />
           </div>
-        </div>
+        </PainelCard>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "24px" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "6px", color: "var(--stone-700)" }}>
-              Capacidade máxima *
-            </label>
-            <input
+        <PainelCard title="Grupo e dificuldade">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
               name="capacity"
               type="number"
+              inputMode="numeric"
               min="1"
               max="100"
+              label="Capacidade máxima"
+              hint="Número máximo de pessoas por saída."
               value={form.capacity}
               onChange={handleChange}
               required
               placeholder="12"
-              style={{ width: "100%", border: "1px solid var(--stone-300)", borderRadius: "6px", padding: "8px 12px", fontSize: "14px", boxSizing: "border-box" }}
             />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "13px", fontWeight: 500, marginBottom: "6px", color: "var(--stone-700)" }}>
-              Dificuldade *
-            </label>
-            <select
+            <Select
               name="difficulty"
+              label="Dificuldade"
               value={form.difficulty}
               onChange={handleChange}
-              style={{ width: "100%", border: "1px solid var(--stone-300)", borderRadius: "6px", padding: "8px 12px", fontSize: "14px", boxSizing: "border-box" }}
-            >
-              {DIFFICULTIES.map((d) => (
-                <option key={d.value} value={d.value}>{d.label}</option>
-              ))}
-            </select>
+              options={DIFFICULTIES}
+            />
           </div>
-        </div>
+        </PainelCard>
 
-        <div style={{ display: "flex", gap: "12px" }}>
-          <button
-            type="submit"
-            disabled={isLoading}
-            style={{ padding: "10px 24px", background: "var(--ochre)", color: "white", border: "none", borderRadius: "6px", fontWeight: 600, fontSize: "14px", cursor: isLoading ? "not-allowed" : "pointer", opacity: isLoading ? 0.6 : 1 }}
-          >
-            {isLoading ? "Criando..." : "Criar Roteiro"}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            style={{ padding: "10px 24px", background: "transparent", color: "var(--stone-700)", border: "1px solid var(--stone-300)", borderRadius: "6px", fontWeight: 500, fontSize: "14px", cursor: "pointer" }}
-          >
+        <div className="painel-form-actions">
+          <Button variant="secondary" onClick={() => router.back()}>
             Cancelar
-          </button>
+          </Button>
+          <Button type="submit" iconLeft={Check} loading={isLoading}>
+            {isLoading ? "Criando..." : "Criar roteiro"}
+          </Button>
         </div>
       </form>
-    </>
+    </div>
   )
 }

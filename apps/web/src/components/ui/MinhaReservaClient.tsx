@@ -2,6 +2,26 @@
 
 import { useState, useCallback } from 'react'
 import QRCode from 'react-qr-code'
+import {
+  ArrowLeft,
+  CalendarDays,
+  CalendarPlus,
+  Check,
+  CircleCheck,
+  Clock,
+  Copy,
+  Mail,
+  Map as MapIcon,
+  MessageCircle,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+  Ticket,
+  Users,
+  XCircle,
+} from 'lucide-react'
+import { Alert, Badge, Button, Input, Skeleton, StatusBadge } from '@/src/components/ui/capi'
+import CancelDialog from '@/src/components/ui/CancelDialog'
 
 type UiState = 'LOOKUP' | 'LOADING' | 'RESULT' | 'ERROR'
 
@@ -15,13 +35,6 @@ interface BookingResult {
   expiresAt: string | null
   tenantWhatsapp: string | null
   slot: { startsAt: string; packageName: string }
-}
-
-const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
-  PENDING:   { bg: '#FEF9EC', color: '#B45309', label: 'Aguardando pagamento' },
-  CONFIRMED: { bg: '#F0FDF4', color: '#15803D', label: 'Confirmada' },
-  EXPIRED:   { bg: '#FFF7ED', color: '#C2410C', label: 'Tempo esgotado' },
-  CANCELLED: { bg: '#FEF2F2', color: '#DC2626', label: 'Cancelada' },
 }
 
 export default function MinhaReservaClient({ slug }: { slug: string }) {
@@ -135,148 +148,47 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
     }
   }, [booking])
 
-  const containerStyle: React.CSSProperties = {
-    minHeight: '100dvh',
-    padding: 'clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 1.5rem)',
-    fontFamily: 'var(--font-source-sans-3, sans-serif)',
-    backgroundColor: 'var(--stone-50)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  }
-
-  const cardStyle: React.CSSProperties = {
-    width: '100%',
-    maxWidth: '520px',
-    backgroundColor: 'var(--stone-50)',
-    borderRadius: '12px',
-    padding: 'clamp(1.5rem, 5vw, 2.5rem)',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-  }
-
-  const displayHeadingStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-playfair, serif)',
-    fontSize: 'clamp(22px, 6vw, 28px)',
-    fontWeight: 700,
-    color: 'var(--stone-900)',
-    marginBottom: '0.5rem',
-    marginTop: 0,
-  }
-
-  const headingStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-playfair, serif)',
-    fontSize: '20px',
-    fontWeight: 700,
-    color: 'var(--stone-900)',
-    marginBottom: 0,
-    marginTop: 0,
-  }
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: '16px',
-    fontWeight: 700,
-    marginBottom: '0.5rem',
-    color: 'var(--stone-900)',
-  }
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '12px 16px',
-    borderRadius: '8px',
-    border: '1px solid var(--stone-300)',
-    fontSize: '16px',
-    fontWeight: 400,
-    outline: 'none',
-    boxSizing: 'border-box',
-    minHeight: '44px',
-    backgroundColor: 'var(--stone-50)',
-    color: 'var(--stone-900)',
-  }
-
-  const primaryButtonStyle: React.CSSProperties = {
-    width: '100%',
-    backgroundColor: 'var(--ochre)',
-    color: 'var(--stone-50)',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '14px 24px',
-    fontSize: '16px',
-    fontWeight: 700,
-    cursor: 'pointer',
-    minHeight: '44px',
-    marginTop: '1rem',
-  }
-
-  const cancelButtonStyle: React.CSSProperties = {
-    width: '100%',
-    backgroundColor: 'transparent',
-    color: '#DC2626',
-    border: '1px solid #DC2626',
-    borderRadius: '8px',
-    padding: '12px 24px',
-    fontSize: '16px',
-    fontWeight: 700,
-    cursor: 'pointer',
-    minHeight: '44px',
-    marginTop: '0.75rem',
-  }
-
-  const dividerStyle: React.CSSProperties = {
-    borderBottom: '1px solid var(--stone-100)',
-    paddingBottom: '1rem',
-    marginBottom: '1rem',
-  }
-
   // ── LOOKUP state ──────────────────────────────────────────────────────────
   if (uiState === 'LOOKUP') {
     return (
-      <div style={containerStyle}>
-        <div style={cardStyle}>
-          <h1 style={displayHeadingStyle}>Minha Reserva</h1>
-          <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginBottom: '1.5rem', marginTop: 0 }}>
-            Digite seu e-mail e o código da reserva para consultar o status.
-          </p>
-          <form onSubmit={handleLookup}>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={labelStyle} htmlFor="mr-email">E-mail</label>
-              <input
-                id="mr-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                style={inputStyle}
-                autoComplete="email"
-              />
-            </div>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={labelStyle} htmlFor="mr-code">Código da reserva</label>
-              <input
-                id="mr-code"
-                type="text"
-                required
-                maxLength={6}
-                minLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="Ex: A1B2C3"
-                style={{ ...inputStyle, textTransform: 'uppercase', letterSpacing: '0.15em' }}
-                autoComplete="off"
-                inputMode="text"
-                autoCapitalize="characters"
-                aria-describedby="mr-code-hint"
-              />
-              <p id="mr-code-hint" style={{ fontSize: '12px', color: 'var(--stone-400)', marginTop: '0.25rem', marginBottom: 0 }}>
-                Últimos 6 caracteres do código enviado por e-mail
-              </p>
-            </div>
-            <button type="submit" style={primaryButtonStyle}>
-              Consultar Reserva
-            </button>
-          </form>
-        </div>
+      <div className="capi-container capi-container--form py-6 md:py-10">
+        <h1 className="font-display m-0 mb-2 text-3xl">Minha reserva</h1>
+        <p className="m-0 mb-6 text-sm text-fg-secondary">
+          Digite seu e-mail e o código da reserva para consultar o status.
+        </p>
+        <form onSubmit={handleLookup} className="flex flex-col gap-4">
+          <Input
+            id="mr-email"
+            label="E-mail"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="seu@email.com"
+            autoComplete="email"
+            leadingIcon={Mail}
+          />
+          <Input
+            id="mr-code"
+            label="Código da reserva"
+            hint="Últimos 6 caracteres do código enviado por e-mail"
+            type="text"
+            required
+            maxLength={6}
+            minLength={6}
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="Ex: A1B2C3"
+            autoComplete="off"
+            inputMode="text"
+            autoCapitalize="characters"
+            leadingIcon={Ticket}
+            style={{ textTransform: 'uppercase', letterSpacing: '0.15em' }}
+          />
+          <Button type="submit" size="lg" fullWidth iconLeft={Search} className="mt-2">
+            Consultar reserva
+          </Button>
+        </form>
       </div>
     )
   }
@@ -284,25 +196,15 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
   // ── LOADING state ─────────────────────────────────────────────────────────
   if (uiState === 'LOADING') {
     return (
-      <div style={{ ...containerStyle, justifyContent: 'center' }}>
-        <div style={cardStyle}>
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}>
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 40 40"
-              style={{ animation: 'spin 0.8s linear infinite' }}
-              aria-label="Carregando"
-              role="img"
-            >
-              <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--stone-200)" strokeWidth="4" />
-              <path d="M20 4 A16 16 0 0 1 36 20" fill="none" stroke="var(--ochre)" strokeWidth="4" strokeLinecap="round" />
-            </svg>
+      <div className="capi-container capi-container--form py-6 md:py-10" aria-busy="true">
+        <p className="sr-only-capi" role="status">Consultando sua reserva…</p>
+        <div className="flex flex-col gap-4">
+          <Skeleton height={120} radius={16} />
+          <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5">
+            <Skeleton width="50%" height={28} />
+            <Skeleton lines={3} />
           </div>
-          <p style={{ textAlign: 'center', fontSize: '14px', color: 'var(--stone-500)', margin: 0 }}>
-            Consultando sua reserva...
-          </p>
+          <Skeleton height={52} radius={12} />
         </div>
       </div>
     )
@@ -311,19 +213,12 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
   // ── ERROR state ───────────────────────────────────────────────────────────
   if (uiState === 'ERROR') {
     return (
-      <div style={containerStyle}>
-        <div style={cardStyle}>
-          <h1 style={displayHeadingStyle}>Minha Reserva</h1>
-          <div
-            role="alert"
-            style={{ backgroundColor: '#FEF2F2', borderRadius: '8px', padding: '1rem', marginBottom: '1.5rem' }}
-          >
-            <p style={{ fontSize: '14px', color: '#DC2626', margin: 0 }}>{errorMsg}</p>
-          </div>
-          <button onClick={() => setUiState('LOOKUP')} style={{ ...primaryButtonStyle, marginTop: 0 }}>
-            Tentar novamente
-          </button>
-        </div>
+      <div className="capi-container capi-container--form py-6 md:py-10">
+        <h1 className="font-display m-0 mb-6 text-3xl">Minha reserva</h1>
+        <Alert tone="danger" className="mb-6">{errorMsg}</Alert>
+        <Button size="lg" fullWidth iconLeft={RotateCcw} onClick={() => setUiState('LOOKUP')}>
+          Tentar novamente
+        </Button>
       </div>
     )
   }
@@ -331,319 +226,215 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
   // ── RESULT state ──────────────────────────────────────────────────────────
   if (!booking) return null
 
-  const statusStyle = STATUS_STYLES[booking.status] ?? STATUS_STYLES.CANCELLED
-  const formattedDate = new Date(booking.slot.startsAt).toLocaleDateString('pt-BR', {
+  const startsAt = new Date(booking.slot.startsAt)
+  const formattedDate = startsAt.toLocaleDateString('pt-BR', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   })
+  const formattedTime = startsAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  const bookingCode = booking.id.slice(-6).toUpperCase()
 
   const whatsappUrl = booking.tenantWhatsapp
     ? `https://wa.me/${booking.tenantWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá, tenho uma reserva: #${booking.id.slice(-6).toUpperCase()}`)}`
     : null
 
+  const calendarStamp = startsAt.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  const calendarUrl = `https://calendar.google.com/calendar/render?${new URLSearchParams({
+    action: 'TEMPLATE',
+    text: booking.slot.packageName,
+    dates: `${calendarStamp}/${calendarStamp}`,
+  }).toString()}`
+
+  const details = [
+    { icon: MapIcon, label: 'Roteiro', value: booking.slot.packageName },
+    { icon: CalendarDays, label: 'Data', value: formattedDate },
+    { icon: Clock, label: 'Saída', value: formattedTime },
+    { icon: Users, label: 'Pessoas', value: `${booking.pax} ${booking.pax === 1 ? 'pessoa' : 'pessoas'}` },
+  ]
+
   return (
-    <div style={containerStyle}>
-      <div style={cardStyle}>
-        {/* Header: title + status badge */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', gap: '0.75rem' }}>
-          <h1 style={headingStyle}>Minha Reserva</h1>
+    <div className="capi-container capi-container--form flex flex-col gap-4 py-6 md:py-10">
+      {/* Faixa de marca quando confirmada */}
+      {booking.status === 'CONFIRMED' ? (
+        <section className="flex flex-col items-center gap-3 rounded-2xl bg-surface-brand px-5 py-8 text-center">
           <span
-            style={{
-              backgroundColor: statusStyle.bg,
-              color: statusStyle.color,
-              borderRadius: '9999px',
-              padding: '4px 12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              flexShrink: 0,
-            }}
-            aria-label={`Status: ${statusStyle.label}`}
+            className="inline-flex h-14 w-14 items-center justify-center rounded-full"
+            style={{ background: 'var(--success-subtle)', color: 'var(--success)' }}
           >
-            {statusStyle.label}
+            <CircleCheck size={30} strokeWidth={1.75} aria-hidden="true" />
           </span>
-        </div>
-
-        {/* Detail rows */}
-        <div style={dividerStyle}>
-          <p style={{ fontSize: '14px', color: 'var(--stone-500)', margin: '0 0 0.25rem' }}>Roteiro</p>
-          <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--stone-900)', margin: 0 }}>{booking.slot.packageName}</p>
-        </div>
-        <div style={dividerStyle}>
-          <p style={{ fontSize: '14px', color: 'var(--stone-500)', margin: '0 0 0.25rem' }}>Data</p>
-          <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--stone-900)', margin: 0 }}>{formattedDate}</p>
-        </div>
-        <div style={{ ...dividerStyle, marginBottom: '1.5rem' }}>
-          <p style={{ fontSize: '14px', color: 'var(--stone-500)', margin: '0 0 0.25rem' }}>Pessoas</p>
-          <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--stone-900)', margin: 0 }}>
-            {booking.pax} {booking.pax === 1 ? 'pessoa' : 'pessoas'}
+          <h1 className="font-display m-0 text-3xl" style={{ color: 'var(--text-on-brand)' }}>
+            Reserva confirmada!
+          </h1>
+          <p className="m-0 text-sm" style={{ color: 'var(--text-on-brand-secondary)' }}>
+            Seu guia entrará em contato.
           </p>
-        </div>
+        </section>
+      ) : (
+        <h1 className="font-display m-0 text-3xl">Minha reserva</h1>
+      )}
 
-        {/* ── PENDING section ── */}
-        {booking.status === 'PENDING' && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginBottom: '1rem', marginTop: 0 }}>
-              Escaneie o QR code com o app do seu banco ou copie a chave PIX abaixo.
-            </p>
-            {booking.qrCode ? (
-              <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                <div style={{
-                  display: 'inline-block',
-                  padding: '16px',
-                  backgroundColor: 'var(--stone-50)',
-                  borderRadius: '8px',
-                  border: '1px solid var(--stone-200)',
-                }}>
-                  <QRCode
-                    value={booking.qrCode}
-                    size={Math.min(200, typeof window !== 'undefined' ? window.innerWidth * 0.8 : 200)}
-                    style={{ height: 'auto', maxWidth: '100%', width: 'min(200px, 80vw)' }}
-                    aria-label="QR code PIX para pagamento da reserva"
-                  />
-                </div>
-                <div style={{ marginTop: '1rem' }}>
-                  <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginBottom: '0.5rem', marginTop: 0 }}>
-                    Chave PIX (copia e cola):
-                  </p>
-                  <div
-                    style={{
-                      fontFamily: 'monospace',
-                      fontSize: '12px',
-                      color: 'var(--stone-700)',
-                      backgroundColor: 'var(--stone-100)',
-                      borderRadius: '6px',
-                      padding: '8px 12px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      cursor: 'pointer',
-                      maxWidth: '100%',
-                    }}
-                    onClick={handleCopyPix}
-                    title={booking.qrCode}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCopyPix()}
-                    aria-label="Copiar código PIX"
-                  >
-                    {booking.qrCode}
-                  </div>
-                  <button
-                    onClick={handleCopyPix}
-                    style={{
-                      ...primaryButtonStyle,
-                      backgroundColor: copiedPix ? '#15803D' : 'var(--ochre)',
-                      marginTop: '0.5rem',
-                    }}
-                  >
-                    {copiedPix ? 'Copiado!' : 'Copiar chave PIX'}
-                  </button>
+      {/* Card da reserva */}
+      <section
+        aria-label="Detalhes da reserva"
+        className="rounded-2xl border border-line bg-surface p-5"
+        style={{ boxShadow: 'var(--shadow-sm)' }}
+      >
+        <div className="mb-4 flex items-start justify-between gap-3 border-b border-line pb-4">
+          <div>
+            <p className="m-0 text-xs font-semibold uppercase tracking-wider text-fg-secondary">Código da reserva</p>
+            <p className="m-0 font-mono text-2xl font-bold tracking-widest text-fg">#{bookingCode}</p>
+          </div>
+          {booking.status === 'EXPIRED' ? (
+            <Badge tone="warning" dot>Tempo esgotado</Badge>
+          ) : booking.status === 'PENDING' ? (
+            <Badge tone="warning" dot>Aguardando pagamento</Badge>
+          ) : (
+            <StatusBadge kind="booking" status={booking.status} />
+          )}
+        </div>
+        <dl className="m-0 flex flex-col gap-3">
+          {details.map(({ icon: Icon, label, value }) => (
+            <div key={label} className="flex items-start gap-3">
+              <dt className="flex shrink-0 items-center gap-2 text-sm text-fg-secondary" style={{ minWidth: 104 }}>
+                <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
+                {label}
+              </dt>
+              <dd className="m-0 ml-auto text-right text-sm font-medium text-fg first-letter:uppercase">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      {/* ── PENDING section ── */}
+      {booking.status === 'PENDING' && (
+        <section
+          aria-labelledby="mr-pix-title"
+          className="flex flex-col items-center gap-4 rounded-2xl border border-line bg-surface p-5 text-center"
+        >
+          <h2 id="mr-pix-title" className="m-0 text-lg">Pague via PIX</h2>
+          <p className="m-0 text-sm text-fg-secondary">
+            Escaneie o QR code com o app do seu banco ou copie a chave PIX abaixo.
+          </p>
+          {booking.qrCode ? (
+            <>
+              <div
+                className="rounded-xl p-3"
+                style={{ background: 'var(--sand-0)', color: 'var(--sand-900)', border: '1px solid var(--border)' }}
+              >
+                <QRCode
+                  value={booking.qrCode}
+                  size={200}
+                  bgColor="transparent"
+                  fgColor="currentColor"
+                  style={{ display: 'block', height: 'auto', maxWidth: '100%', width: 'min(200px, 60vw)' }}
+                  aria-label="QR code PIX para pagamento da reserva"
+                />
+              </div>
+              <div className="w-full text-left">
+                <p className="m-0 mb-1.5 text-sm font-semibold text-fg">Chave PIX (copia e cola)</p>
+                <div
+                  className="max-h-24 select-all overflow-y-auto break-all rounded-lg border border-line bg-subtle px-3 py-2 font-mono text-xs text-fg-secondary"
+                  title={booking.qrCode}
+                >
+                  {booking.qrCode}
                 </div>
               </div>
-            ) : (
-              <p style={{ fontSize: '14px', color: 'var(--stone-500)' }}>QR code não disponível.</p>
-            )}
-            <button onClick={() => setShowCancelModal(true)} style={cancelButtonStyle}>
-              Cancelar reserva
-            </button>
-          </div>
-        )}
-
-        {/* ── CONFIRMED section ── */}
-        {booking.status === 'CONFIRMED' && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: '#F0FDF4', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
-              <p style={{ fontSize: '14px', color: '#15803D', margin: 0, fontWeight: 700 }}>
-                Reserva confirmada! Seu guia entrará em contato.
+              <Button size="lg" fullWidth iconLeft={copiedPix ? Check : Copy} onClick={handleCopyPix}>
+                {copiedPix ? 'Copiado!' : 'Copiar código PIX'}
+              </Button>
+              <p className="m-0 inline-flex items-center gap-1.5 text-xs text-fg-tertiary">
+                <ShieldCheck size={14} strokeWidth={1.75} aria-hidden="true" />
+                Pagamento processado pelo Mercado Pago
               </p>
-            </div>
-            {whatsappUrl ? (
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'block',
-                  textAlign: 'center',
-                  padding: '12px 24px',
-                  borderRadius: '8px',
-                  backgroundColor: '#25D366',
-                  color: '#FFFFFF',
-                  fontWeight: 700,
-                  fontSize: '16px',
-                  textDecoration: 'none',
-                  marginBottom: '0.75rem',
-                  minHeight: '44px',
-                  lineHeight: '20px',
-                }}
-              >
-                Falar com o guia via WhatsApp
-              </a>
-            ) : (
-              <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginBottom: '0.75rem' }}>
-                Precisa de ajuda? Entre em contato com a operadora.
-              </p>
-            )}
-            <button onClick={() => setShowCancelModal(true)} style={cancelButtonStyle}>
-              Cancelar reserva
-            </button>
-          </div>
-        )}
+            </>
+          ) : (
+            <p className="m-0 text-sm text-fg-secondary">QR code não disponível.</p>
+          )}
+        </section>
+      )}
 
-        {/* ── EXPIRED section ── */}
-        {booking.status === 'EXPIRED' && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: '#FFF7ED', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
-              <p style={{ fontSize: '14px', color: '#C2410C', margin: 0, fontWeight: 700 }}>Prazo expirado</p>
-              <p style={{ fontSize: '14px', color: '#C2410C', margin: '0.25rem 0 0' }}>
-                Seu prazo de pagamento expirou. Gere um novo QR code para concluir sua reserva.
-              </p>
-            </div>
-            <button onClick={handleRepay} style={{ ...primaryButtonStyle, marginTop: 0 }}>
-              Gerar novo pagamento
-            </button>
-          </div>
-        )}
-
-        {/* ── CANCELLED section ── */}
-        {booking.status === 'CANCELLED' && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ backgroundColor: '#FEF2F2', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
-              <p style={{ fontSize: '14px', color: '#DC2626', margin: 0, fontWeight: 700 }}>Reserva cancelada</p>
-              <p style={{ fontSize: '14px', color: '#DC2626', margin: '0.25rem 0 0' }}>
-                Dúvidas? Entre em contato:
-              </p>
-            </div>
-            {whatsappUrl ? (
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'block',
-                  textAlign: 'center',
-                  padding: '12px 24px',
-                  borderRadius: '8px',
-                  border: '1px solid #25D366',
-                  backgroundColor: 'transparent',
-                  color: '#15803D',
-                  fontWeight: 700,
-                  fontSize: '16px',
-                  textDecoration: 'none',
-                  minHeight: '44px',
-                  lineHeight: '20px',
-                }}
-              >
-                Suporte via WhatsApp
-              </a>
-            ) : (
-              <p style={{ fontSize: '14px', color: 'var(--stone-500)' }}>
-                Entre em contato com o suporte da operadora.
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Back to lookup */}
-        <button
-          onClick={() => { setUiState('LOOKUP'); setBooking(null) }}
-          style={{
-            fontSize: '14px',
-            color: 'var(--stone-500)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '0.5rem 0',
-            marginTop: '0.5rem',
-          }}
-        >
-          ← Nova consulta
-        </button>
-      </div>
-
-      {/* ── Cancel confirmation modal ── */}
-      {showCancelModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 50,
-            padding: '1rem',
-          }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="cancel-modal-title"
-        >
-          <div
-            style={{
-              backgroundColor: 'var(--stone-50)',
-              borderRadius: '12px',
-              padding: 'clamp(1.5rem, 5vw, 2rem)',
-              width: '100%',
-              maxWidth: '480px',
-            }}
-          >
-            <h2
-              id="cancel-modal-title"
-              style={{ fontFamily: 'var(--font-playfair, serif)', fontSize: '20px', fontWeight: 700, marginBottom: '1rem', color: 'var(--stone-900)', marginTop: 0 }}
-            >
-              Cancelar reserva
-            </h2>
-            <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginBottom: '1.5rem' }}>
-              Tem certeza que deseja cancelar esta reserva? Esta ação não pode ser desfeita.
+      {/* ── CONFIRMED section ── */}
+      {booking.status === 'CONFIRMED' && (
+        <div className="flex flex-col gap-3">
+          {whatsappUrl ? (
+            <Button href={whatsappUrl} target="_blank" variant="secondary" fullWidth iconLeft={MessageCircle}>
+              Falar com o guia via WhatsApp
+            </Button>
+          ) : (
+            <p className="m-0 text-center text-sm text-fg-secondary">
+              Precisa de ajuda? Entre em contato com a operadora.
             </p>
-            {/* Mobile: destructive first (thumb reach); Desktop: back left, destructive right */}
-            <button
-              onClick={handleCancelConfirm}
-              disabled={cancelLoading}
-              autoFocus
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: '#DC2626',
-                color: '#FFFFFF',
-                fontSize: '16px',
-                fontWeight: 700,
-                cursor: cancelLoading ? 'not-allowed' : 'pointer',
-                minHeight: '44px',
-                opacity: cancelLoading ? 0.7 : 1,
-              }}
-            >
-              {cancelLoading ? 'Cancelando...' : 'Sim, cancelar reserva'}
-            </button>
-            <button
-              onClick={() => setShowCancelModal(false)}
-              disabled={cancelLoading}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                border: '1px solid var(--stone-300)',
-                backgroundColor: 'var(--stone-50)',
-                fontSize: '16px',
-                fontWeight: 700,
-                cursor: cancelLoading ? 'not-allowed' : 'pointer',
-                minHeight: '44px',
-                marginTop: '0.5rem',
-                color: 'var(--stone-900)',
-              }}
-            >
-              Voltar
-            </button>
-          </div>
+          )}
+          <Button href={calendarUrl} target="_blank" variant="secondary" fullWidth iconLeft={CalendarPlus}>
+            Adicionar à agenda
+          </Button>
         </div>
       )}
+
+      {/* ── EXPIRED section ── */}
+      {booking.status === 'EXPIRED' && (
+        <>
+          <Alert tone="warning" title="Prazo expirado">
+            Seu prazo de pagamento expirou. Gere um novo QR code para concluir sua reserva.
+          </Alert>
+          <Button size="lg" fullWidth iconLeft={RotateCcw} onClick={handleRepay}>
+            Gerar novo pagamento
+          </Button>
+        </>
+      )}
+
+      {/* ── CANCELLED section ── */}
+      {booking.status === 'CANCELLED' && (
+        <>
+          <Alert tone="danger" title="Reserva cancelada">
+            Dúvidas? Entre em contato:
+          </Alert>
+          {whatsappUrl ? (
+            <Button href={whatsappUrl} target="_blank" variant="secondary" fullWidth iconLeft={MessageCircle}>
+              Suporte via WhatsApp
+            </Button>
+          ) : (
+            <p className="m-0 text-sm text-fg-secondary">
+              Entre em contato com o suporte da operadora.
+            </p>
+          )}
+        </>
+      )}
+
+      {/* Cancelar (pendente ou confirmada) */}
+      {(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
+        <Button
+          variant="ghost"
+          fullWidth
+          iconLeft={XCircle}
+          onClick={() => setShowCancelModal(true)}
+          style={{ color: 'var(--danger)' }}
+        >
+          Cancelar reserva
+        </Button>
+      )}
+
+      {/* Nova consulta */}
+      <div>
+        <Button
+          variant="ghost"
+          size="sm"
+          iconLeft={ArrowLeft}
+          onClick={() => { setUiState('LOOKUP'); setBooking(null) }}
+        >
+          Nova consulta
+        </Button>
+      </div>
+
+      <CancelDialog
+        open={showCancelModal}
+        onOpenChange={setShowCancelModal}
+        onConfirm={handleCancelConfirm}
+        loading={cancelLoading}
+      />
     </div>
   )
 }

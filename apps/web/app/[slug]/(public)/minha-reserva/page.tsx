@@ -9,9 +9,11 @@ export default async function MinhaReservaPage({
   const { slug } = await params
 
   return (
-    <main>
-      <BackButton />
+    <div>
+      <div className="capi-container capi-container--form pt-4">
+        <BackButton fallbackHref={`/${slug}/roteiros`} />
+      </div>
       <MinhaReservaClient slug={slug} />
-    </main>
+    </div>
   )
 }
