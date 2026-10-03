@@ -22,6 +22,9 @@ export type ModalProps = {
  */
 export function Modal({ open, onClose, title, description, children, footer, size = "md" }: ModalProps) {
   const ref = useRef<HTMLDivElement>(null)
+  // onClose em ref: o efeito não reexecuta (nem rouba o foco) quando o pai recria a função.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
   const titleId = useId()
   const descId = useId()
 
@@ -32,7 +35,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
     document.body.style.overflow = "hidden"
     ref.current?.focus()
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose()
+      if (e.key === "Escape") onCloseRef.current()
       if (e.key === "Tab" && ref.current) {
         const f = ref.current.querySelectorAll<HTMLElement>(
           'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',
@@ -50,7 +53,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
       document.body.style.overflow = prevOverflow
       prev?.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open || typeof document === "undefined") return null
 

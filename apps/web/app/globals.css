@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "../src/styles/capi.css";
+@import "../src/styles/capi.css" layer(components);
 
 /* ════════════════════════════════════════════════════════════
    CAPI design system v2 — tokens

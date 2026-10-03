@@ -1,6 +1,13 @@
 'use client'
 
 import { useRef, useEffect, useState } from 'react'
+import { MapPin } from 'lucide-react'
+
+/** Lê um token de cor do design system (maplibre precisa do valor resolvido). */
+function cssColor(name: string): string {
+  if (typeof window === 'undefined') return 'gray'
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || 'gray'
+}
 
 export interface PartnerData {
   id: string
@@ -65,7 +72,7 @@ export default function MapWidget({ lat, lng, partners, destinationName }: MapWi
             const data = await res.json()
             for (const element of (data.elements ?? [])) {
               if (!element.lat || !element.lon) continue
-              new maplibregl.Marker({ color: '#6B7280' })
+              new maplibregl.Marker({ color: cssColor('--text-tertiary') })
                 .setLngLat([element.lon, element.lat])
                 .addTo(map)
             }
@@ -102,7 +109,7 @@ export default function MapWidget({ lat, lng, partners, destinationName }: MapWi
     const newMarkers = partners.map(partner => {
       const el = document.createElement('div')
       el.className = 'map-widget__marker map-widget__marker--partner'
-      return new maplibregl.Marker({ element: el, color: '#9C6318' })
+      return new maplibregl.Marker({ element: el, color: cssColor('--primary') })
         .setLngLat([partner.lng, partner.lat])
         .setPopup(new maplibregl.Popup().setText(partner.name))
         .addTo(map)
@@ -116,11 +123,13 @@ export default function MapWidget({ lat, lng, partners, destinationName }: MapWi
         .map-widget__container {
           position: relative;
           width: 100%;
-          height: 400px;
-          border-radius: 12px;
+          height: 320px;
+          border-radius: var(--radius-lg);
+          border: 1px solid var(--border);
           overflow: hidden;
-          background: var(--stone-100, #f5f0eb);
+          background: var(--bg-muted);
         }
+        @media (min-width: 768px) { .map-widget__container { height: 420px; } }
         .map-widget__map {
           width: 100%;
           height: 100%;
@@ -128,20 +137,30 @@ export default function MapWidget({ lat, lng, partners, destinationName }: MapWi
         .map-widget__skeleton {
           position: absolute;
           inset: 0;
-          background: var(--stone-100, #f5f0eb);
+          z-index: 1;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
-          color: var(--stone-400, #a8a29e);
-          font-size: 0.875rem;
+          gap: var(--space-2);
+          font-family: var(--font-sans);
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--text-secondary);
         }
+        .map-widget__skeleton .capi-skel { position: absolute; inset: 0; border-radius: 0; }
+        .map-widget__skeleton > :not(.capi-skel) { position: relative; }
         @media (max-width: 768px) {
           .maplibregl-ctrl-group { display: none !important; }
         }
       `}</style>
-      <div className="map-widget__container">
+      <div className="map-widget__container" aria-label={`Mapa de ${destinationName}`} role="region">
         {loading && (
-          <div className="map-widget__skeleton">Carregando mapa...</div>
+          <div className="map-widget__skeleton" role="status">
+            <span className="capi-skel" aria-hidden="true" style={{ width: '100%', height: '100%' }} />
+            <MapPin size={24} strokeWidth={1.75} aria-hidden="true" />
+            <span>Carregando mapa…</span>
+          </div>
         )}
         <div ref={containerRef} className="map-widget__map" />
       </div>
