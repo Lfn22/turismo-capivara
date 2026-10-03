@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { Button, TopNav } from '@/src/components/ui/capi';
 
 interface PublicNavProps {
   tenantName: string;
@@ -7,46 +9,40 @@ interface PublicNavProps {
   backHref?: string;
 }
 
+/** Barra superior das páginas públicas da operadora: vidro claro, logo compacta e nome da operadora. */
 export default function PublicNav({ tenantName, slug, backHref }: PublicNavProps) {
   return (
-    <nav
-      className="sticky top-0 z-[100] flex items-center justify-between px-5 md:px-12 h-14"
-      style={{
-        backgroundColor: 'rgba(31, 14, 8, 0.92)',
-        backdropFilter: 'blur(12px) saturate(1.4)',
-        WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
-        color: 'var(--stone-50)',
-      }}
-    >
-      <div className="flex items-center gap-2.5">
-        <Link href="/" aria-label="CAPI — página inicial" className="flex items-center">
-          <Image src="/images/logo.png" alt="CAPI" width={64} height={58} style={{ filter: 'brightness(0) invert(1)' }} priority />
-        </Link>
-        <span style={{ color: 'var(--stone-500)', fontSize: '0.75rem' }}>·</span>
-        <span className="font-bold text-base tracking-tight">{tenantName}</span>
-      </div>
-      <div className="flex items-center gap-6">
-        {backHref && (
-          <Link
-            href={backHref}
-            className="text-sm font-medium no-underline"
-            style={{ color: 'var(--ochre)' }}
-          >
-            ← Voltar
-          </Link>
-        )}
+    <TopNav
+      tenantName={tenantName}
+      logo={
         <Link
-          href={`/${slug}/login`}
-          className="text-sm font-semibold no-underline rounded-full transition-all"
-          style={{
-            color: 'var(--stone-900)',
-            background: 'var(--ochre)',
-            padding: '7px 18px',
-          }}
+          href="/"
+          aria-label="CAPI — página inicial"
+          className="inline-flex items-center"
+          style={{ minHeight: 'var(--touch-target)' }}
         >
-          Painel
+          <Image
+            src="/images/logo.png"
+            alt="CAPI"
+            width={40}
+            height={36}
+            priority
+            style={{ height: 36, width: 'auto', display: 'block' }}
+          />
         </Link>
-      </div>
-    </nav>
+      }
+      actions={
+        <>
+          {backHref ? (
+            <Button href={backHref} variant="ghost" size="sm" iconLeft={ArrowLeft}>
+              Voltar
+            </Button>
+          ) : null}
+          <Button href={`/${slug}/login`} variant="secondary" size="sm" iconLeft={LayoutDashboard}>
+            Painel
+          </Button>
+        </>
+      }
+    />
   );
 }

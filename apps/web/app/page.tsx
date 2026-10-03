@@ -1,12 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+import { LayoutDashboard } from 'lucide-react';
+import { Button } from '@/src/components/ui/capi';
 import HeroSection from '@/src/components/home/HeroSection';
 import DestinationsSection from '@/src/components/home/DestinationsSection';
+import HowItWorksSection from '@/src/components/home/HowItWorksSection';
 import GuidesSection from '@/src/components/home/GuidesSection';
 import CTASection from '@/src/components/home/CTASection';
-import RupestreSeparator from '@/src/components/home/RupestreSeparator';
 import ScrollRevealProvider from '@/src/components/home/ScrollRevealProvider';
+import PublicLayout from '@/src/components/layout/PublicLayout';
 
 // Force SSR — build container cannot reach the API at build time
 export const dynamic = 'force-dynamic';
@@ -52,51 +55,66 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const destinations = await fetchDestinations();
   const previewDestinations = destinations?.slice(0, 6) ?? [];
+  // Foto do hero: o primeiro destino que tiver imagem. Sem foto, o hero usa surface-brand.
+  const heroDestination = previewDestinations.find((d) => d.heroImageUrl);
 
   return (
-    <ScrollRevealProvider>
-      {/* Nav — simplified, desktop only (mobile uses BottomNav) */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-5 md:px-10 py-8 transition-all duration-400"
-        style={{
-          background: 'rgba(245, 240, 232, 0.85)',
-          backdropFilter: 'blur(12px) saturate(1.4)',
-          WebkitBackdropFilter: 'blur(12px) saturate(1.4)',
-        }}>
-        <Link href="/" className="font-[family-name:var(--font-display)] font-bold text-xl tracking-[3px] no-underline"
-          style={{ color: 'var(--stone-800)' }}>
-          CAPI
-        </Link>
-        <div className="hidden md:flex items-center gap-7">
-          <Link href="/destinos" className="text-sm no-underline transition-colors" style={{ color: 'var(--stone-600)' }}>Destinos</Link>
-          <Link href="/explorar" className="text-sm no-underline transition-colors" style={{ color: 'var(--stone-600)' }}>Explorar</Link>
-        </div>
-      </nav>
+    <PublicLayout>
+      <ScrollRevealProvider>
+        <main>
+          <HeroSection
+            imageUrl={heroDestination?.heroImageUrl}
+            imageBlurDataUrl={heroDestination?.heroImageBlurDataUrl}
+            quickLinks={previewDestinations.map((d) => ({ href: `/destinos/${d.slug}`, label: d.title }))}
+          />
 
-      <HeroSection />
-      <RupestreSeparator />
-      <DestinationsSection destinations={previewDestinations} />
-      <RupestreSeparator variant="double" />
-      <GuidesSection />
-      <CTASection />
+          <div className="home-reveal">
+            <DestinationsSection destinations={previewDestinations} />
+          </div>
+          <div className="home-reveal">
+            <HowItWorksSection />
+          </div>
+          <div className="home-reveal">
+            <GuidesSection />
+          </div>
+          <CTASection />
+        </main>
 
-      {/* Footer */}
-      <footer className="py-24 md:py-16 px-5 md:px-24 text-center"
-        style={{ background: 'var(--stone-900)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="max-w-[1280px] mx-auto flex flex-col items-center gap-12">
-          <Image src="/images/logo.png" alt="CAPI" width={110} height={99}
-            style={{ filter: 'brightness(0) invert(1)', display: 'block' }} />
-          <Link href="/login"
-            className="btn btn-outline btn-md">
-            Acessar painel
-          </Link>
-          <Link href="/onboarding" className="text-xs no-underline" style={{ color: 'var(--stone-500)' }}>
-            Cadastre sua operadora &rarr;
-          </Link>
-          <p className="text-xs" style={{ color: 'var(--stone-600)' }}>
-            &copy; {new Date().getFullYear()} CAPI
-          </p>
-        </div>
-      </footer>
-    </ScrollRevealProvider>
+        {/* Footer */}
+        <footer
+          className="bg-surface-brand"
+          style={{
+            color: 'var(--text-on-brand)',
+            borderTop: '1px solid var(--terra-700)',
+            paddingBlock: 'var(--space-12)',
+          }}
+        >
+          <div className="capi-container flex flex-col items-center gap-6 text-center">
+            <Image
+              src="/images/logo.png"
+              alt="CAPI"
+              width={110}
+              height={99}
+              style={{ filter: 'brightness(0) invert(1)', display: 'block' }}
+            />
+            <div className="flex flex-col items-center gap-3 sm:flex-row">
+              <Button href="/login" variant="secondary" iconLeft={LayoutDashboard}>
+                Acessar painel
+              </Button>
+              <Link
+                href="/onboarding"
+                className="inline-flex items-center text-sm font-semibold underline-offset-4 hover:underline"
+                style={{ color: 'var(--text-on-brand)', minHeight: 'var(--touch-target)', paddingInline: 'var(--space-3)' }}
+              >
+                Cadastre sua operadora
+              </Link>
+            </div>
+            <p className="text-xs" style={{ color: 'var(--text-on-brand-secondary)' }}>
+              &copy; {new Date().getFullYear()} CAPI
+            </p>
+          </div>
+        </footer>
+      </ScrollRevealProvider>
+    </PublicLayout>
   );
 }

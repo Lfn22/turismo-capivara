@@ -2,21 +2,30 @@
 
 import '@/src/styles/animations.css';
 
-const particles = Array.from({ length: 12 }, (_, i) => ({
-  id: i,
-  left: `${8 + Math.random() * 84}%`,
-  top: `${10 + Math.random() * 80}%`,
-  size: 2 + Math.random() * 3,
-  duration: 3 + Math.random() * 4,
-  delay: Math.random() * 5,
-  dx: -30 + Math.random() * 60,
-  dy: -(20 + Math.random() * 40),
-  opacity: 0.3 + Math.random() * 0.4,
-}));
+/**
+ * Partículas de poeira bem sutis, só no hero da home.
+ * Valores determinísticos (sem Math.random) para o HTML do servidor e do cliente baterem.
+ * Some com prefers-reduced-motion.
+ */
+const particles = Array.from({ length: 8 }, (_, i) => {
+  // pseudo-aleatório arredondado a 2 casas: estável entre servidor e navegador
+  const r = (n: number) => Math.round((((Math.sin((i + 1) * 9301 + n * 49297) + 1) / 2) % 1) * 100) / 100;
+  return {
+    id: i,
+    left: `${8 + r(1) * 84}%`,
+    top: `${10 + r(2) * 70}%`,
+    size: 2 + r(3) * 2,
+    duration: 4 + r(4) * 4,
+    delay: r(5) * 5,
+    dx: -24 + r(6) * 48,
+    dy: -(16 + r(7) * 32),
+    opacity: 0.12 + r(8) * 0.14,
+  };
+});
 
 export default function DustParticles() {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-[2]" aria-hidden="true">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none motion-reduce:hidden" style={{ zIndex: -1 }} aria-hidden="true">
       {particles.map((p) => (
         <div
           key={p.id}

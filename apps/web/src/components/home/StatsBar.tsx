@@ -8,14 +8,17 @@ const stats = [
   { value: 2800, suffix: '+', label: 'Aventureiros' },
 ];
 
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
 function AnimatedCounter({ target, suffix, active }: { target: number; suffix: string; active: boolean }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (!active) return;
-    const duration = 1800;
-    const steps = 40;
-    const increment = target / steps;
+    const duration = prefersReducedMotion() ? 0 : 1800;
+    const steps = duration === 0 ? 1 : 40;
     let current = 0;
     let step = 0;
 
@@ -43,6 +46,7 @@ function AnimatedCounter({ target, suffix, active }: { target: number; suffix: s
   );
 }
 
+/** Faixa de números em `surface-brand`. Valores em sans 700 com dígitos tabulares. */
 export default function StatsBar() {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false);
@@ -66,26 +70,25 @@ export default function StatsBar() {
   }, []);
 
   return (
-    <div ref={ref} className="relative stone-card overflow-hidden"
-      style={{
-        background: 'linear-gradient(135deg, var(--stone-800), var(--stone-900))',
-        borderTop: '1px solid rgba(196,133,42,0.1)',
-        borderBottom: '1px solid rgba(196,133,42,0.1)',
-      }}>
-      <div className="max-w-[900px] mx-auto py-16 px-5 grid grid-cols-3 gap-8 text-center">
-        {stats.map((stat, i) => (
-          <div key={i} className="flex flex-col items-center gap-2">
-            <span className="font-[family-name:var(--font-display)] font-bold text-2xl md:text-4xl"
-              style={{ color: 'var(--ochre-light)' }}>
-              <AnimatedCounter target={stat.value} suffix={stat.suffix} active={active} />
-            </span>
-            <span className="text-[10px] md:text-xs font-semibold tracking-[0.15em] uppercase"
-              style={{ color: 'var(--stone-400)' }}>
+    <div ref={ref} className="bg-surface-brand text-on-brand">
+      <dl className="capi-container capi-container--content grid grid-cols-3 gap-4 text-center" style={{ paddingBlock: 'var(--space-10)' }}>
+        {stats.map((stat) => (
+          <div key={stat.label} className="flex flex-col-reverse items-center gap-1">
+            <dt
+              className="text-xs font-semibold uppercase tracking-[0.08em]"
+              style={{ color: 'var(--text-on-brand-secondary)' }}
+            >
               {stat.label}
-            </span>
+            </dt>
+            <dd
+              className="text-[clamp(24px,4vw,32px)] font-bold leading-none"
+              style={{ color: 'var(--text-on-brand)', fontVariantNumeric: 'tabular-nums' }}
+            >
+              <AnimatedCounter target={stat.value} suffix={stat.suffix} active={active} />
+            </dd>
           </div>
         ))}
-      </div>
+      </dl>
     </div>
   );
 }
