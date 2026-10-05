@@ -15,7 +15,7 @@ interface ApiPackage {
   id: string;
   name: string;
   description: string;
-  duration: number; // minutes
+  duration: number; // horas (cadastro do painel)
   price: number;    // decimal, e.g. 120.00
   difficulty: 'EASY' | 'MODERATE' | 'HARD';
   durationMinHours: number | null;
@@ -40,7 +40,7 @@ async function fetchDestinationPackages(slug: string): Promise<DestinationPackag
       ? raw.map((p): PackageCardPackage => ({
           id: p.id,
           name: p.name,
-          durationMinutes: p.duration,
+          durationMinutes: (p.duration ?? 0) * 60, // horas → minutos
           priceFrom: Math.round(p.price * 100), // decimal → cents
           difficulty: p.difficulty,
           coverImageUrl: null,   // API does not return photos yet

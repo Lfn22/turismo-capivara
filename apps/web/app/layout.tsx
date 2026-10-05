@@ -19,7 +19,14 @@ const playfair = Playfair_Display({
   display: "swap",
 })
 
+// URL pública usada nos links absolutos de Open Graph/Twitter (imagem de prévia ao compartilhar).
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  process.env.NEXTAUTH_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000")
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: { template: '%s | CAPI', default: 'CAPI' },
   description: 'Encontre guias certificados, compare roteiros e reserve com PIX.',
   manifest: '/manifest.json',
