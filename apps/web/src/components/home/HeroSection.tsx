@@ -4,6 +4,7 @@ import { MapPin, Search } from 'lucide-react';
 import { Button, Input, TopNav } from '@/src/components/ui/capi';
 import CapiLogoAnimated from './CapiLogoAnimated';
 import DustParticles from './DustParticles';
+import HeroSlideshow, { type HeroSlide } from './HeroSlideshow';
 import '@/src/styles/rupestre.css';
 
 interface QuickLink {
@@ -12,9 +13,8 @@ interface QuickLink {
 }
 
 interface Props {
-  /** Foto de fundo do hero (ex.: destino em destaque). Sem foto, usa `surface-brand`. */
-  imageUrl?: string | null;
-  imageBlurDataUrl?: string | null;
+  /** Fotos de destinos e roteiros que passam no fundo do hero. Sem fotos, usa `surface-brand`. */
+  slides?: HeroSlide[];
   /** Atalhos em chips logo abaixo da busca. */
   quickLinks?: QuickLink[];
 }
@@ -24,7 +24,7 @@ const NAV_LINKS = [
   { href: '/explorar', label: 'Explorar' },
 ];
 
-export default function HeroSection({ imageUrl, imageBlurDataUrl, quickLinks = [] }: Props) {
+export default function HeroSection({ slides = [], quickLinks = [] }: Props) {
   return (
     <>
       <style>{`
@@ -35,7 +35,6 @@ export default function HeroSection({ imageUrl, imageBlurDataUrl, quickLinks = [
           background: var(--surface-brand);
           color: var(--text-on-brand);
         }
-        .home-hero__photo { z-index: -2; object-fit: cover; }
         .home-hero__scrim {
           position: absolute; inset: 0; z-index: -1; pointer-events: none;
           background: linear-gradient(to top, var(--scrim-photo) 0%, var(--scrim-photo) 35%, transparent 100%),
@@ -45,12 +44,12 @@ export default function HeroSection({ imageUrl, imageBlurDataUrl, quickLinks = [
         .home-hero__content {
           display: flex; flex-direction: column; align-items: center; text-align: center;
           padding-top: calc(56px + var(--space-10));
-          padding-bottom: calc(var(--space-16) + var(--space-8));
+          padding-bottom: calc(var(--space-16) + var(--space-8) + var(--touch-target));
         }
         @media (min-width: 768px) {
           .home-hero__content {
             padding-top: calc(var(--topbar-height) + var(--space-16));
-            padding-bottom: calc(var(--space-24) + var(--space-8));
+            padding-bottom: calc(var(--space-24) + var(--space-8) + var(--touch-target));
           }
         }
         .home-hero__logo { width: clamp(140px, 28vw, 220px); filter: brightness(0) invert(1); }
@@ -106,17 +105,8 @@ export default function HeroSection({ imageUrl, imageBlurDataUrl, quickLinks = [
       `}</style>
 
       <section className="home-hero" aria-labelledby="home-hero-title">
-        {imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="home-hero__photo"
-            placeholder={imageBlurDataUrl ? 'blur' : 'empty'}
-            blurDataURL={imageBlurDataUrl ?? undefined}
-          />
+        {slides.length > 0 ? (
+          <HeroSlideshow slides={slides} />
         ) : (
           <div className="stone-texture home-hero__texture absolute inset-0" aria-hidden="true" />
         )}
