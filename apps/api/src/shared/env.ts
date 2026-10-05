@@ -17,8 +17,14 @@ const envSchema = z
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
     // Optional with defaults — won't block startup in development
+    APP_URL: z.string().url().optional(),
     CORS_ORIGIN: z.string().optional(),
     WEB_URL: z.string().optional(),
+    // OpenTelemetry
+    OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+    OTEL_EXPORTER_OTLP_HEADERS: z.string().optional(),
+    OTEL_SERVICE_NAME: z.string().default('capi-api'),
+    LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     BOOKING_EXPIRY_MINUTES: z.coerce.number().int().positive().default(30),
   })

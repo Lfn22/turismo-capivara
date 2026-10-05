@@ -14,40 +14,36 @@ export default function Footer() {
 
   return (
     <footer
-      style={{ backgroundColor: "var(--color-primary-dark, #5C3D2E)", color: "#fff" }}
+      className="bg-[var(--color-primary-dark)] text-white relative"
+      style={{
+        background: 'linear-gradient(180deg, var(--color-primary-dark) 0%, var(--stone-700) 50%, var(--color-text) 100%)',
+        borderTop: '1px solid rgba(196, 133, 42, 0.2)',
+      }}
     >
       <div
-        className="mx-auto flex flex-col md:flex-row items-center md:items-start justify-between gap-8"
-        style={{ maxWidth: "1200px", padding: "3rem 1.25rem 2rem" }}
+        className="mx-auto flex max-w-[1200px] flex-col items-center gap-8 px-5 md:px-12 py-12 md:py-20"
       >
         {/* Logo + tagline */}
         <div className="flex flex-col items-center md:items-start gap-3">
           <Link href="/" aria-label="CAPI — página inicial">
             <Image
-              src="/images/logo.png"
+              src="/images/logo-white.svg"
               alt="CAPI"
               width={64}
               height={58}
-              style={{ filter: "brightness(0) invert(1)", opacity: 0.9 }}
             />
           </Link>
-          <p
-            className="text-sm text-center md:text-left"
-            style={{ color: "rgba(255,255,255,0.7)", maxWidth: "200px", lineHeight: 1.5 }}
-          >
-            caminho entre quem explora e quem opera
-          </p>
         </div>
 
         {/* Links */}
         <nav aria-label="Links do rodapé">
-          <ul className="flex flex-col md:flex-row flex-wrap gap-x-6 gap-y-3 list-none p-0 m-0 text-center md:text-left">
+          <ul className="flex flex-col md:flex-row flex-wrap gap-x-6 gap-y-3 list-none p-0 m-0 text-center">
             {FOOTER_LINKS.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="text-sm no-underline transition-opacity hover:opacity-80"
-                  style={{ color: "rgba(255,255,255,0.75)" }}
+                  className="text-sm no-underline transition-all duration-200 hover:text-[var(--ochre-light)]"
+                  style={{ color: "rgba(255,255,255,0.9)" }}
                 >
                   {link.label}
                 </Link>
@@ -59,14 +55,7 @@ export default function Footer() {
 
       {/* Copyright */}
       <div
-        className="mx-auto text-center"
-        style={{
-          maxWidth: "1200px",
-          padding: "1rem 1.25rem 1.5rem",
-          borderTop: "1px solid rgba(255,255,255,0.12)",
-          color: "rgba(255,255,255,0.45)",
-          fontSize: "0.75rem",
-        }}
+        className="mx-auto max-w-[1200px] border-t border-white/12 px-5 py-4 pb-6 text-center text-xs text-white/60"
       >
         &copy; {year} CAPI. Todos os direitos reservados.
       </div>

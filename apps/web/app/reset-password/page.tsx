@@ -1,56 +1,54 @@
 "use client"
-import { useState, Suspense } from "react"
+import { useState, Suspense, type ReactNode } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
+import { ArrowLeft, CalendarCheck, Check, Compass, ShieldCheck } from "lucide-react"
 import { resetPassword } from "@/lib/auth-client"
+import { Alert, Button, Input } from "@/src/components/ui/capi"
 
-const inputStyle: React.CSSProperties = {
-  display: "block",
-  width: "100%",
-  padding: "12px",
-  border: "1px solid var(--stone-200)",
-  borderRadius: "4px",
-  fontSize: "16px",
-  fontFamily: "var(--font-body)",
-  color: "var(--stone-900)",
-  background: "white",
-  boxSizing: "border-box",
+/* ── Layout de acesso (local; candidato a componente do DS) ── */
+const BENEFITS = [
+  { icon: Compass, text: "Roteiros e guias locais num só lugar" },
+  { icon: CalendarCheck, text: "Reservas, agenda e check-in organizados" },
+  { icon: ShieldCheck, text: "Guias e operadoras aprovados pela equipe CAPI" },
+]
+
+function AuthLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid min-h-dvh bg-page lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <aside className="sticky top-0 hidden h-dvh flex-col justify-between gap-12 bg-surface-brand p-12 text-on-brand lg:flex">
+        <Link href="/" className="inline-block self-start rounded-sm">
+          <Image src="/images/logo.png" alt="CAPI" width={120} height={108} className="block brightness-0 invert" />
+        </Link>
+        <div>
+          <p className="font-display text-4xl leading-tight xl:text-5xl">Caminho entre quem explora e quem opera</p>
+          <ul className="mt-10 flex flex-col gap-5">
+            {BENEFITS.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3" style={{ color: "var(--text-on-brand-secondary)" }}>
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full text-on-brand" style={{ background: "var(--terra-700)" }}>
+                  <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+                </span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+      <main className="flex min-w-0 items-center justify-center py-10 lg:py-16">
+        <div className="capi-container capi-container--form">
+          <Link href="/" className="mb-8 inline-block rounded-sm lg:hidden">
+            <Image src="/images/logo.png" alt="CAPI" width={120} height={108} priority className="block in-data-[theme=dark]:brightness-0 in-data-[theme=dark]:invert" />
+          </Link>
+          {children}
+        </div>
+      </main>
+    </div>
+  )
 }
 
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: "14px",
-  fontWeight: 600,
-  color: "var(--stone-700)",
-  marginBottom: "4px",
-  fontFamily: "var(--font-body)",
-}
-
-const btnStyle = (disabled: boolean): React.CSSProperties => ({
-  display: "block",
-  width: "100%",
-  minHeight: "44px",
-  background: disabled ? "var(--stone-400)" : "var(--ochre)",
-  color: "white",
-  border: "none",
-  borderRadius: "4px",
-  fontSize: "16px",
-  fontWeight: 600,
-  fontFamily: "var(--font-body)",
-  cursor: disabled ? "not-allowed" : "pointer",
-  marginTop: "28px",
-})
-
-const alertStyle: React.CSSProperties = {
-  background: "#FEF2F2",
-  border: "1px solid #FCA5A5",
-  borderRadius: "4px",
-  padding: "8px 12px",
-  marginBottom: "16px",
-  fontSize: "14px",
-  color: "#DC2626",
-}
+const MISMATCH_ERROR = "As senhas não coincidem."
+const LENGTH_ERROR = "A senha deve ter no mínimo 8 caracteres."
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams()
@@ -69,12 +67,12 @@ function ResetPasswordForm() {
     setError(null)
 
     if (newPassword !== confirmPassword) {
-      setError("As senhas não coincidem.")
+      setError(MISMATCH_ERROR)
       return
     }
 
     if (newPassword.length < 8) {
-      setError("A senha deve ter no mínimo 8 caracteres.")
+      setError(LENGTH_ERROR)
       return
     }
 
@@ -94,176 +92,94 @@ function ResetPasswordForm() {
     }
   }
 
+  // Erros de validação local vão para o campo; o resto (API, conexão) fica no Alert.
+  const lengthError = error === LENGTH_ERROR ? error : null
+  const mismatchError = error === MISMATCH_ERROR ? error : null
+  const formError = lengthError || mismatchError ? null : error
+
+  if (success) {
+    return (
+      <AuthLayout>
+        <div className="flex flex-col items-center text-center">
+          <span className="flex size-16 items-center justify-center rounded-full bg-success-subtle text-success">
+            <Check size={32} strokeWidth={1.75} aria-hidden="true" />
+          </span>
+          <h1 className="mt-6 text-2xl font-bold">Senha redefinida</h1>
+          <p className="mt-2 text-fg-secondary">Senha redefinida com sucesso. Use a nova senha para entrar.</p>
+        </div>
+        <Button href="/login" size="lg" fullWidth className="mt-8">
+          Acessar o painel
+        </Button>
+      </AuthLayout>
+    )
+  }
+
   return (
-    <main
-      style={{
-        minHeight: "100dvh",
-        background: "var(--stone-50)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px",
-      }}
-    >
-      <div
-        style={{
-          background: "white",
-          border: "1px solid var(--stone-200)",
-          borderRadius: "8px",
-          padding: "clamp(32px, 5vw, 48px) clamp(24px, 5vw, 40px)",
-          width: "100%",
-          maxWidth: "480px",
-        }}
-      >
-        <Link href="/" style={{ display: "inline-block", marginBottom: "20px" }}>
-          <Image
-            src="/images/logo.png"
-            alt="CAPI"
-            width={80}
-            height={72}
-            style={{ display: "block" }}
+    <AuthLayout>
+      <h1 className="text-2xl font-bold">Criar nova senha</h1>
+      <p className="mt-2 text-fg-secondary">Escolha uma senha com pelo menos 8 caracteres.</p>
+
+      {tokenMissing ? (
+        <div className="mt-8 flex flex-col gap-4">
+          <Alert tone="danger">O link de recuperação é inválido ou já expirou.</Alert>
+          <Button href="/login/esqueci-a-senha" size="lg" fullWidth>
+            Solicitar novo link
+          </Button>
+          <Button href="/login" variant="ghost" fullWidth iconLeft={ArrowLeft}>
+            Voltar para o login
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
+          <Input
+            id="newPassword"
+            label="Nova senha"
+            type="password"
+            required
+            minLength={8}
+            autoFocus
+            autoComplete="new-password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            error={lengthError}
+            hint="Mínimo 8 caracteres"
           />
-        </Link>
 
-        <p
-          style={{
-            fontSize: "11px",
-            fontWeight: 600,
-            fontFamily: "var(--font-body)",
-            color: "var(--ochre)",
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            marginBottom: "8px",
-          }}
-        >
-          CAPI
-        </p>
+          <Input
+            id="confirmPassword"
+            label="Confirmar nova senha"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            error={mismatchError}
+          />
 
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "24px",
-            fontWeight: 400,
-            color: "var(--stone-900)",
-            lineHeight: 1.2,
-            marginBottom: "28px",
-          }}
-        >
-          Criar nova senha
-        </h1>
-
-        {tokenMissing ? (
-          <>
-            <div role="alert" style={alertStyle}>
-              O link de recuperação é inválido ou já expirou.
-            </div>
-            <p style={{ fontSize: "14px", fontFamily: "var(--font-body)" }}>
-              <Link
-                href="/login/esqueci-a-senha"
-                style={{ color: "var(--ochre)", fontWeight: 600, textDecoration: "none" }}
-              >
-                Solicitar novo link →
-              </Link>
-            </p>
-            <p style={{ marginTop: "16px", fontSize: "14px", fontFamily: "var(--font-body)" }}>
-              <Link
-                href="/login"
-                style={{ color: "var(--ochre)", fontWeight: 600, textDecoration: "none" }}
-              >
-                ← Voltar para o login
-              </Link>
-            </p>
-          </>
-        ) : success ? (
-          <>
-            <p
-              style={{
-                fontSize: "16px",
-                fontFamily: "var(--font-body)",
-                color: "var(--stone-900)",
-                marginBottom: "20px",
-              }}
+          {formError && (
+            <Alert
+              tone="danger"
+              action={
+                <Button href="/login/esqueci-a-senha" variant="link" size="sm">
+                  Solicitar novo link
+                </Button>
+              }
             >
-              Senha redefinida com sucesso.
-            </p>
-            <Link
-              href="/login"
-              style={{ color: "var(--ochre)", fontWeight: 600, textDecoration: "none", fontSize: "14px", fontFamily: "var(--font-body)" }}
-            >
-              Acessar o painel →
-            </Link>
-          </>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            {error && (
-              <div role="alert" aria-live="polite" style={alertStyle}>
-                {error}{" "}
-                <Link
-                  href="/login/esqueci-a-senha"
-                  style={{ color: "#DC2626", fontWeight: 600, textDecoration: "underline" }}
-                >
-                  Solicitar novo link →
-                </Link>
-              </div>
-            )}
+              {formError}
+            </Alert>
+          )}
 
-            <div style={{ marginBottom: "20px" }}>
-              <label htmlFor="newPassword" style={labelStyle}>Nova senha</label>
-              <input
-                id="newPassword"
-                type="password"
-                required
-                minLength={8}
-                autoFocus
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                style={inputStyle}
-                onFocus={(e) => {
-                  e.currentTarget.style.outline = "2px solid var(--ochre)"
-                  e.currentTarget.style.outlineOffset = "2px"
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.outline = "none"
-                }}
-              />
-            </div>
+          <Button type="submit" size="lg" fullWidth loading={loading}>
+            Redefinir senha
+          </Button>
 
-            <div style={{ marginBottom: "20px" }}>
-              <label htmlFor="confirmPassword" style={labelStyle}>Confirmar nova senha</label>
-              <input
-                id="confirmPassword"
-                type="password"
-                required
-                minLength={8}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                style={inputStyle}
-                onFocus={(e) => {
-                  e.currentTarget.style.outline = "2px solid var(--ochre)"
-                  e.currentTarget.style.outlineOffset = "2px"
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.outline = "none"
-                }}
-              />
-            </div>
-
-            <button type="submit" disabled={loading} style={btnStyle(loading)}>
-              {loading ? "Redefinindo…" : "Redefinir senha"}
-            </button>
-
-            <p style={{ marginTop: "20px", fontSize: "14px", fontFamily: "var(--font-body)" }}>
-              <Link
-                href="/login"
-                style={{ color: "var(--ochre)", fontWeight: 600, textDecoration: "none" }}
-              >
-                ← Voltar para o login
-              </Link>
-            </p>
-          </form>
-        )}
-      </div>
-    </main>
+          <Button href="/login" variant="ghost" fullWidth iconLeft={ArrowLeft}>
+            Voltar para o login
+          </Button>
+        </form>
+      )}
+    </AuthLayout>
   )
 }
 

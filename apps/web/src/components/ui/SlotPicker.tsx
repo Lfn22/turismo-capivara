@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { posthog } from '@/src/lib/posthog';
+import { SlotPicker as CapiSlotPicker, type SlotDay, type SlotTime } from '@/src/components/ui/capi';
 
 interface Slot {
   id: string;
@@ -17,90 +19,84 @@ interface SlotPickerProps {
   slug: string;
 }
 
-function formatDate(isoString: string): string {
-  const date = new Date(isoString);
-  return date.toLocaleDateString('pt-BR', {
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-  });
+/** Chave do dia no fuso local (AAAA-MM-DD). */
+function dayKey(isoString: string): string {
+  return new Date(isoString).toLocaleDateString('en-CA');
+}
+
+function stripDot(s: string): string {
+  return s.replace(/\.$/, '');
 }
 
 function formatTime(isoString: string): string {
-  const date = new Date(isoString);
-  return date.toLocaleTimeString('pt-BR', {
+  return new Date(isoString).toLocaleTimeString('pt-BR', {
     hour: '2-digit',
     minute: '2-digit',
   });
 }
 
+/**
+ * Wrapper legado → `SlotPicker` do CAPI v2: datas em faixa com snap e horários com vagas restantes.
+ * Ao escolher o horário, segue para a etapa "Seus dados" (/reservar) como antes.
+ */
 export default function SlotPicker({ slots, packageId, slug }: SlotPickerProps) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const availableSlots = slots.filter((s) => s.status === 'OPEN' && s.booked < s.capacity);
+  const { days, timesByDay } = useMemo(() => {
+    const sorted = slots.filter((s) => s.status === 'OPEN' && s.booked < s.capacity).sort(
+      (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()
+    );
+    const dayList: SlotDay[] = [];
+    const byDay: Record<string, SlotTime[]> = {};
+    for (const slot of sorted) {
+      const key = dayKey(slot.startsAt);
+      if (!byDay[key]) {
+        const d = new Date(slot.startsAt);
+        byDay[key] = [];
+        dayList.push({
+          value: key,
+          weekday: stripDot(d.toLocaleDateString('pt-BR', { weekday: 'short' })),
+          day: d.toLocaleDateString('pt-BR', { day: '2-digit' }),
+          month: stripDot(d.toLocaleDateString('pt-BR', { month: 'short' })),
+        });
+      }
+      byDay[key].push({
+        value: slot.id,
+        label: formatTime(slot.startsAt),
+        spots: slot.capacity - slot.booked,
+      });
+    }
+    return { days: dayList, timesByDay: byDay };
+  }, [slots]);
+
+  const [selectedDay, setSelectedDay] = useState<string | null>(days[0]?.value ?? null);
 
   function handleSelect(slotId: string) {
     setSelectedId(slotId);
+    const slot = slots.find((s) => s.id === slotId);
+    posthog.capture('slot_selected', { packageId, date: slot?.startsAt, slotId });
     router.push(`/${slug}/reservar?slotId=${slotId}&packageId=${packageId}`);
   }
 
-  if (availableSlots.length === 0) {
+  if (days.length === 0) {
     return (
-      <p style={{ color: '#78716c', fontSize: '0.9rem', margin: '1rem 0' }}>
+      <p className="m-0 text-sm text-fg-secondary">
         Nenhuma data disponível no momento.
       </p>
     );
   }
 
   return (
-    <div
-      style={{
-        overflowX: 'auto',
-        display: 'flex',
-        gap: '0.625rem',
-        paddingBottom: '0.5rem',
-        scrollbarWidth: 'thin',
-      }}
-    >
-      {availableSlots.map((slot) => {
-        const isSelected = selectedId === slot.id;
-        const remaining = slot.capacity - slot.booked;
-        return (
-          <button
-            key={slot.id}
-            onClick={() => handleSelect(slot.id)}
-            style={{
-              flexShrink: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '0.625rem 1rem',
-              borderRadius: '10px',
-              border: isSelected ? '2px solid #d97706' : '2px solid #e7e5e4',
-              backgroundColor: isSelected ? '#d97706' : '#ffffff',
-              color: isSelected ? '#ffffff' : '#1c1917',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-              fontWeight: 500,
-              minWidth: '100px',
-              transition: 'all 0.15s',
-            }}
-          >
-            <span style={{ fontWeight: 600 }}>{formatDate(slot.startsAt)}</span>
-            <span style={{ marginTop: '0.2rem', opacity: 0.85 }}>{formatTime(slot.startsAt)}</span>
-            <span
-              style={{
-                marginTop: '0.3rem',
-                fontSize: '0.75rem',
-                opacity: 0.75,
-              }}
-            >
-              {remaining} {remaining === 1 ? 'vaga' : 'vagas'}
-            </span>
-          </button>
-        );
-      })}
-    </div>
+    <CapiSlotPicker
+      days={days}
+      selectedDay={selectedDay}
+      onSelectDay={setSelectedDay}
+      times={selectedDay ? timesByDay[selectedDay] ?? [] : []}
+      selectedTime={selectedId}
+      onSelectTime={handleSelect}
+      dayLabel="Escolha a data"
+      timeLabel="Escolha o horário"
+    />
   );
 }

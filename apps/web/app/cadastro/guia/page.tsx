@@ -1,7 +1,61 @@
 "use client"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { CalendarCheck, Check, Compass, ShieldCheck } from "lucide-react"
+import { Alert, Button, Input } from "@/src/components/ui/capi"
+
+/* ── Layout de acesso (local; candidato a componente do DS) ── */
+const BENEFITS = [
+  { icon: Compass, text: "Roteiros e guias locais num só lugar" },
+  { icon: CalendarCheck, text: "Reservas, agenda e check-in organizados" },
+  { icon: ShieldCheck, text: "Guias e operadoras aprovados pela equipe CAPI" },
+]
+
+function AuthLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid min-h-dvh bg-page lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <aside className="sticky top-0 hidden h-dvh flex-col justify-between gap-12 bg-surface-brand p-12 text-on-brand lg:flex">
+        <Link href="/" className="inline-block self-start rounded-sm">
+          <Image src="/images/logo.png" alt="CAPI" width={120} height={108} className="block brightness-0 invert" />
+        </Link>
+        <div>
+          <p className="font-display text-4xl leading-tight xl:text-5xl">Caminho entre quem explora e quem opera</p>
+          <ul className="mt-10 flex flex-col gap-5">
+            {BENEFITS.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3" style={{ color: "var(--text-on-brand-secondary)" }}>
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full text-on-brand" style={{ background: "var(--terra-700)" }}>
+                  <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+                </span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+      <main className="flex min-w-0 items-center justify-center py-10 lg:py-16">
+        <div className="capi-container capi-container--form">
+          <Link href="/" className="mb-8 inline-block rounded-sm lg:hidden">
+            <Image src="/images/logo.png" alt="CAPI" width={120} height={108} priority className="block in-data-[theme=dark]:brightness-0 in-data-[theme=dark]:invert" />
+          </Link>
+          {children}
+        </div>
+      </main>
+    </div>
+  )
+}
+
+const CPF_ERROR = "CPF deve conter 11 dígitos numéricos."
+const CADASTUR_ERROR = "Número CADASTUR é obrigatório."
+
+function FormSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <fieldset className="flex min-w-0 flex-col gap-5 border-0">
+      <legend className="mb-4 text-base font-bold">{title}</legend>
+      {children}
+    </fieldset>
+  )
+}
 
 export default function CadastroGuiaIndependentePage() {
   const [name, setName] = useState("")
@@ -23,11 +77,11 @@ export default function CadastroGuiaIndependentePage() {
 
     const cpfDigits = cpf.replace(/\D/g, "")
     if (cpfDigits.length !== 11) {
-      setError("CPF deve conter 11 dígitos numéricos.")
+      setError(CPF_ERROR)
       return
     }
     if (!cadastur.trim()) {
-      setError("Número CADASTUR é obrigatório.")
+      setError(CADASTUR_ERROR)
       return
     }
 
@@ -57,147 +111,121 @@ export default function CadastroGuiaIndependentePage() {
     }
   }
 
-  const cardStyle: React.CSSProperties = {
-    background: "white",
-    border: "1px solid var(--stone-200)",
-    borderRadius: "8px",
-    padding: "clamp(32px, 5vw, 48px) clamp(24px, 5vw, 40px)",
-    width: "100%",
-    maxWidth: "480px",
-  }
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "10px 12px",
-    border: "1px solid var(--stone-300)",
-    borderRadius: "4px",
-    fontSize: "16px",
-    color: "var(--stone-800)",
-    background: "white",
-    boxSizing: "border-box",
-  }
-
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    fontSize: "14px",
-    fontWeight: 600,
-    color: "var(--stone-700)",
-    marginBottom: "6px",
-  }
+  // Erros de validação local vão para o campo; o resto (API, conexão) fica no Alert.
+  const cpfError = error === CPF_ERROR ? error : null
+  const cadasturError = error === CADASTUR_ERROR ? error : null
+  const formError = cpfError || cadasturError ? null : error
 
   if (success) {
     return (
-      <main style={{ minHeight: "100dvh", background: "var(--stone-50)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
-        <div style={{ ...cardStyle, textAlign: "center" }}>
-          <p style={{ fontSize: "40px", marginBottom: "16px" }}>✅</p>
-          <h1 style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "clamp(22px, 4vw, 28px)", color: "var(--stone-900)", marginBottom: "12px" }}>
-            Cadastro enviado!
-          </h1>
-          <p style={{ fontSize: "15px", color: "var(--stone-600)", marginBottom: "24px", lineHeight: 1.6 }}>
-            Seu cadastro foi recebido e está aguardando análise. Você receberá um e-mail quando for aprovado.
-          </p>
-          <Link href="/explorar" style={{ color: "var(--ochre)", fontWeight: 600, textDecoration: "none" }}>
-            Voltar para o início
-          </Link>
+      <AuthLayout>
+        <div className="flex flex-col items-center text-center">
+          <span className="flex size-16 items-center justify-center rounded-full bg-success-subtle text-success">
+            <Check size={32} strokeWidth={1.75} aria-hidden="true" />
+          </span>
+          <h1 className="mt-6 text-2xl font-bold">Cadastro enviado!</h1>
         </div>
-      </main>
+        <Alert tone="warning" title="Aguardando aprovação" className="mt-6">
+          Seu cadastro foi recebido e está aguardando análise. Você receberá um e-mail quando for aprovado.
+        </Alert>
+        <Button href="/explorar" size="lg" fullWidth className="mt-8">
+          Explorar roteiros
+        </Button>
+      </AuthLayout>
     )
   }
 
   return (
-    <main style={{ minHeight: "100dvh", background: "var(--stone-50)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}>
-      <div style={cardStyle}>
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <Link href="/" style={{ display: "inline-block", marginBottom: "20px" }}>
-            <Image src="/images/logo.png" alt="CAPI" width={64} height={58} style={{ display: "block" }} />
-          </Link>
-          <h1 style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "clamp(22px, 4vw, 28px)", color: "var(--stone-900)", margin: "0 0 8px" }}>
-            Cadastro de Guia
-          </h1>
-          <p style={{ fontSize: "14px", color: "var(--stone-500)", margin: 0 }}>
-            Sem vínculo com operadora · Aprovação pelo administrador
-          </p>
+    <AuthLayout>
+      <h1 className="text-2xl font-bold">Cadastro de guia</h1>
+      <p className="mt-2 text-fg-secondary">
+        Sem vínculo com operadora · Aprovação pelo administrador
+      </p>
+
+      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-8">
+        <FormSection title="Seus dados">
+          <Input
+            id="name"
+            label="Nome completo"
+            type="text"
+            required
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Input
+            id="email"
+            label="E-mail"
+            type="email"
+            inputMode="email"
+            required
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Input
+            id="cpf"
+            label="CPF"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            required
+            placeholder="Somente números"
+            value={cpf}
+            onChange={(e) => setCpf(formatCpf(e.target.value))}
+            error={cpfError}
+          />
+        </FormSection>
+
+        <FormSection title="Registro profissional">
+          <Input
+            id="cadastur"
+            label="Número CADASTUR"
+            type="text"
+            required
+            autoComplete="off"
+            autoCapitalize="characters"
+            placeholder="Ex: MT-012345/2024"
+            value={cadastur}
+            onChange={(e) => setCadastur(e.target.value)}
+            error={cadasturError}
+            hint="Registro no Cadastro dos Prestadores de Serviços Turísticos (CADASTUR/MTur)"
+          />
+        </FormSection>
+
+        <FormSection title="Acesso">
+          <Input
+            id="password"
+            label="Senha"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            hint="Mínimo 8 caracteres"
+          />
+        </FormSection>
+
+        <div className="flex flex-col gap-4">
+          {formError && <Alert tone="danger">{formError}</Alert>}
+          <Button type="submit" size="lg" fullWidth loading={loading}>
+            Enviar cadastro
+          </Button>
         </div>
+      </form>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div>
-            <label htmlFor="name" style={labelStyle}>Nome completo</label>
-            <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required style={inputStyle} autoComplete="name" />
-          </div>
-
-          <div>
-            <label htmlFor="email" style={labelStyle}>E-mail</label>
-            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} autoComplete="email" />
-          </div>
-
-          <div>
-            <label htmlFor="cpf" style={labelStyle}>CPF</label>
-            <input
-              id="cpf"
-              type="text"
-              inputMode="numeric"
-              value={cpf}
-              onChange={(e) => setCpf(formatCpf(e.target.value))}
-              placeholder="Somente números"
-              required
-              style={inputStyle}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="cadastur" style={labelStyle}>Número CADASTUR</label>
-            <input
-              id="cadastur"
-              type="text"
-              value={cadastur}
-              onChange={(e) => setCadastur(e.target.value)}
-              placeholder="Ex: MT-012345/2024"
-              required
-              style={inputStyle}
-            />
-            <p style={{ fontSize: "13px", color: "var(--stone-400)", marginTop: "4px" }}>
-              Registro no Cadastro dos Prestadores de Serviços Turísticos (CADASTUR/MTur)
-            </p>
-          </div>
-
-          <div>
-            <label htmlFor="password" style={labelStyle}>Senha</label>
-            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} style={inputStyle} autoComplete="new-password" />
-            <p style={{ fontSize: "13px", color: "var(--stone-400)", marginTop: "4px" }}>Mínimo 8 caracteres</p>
-          </div>
-
-          {error && (
-            <p role="alert" style={{ fontSize: "14px", color: "#DC2626", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "4px", padding: "10px 12px", margin: 0 }}>
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              background: loading ? "var(--stone-400)" : "var(--stone-900)",
-              color: "white",
-              padding: "12px 16px",
-              borderRadius: "4px",
-              fontSize: "15px",
-              fontWeight: 600,
-              border: "none",
-              cursor: loading ? "not-allowed" : "pointer",
-              minHeight: "48px",
-            }}
-          >
-            {loading ? "Enviando..." : "Enviar Cadastro"}
-          </button>
-
-          <p style={{ textAlign: "center", fontSize: "14px", color: "var(--stone-500)", margin: 0 }}>
-            Já tem conta?{" "}
-            <Link href="/auth/login" style={{ color: "var(--ochre)", fontWeight: 600, textDecoration: "none" }}>
-              Entrar
-            </Link>
-          </p>
-        </form>
-      </div>
-    </main>
+      <p className="mt-6 text-center text-sm text-fg-secondary">
+        Já tem conta?{" "}
+        <Link
+          href="/login"
+          className="inline-flex min-h-11 items-center font-semibold text-fg-primary underline-offset-4 hover:underline"
+        >
+          Entrar
+        </Link>
+      </p>
+    </AuthLayout>
   )
 }

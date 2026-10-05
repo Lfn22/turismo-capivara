@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { IconButton } from '@/src/components/ui/capi'
 
 interface Props {
   photos: string[]
@@ -32,88 +34,85 @@ export function PortfolioLightbox({ photos, guideName }: Props) {
       <style>{`
         .portfolio-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-          gap: 12px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: var(--space-2);
+        }
+        @media (min-width: 640px) {
+          .portfolio-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-3); }
         }
         .portfolio-btn {
-          all: unset;
-          cursor: pointer;
           display: block;
           position: relative;
+          width: 100%;
+          padding: 0;
+          border: 0;
+          background: var(--bg-muted);
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          cursor: pointer;
         }
+        .portfolio-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
         .portfolio-img {
           width: 100%;
-          aspect-ratio: 1/1;
+          height: auto;
+          aspect-ratio: 1 / 1;
           object-fit: cover;
-          border-radius: 6px;
-          transition: opacity 0.15s;
           display: block;
+          transition: transform .5s cubic-bezier(.16, 1, .3, 1);
         }
-        .portfolio-btn:hover .portfolio-img { opacity: 0.85; }
+        .portfolio-btn:hover .portfolio-img { transform: scale(1.04); }
         .lightbox {
           position: fixed;
           inset: 0;
-          z-index: 9999;
-          background: rgba(0,0,0,0.92);
+          z-index: var(--z-overlay);
+          background: var(--overlay);
+          -webkit-backdrop-filter: blur(6px);
+          backdrop-filter: blur(6px);
           display: flex;
           align-items: center;
           justify-content: center;
+          padding: var(--space-4);
         }
         .lightbox__content {
           position: relative;
-          width: min(90vw, 88vh);
+          width: min(92vw, 84dvh);
           max-width: 1000px;
-          max-height: 1000px;
-          aspect-ratio: 1/1;
+          aspect-ratio: 1 / 1;
         }
         .lightbox__close {
           position: fixed;
-          top: 20px;
-          right: 20px;
-          background: rgba(255,255,255,0.15);
-          border: none;
-          color: #fff;
-          font-size: 24px;
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          line-height: 1;
+          top: calc(var(--space-4) + env(safe-area-inset-top, 0px));
+          right: var(--space-4);
         }
-        .lightbox__close:hover { background: rgba(255,255,255,0.25); }
         .lightbox__nav {
           position: fixed;
           top: 50%;
           transform: translateY(-50%);
-          background: rgba(255,255,255,0.15);
-          border: none;
-          color: #fff;
-          font-size: 28px;
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
-        .lightbox__nav:hover { background: rgba(255,255,255,0.25); }
-        .lightbox__nav--prev { left: 20px; }
-        .lightbox__nav--next { right: 20px; }
+        .lightbox__nav--prev { left: var(--space-4); }
+        .lightbox__nav--next { right: var(--space-4); }
+        @media (max-width: 639px) {
+          .lightbox__nav { top: auto; bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px)); transform: none; }
+        }
         .lightbox__counter {
           position: fixed;
-          bottom: 24px;
+          bottom: calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
           left: 50%;
           transform: translateX(-50%);
-          color: rgba(255,255,255,0.7);
+          display: inline-flex;
+          align-items: center;
+          min-height: 32px;
+          padding: 0 var(--space-3);
+          border-radius: var(--radius-pill);
+          background: var(--glass);
+          color: var(--text);
           font-size: 14px;
-          font-weight: 500;
+          font-weight: 600;
+          font-variant-numeric: tabular-nums;
         }
-        @media (max-width: 480px) {
-          .portfolio-grid { grid-template-columns: repeat(2, 1fr); }
+        @media (prefers-reduced-motion: reduce) {
+          .portfolio-img { transition: none; }
+          .portfolio-btn:hover .portfolio-img { transform: none; }
         }
       `}</style>
 
@@ -121,6 +120,7 @@ export function PortfolioLightbox({ photos, guideName }: Props) {
         {photos.map((url, i) => (
           <button
             key={url}
+            type="button"
             className="portfolio-btn"
             onClick={() => { setIndex(i); setOpen(true) }}
             aria-label={`Abrir foto ${i + 1} do portfólio de ${guideName}`}
@@ -150,17 +150,29 @@ export function PortfolioLightbox({ photos, guideName }: Props) {
               alt={`Foto ${index + 1} de ${photos.length} — ${guideName}`}
               fill
               style={{ objectFit: 'contain' }}
-              sizes="min(90vw, 1000px)"
+              sizes="min(92vw, 1000px)"
             />
           </div>
 
-          <button className="lightbox__close" onClick={close} aria-label="Fechar">✕</button>
+          <IconButton icon={X} label="Fechar" variant="glass" className="lightbox__close" onClick={close} />
 
           {photos.length > 1 && (
             <>
-              <button className="lightbox__nav lightbox__nav--prev" onClick={prev} aria-label="Foto anterior">‹</button>
-              <button className="lightbox__nav lightbox__nav--next" onClick={next} aria-label="Próxima foto">›</button>
-              <div className="lightbox__counter">{index + 1} / {photos.length}</div>
+              <IconButton
+                icon={ChevronLeft}
+                label="Foto anterior"
+                variant="glass"
+                className="lightbox__nav lightbox__nav--prev"
+                onClick={prev}
+              />
+              <IconButton
+                icon={ChevronRight}
+                label="Próxima foto"
+                variant="glass"
+                className="lightbox__nav lightbox__nav--next"
+                onClick={next}
+              />
+              <div className="lightbox__counter" aria-live="polite">{index + 1} / {photos.length}</div>
             </>
           )}
         </div>

@@ -23,16 +23,9 @@ export default async function PublicLayout({
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '100vh',
-        backgroundColor: '#fafaf9',
-      }}
-    >
+    <div className="flex flex-col bg-page text-fg" style={{ minHeight: '100dvh' }}>
       <PublicNav tenantName={tenantName} slug={slug} />
-      <main style={{ flex: 1 }}>{children}</main>
+      <main className="flex-1">{children}</main>
     </div>
   )
 }

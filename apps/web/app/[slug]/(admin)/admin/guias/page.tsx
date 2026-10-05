@@ -1,6 +1,20 @@
 "use client"
-import { use, useState, useEffect } from "react"
-import { Modal } from "@/components/ui/Modal"
+import { use, useState, useEffect, useCallback, type ReactNode } from "react"
+import { Check, Copy, Eye, RotateCw, Users, X } from "lucide-react"
+import {
+  Alert,
+  Avatar,
+  Badge,
+  Button,
+  EmptyState,
+  ListGroup,
+  Modal,
+  PageHeader,
+  Skeleton,
+  StatusBadge,
+  Tabs,
+  Textarea,
+} from "@/src/components/ui/capi"
 
 function CopyLinkBanner({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false)
@@ -16,45 +30,88 @@ function CopyLinkBanner({ slug }: { slug: string }) {
   }
 
   return (
-    <div
-      style={{
-        background: "#FFFBEB",
-        border: "1px solid #FDE68A",
-        borderRadius: "8px",
-        padding: "16px 20px",
-        marginBottom: "24px",
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        gap: "12px",
-      }}
+    <Alert
+      tone="brand"
+      title="Link de cadastro para guias"
+      className="mb-6"
+      action={
+        <Button
+          variant={copied ? "secondary" : "primary"}
+          size="sm"
+          iconLeft={copied ? Check : Copy}
+          onClick={handleCopy}
+          aria-live="polite"
+        >
+          {copied ? "Link copiado" : "Copiar link"}
+        </Button>
+      }
     >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: "12px", fontWeight: 600, color: "#92400E", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-          Link de cadastro para guias
-        </p>
-        <p style={{ fontSize: "13px", color: "#78350F", margin: 0, wordBreak: "break-all" }}>
-          {link}
-        </p>
+      <p className="m-0 mb-1">Envie este link para os guias se cadastrarem na sua operadora.</p>
+      <p className="m-0 font-semibold text-fg" style={{ wordBreak: "break-all" }}>{link}</p>
+    </Alert>
+  )
+}
+
+type StatusFilter = "ALL" | "PENDING" | "APPROVED" | "REJECTED"
+
+/** Linha da fila de aprovação: avatar, dados e ações; ações descem para a linha de baixo no mobile. */
+function QueueRow({
+  lead,
+  title,
+  subtitle,
+  meta,
+  note,
+  status,
+  actions,
+  busy,
+}: {
+  lead: ReactNode
+  title: ReactNode
+  subtitle?: ReactNode
+  meta?: ReactNode
+  note?: ReactNode
+  status: ReactNode
+  actions?: ReactNode
+  busy?: boolean
+}) {
+  return (
+    <div
+      className="capi-row flex-wrap lg:flex-nowrap"
+      style={{ opacity: busy ? 0.6 : 1, transition: "opacity .15s ease" }}
+      aria-busy={busy || undefined}
+    >
+      <div className="capi-row__lead">{lead}</div>
+      <div className="capi-row__main">
+        <p className="capi-row__title">{title}</p>
+        {subtitle ? <p className="capi-row__sub">{subtitle}</p> : null}
+        {meta ? <p className="capi-row__sub">{meta}</p> : null}
+        {note ? <p className="mt-1 text-[13px] text-danger">{note}</p> : null}
       </div>
-      <button
-        onClick={handleCopy}
-        style={{
-          padding: "8px 16px",
-          background: copied ? "#15803D" : "var(--ochre)",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-          fontSize: "13px",
-          fontWeight: 600,
-          cursor: "pointer",
-          whiteSpace: "nowrap",
-          minHeight: "36px",
-        }}
-      >
-        {copied ? "Copiado!" : "Copiar link"}
-      </button>
+      <div className="flex w-full flex-wrap items-center justify-between gap-2 lg:w-auto lg:flex-nowrap lg:justify-end">
+        {status}
+        {actions ? <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div> : null}
+      </div>
     </div>
+  )
+}
+
+function DetailItem({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <dt className="text-[13px] text-fg-secondary">{label}</dt>
+      <dd className="m-0 text-[15px] font-medium text-fg break-words">{children}</dd>
+    </div>
+  )
+}
+
+function TagList({ items }: { items: string[] | undefined }) {
+  if (!items || items.length === 0) return <>—</>
+  return (
+    <span className="mt-1 flex flex-wrap gap-1">
+      {items.map((t) => (
+        <Badge key={t}>{t}</Badge>
+      ))}
+    </span>
   )
 }
 
@@ -74,13 +131,6 @@ interface Guide {
   user: GuideUser
 }
 
-
-const GUIDE_STATUS: Record<string, { label: string; bg: string; color: string }> = {
-  PENDING: { label: "Aguardando", bg: "#FEF9EC", color: "#B45309" },
-  APPROVED: { label: "Aprovado", bg: "#F0FDF4", color: "#15803D" },
-  REJECTED: { label: "Rejeitado", bg: "#FEF2F2", color: "#DC2626" },
-}
-
 export default function AdminGuiasPage({
   params,
 }: {
@@ -98,6 +148,16 @@ export default function AdminGuiasPage({
   const [rejectReason, setRejectReason] = useState("")
   const [rejectError, setRejectError] = useState<string | null>(null)
   const [rejectSubmitting, setRejectSubmitting] = useState(false)
+
+  // Só apresentação: filtro por status e guia aberto em "Revisar" (dados já carregados)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL")
+  const [reviewGuide, setReviewGuide] = useState<Guide | null>(null)
+  const closeReview = useCallback(() => setReviewGuide(null), [])
+  const closeReject = useCallback(() => {
+    setRejectGuide(null)
+    setRejectReason("")
+    setRejectError(null)
+  }, [])
 
   function loadGuides() {
     setLoading(true)
@@ -203,345 +263,254 @@ export default function AdminGuiasPage({
   const others = guides.filter(
     (g) => g.user.approvalStatus !== "PENDING"
   )
+  const ordered = [...pending, ...others]
+  const visible =
+    statusFilter === "ALL"
+      ? ordered
+      : ordered.filter((g) => g.user.approvalStatus === statusFilter)
+  const countOf = (s: GuideUser["approvalStatus"]) =>
+    guides.filter((g) => g.user.approvalStatus === s).length
+
+  const tabs = [
+    { value: "ALL", label: "Todos", count: guides.length },
+    { value: "PENDING", label: "Em análise", count: countOf("PENDING") },
+    { value: "APPROVED", label: "Aprovados", count: countOf("APPROVED") },
+    { value: "REJECTED", label: "Rejeitados", count: countOf("REJECTED") },
+  ]
+
+  function openReject(guide: Guide) {
+    setRejectGuide(guide)
+    setRejectReason("")
+    setRejectError(null)
+  }
 
   return (
     <>
-      <div style={{ marginBottom: "32px" }}>
-        <p
-          style={{
-            fontSize: "11px",
-            color: "var(--ochre)",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            marginBottom: "8px",
-          }}
-        >
-          Admin
-        </p>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "24px",
-            color: "var(--stone-900)",
-            lineHeight: 1.2,
-            margin: 0,
-          }}
-        >
-          Aprovação de Guias
-        </h1>
-      </div>
+      <PageHeader
+        eyebrow="Equipe"
+        title="Aprovação de guias"
+        description="Revise os guias que se cadastraram na sua operadora. Só guias aprovados aparecem para os turistas."
+      />
 
       <CopyLinkBanner slug={slug} />
 
+      {!loading && !loadError && guides.length > 0 ? (
+        <Tabs
+          items={tabs}
+          value={statusFilter}
+          onChange={(v) => setStatusFilter(v as StatusFilter)}
+          label="Filtrar guias por status"
+          className="mb-6"
+        />
+      ) : null}
+
       {actionError && (
-        <p
-          role="alert"
-          style={{
-            fontSize: "14px",
-            color: "#DC2626",
-            marginBottom: "16px",
-            padding: "8px 12px",
-            background: "#FEF2F2",
-            borderRadius: "4px",
-          }}
-        >
+        <Alert tone="danger" className="mb-4">
           {actionError}
-        </p>
+        </Alert>
       )}
 
-      <div
-        style={{
-          background: "white",
-          border: "1px solid var(--stone-200)",
-          borderRadius: "8px",
-          overflow: "hidden",
-        }}
-      >
-        {loading ? (
-          <div style={{ padding: "24px" }}>
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  height: "52px",
-                  marginBottom: "8px",
-                  borderRadius: "4px",
-                  background:
-                    "linear-gradient(90deg, var(--stone-100) 25%, var(--stone-200) 50%, var(--stone-100) 75%)",
-                  backgroundSize: "200%",
-                  animation: "shimmer 1.5s infinite",
-                }}
-              />
-            ))}
-          </div>
-        ) : loadError ? (
-          <p
-            style={{
-              textAlign: "center",
-              padding: "48px 24px",
-              fontSize: "16px",
-              color: "var(--stone-500)",
-              margin: 0,
-            }}
-          >
-            Erro ao carregar dados. Tente novamente.
-          </p>
-        ) : guides.length === 0 ? (
-          <p
-            style={{
-              textAlign: "center",
-              padding: "48px 24px",
-              fontSize: "16px",
-              color: "var(--stone-500)",
-              margin: 0,
-            }}
-          >
-            Nenhum guia cadastrado ainda.
-          </p>
-        ) : (
-          <table
-            style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}
-          >
-            <thead>
-              <tr style={{ background: "var(--stone-100)" }}>
-                {["Nome", "Email", "Especialidades", "Status", "Ações"].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "12px 16px",
-                        textAlign: "left",
-                        fontWeight: 600,
-                        color: "var(--stone-700)",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  )
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {[...pending, ...others].map((guide, i) => {
-                const st =
-                  GUIDE_STATUS[guide.user.approvalStatus] ??
-                  GUIDE_STATUS.PENDING
-                const isActing = actionLoading === guide.id
-                return (
-                  <tr
-                    key={guide.id}
-                    style={{
-                      background: i % 2 === 0 ? "white" : "var(--stone-50)",
-                      borderBottom: "1px solid var(--stone-200)",
-                    }}
-                  >
-                    <td style={{ padding: "12px 16px", fontWeight: 600 }}>
-                      {guide.user.name}
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      {guide.user.email}
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px 16px",
-                        color: "var(--stone-500)",
-                        fontSize: "13px",
-                      }}
-                    >
-                      {guide.especialidades?.slice(0, 3).join(", ") || "—"}
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <span
-                        style={{
-                          padding: "4px 8px",
-                          borderRadius: "4px",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          background: st.bg,
-                          color: st.color,
-                          letterSpacing: "0.06em",
-                          textTransform: "uppercase",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {st.label}
-                      </span>
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      {guide.user.approvalStatus === "PENDING" && (
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <button
-                            onClick={() => handleApprove(guide)}
-                            disabled={isActing}
-                            aria-label={`Aprovar guia ${guide.user.name}`}
-                            style={{
-                              background: "var(--ochre)",
-                              color: "white",
-                              padding: "6px 12px",
-                              borderRadius: "4px",
-                              fontSize: "13px",
-                              fontWeight: 600,
-                              letterSpacing: "0.04em",
-                              textTransform: "uppercase",
-                              border: "none",
-                              cursor: isActing ? "not-allowed" : "pointer",
-                              opacity: isActing ? 0.7 : 1,
-                              minHeight: "40px",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {isActing ? "..." : "Aprovar Guia"}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setRejectGuide(guide)
-                              setRejectReason("")
-                              setRejectError(null)
-                            }}
-                            disabled={isActing}
-                            aria-label={`Rejeitar guia ${guide.user.name}`}
-                            style={{
-                              background: "#DC2626",
-                              color: "white",
-                              padding: "6px 12px",
-                              borderRadius: "4px",
-                              fontSize: "13px",
-                              fontWeight: 600,
-                              border: "none",
-                              cursor: isActing ? "not-allowed" : "pointer",
-                              opacity: isActing ? 0.7 : 1,
-                              minHeight: "40px",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            Rejeitar Guia
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Rejection Modal */}
-      <Modal
-        open={!!rejectGuide}
-        onClose={() => {
-          setRejectGuide(null)
-          setRejectReason("")
-          setRejectError(null)
-        }}
-        title="Rejeitar Guia"
-        titleId="reject-modal-title"
-      >
-        <p
-          style={{
-            fontSize: "16px",
-            color: "var(--stone-700)",
-            marginBottom: "16px",
-          }}
-        >
-          Informe o motivo da rejeição. O guia poderá ver esta mensagem.
-        </p>
-
-        <div style={{ marginBottom: "16px" }}>
-          <label
-            htmlFor="reject-reason"
-            style={{
-              display: "block",
-              fontSize: "14px",
-              color: "var(--stone-700)",
-              marginBottom: "4px",
-              fontWeight: 600,
-            }}
-          >
-            Motivo
-          </label>
-          <textarea
-            id="reject-reason"
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            rows={4}
-            placeholder="Descreva o motivo..."
-            autoFocus
-            aria-describedby={rejectError ? "reject-error" : undefined}
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              border: `1px solid ${rejectError ? "#DC2626" : "var(--stone-300)"}`,
-              borderRadius: "4px",
-              fontSize: "16px",
-              color: "var(--stone-800)",
-              background: "white",
-              resize: "vertical",
-              minHeight: "96px",
-              fontFamily: "inherit",
-              boxSizing: "border-box",
-            }}
+      {loading ? (
+        <ListGroup>
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="capi-row" aria-hidden="true">
+              <Skeleton width={48} height={48} radius={24} />
+              <div className="capi-row__main flex flex-col gap-2">
+                <Skeleton width="40%" height={14} />
+                <Skeleton width="55%" height={12} />
+              </div>
+            </div>
+          ))}
+        </ListGroup>
+      ) : loadError ? (
+        <Alert
+          tone="danger"
+          title="Erro ao carregar dados. Tente novamente."
+          action={
+            <Button variant="secondary" size="sm" iconLeft={RotateCw} onClick={loadGuides}>
+              Tentar novamente
+            </Button>
+          }
+        />
+      ) : guides.length === 0 ? (
+        <ListGroup>
+          <EmptyState
+            icon={Users}
+            title="Nenhum guia cadastrado ainda."
+            description="Compartilhe o link de cadastro acima para os guias da sua região entrarem na equipe."
           />
-          {rejectError && (
-            <p
-              id="reject-error"
-              style={{ fontSize: "14px", color: "#DC2626", marginTop: "4px" }}
-            >
-              {rejectError}
-            </p>
-          )}
-        </div>
+        </ListGroup>
+      ) : visible.length === 0 ? (
+        <ListGroup>
+          <EmptyState
+            compact
+            icon={Users}
+            title={
+              statusFilter === "PENDING"
+                ? "Nenhum guia aguardando aprovação."
+                : statusFilter === "APPROVED"
+                  ? "Nenhum guia aprovado ainda."
+                  : "Nenhum guia rejeitado."
+            }
+          />
+        </ListGroup>
+      ) : (
+        <ListGroup>
+          {visible.map((guide) => {
+            const isActing = actionLoading === guide.id
+            const specialties = guide.especialidades?.slice(0, 3).join(", ")
+            return (
+              <QueueRow
+                key={guide.id}
+                busy={isActing}
+                lead={<Avatar name={guide.user.name} size={48} />}
+                title={guide.user.name}
+                subtitle={guide.user.email}
+                meta={specialties || undefined}
+                note={
+                  guide.user.approvalStatus === "REJECTED" && guide.user.rejectionReason
+                    ? `Motivo: ${guide.user.rejectionReason}`
+                    : null
+                }
+                status={<StatusBadge kind="approval" status={guide.user.approvalStatus} />}
+                actions={
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      iconLeft={Eye}
+                      onClick={() => setReviewGuide(guide)}
+                      aria-label={`Revisar guia ${guide.user.name}`}
+                    >
+                      Revisar
+                    </Button>
+                    {guide.user.approvalStatus === "PENDING" && (
+                      <>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => openReject(guide)}
+                          disabled={isActing}
+                          aria-label={`Rejeitar guia ${guide.user.name}`}
+                        >
+                          Rejeitar
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          iconLeft={Check}
+                          onClick={() => handleApprove(guide)}
+                          loading={isActing}
+                          aria-label={`Aprovar guia ${guide.user.name}`}
+                        >
+                          Aprovar
+                        </Button>
+                      </>
+                    )}
+                  </>
+                }
+              />
+            )
+          })}
+        </ListGroup>
+      )}
 
-        <div
-          style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setRejectGuide(null)
-              setRejectReason("")
-              setRejectError(null)
-            }}
-            style={{
-              padding: "8px 20px",
-              borderRadius: "4px",
-              fontSize: "14px",
-              fontWeight: 600,
-              background: "transparent",
-              color: "var(--stone-700)",
-              border: "1px solid var(--stone-300)",
-              cursor: "pointer",
-            }}
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={handleRejectConfirm}
-            disabled={rejectSubmitting}
-            style={{
-              background: rejectSubmitting ? "var(--stone-400)" : "#DC2626",
-              color: "white",
-              padding: "8px 20px",
-              borderRadius: "4px",
-              fontSize: "14px",
-              fontWeight: 600,
-              border: "none",
-              cursor: rejectSubmitting ? "not-allowed" : "pointer",
-            }}
-          >
-            {rejectSubmitting ? "Rejeitando..." : "Confirmar Rejeição"}
-          </button>
-        </div>
+      {/* Revisar: perfil do guia já carregado */}
+      <Modal
+        open={!!reviewGuide}
+        onClose={closeReview}
+        title={reviewGuide?.user.name ?? "Guia"}
+        description={reviewGuide?.user.email}
+        footer={
+          reviewGuide?.user.approvalStatus === "PENDING" ? (
+            <>
+              <Button
+                variant="secondary"
+                iconLeft={X}
+                onClick={() => {
+                  const target = reviewGuide
+                  setReviewGuide(null)
+                  if (target) openReject(target)
+                }}
+              >
+                Rejeitar
+              </Button>
+              <Button
+                variant="primary"
+                iconLeft={Check}
+                onClick={() => {
+                  const target = reviewGuide
+                  setReviewGuide(null)
+                  if (target) handleApprove(target)
+                }}
+              >
+                Aprovar guia
+              </Button>
+            </>
+          ) : (
+            <Button variant="secondary" onClick={closeReview}>
+              Fechar
+            </Button>
+          )
+        }
+      >
+        {reviewGuide ? (
+          <div className="flex flex-col gap-5">
+            <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <DetailItem label="Status">
+                <StatusBadge kind="approval" status={reviewGuide.user.approvalStatus} />
+              </DetailItem>
+              <DetailItem label="E-mail">{reviewGuide.user.email}</DetailItem>
+              <DetailItem label="Especialidades">
+                <TagList items={reviewGuide.especialidades} />
+              </DetailItem>
+              <DetailItem label="Regiões">
+                <TagList items={reviewGuide.regioes} />
+              </DetailItem>
+            </dl>
+            {reviewGuide.bio ? (
+              <div>
+                <p className="m-0 text-[13px] text-fg-secondary">Sobre</p>
+                <p className="m-0 mt-1 text-[15px] leading-relaxed text-fg whitespace-pre-line">{reviewGuide.bio}</p>
+              </div>
+            ) : null}
+            {reviewGuide.user.approvalStatus === "REJECTED" && reviewGuide.user.rejectionReason ? (
+              <Alert tone="danger" title="Motivo da rejeição">
+                {reviewGuide.user.rejectionReason}
+              </Alert>
+            ) : null}
+          </div>
+        ) : null}
       </Modal>
 
-      <style>{`
-        @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
+      {/* Rejeição com motivo obrigatório */}
+      <Modal
+        open={!!rejectGuide}
+        onClose={closeReject}
+        title="Rejeitar guia"
+        description="Informe o motivo da rejeição. O guia poderá ver esta mensagem."
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeReject}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleRejectConfirm} loading={rejectSubmitting}>
+              {rejectSubmitting ? "Rejeitando..." : "Rejeitar guia"}
+            </Button>
+          </>
         }
-      `}</style>
+      >
+        <Textarea
+          id="reject-reason"
+          label="Motivo"
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          rows={4}
+          placeholder="Ex.: faltou enviar o certificado de condutor."
+          autoFocus
+          error={rejectError}
+        />
+      </Modal>
     </>
   )
 }

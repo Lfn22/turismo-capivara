@@ -4,6 +4,8 @@ import { MercadoPagoConfig, Payment } from 'mercadopago'
 import prisma from '../../database'
 import { getResend, getEmailFrom } from '../../shared/email'
 import { bookingConfirmedEmailText, bookingConfirmedSubject } from '../bookings/emails/booking-confirmed-email'
+import { auditLog } from '../../shared/audit.js'
+import { bookingsConfirmedCounter } from '../../shared/metrics.js'
 
 
 function validateMpSignature(
@@ -123,6 +125,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
       const booking = await prisma.booking.findFirst({
         where: { id: externalReference },
         include: {
+          tenant: { select: { slug: true } },
           slot: {
             include: {
               package: {
@@ -150,10 +153,16 @@ export async function webhooksRoutes(app: FastifyInstance) {
       // 8. Transition based on authoritative payment status from MP API
       if (status === 'approved') {
         // PENDING → CONFIRMED (idempotent: only transitions if still PENDING)
-        await prisma.booking.updateMany({
+        const confirmResult = await prisma.booking.updateMany({
           where: { id: booking.id, status: 'PENDING' },
           data: { status: 'CONFIRMED' },
         })
+
+        if (confirmResult.count > 0) {
+          bookingsConfirmedCounter.add(1, { tenant: booking.tenant?.slug ?? 'unknown' })
+        }
+
+        auditLog(prisma, { actorType: 'SYSTEM', action: 'booking.confirmed', targetType: 'BOOKING', targetId: booking.id, metadata: { paymentId } })
 
         // NOTIF-02: Notify customer of confirmed booking (fire-and-forget, D-12)
         const resend = getResend()
@@ -184,19 +193,24 @@ export async function webhooksRoutes(app: FastifyInstance) {
             data: { status: 'EXPIRED' },
           })
 
-          const currentSlot = await tx.departureSlot.findUnique({ where: { id: booking.slotId } })
-          const newBooked = Math.max(0, (currentSlot?.booked ?? booking.pax) - booking.pax)
-          // Atomic decrement with where guard: never decrement below 0
-          await tx.departureSlot.updateMany({
-            where: { id: booking.slotId, booked: { gt: 0 } },
+          // Atomic decrement — avoids snapshot-read race condition
+          await tx.departureSlot.update({
+            where: { id: booking.slotId },
             data: {
               booked: { decrement: booking.pax },
-              // Only recalculate status for OPEN/FULL slots — preserve CANCELLED/COMPLETED
-              ...(currentSlot?.status !== 'CANCELLED' && currentSlot?.status !== 'COMPLETED'
-                ? { status: newBooked < (currentSlot?.capacity ?? 1) ? 'OPEN' : 'FULL' }
-                : {}),
             },
           })
+
+          // Re-read slot to recalculate status after atomic decrement
+          const updatedSlot = await tx.departureSlot.findUnique({ where: { id: booking.slotId } })
+          if (updatedSlot && updatedSlot.status !== 'CANCELLED' && updatedSlot.status !== 'COMPLETED') {
+            const correctedBooked = Math.max(0, updatedSlot.booked)
+            const newStatus = correctedBooked < updatedSlot.capacity ? 'OPEN' : 'FULL'
+            await tx.departureSlot.update({
+              where: { id: booking.slotId },
+              data: { booked: correctedBooked, status: newStatus },
+            })
+          }
         })
       }
       // Other statuses (pending, in_process) — no-op, acknowledge with 200

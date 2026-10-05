@@ -1,8 +1,51 @@
 "use client"
 import { signIn, getSession } from "next-auth/react"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { useRouter, useParams } from "next/navigation"
+import Image from "next/image"
 import Link from "next/link"
+import { CalendarCheck, Compass, ShieldCheck } from "lucide-react"
+import { Alert, Button, Input } from "@/src/components/ui/capi"
+
+/* ── Layout de acesso (local; candidato a componente do DS) ── */
+const BENEFITS = [
+  { icon: Compass, text: "Roteiros e guias locais num só lugar" },
+  { icon: CalendarCheck, text: "Reservas, agenda e check-in organizados" },
+  { icon: ShieldCheck, text: "Guias e operadoras aprovados pela equipe CAPI" },
+]
+
+function AuthLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid min-h-dvh bg-page lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <aside className="sticky top-0 hidden h-dvh flex-col justify-between gap-12 bg-surface-brand p-12 text-on-brand lg:flex">
+        <Link href="/" className="inline-block self-start rounded-sm">
+          <Image src="/images/logo.png" alt="CAPI" width={120} height={108} className="block brightness-0 invert" />
+        </Link>
+        <div>
+          <p className="font-display text-4xl leading-tight xl:text-5xl">Caminho entre quem explora e quem opera</p>
+          <ul className="mt-10 flex flex-col gap-5">
+            {BENEFITS.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3" style={{ color: "var(--text-on-brand-secondary)" }}>
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full text-on-brand" style={{ background: "var(--terra-700)" }}>
+                  <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+                </span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+      <main className="flex min-w-0 items-center justify-center py-10 lg:py-16">
+        <div className="capi-container capi-container--form">
+          <Link href="/" className="mb-8 inline-block rounded-sm lg:hidden">
+            <Image src="/images/logo.png" alt="CAPI" width={120} height={108} priority className="block in-data-[theme=dark]:brightness-0 in-data-[theme=dark]:invert" />
+          </Link>
+          {children}
+        </div>
+      </main>
+    </div>
+  )
+}
 
 export default function LoginPage() {
   const params = useParams<{ slug: string }>()
@@ -42,146 +85,41 @@ export default function LoginPage() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "var(--stone-50)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px",
-      }}
-    >
-      <Link
-        href="/"
-        style={{
-          display: "block",
-          marginBottom: "24px",
-          fontSize: "13px",
-          fontWeight: 600,
-          color: "var(--stone-500)",
-          textDecoration: "none",
-          alignSelf: "flex-start",
-        }}
-      >
-        ← CAPI
-      </Link>
-      <div
-        style={{
-          background: "white",
-          border: "1px solid var(--stone-200)",
-          borderRadius: "8px",
-          padding: "48px 40px",
-          width: "100%",
-          maxWidth: "400px",
-        }}
-      >
-        <p
-          style={{
-            fontSize: "11px",
-            color: "var(--ochre)",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            marginBottom: "8px",
-          }}
-        >
-          {params.slug}
-        </p>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "24px",
-            color: "var(--stone-900)",
-            marginBottom: "32px",
-            lineHeight: 1.2,
-          }}
-        >
-          Entrar no Painel
-        </h1>
+    <AuthLayout>
+      <p className="mb-2 text-sm font-semibold text-fg-primary">{params.slug}</p>
+      <h1 className="text-2xl font-bold">Entrar no painel</h1>
+      <p className="mt-2 text-fg-secondary">Use o e-mail e a senha cadastrados nesta operadora.</p>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div>
-            <label
-              htmlFor="email"
-              style={{ display: "block", fontSize: "14px", color: "var(--stone-700)", marginBottom: "4px", fontWeight: 600 }}
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                border: "1px solid var(--stone-300)",
-                borderRadius: "4px",
-                fontSize: "16px",
-                color: "var(--stone-800)",
-                background: "white",
-              }}
-            />
-          </div>
+      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
+        <Input
+          id="email"
+          label="E-mail"
+          type="email"
+          inputMode="email"
+          required
+          autoComplete="email"
+          autoCapitalize="none"
+          spellCheck={false}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-          <div>
-            <label
-              htmlFor="password"
-              style={{ display: "block", fontSize: "14px", color: "var(--stone-700)", marginBottom: "4px", fontWeight: 600 }}
-            >
-              Senha
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                border: "1px solid var(--stone-300)",
-                borderRadius: "4px",
-                fontSize: "16px",
-                color: "var(--stone-800)",
-                background: "white",
-              }}
-            />
-          </div>
+        <Input
+          id="password"
+          label="Senha"
+          type="password"
+          required
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-          {error && (
-            <p
-              role="alert"
-              style={{ fontSize: "14px", color: "#DC2626", margin: 0 }}
-              aria-live="polite"
-            >
-              {error}
-            </p>
-          )}
+        {error && <Alert tone="danger">{error}</Alert>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              background: loading ? "var(--stone-400)" : "var(--ochre)",
-              color: "white",
-              padding: "10px 20px",
-              borderRadius: "4px",
-              fontSize: "14px",
-              fontWeight: 600,
-              letterSpacing: "0.04em",
-              textTransform: "uppercase",
-              border: "none",
-              cursor: loading ? "not-allowed" : "pointer",
-              marginTop: "8px",
-            }}
-          >
-            {loading ? "Entrando..." : "Entrar"}
-          </button>
-        </form>
-      </div>
-    </main>
+        <Button type="submit" size="lg" fullWidth loading={loading}>
+          Entrar
+        </Button>
+      </form>
+    </AuthLayout>
   )
 }

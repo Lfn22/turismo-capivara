@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import DestinationHero from '@/src/components/ui/DestinationHero';
+import { ArrowRight } from 'lucide-react';
+import DestinationHero, { DestinationTabs } from '@/src/components/ui/DestinationHero';
+import DestinationHighlights from '@/src/components/ui/DestinationHighlights';
 import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
-import BackButton from '@/src/components/ui/BackButton';
+import PublicLayout from '@/src/components/layout/PublicLayout';
+import { Button } from '@/src/components/ui/capi';
+import { TrackView } from '@/src/components/tracking/TrackView';
 import MapWidgetClient, { type PartnerData } from '@/src/components/ui/MapWidgetClient';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -95,16 +98,6 @@ interface Props {
   params: Promise<{ 'destination-slug': string }>;
 }
 
-// Paleta de gradientes para cards de highlights sem imagem
-const HIGHLIGHT_GRADIENTS = [
-  'linear-gradient(160deg, #5C3D2A 0%, #1c1917 100%)',
-  'linear-gradient(160deg, #3d4a2a 0%, #1c1917 100%)',
-  'linear-gradient(160deg, #2a3d4a 0%, #1c1917 100%)',
-  'linear-gradient(160deg, #4a2a3d 0%, #1c1917 100%)',
-  'linear-gradient(160deg, #3d2a4a 0%, #1c1917 100%)',
-  'linear-gradient(160deg, #4a3d2a 0%, #1c1917 100%)',
-];
-
 export default async function DestinationPage({ params }: Props) {
   const { 'destination-slug': slug } = await params;
   const destination = await fetchDestination(slug);
@@ -117,6 +110,7 @@ export default async function DestinationPage({ params }: Props) {
   const guidesHref = `/destinos/${slug}/roteiros`;
   const highlights = destination.highlights ?? [];
   const photos = destination.photos ?? [];
+  const hasMap = Boolean(destination.lat && destination.lng);
 
   // Texto descritivo: split em parágrafos (separa por \n\n ou usa como único §)
   const descriptionParagraphs = destination.description
@@ -124,376 +118,81 @@ export default async function DestinationPage({ params }: Props) {
     : [];
 
   return (
-    <>
+    <PublicLayout>
+      <TrackView event="destination_viewed" properties={{ slug, name: destination.title }} />
       <style>{`
-        /* ── Reset ── */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        .dest { background: var(--bg-page); }
+        .dest__section { padding-block: var(--space-10); scroll-margin-top: var(--space-16); }
+        @media (min-width: 768px) { .dest__section { padding-block: var(--space-16); } }
+        .dest__section + .dest__section { border-top: 1px solid var(--border); }
 
-        /* ── Storytelling ── */
-        .story-section {
-          background: var(--stone-50, #fafaf9);
-          padding: clamp(3.5rem, 7vw, 6rem) clamp(1.5rem, 5vw, 3.5rem);
+        .dest__overline {
+          margin-bottom: var(--space-2);
+          font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+          color: var(--text-primary);
+        }
+        .dest__h2 {
+          margin-bottom: var(--space-5);
+          font-family: var(--font-display);
+          font-size: clamp(28px, 4vw, 36px); font-weight: 700; line-height: 1.15; letter-spacing: -.015em;
+          color: var(--text);
+        }
+        .dest__h2 em { font-style: italic; color: var(--text-primary); }
+
+        .dest__about { display: grid; gap: var(--space-8); }
+        @media (min-width: 1024px) { .dest__about { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--space-12); } }
+        .dest__text p { font-size: 16px; line-height: 1.7; color: var(--text-secondary); }
+        .dest__text p + p { margin-top: var(--space-4); }
+        @media (min-width: 768px) { .dest__text p { font-size: 17px; } }
+        .dest__aside {
+          align-self: start;
+          padding: var(--space-5);
+          border: 1px solid var(--border); border-radius: var(--radius-lg);
+          background: var(--surface);
+        }
+        .dest__aside-title { margin-bottom: var(--space-4); font-size: 16px; font-weight: 700; color: var(--text); }
+
+        .dest__poi {
+          position: relative; overflow: hidden;
+          aspect-ratio: 4 / 5;
+          border-radius: var(--radius-lg);
+          background: var(--surface-brand);
+        }
+        .dest__poi-bg { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform .5s cubic-bezier(.16,1,.3,1); }
+        .dest__poi:hover .dest__poi-bg { transform: scale(1.04); }
+        .dest__poi-overlay {
+          position: absolute; inset: auto 0 0 0;
+          display: flex; align-items: flex-end;
+          min-height: 50%;
+          padding: var(--space-4);
+          background: linear-gradient(to top, var(--scrim-photo), transparent);
+        }
+        .dest__poi-name {
+          font-family: var(--font-display);
+          font-size: 22px; font-weight: 700; line-height: 1.15;
+          color: var(--text-on-brand);
         }
 
-        .story-inner {
-          max-width: 1100px;
-          margin: 0 auto;
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: clamp(3rem, 6vw, 7rem);
-          align-items: start;
+        .dest__cta {
+          display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4);
+          padding: var(--space-8) var(--space-6);
+          border-radius: var(--radius-xl);
+          background: var(--surface-brand);
+          color: var(--text-on-brand);
         }
-
-        .story-label {
-          font-size: 0.68rem;
-          font-weight: 700;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          color: var(--ochre, #c8961c);
-          margin-bottom: 1.25rem;
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
+        @media (min-width: 768px) {
+          .dest__cta { flex-direction: row; align-items: center; justify-content: space-between; padding: var(--space-10) var(--space-12); }
         }
-
-        .story-label::before {
-          content: '';
-          display: block;
-          width: 24px;
-          height: 1px;
-          background: var(--ochre, #c8961c);
-          flex-shrink: 0;
+        .dest__cta-title {
+          font-family: var(--font-display);
+          font-size: clamp(26px, 3.5vw, 34px); font-weight: 700; line-height: 1.15;
+          color: var(--text-on-brand);
         }
+        .dest__cta-sub { margin-top: var(--space-2); max-width: 52ch; font-size: 15px; line-height: 1.6; color: var(--text-on-brand-secondary); }
+        .dest__cta-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); flex: none; }
 
-        .story-heading {
-          font-family: var(--font-display), Georgia, serif;
-          font-size: clamp(2rem, 4vw, 3.2rem);
-          font-weight: 700;
-          line-height: 1.1;
-          letter-spacing: -0.025em;
-          color: var(--stone-900, #1c1917);
-          margin-bottom: 2rem;
-        }
-
-        .story-heading em {
-          font-style: italic;
-          color: var(--ochre-dark, #a07010);
-        }
-
-        .story-text p {
-          font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-          line-height: 1.8;
-          color: var(--stone-600, #57534e);
-          margin-bottom: 1.25rem;
-        }
-
-        .story-text p:last-child { margin-bottom: 0; }
-
-        /* Card visual lateral */
-        .story-visual {
-          position: sticky;
-          top: 2rem;
-        }
-
-        .story-card {
-          border-radius: 4px;
-          overflow: hidden;
-          background: var(--stone-900, #1c1917);
-          aspect-ratio: 3/4;
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-end;
-          padding: 2rem;
-        }
-
-        .story-card-bg {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(160deg, var(--stone-700, #44403c) 0%, var(--ochre-dark, #a07010) 50%, var(--stone-900, #1c1917) 100%);
-          opacity: 0.85;
-        }
-
-        .story-card-overlay {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%);
-        }
-
-        .story-card-content {
-          position: relative;
-          z-index: 1;
-        }
-
-        .story-card-eyebrow {
-          font-size: 0.65rem;
-          font-weight: 700;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          color: var(--ochre-light, #e0b84a);
-          margin-bottom: 0.75rem;
-        }
-
-        .story-card-title {
-          font-family: var(--font-display), Georgia, serif;
-          font-size: clamp(1.5rem, 3vw, 2rem);
-          font-weight: 700;
-          color: #fff;
-          line-height: 1.15;
-          letter-spacing: -0.02em;
-        }
-
-        .story-card-stat {
-          font-size: clamp(3rem, 6vw, 4.5rem);
-          font-weight: 800;
-          color: #fff;
-          line-height: 1;
-          letter-spacing: -0.04em;
-        }
-
-        .story-card-label {
-          font-size: 0.75rem;
-          color: rgba(255,255,255,0.6);
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          margin-top: 0.4rem;
-        }
-
-        .story-highlights {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          margin-top: 2rem;
-        }
-
-        .story-highlight-item {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          font-size: 0.85rem;
-          color: var(--stone-500, #78716c);
-        }
-
-        .story-highlight-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--ochre, #c8961c);
-          flex-shrink: 0;
-        }
-
-        /* Mobile: stack em coluna */
-        @media (max-width: 768px) {
-          .story-inner {
-            grid-template-columns: 1fr;
-          }
-          .story-visual {
-            position: static;
-            order: -1;
-          }
-          .story-card {
-            aspect-ratio: 16/9;
-            padding: 1.5rem;
-          }
-          .story-card-stat {
-            font-size: 2.5rem;
-          }
-        }
-
-        /* ── Highlights section (dark) ── */
-        .highlights-section {
-          background: var(--stone-900, #1c1917);
-          padding: clamp(3.5rem, 7vw, 6rem) clamp(1.5rem, 5vw, 3.5rem);
-        }
-
-        .highlights-header {
-          max-width: 1100px;
-          margin: 0 auto;
-          margin-bottom: clamp(2.5rem, 5vw, 4rem);
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 1rem;
-          flex-wrap: wrap;
-        }
-
-        .highlights-eyebrow {
-          font-size: 0.68rem;
-          font-weight: 700;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          color: var(--ochre-light, #e0b84a);
-          margin-bottom: 0.75rem;
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
-        }
-
-        .highlights-eyebrow::before {
-          content: '';
-          display: block;
-          width: 24px;
-          height: 1px;
-          background: var(--ochre-light, #e0b84a);
-        }
-
-        .highlights-heading {
-          font-family: var(--font-display), Georgia, serif;
-          font-size: clamp(1.8rem, 4vw, 2.8rem);
-          font-weight: 700;
-          letter-spacing: -0.025em;
-          color: var(--stone-50, #fafaf9);
-          line-height: 1.1;
-        }
-
-        .highlights-grid {
-          max-width: 1100px;
-          margin: 0 auto;
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-          gap: 1.5px;
-        }
-
-        .highlight-card {
-          position: relative;
-          aspect-ratio: 2/3;
-          overflow: hidden;
-          background: var(--stone-800, #292524);
-        }
-
-        .highlight-card-bg {
-          position: absolute;
-          inset: 0;
-          transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-
-        .highlight-card:hover .highlight-card-bg {
-          transform: scale(1.04);
-        }
-
-        .highlight-card-overlay {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 55%);
-          z-index: 1;
-        }
-
-        .highlight-card-content {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          z-index: 2;
-          padding: clamp(1.25rem, 3vw, 2rem);
-        }
-
-        .highlight-card-name {
-          font-family: var(--font-display), Georgia, serif;
-          font-size: clamp(1.1rem, 2.2vw, 1.5rem);
-          font-weight: 700;
-          color: #fff;
-          line-height: 1.2;
-          letter-spacing: -0.015em;
-        }
-
-        @media (max-width: 768px) {
-          .highlights-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .highlights-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-
-        @media (max-width: 480px) {
-          .highlights-grid {
-            grid-template-columns: 1fr;
-          }
-          .highlight-card {
-            aspect-ratio: 3/2;
-          }
-        }
-
-        /* ── CTA — Roteiros ── */
-        .roteiros-cta {
-          background: var(--stone-50, #fafaf9);
-          border-top: 1px solid var(--stone-200, #e7e5e4);
-          padding: clamp(3rem, 6vw, 5rem) clamp(1.5rem, 5vw, 3.5rem);
-          text-align: center;
-        }
-
-        .roteiros-cta__inner {
-          max-width: 560px;
-          margin: 0 auto;
-        }
-
-        .roteiros-cta__eyebrow {
-          font-size: 0.66rem;
-          font-weight: 700;
-          letter-spacing: 0.18em;
-          text-transform: uppercase;
-          color: var(--ochre, #c8961c);
-          margin-bottom: 1rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.6rem;
-        }
-
-        .roteiros-cta__eyebrow::before,
-        .roteiros-cta__eyebrow::after {
-          content: '';
-          display: block;
-          width: 24px;
-          height: 1px;
-          background: var(--ochre, #c8961c);
-          flex-shrink: 0;
-        }
-
-        .roteiros-cta__heading {
-          font-family: var(--font-display), Georgia, serif;
-          font-size: clamp(1.6rem, 3.5vw, 2.4rem);
-          font-weight: 700;
-          letter-spacing: -0.025em;
-          color: var(--stone-900, #1c1917);
-          line-height: 1.15;
-          margin-bottom: 0.75rem;
-        }
-
-        .roteiros-cta__sub {
-          font-size: clamp(0.88rem, 1.5vw, 1rem);
-          color: var(--stone-500, #78716c);
-          line-height: 1.7;
-          margin-bottom: 2rem;
-        }
-
-        .roteiros-cta__btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.55rem;
-          font-size: 0.8rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: var(--stone-900, #1c1917);
-          background: var(--ochre, #c8961c);
-          text-decoration: none;
-          padding: 1rem 2.25rem;
-          border-radius: 2px;
-          transition: background 0.2s, transform 0.15s;
-        }
-
-        .roteiros-cta__btn:hover {
-          background: var(--ochre-dark, #a07010);
-          transform: translateY(-1px);
-        }
-
-        @media (max-width: 480px) {
-          .roteiros-cta__btn {
-            width: 100%;
-            justify-content: center;
-          }
+        @media (prefers-reduced-motion: reduce) {
+          .dest__poi:hover .dest__poi-bg { transform: none; }
         }
       `}</style>
 
@@ -503,139 +202,122 @@ export default async function DestinationPage({ params }: Props) {
         destinationSlug={slug}
       />
 
-      {/* ── 1. Hero cinematográfico ─────────────────────────────── */}
-      <DestinationHero
-        title={destination.title}
-        subtitle={destination.subtitle}
-        state={destination.state}
-        heroImageUrl={destination.heroImageUrl}
-        heroImageBlurDataUrl={destination.heroImageBlurDataUrl}
-      />
-
-      {/* ── Back navigation ─────────────────────────────────────── */}
-      <div style={{ padding: '1.25rem clamp(1.5rem, 5vw, 3.5rem) 0', background: 'var(--stone-50)' }}>
-        <BackButton />
-      </div>
-
-      {/* ── Widget de mapa ─────────────────────────────────────────── */}
-      {destination.lat && destination.lng && (
-        <MapWidgetClient
-          lat={destination.lat}
-          lng={destination.lng}
-          partners={partners}
-          destinationName={destination.title}
+      <main className="dest">
+        {/* ── 1. Hero ──────────────────────────────────────────── */}
+        <DestinationHero
+          title={destination.title}
+          subtitle={destination.subtitle}
+          state={destination.state}
+          heroImageUrl={destination.heroImageUrl}
+          heroImageBlurDataUrl={destination.heroImageBlurDataUrl}
         />
-      )}
 
-      {/* ── 2. Storytelling ─────────────────────────────────────── */}
-      {(descriptionParagraphs.length > 0 || highlights.length > 0) && (
-        <section className="story-section">
-          <div className="story-inner">
-            {/* Texto */}
-            <div>
-              <p className="story-label">Sobre o destino</p>
-              <h2 className="story-heading">
-                {destination.tagline ?? <>Um lugar que <em>transforma</em> quem visita</>}
-              </h2>
-              {descriptionParagraphs.length > 0 ? (
-                <div className="story-text">
-                  {descriptionParagraphs.map((para, i) => (
-                    <p key={i}>{para}</p>
-                  ))}
-                </div>
-              ) : null}
+        {/* ── 2. Abas sticky ───────────────────────────────────── */}
+        <DestinationTabs slug={slug} active="sobre" showMap={hasMap} />
+
+        {/* ── 3. Sobre ─────────────────────────────────────────── */}
+        <section id="sobre" className="dest__section" aria-labelledby="sobre-heading">
+          <div className="capi-container">
+            <div className="dest__about">
+              <div>
+                <p className="dest__overline">Sobre o destino</p>
+                <h2 id="sobre-heading" className="dest__h2">
+                  {destination.tagline ?? <>Um lugar que <em>transforma</em> quem visita</>}
+                </h2>
+                {descriptionParagraphs.length > 0 ? (
+                  <div className="dest__text">
+                    {descriptionParagraphs.map((para, i) => (
+                      <p key={i}>{para}</p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-fg-secondary">
+                    Explore {destination.title} com guias certificados. {destination.state}.
+                  </p>
+                )}
+              </div>
+
               {highlights.length > 0 && (
-                <div className="story-highlights">
-                  {highlights.map((h) => (
-                    <div key={h} className="story-highlight-item">
-                      <div className="story-highlight-dot" aria-hidden="true" />
-                      <span>{h}</span>
-                    </div>
-                  ))}
-                </div>
+                <aside className="dest__aside" aria-label="Destaques">
+                  <p className="dest__aside-title">
+                    {highlights.length} {highlights.length === 1 ? 'ponto de interesse' : 'pontos de interesse'}
+                  </p>
+                  <DestinationHighlights highlights={highlights} />
+                </aside>
               )}
             </div>
+          </div>
+        </section>
 
-            {/* Card visual */}
-            <div className="story-visual" aria-hidden="true">
-              <div className="story-card">
-                <div className="story-card-bg" />
-                <div className="story-card-overlay" />
-                <div className="story-card-content">
-                  <p className="story-card-eyebrow">{destination.state}</p>
-                  {highlights.length > 0 ? (
-                    <>
-                      <p className="story-card-stat">{highlights.length}</p>
-                      <p className="story-card-label">
-                        {highlights.length === 1 ? 'ponto de interesse' : 'pontos de interesse'}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="story-card-title">{destination.title}</p>
-                  )}
-                </div>
+        {/* ── 4. Pontos de interesse (fotos) ───────────────────── */}
+        {highlights.length > 0 && (
+          <section className="dest__section" aria-labelledby="poi-heading">
+            <div className="capi-container">
+              <p className="dest__overline">O que explorar</p>
+              <h2 id="poi-heading" className="dest__h2">Pontos de interesse</h2>
+              <div className="capi-scroller">
+                {highlights.map((highlight, i) => {
+                  const photo = photos[i] ? safePhotoUrl(photos[i]) : null;
+                  return (
+                    <div key={highlight} className="dest__poi">
+                      {photo ? (
+                        <div
+                          className="dest__poi-bg"
+                          style={{ backgroundImage: `url(${photo})` }}
+                          aria-hidden="true"
+                        />
+                      ) : null}
+                      <div className="dest__poi-overlay">
+                        <h3 className="dest__poi-name">{highlight}</h3>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── 5. Mapa ──────────────────────────────────────────── */}
+        {hasMap && (
+          <section id="mapa" className="dest__section" aria-labelledby="mapa-heading">
+            <div className="capi-container">
+              <p className="dest__overline">Como chegar</p>
+              <h2 id="mapa-heading" className="dest__h2">Mapa</h2>
+              <MapWidgetClient
+                lat={destination.lat as number}
+                lng={destination.lng as number}
+                partners={partners}
+                destinationName={destination.title}
+              />
+            </div>
+          </section>
+        )}
+
+        {/* ── 6. CTA — Roteiros ────────────────────────────────── */}
+        <section className="dest__section" aria-labelledby="cta-heading">
+          <div className="capi-container">
+            <div className="dest__cta">
+              <div>
+                <h2 id="cta-heading" className="dest__cta-title">
+                  Pronto para explorar {destination.title}?
+                </h2>
+                <p className="dest__cta-sub">
+                  Descubra os roteiros disponíveis em {destination.title}. Compare duração, dificuldade e preço — e reserve com guias certificados.
+                </p>
+              </div>
+              <div className="dest__cta-actions">
+                <Button href={guidesHref} size="lg" iconRight={ArrowRight}>
+                  Ver roteiros
+                </Button>
+                <Button href={`/destinos/${slug}/guias`} size="lg" variant="secondary">
+                  Conhecer os guias
+                </Button>
               </div>
             </div>
           </div>
         </section>
-      )}
-
-      {/* ── 3. Highlights (dark) ────────────────────────────────── */}
-      {highlights.length > 0 && (
-        <section className="highlights-section">
-          <div className="highlights-header">
-            <div>
-              <p className="highlights-eyebrow">O que explorar</p>
-              <h2 className="highlights-heading">Pontos de interesse</h2>
-            </div>
-          </div>
-          <div className="highlights-grid">
-            {highlights.map((highlight, i) => (
-              <div key={highlight} className="highlight-card">
-                <div
-                  className="highlight-card-bg"
-                  style={safePhotoUrl(photos[i])
-                    ? { backgroundImage: `url(${safePhotoUrl(photos[i])})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                    : { background: HIGHLIGHT_GRADIENTS[i % HIGHLIGHT_GRADIENTS.length] }}
-                />
-                <div className="highlight-card-overlay" />
-                <div className="highlight-card-content">
-                  <h3 className="highlight-card-name">{highlight}</h3>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── 4. CTA — Guias ──────────────────────────────────────── */}
-      <section className="roteiros-cta">
-        <div className="roteiros-cta__inner">
-          <p className="roteiros-cta__eyebrow">Roteiros disponíveis</p>
-          <h2 className="roteiros-cta__heading">
-            Pronto para explorar {destination.title}?
-          </h2>
-          <p className="roteiros-cta__sub">
-            Descubra os roteiros disponíveis em {destination.title}. Compare duração, dificuldade e preço — e reserve com guias certificados.
-          </p>
-          <Link href={guidesHref} className="roteiros-cta__btn">
-            Ver roteiros
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </div>
-      </section>
-    </>
+      </main>
+    </PublicLayout>
   );
 }

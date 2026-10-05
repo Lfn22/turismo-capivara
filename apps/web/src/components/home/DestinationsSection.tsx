@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import DestinationCard from '@/src/components/ui/DestinationCard';
+import { ArrowRight } from 'lucide-react';
+import { Button, DestinationCard } from '@/src/components/ui/capi';
 
 interface Destination {
   id: string;
@@ -19,37 +19,36 @@ export default function DestinationsSection({ destinations }: Props) {
   if (destinations.length === 0) return null;
 
   return (
-    <section className="py-16 md:py-24 px-5 md:px-12 max-w-[1280px] mx-auto">
-      <div className="reveal">
-        <p className="petro-decoration text-xs font-semibold tracking-[0.25em] uppercase mb-3"
-          style={{ color: 'var(--ochre)' }}>
-          Destinos
-        </p>
-        <div className="flex items-end justify-between mb-8">
-          <h2 className="font-[family-name:var(--font-display)] font-bold text-2xl md:text-[2.5rem] leading-tight"
-            style={{ color: 'var(--stone-800)' }}>
-            Para onde vamos?
-          </h2>
-          <Link href="/destinos" className="text-sm font-semibold no-underline hidden md:block"
-            style={{ color: 'var(--ochre)' }}>
-            Ver todos &rarr;
-          </Link>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-7 reveal-stagger">
-        {destinations.map((d) => (
-          <div key={d.id} className="reveal">
-            <DestinationCard
-              slug={d.slug}
-              title={d.title}
-              subtitle={d.subtitle}
-              state={d.state}
-              heroImageUrl={d.heroImageUrl}
-              heroImageBlurDataUrl={d.heroImageBlurDataUrl}
-            />
+    <section className="capi-section" aria-labelledby="home-destinos-title">
+      <div className="capi-container">
+        <div className="flex items-end justify-between gap-4" style={{ marginBottom: 'var(--space-6)' }}>
+          <div>
+            <p style={{ marginBottom: 'var(--space-2)' }} className="text-xs font-semibold uppercase tracking-[0.08em] text-fg-primary">Destinos</p>
+            <h2
+              id="home-destinos-title"
+              className="font-[family-name:var(--font-display)] text-[clamp(28px,4vw,44px)] font-bold leading-tight text-fg"
+            >
+              Para onde vamos?
+            </h2>
           </div>
-        ))}
+          <Button href="/destinos" variant="ghost" size="sm" iconRight={ArrowRight}>
+            Ver todos
+          </Button>
+        </div>
+
+        <div className="capi-scroller">
+          {destinations.map((d, i) => (
+            <DestinationCard
+              key={d.id}
+              href={`/destinos/${d.slug}`}
+              title={d.title}
+              state={d.state}
+              imageUrl={d.heroImageUrl}
+              imageBlurDataUrl={d.heroImageBlurDataUrl}
+              priority={i < 2}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );

@@ -1,57 +1,51 @@
 "use client"
 import { signIn, getSession } from "next-auth/react"
-import { useState, Suspense } from "react"
+import { useState, Suspense, type ReactNode } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
+import { CalendarCheck, Compass, ShieldCheck, UserPlus } from "lucide-react"
 import { lookupTenant } from "@/lib/auth-client"
+import { Alert, Button, Input } from "@/src/components/ui/capi"
 
-const inputStyle: React.CSSProperties = {
-  display: "block",
-  width: "100%",
-  padding: "12px",
-  border: "1px solid var(--stone-200)",
-  borderRadius: "4px",
-  fontSize: "16px",
-  fontFamily: "var(--font-body)",
-  color: "var(--stone-900)",
-  background: "white",
-  boxSizing: "border-box",
-}
+/* ── Layout de acesso (local; candidato a componente do DS) ── */
+const BENEFITS = [
+  { icon: Compass, text: "Roteiros e guias locais num só lugar" },
+  { icon: CalendarCheck, text: "Reservas, agenda e check-in organizados" },
+  { icon: ShieldCheck, text: "Guias e operadoras aprovados pela equipe CAPI" },
+]
 
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: "14px",
-  fontWeight: 600,
-  color: "var(--stone-700)",
-  marginBottom: "4px",
-  fontFamily: "var(--font-body)",
-}
-
-const btnStyle = (disabled: boolean): React.CSSProperties => ({
-  display: "block",
-  width: "100%",
-  padding: "0 0",
-  minHeight: "44px",
-  background: disabled ? "var(--stone-400)" : "var(--ochre)",
-  color: "white",
-  border: "none",
-  borderRadius: "4px",
-  fontSize: "16px",
-  fontWeight: 600,
-  fontFamily: "var(--font-body)",
-  cursor: disabled ? "not-allowed" : "pointer",
-  marginTop: "28px",
-})
-
-const alertStyle: React.CSSProperties = {
-  background: "#FEF2F2",
-  border: "1px solid #FCA5A5",
-  borderRadius: "4px",
-  padding: "8px 12px",
-  marginBottom: "16px",
-  fontSize: "14px",
-  color: "#DC2626",
+function AuthLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid min-h-dvh bg-page lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <aside className="sticky top-0 hidden h-dvh flex-col justify-between gap-12 bg-surface-brand p-12 text-on-brand lg:flex">
+        <Link href="/" className="inline-block self-start rounded-sm">
+          <Image src="/images/logo.png" alt="CAPI" width={120} height={108} className="block brightness-0 invert" />
+        </Link>
+        <div>
+          <p className="font-display text-4xl leading-tight xl:text-5xl">Caminho entre quem explora e quem opera</p>
+          <ul className="mt-10 flex flex-col gap-5">
+            {BENEFITS.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3" style={{ color: "var(--text-on-brand-secondary)" }}>
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full text-on-brand" style={{ background: "var(--terra-700)" }}>
+                  <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+                </span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+      <main className="flex min-w-0 items-center justify-center py-10 lg:py-16">
+        <div className="capi-container capi-container--form">
+          <Link href="/" className="mb-8 inline-block rounded-sm lg:hidden">
+            <Image src="/images/logo.png" alt="CAPI" width={120} height={108} priority className="block in-data-[theme=dark]:brightness-0 in-data-[theme=dark]:invert" />
+          </Link>
+          {children}
+        </div>
+      </main>
+    </div>
+  )
 }
 
 function LoginForm() {
@@ -127,215 +121,93 @@ function LoginForm() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100dvh",
-        background: "var(--stone-50)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px",
-      }}
-    >
-      <div
-        style={{
-          background: "white",
-          border: "1px solid var(--stone-200)",
-          borderRadius: "8px",
-          padding: "clamp(32px, 5vw, 48px) clamp(24px, 5vw, 40px)",
-          width: "100%",
-          maxWidth: "480px",
-        }}
-      >
-        <Link href="/" style={{ display: "inline-block", marginBottom: "20px" }}>
-          <Image
-            src="/images/logo.png"
-            alt="CAPI"
-            width={80}
-            height={72}
-            style={{ display: "block" }}
-          />
-        </Link>
+    <AuthLayout>
+      <h1 className="text-2xl font-bold">Acessar o painel</h1>
+      <p className="mt-2 text-fg-secondary">
+        {step === "email"
+          ? "Informe seu e-mail para encontrarmos a sua operadora."
+          : "Digite sua senha para entrar."}
+      </p>
 
-        <p
-          style={{
-            fontSize: "11px",
-            fontWeight: 600,
-            fontFamily: "var(--font-body)",
-            color: "var(--ochre)",
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            marginBottom: "8px",
-          }}
-        >
-          CAPI
-        </p>
+      {urlError === "forbidden" && (
+        <Alert tone="warning" className="mt-6">
+          Acesso restrito. Faça login para continuar.
+        </Alert>
+      )}
 
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "24px",
-            fontWeight: 400,
-            color: "var(--stone-900)",
-            lineHeight: 1.2,
-            marginBottom: "28px",
-          }}
-        >
-          Acessar o Painel
-        </h1>
+      {step === "email" ? (
+        <>
+          <form onSubmit={handleEmailSubmit} className="mt-8 flex flex-col gap-5">
+            <Input
+              id="email"
+              label="E-mail"
+              type="email"
+              inputMode="email"
+              required
+              autoFocus
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
 
-        {(urlError === "forbidden") && (
-          <div role="alert" aria-live="polite" style={alertStyle}>
-            Acesso restrito. Faça login para continuar.
+            {error && <Alert tone="danger">{error}</Alert>}
+
+            <Button type="submit" size="lg" fullWidth loading={loading}>
+              Continuar
+            </Button>
+          </form>
+
+          <div className="my-6 flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-line" />
+            <span className="text-sm text-fg-secondary">ou</span>
+            <span className="h-px flex-1 bg-line" />
           </div>
-        )}
 
-        {step === "email" ? (
-          <form onSubmit={handleEmailSubmit}>
-            {error && (
-              <div role="alert" aria-live="polite" style={alertStyle}>
-                {error}
-              </div>
-            )}
-
-            <div style={{ marginBottom: "20px" }}>
-              <label htmlFor="email" style={labelStyle}>Email</label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoFocus
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={inputStyle}
-                onFocus={(e) => {
-                  e.currentTarget.style.outline = "2px solid var(--ochre)"
-                  e.currentTarget.style.outlineOffset = "2px"
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.outline = "none"
-                }}
-              />
+          <Button href="/onboarding" variant="secondary" size="lg" fullWidth iconLeft={UserPlus}>
+            Cadastrar agência ou guia
+          </Button>
+        </>
+      ) : (
+        <form onSubmit={handlePasswordSubmit} className="mt-8 flex flex-col gap-5">
+          <div className="flex items-center justify-between gap-3 rounded-md border border-line bg-surface px-4 py-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{tenantName}</p>
+              <p className="truncate text-sm text-fg-secondary">{email}</p>
             </div>
+            <Button variant="ghost" size="sm" onClick={goBackToEmail}>
+              Não é você?
+            </Button>
+          </div>
 
-            <button type="submit" disabled={loading} style={btnStyle(loading)}>
-              {loading ? "Verificando…" : "Continuar"}
-            </button>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                margin: "24px 0",
-              }}
+          <div className="flex flex-col gap-2">
+            <Input
+              id="password"
+              label="Senha"
+              type="password"
+              required
+              autoFocus
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Link
+              href="/login/esqueci-a-senha"
+              className="inline-flex min-h-11 items-center self-end text-sm font-semibold text-fg-primary underline-offset-4 hover:underline"
             >
-              <hr style={{ flex: 1, border: "none", borderTop: "1px solid var(--stone-200)" }} />
-              <span style={{ fontSize: "14px", color: "var(--stone-500)", fontFamily: "var(--font-body)" }}>
-                ou
-              </span>
-              <hr style={{ flex: 1, border: "none", borderTop: "1px solid var(--stone-200)" }} />
-            </div>
+              Esqueceu a senha?
+            </Link>
+          </div>
 
-            <p style={{ textAlign: "center", fontSize: "14px", fontFamily: "var(--font-body)", color: "var(--stone-500)" }}>
-              <Link
-                href="/onboarding"
-                style={{ color: "var(--ochre)", fontWeight: 600, textDecoration: "none" }}
-              >
-                Cadastrar agência ou guia →
-              </Link>
-            </p>
-          </form>
-        ) : (
-          <form onSubmit={handlePasswordSubmit}>
-            <div
-              style={{
-                marginBottom: "20px",
-                display: "flex",
-                alignItems: "baseline",
-                gap: "8px",
-                flexWrap: "wrap",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "14px",
-                  color: "var(--stone-700)",
-                  fontFamily: "var(--font-body)",
-                  fontWeight: 600,
-                }}
-              >
-                {tenantName}
-              </span>
-              <button
-                type="button"
-                onClick={goBackToEmail}
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: 0,
-                  fontSize: "14px",
-                  color: "var(--ochre)",
-                  fontFamily: "var(--font-body)",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  textDecoration: "none",
-                }}
-              >
-                Não é você?
-              </button>
-            </div>
+          {error && <Alert tone="danger">{error}</Alert>}
 
-            {error && (
-              <div role="alert" aria-live="polite" style={alertStyle}>
-                {error}
-              </div>
-            )}
-
-            <div style={{ marginBottom: "8px" }}>
-              <label htmlFor="password" style={labelStyle}>Senha</label>
-              <input
-                id="password"
-                type="password"
-                required
-                autoFocus
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={inputStyle}
-                onFocus={(e) => {
-                  e.currentTarget.style.outline = "2px solid var(--ochre)"
-                  e.currentTarget.style.outlineOffset = "2px"
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.outline = "none"
-                }}
-              />
-            </div>
-
-            <div style={{ textAlign: "right", marginBottom: "4px" }}>
-              <Link
-                href="/login/esqueci-a-senha"
-                style={{
-                  fontSize: "14px",
-                  color: "var(--ochre)",
-                  fontFamily: "var(--font-body)",
-                  fontWeight: 600,
-                  textDecoration: "none",
-                }}
-              >
-                Esqueceu a senha?
-              </Link>
-            </div>
-
-            <button type="submit" disabled={loading} style={btnStyle(loading)}>
-              {loading ? "Entrando…" : "Entrar"}
-            </button>
-          </form>
-        )}
-      </div>
-    </main>
+          <Button type="submit" size="lg" fullWidth loading={loading}>
+            Entrar
+          </Button>
+        </form>
+      )}
+    </AuthLayout>
   )
 }
 

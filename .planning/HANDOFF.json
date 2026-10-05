@@ -1,47 +1,50 @@
 {
   "version": "1.0",
-  "timestamp": "2026-09-11T00:16:56.163Z",
-  "phase": "ui-polish",
-  "phase_name": "frontend-layout-alignment",
-  "phase_dir": null,
-  "plan": null,
-  "task": null,
-  "total_tasks": null,
-  "status": "in_progress",
+  "timestamp": "2026-10-01T00:58:57.000Z",
+  "phase": "audit",
+  "phase_name": "ui-ux-audit-improvements",
+  "phase_dir": ".planning",
+  "plan": 1,
+  "task": 3,
+  "total_tasks": 3,
+  "status": "paused",
   "completed_tasks": [
-    {"id": 1, "name": "Hero compactado (100dvh → clamp 55vh)", "status": "done"},
-    {"id": 2, "name": "DestinationCard grid flex + altura uniforme", "status": "done"},
-    {"id": 3, "name": "globals.css: removido margin:0 conflitante com Tailwind v4 layers", "status": "done"},
-    {"id": 4, "name": "GuidesSection centralizado", "status": "done"},
-    {"id": 5, "name": "CTASection centralizado com max-w container", "status": "done"},
-    {"id": 6, "name": "RupestreSeparator reduzido (py-3, scale menor)", "status": "done"},
-    {"id": 7, "name": "HeroSection tagline duplicada removida", "status": "done"}
+    {"id": "wave-1", "name": "CRITICAL fixes — contraste, touch targets, scroll", "status": "done"},
+    {"id": "wave-2", "name": "HIGH fixes — ARIA, forms, inline→Tailwind, animation timing", "status": "done"},
+    {"id": "wave-3", "name": "Visual premium — card shadows, button glow, header/footer elevation, hero gradient", "status": "done"}
   ],
   "remaining_tasks": [
-    {"id": 8, "name": "Verificar se outras páginas não quebraram com remoção do margin:0 reset", "status": "not_started"},
-    {"id": 9, "name": "Testar com API rodando para ver DestinationsSection grid", "status": "not_started"},
-    {"id": 10, "name": "Comparar com Figma design final e ajustar detalhes", "status": "not_started"},
-    {"id": 11, "name": "Testar responsivo mobile (360px, 768px)", "status": "not_started"}
+    {"id": "wave-4", "name": "Spacing rhythm 4/8px standardization across all components", "status": "not_started"},
+    {"id": "wave-5", "name": "Remove legacy --stone-* --ochre-* vars (Phase 37 scope)", "status": "not_started"}
   ],
   "blockers": [],
   "human_actions_pending": [
-    {"action": "Rodar API local para testar grid de destinos", "context": "DestinationsSection renderiza null sem dados", "blocking": false}
+    {"action": "Testar mudancas visuais no browser e commitar", "context": "Usuario faz commits manuais apos testes", "blocking": false}
   ],
   "decisions": [
-    {"decision": "Remover margin:0 do global reset", "rationale": "Tailwind v4 Preflight já reseta margins. O * { margin: 0 } unlayered vencia sobre @layer utilities, quebrando mx-auto, mb-4 etc.", "phase": "ui-polish"},
-    {"decision": "DestinationCard flex column + height:100%", "rationale": "Grid stretch default com conteúdo top-aligned — cards mesma altura sem distorção", "phase": "ui-polish"},
-    {"decision": "Hero clamp(420px, 55vh, 640px)", "rationale": "Compacto como Figma, responsivo entre mobile e desktop", "phase": "ui-polish"},
-    {"decision": "Inline style padding no hero CTA", "rationale": "Tailwind padding classes perdiam para padding:0 no reset", "phase": "ui-polish"}
+    {"decision": "Manter paleta earthy atual — validada pelo UI/UX Pro Max", "rationale": "Paleta ja alinhada com turismo/natureza, nao precisa mudar", "phase": "audit"},
+    {"decision": "Manter Playfair Display + Source Sans 3", "rationale": "Match validado pelo Pro Max para luxury/tourism", "phase": "audit"},
+    {"decision": "CancelDialog ja usa Radix — focus trap built-in", "rationale": "Falso positivo na auditoria; nao precisa fix", "phase": "audit"},
+    {"decision": "Header ja tinha aria-expanded", "rationale": "Falso positivo na auditoria", "phase": "audit"}
   ],
   "uncommitted_files": [
     "apps/web/app/globals.css",
+    "apps/web/src/styles/animations.css",
+    "apps/web/src/components/layout/Header.tsx",
+    "apps/web/src/components/layout/Footer.tsx",
     "apps/web/src/components/home/HeroSection.tsx",
-    "apps/web/src/components/home/GuidesSection.tsx",
-    "apps/web/src/components/home/CTASection.tsx",
-    "apps/web/src/components/home/RupestreSeparator.tsx",
+    "apps/web/src/components/home/StatsBar.tsx",
     "apps/web/src/components/home/DestinationsSection.tsx",
-    "apps/web/src/components/ui/DestinationCard.tsx"
+    "apps/web/src/components/home/CTASection.tsx",
+    "apps/web/src/components/home/GuidesSection.tsx",
+    "apps/web/src/components/ui/DestinationCard.tsx",
+    "apps/web/src/components/ui/GuideCard.tsx",
+    "apps/web/src/components/ui/BookingForm.tsx",
+    "apps/web/src/components/ui/ConfirmationCard.tsx",
+    "apps/web/src/components/ui/MinhaReservaClient.tsx",
+    "apps/web/src/components/ui/DestinationHero.tsx",
+    "apps/web/src/components/ui/SlotPicker.tsx"
   ],
-  "next_action": "Verificar cross-page (login, onboarding, destinos, painel). Testar com API. Ajustar detalhes vs Figma. Testar mobile.",
-  "context_notes": "Root cause: * { margin: 0 } unlayered no globals.css vencia Tailwind v4 @layer utilities — mx-auto não funcionava em nenhum lugar. Removido. padding:0 mantido. Seções agora centralizadas e proporcionais."
+  "next_action": "Usuario testa mudancas visuais, faz correcoes e commita. Depois /gsd-resume-work para continuar com spacing rhythm ou Phase 37.",
+  "context_notes": "Auditoria UI/UX completa com UI/UX Pro Max + gsd-ui-auditor + frontend-design skill. 3 waves de fixes aplicados: CRITICAL (contraste/touch), HIGH (ARIA/forms/Tailwind), visual premium (sombras 3D, button glow, header/footer elevation, hero gradient, animation spring timing). Build OK. Score inicial 4.4/10. Relatorio em .planning/UI-AUDIT-REPORT.md."
 }

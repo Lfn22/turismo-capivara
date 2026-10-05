@@ -6,6 +6,8 @@ import { toast } from 'sonner'
 import { DestinationForm, DestinationFormValues } from '@/src/components/ui/DestinationForm'
 import { DestinationStatusBadge } from '@/src/components/ui/DestinationStatusBadge'
 import BackButton from '@/src/components/ui/BackButton'
+import { MapPinOff } from 'lucide-react'
+import { Alert, Button, EmptyState, PageHeader, Skeleton } from '@/src/components/ui/capi'
 
 interface DestinationData {
   id: string
@@ -60,74 +62,84 @@ export default function EditarDestinoPage() {
       })
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: 'Erro ao atualizar local' }))
-        toast.error(err.message ?? 'Erro ao atualizar local')
+        const err = await res.json().catch(() => ({ message: 'Erro ao atualizar destino' }))
+        toast.error(err.message ?? 'Erro ao atualizar destino')
         return
       }
 
-      toast.success('Local atualizado.')
+      toast.success('Destino atualizado.')
       router.push(`/${slug}/painel/destinos`)
     } catch {
-      toast.error('Falha ao atualizar local. Tente novamente.')
+      toast.error('Não foi possível salvar as alterações. Tente novamente.')
     } finally {
       setSubmitting(false)
     }
   }
 
+  const backHref = `/${slug}/painel/destinos`
+
   if (loading) {
     return (
-      <p style={{ textAlign: 'center', padding: '48px 24px', fontSize: '16px', color: 'var(--stone-500)' }}>
-        Carregando local...
-      </p>
+      <div className="capi-container capi-container--text" style={{ paddingInline: 0 }} aria-busy="true">
+        <BackButton fallbackHref={backHref} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', margin: 'var(--space-3) 0 var(--space-8)' }}>
+          <Skeleton width={96} height={12} />
+          <Skeleton width="60%" height={28} />
+          <Skeleton width="80%" height={16} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+              <Skeleton width={120} height={14} />
+              <Skeleton height={48} radius={12} />
+            </div>
+          ))}
+          <Skeleton height={120} radius={12} />
+        </div>
+      </div>
     )
   }
 
   if (loadError || !destination) {
     return (
-      <p style={{ textAlign: 'center', padding: '48px 24px', fontSize: '16px', color: 'var(--stone-500)' }}>
-        Local não encontrado.
-      </p>
+      <div className="capi-container capi-container--text" style={{ paddingInline: 0 }}>
+        <BackButton fallbackHref={backHref} />
+        <EmptyState
+          icon={MapPinOff}
+          title="Destino não encontrado"
+          description="Ele pode ter sido excluído ou você não tem acesso a ele."
+          action={
+            <Button variant="secondary" href={backHref}>
+              Ver meus destinos
+            </Button>
+          }
+        />
+      </div>
     )
   }
 
-  return (
-    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-      <BackButton />
+  const status = destination.approvalStatus
+  const statusAlert =
+    status === 'APPROVED'
+      ? { tone: 'success' as const, text: 'Este destino está aprovado e visível no marketplace.' }
+      : status === 'REJECTED'
+      ? { tone: 'danger' as const, text: 'Este destino foi rejeitado. Edite as informações e salve para enviar a uma nova revisão.' }
+      : { tone: 'warning' as const, text: 'Este destino está aguardando aprovação.' }
 
-      <div style={{ marginBottom: '32px' }}>
-        <p
-          style={{
-            fontSize: '11px',
-            color: 'var(--ochre)',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            marginBottom: '8px',
-          }}
-        >
-          Painel do Guia
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <h1
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '24px',
-              color: 'var(--stone-900)',
-              lineHeight: 1.2,
-              margin: 0,
-            }}
-          >
-            Editar Local
-          </h1>
-          <DestinationStatusBadge status={destination.approvalStatus} />
-        </div>
-        <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginTop: '8px' }}>
-          {destination.approvalStatus === 'APPROVED'
-            ? 'Este local está aprovado e visível no marketplace.'
-            : destination.approvalStatus === 'REJECTED'
-            ? 'Este local foi rejeitado. Edite e aguarde nova revisão.'
-            : 'Este local está aguardando aprovação.'}
-        </p>
-      </div>
+  return (
+    <div className="capi-container capi-container--text" style={{ paddingInline: 0 }}>
+      <BackButton fallbackHref={backHref} />
+
+      <PageHeader
+        eyebrow="Destinos"
+        title="Editar destino"
+        description={destination.title}
+        actions={<DestinationStatusBadge status={status} />}
+      />
+
+      <Alert tone={statusAlert.tone} className="mb-8">
+        {statusAlert.text}
+      </Alert>
 
       <DestinationForm
         slug={slug}
@@ -141,8 +153,8 @@ export default function EditarDestinoPage() {
         }}
         onSubmit={handleSubmit}
         submitting={submitting}
-        submitLabel="Salvar destino"
-        onCancel={() => router.push(`/${slug}/painel/destinos`)}
+        submitLabel="Salvar alterações"
+        onCancel={() => router.push(backHref)}
       />
     </div>
   )

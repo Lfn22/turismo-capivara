@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { DestinationForm, DestinationFormValues } from '@/src/components/ui/DestinationForm'
 import BackButton from '@/src/components/ui/BackButton'
+import { PageHeader } from '@/src/components/ui/capi'
 
 export default function NovosDestinoPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -28,57 +29,35 @@ export default function NovosDestinoPage() {
       })
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: 'Erro ao criar local' }))
-        toast.error(err.message ?? 'Erro ao criar local')
+        const err = await res.json().catch(() => ({ message: 'Erro ao criar destino' }))
+        toast.error(err.message ?? 'Erro ao criar destino')
         return
       }
 
-      toast.success('Local criado. Aguardando aprovação.')
+      toast.success('Destino enviado. Aguardando aprovação.')
       router.push(`/${slug}/painel/destinos`)
     } catch {
-      toast.error('Falha ao criar local. Tente novamente.')
+      toast.error('Não foi possível salvar o destino. Tente novamente.')
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-      <BackButton />
+    <div className="capi-container capi-container--text" style={{ paddingInline: 0 }}>
+      <BackButton fallbackHref={`/${slug}/painel/destinos`} />
 
-      <div style={{ marginBottom: '32px' }}>
-        <p
-          style={{
-            fontSize: '11px',
-            color: 'var(--ochre)',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            marginBottom: '8px',
-          }}
-        >
-          Painel do Guia
-        </p>
-        <h1
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '24px',
-            color: 'var(--stone-900)',
-            lineHeight: 1.2,
-            margin: 0,
-          }}
-        >
-          Criar Local
-        </h1>
-        <p style={{ fontSize: '14px', color: 'var(--stone-500)', marginTop: '8px' }}>
-          Preencha as informações do local. Ele ficará pendente de aprovação até ser revisado.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Destinos"
+        title="Novo destino"
+        description="Preencha as informações do destino. Ele fica em análise até ser revisado pela equipe."
+      />
 
       <DestinationForm
         slug={slug}
         onSubmit={handleSubmit}
         submitting={submitting}
-        submitLabel="Criar destino"
+        submitLabel="Salvar destino"
         onCancel={() => router.push(`/${slug}/painel/destinos`)}
       />
     </div>

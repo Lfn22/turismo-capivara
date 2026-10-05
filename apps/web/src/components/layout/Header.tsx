@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -10,43 +10,42 @@ const NAV_LINKS = [
   { href: "/#guias", label: "Guias" },
 ];
 
+const HEADER_HEIGHT = 56; // manter em sincronia com scroll-padding-top no CSS global
+
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Fecha com Esc e trava o scroll do body enquanto o menu está aberto
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
+
+  const closeMenu = () => setMenuOpen(false);
+
   return (
-    <header
-      className="sticky top-0 z-[100] w-full"
-      style={{
-        height: "56px",
-        backgroundColor: "rgba(31, 14, 8, 0.93)",
-        backdropFilter: "blur(12px) saturate(1.4)",
-        WebkitBackdropFilter: "blur(12px) saturate(1.4)",
-      }}
-    >
-      <div
-        className="mx-auto flex items-center justify-between h-full"
-        style={{ maxWidth: "1200px", padding: "0 1.25rem" }}
-      >
+    <header className="sticky top-0 z-50 w-full bg-[var(--header-bg)] backdrop-blur-md">
+      {/* Barra: altura fixa vive aqui, não no <header>, para o drawer não transbordar */}
+      <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between px-5">
         {/* Logo */}
-        <Link href="/" aria-label="CAPI — página inicial" className="flex items-center shrink-0">
-          <Image
-            src="/images/logo.png"
-            alt="CAPI"
-            width={52}
-            height={47}
-            style={{ filter: "brightness(0) invert(1)" }}
-            priority
-          />
+        <Link href="/" aria-label="CAPI — página inicial" className="flex shrink-0 items-center">
+          {/* Sirva a versão branca do logo direto (SVG de preferência), sem filter */}
+          <Image src="/images/logo-white.svg" alt="CAPI" width={52} height={47} priority />
         </Link>
 
         {/* Nav desktop */}
-        <nav className="hidden md:flex items-center gap-6" aria-label="Navegação principal">
+        <nav className="hidden items-center gap-6 md:flex" aria-label="Navegação principal">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium no-underline transition-opacity hover:opacity-80"
-              style={{ color: "var(--stone-200)" }}
+              className="text-sm font-medium text-[var(--stone-200)] no-underline transition-colors hover:text-white"
             >
               {link.label}
             </Link>
@@ -54,22 +53,16 @@ export default function Header() {
         </nav>
 
         {/* CTA desktop */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden items-center gap-3 md:flex">
           <Link
             href="/login"
-            className="text-sm font-medium no-underline transition-opacity hover:opacity-80"
-            style={{ color: "var(--stone-300)" }}
+            className="text-sm font-medium text-[var(--stone-300)] no-underline transition-colors hover:text-white"
           >
             Entrar
           </Link>
           <Link
             href="/cadastro"
-            className="text-sm font-semibold no-underline rounded-full transition-opacity hover:opacity-90"
-            style={{
-              background: "var(--color-primary)",
-              color: "#fff",
-              padding: "7px 18px",
-            }}
+            className="rounded-full bg-[var(--color-primary)] px-[18px] py-[7px] text-sm font-semibold text-white no-underline transition-opacity hover:opacity-90"
           >
             Cadastrar
           </Link>
@@ -77,10 +70,11 @@ export default function Header() {
 
         {/* Hamburger mobile */}
         <button
-          className="flex md:hidden items-center justify-center"
-          style={{ width: "40px", height: "40px", color: "var(--stone-200)" }}
+          type="button"
+          className="flex h-10 w-10 items-center justify-center text-[var(--stone-200)] md:hidden"
           aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
           aria-expanded={menuOpen}
+          aria-controls="mobile-menu"
           onClick={() => setMenuOpen((v) => !v)}
         >
           {menuOpen ? (
@@ -98,49 +92,40 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Mobile menu drawer */}
+      {/* Drawer mobile — irmão da barra, dentro do header, com scroll próprio */}
       {menuOpen && (
-        <div
-          className="md:hidden flex flex-col"
-          style={{
-            backgroundColor: "rgba(18, 8, 4, 0.97)",
-            padding: "1rem 1.25rem 1.5rem",
-            borderTop: "1px solid rgba(255,255,255,0.07)",
-          }}
+        <nav
+          id="mobile-menu"
+          aria-label="Navegação móvel"
+          className="flex max-h-[calc(100dvh-56px)] flex-col overflow-y-auto border-t border-[var(--border-subtle)] bg-[var(--header-bg-solid)] px-5 pb-6 pt-4 md:hidden"
         >
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="py-3 text-base font-medium no-underline border-b transition-opacity hover:opacity-80"
-              style={{
-                color: "var(--stone-200)",
-                borderColor: "rgba(255,255,255,0.07)",
-              }}
-              onClick={() => setMenuOpen(false)}
+              className="border-b border-[var(--border-subtle)] py-3 text-base font-medium text-[var(--stone-200)] no-underline transition-colors hover:text-white"
+              onClick={closeMenu}
             >
               {link.label}
             </Link>
           ))}
-          <div className="flex flex-col gap-3 mt-5">
+          <div className="mt-5 flex flex-col gap-3">
             <Link
               href="/login"
-              className="text-center py-3 text-base font-medium no-underline rounded-xl transition-opacity hover:opacity-80"
-              style={{ color: "var(--stone-200)", border: "1px solid rgba(255,255,255,0.15)" }}
-              onClick={() => setMenuOpen(false)}
+              className="rounded-xl border border-[var(--border-strong)] py-3 text-center text-base font-medium text-[var(--stone-200)] no-underline transition-colors hover:text-white"
+              onClick={closeMenu}
             >
               Entrar
             </Link>
             <Link
               href="/cadastro"
-              className="text-center py-3 text-base font-semibold no-underline rounded-xl transition-opacity hover:opacity-90"
-              style={{ background: "var(--color-primary)", color: "#fff" }}
-              onClick={() => setMenuOpen(false)}
+              className="rounded-xl bg-[var(--color-primary)] py-3 text-center text-base font-semibold text-white no-underline transition-opacity hover:opacity-90"
+              onClick={closeMenu}
             >
               Cadastrar
             </Link>
           </div>
-        </div>
+        </nav>
       )}
     </header>
   );

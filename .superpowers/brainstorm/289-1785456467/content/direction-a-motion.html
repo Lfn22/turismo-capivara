@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAPI — Direction A: Motion & Micro-interações</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ochre: #C4852A;
+    --ochre-light: #d4a04a;
+    --ochre-dark: #a06b1e;
+    --stone-50: #fafaf9;
+    --stone-100: #f5f5f4;
+    --stone-200: #e7e5e4;
+    --stone-300: #d6d3d0;
+    --stone-400: #a8a29e;
+    --stone-500: #78716c;
+    --stone-600: #57534e;
+    --stone-700: #44403c;
+    --stone-800: #292524;
+    --stone-900: #1c1917;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+  }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px 0;
+  }
+
+  .phone-frame {
+    width: 375px;
+    min-height: 812px;
+    background: var(--stone-50);
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 0 0 8px #1a1a1a, 0 0 0 10px #333, 0 30px 80px rgba(0,0,0,0.6);
+  }
+
+  .phone-scroll {
+    height: 812px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 70px;
+  }
+
+  .phone-scroll::-webkit-scrollbar { width: 0; }
+
+  /* ===== HERO ===== */
+  .hero {
+    position: relative;
+    height: 460px;
+    background: var(--stone-900);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 30px 24px;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(196,133,42,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 80%, rgba(196,133,42,0.08) 0%, transparent 50%),
+      linear-gradient(180deg, var(--stone-900) 0%, var(--stone-800) 100%);
+    will-change: transform;
+  }
+
+  /* Floating petroglyph shapes */
+  .float-element {
+    position: absolute;
+    opacity: 0.06;
+    animation: float 6s ease-in-out infinite;
+  }
+  .float-element:nth-child(2) { animation-delay: -2s; animation-duration: 7s; }
+  .float-element:nth-child(3) { animation-delay: -4s; animation-duration: 8s; }
+
+  .float-el-1 { top: 15%; left: 10%; width: 60px; height: 60px; border: 2px solid var(--ochre); border-radius: 50%; }
+  .float-el-2 { top: 30%; right: 15%; width: 40px; height: 40px; border: 2px solid var(--ochre); transform: rotate(45deg); }
+  .float-el-3 { top: 50%; left: 60%; width: 8px; height: 8px; background: var(--ochre); border-radius: 50%; }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    33% { transform: translateY(-12px) rotate(3deg); }
+    66% { transform: translateY(6px) rotate(-2deg); }
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-logo {
+    margin-bottom: 16px;
+  }
+
+  .hero-logo svg {
+    width: 48px;
+    height: 48px;
+    filter: drop-shadow(0 2px 8px rgba(196,133,42,0.3));
+    animation: logoEnter 1s ease-out 0.3s both;
+  }
+
+  @keyframes logoEnter {
+    from { opacity: 0; transform: scale(0.7) rotate(-10deg); }
+    to { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: 3rem;
+    color: var(--stone-50);
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 12px;
+    animation: titleSlide 0.8s ease-out 0.5s both;
+  }
+
+  @keyframes titleSlide {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero .tagline {
+    font-size: 0.95rem;
+    color: var(--stone-400);
+    line-height: 1.5;
+    max-width: 260px;
+    animation: titleSlide 0.8s ease-out 0.7s both;
+  }
+
+  .hero .tagline em {
+    color: var(--ochre);
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  .hero-cta {
+    margin-top: 24px;
+    animation: titleSlide 0.8s ease-out 0.9s both;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ochre);
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(196,133,42,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(255,255,255,0.15), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .btn-primary:hover {
+    background: var(--ochre-light);
+    box-shadow: 0 6px 24px rgba(196,133,42,0.45);
+    transform: translateY(-2px);
+  }
+
+  .btn-primary:hover::after { opacity: 1; }
+
+  .btn-primary:active {
+    transform: translateY(0) scale(0.97);
+    box-shadow: 0 2px 8px rgba(196,133,42,0.3);
+  }
+
+  .btn-primary .btn-icon {
+    transition: transform 0.3s;
+  }
+
+  .btn-primary:hover .btn-icon {
+    transform: translateX(3px);
+  }
+
+  /* ===== STATS BAR ===== */
+  .stats-bar {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px 16px;
+    background: white;
+    border-bottom: 1px solid var(--stone-200);
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-number {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--stone-800);
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+    color: var(--stone-500);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  /* ===== SECTIONS ===== */
+  .section {
+    padding: 32px 20px;
+  }
+
+  .section-header {
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: var(--stone-800);
+    margin-bottom: 6px;
+  }
+
+  .section-subtitle {
+    font-size: 0.85rem;
+    color: var(--stone-500);
+    line-height: 1.4;
+  }
+
+  /* Scroll Reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .reveal-left {
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal-left.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .reveal-right {
+    opacity: 0;
+    transform: translateX(40px);
+    transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal-right.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .reveal-scale {
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal-scale.visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Stagger delays */
+  .delay-1 { transition-delay: 0.1s; }
+  .delay-2 { transition-delay: 0.2s; }
+  .delay-3 { transition-delay: 0.3s; }
+  .delay-4 { transition-delay: 0.4s; }
+
+  /* ===== DESTINATION CARDS ===== */
+  .destinations-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .dest-card {
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+
+  .dest-card:hover {
+    transform: scale(1.03);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  .dest-card:active {
+    transform: scale(0.99);
+  }
+
+  .dest-card-img {
+    height: 160px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dest-card-img .img-bg {
+    position: absolute;
+    inset: 0;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dest-card:hover .img-bg {
+    transform: scale(1.08);
+  }
+
+  .card-1 .img-bg {
+    background: linear-gradient(135deg, #8B4513 0%, #CD853F 40%, #DEB887 70%, #F5DEB3 100%);
+  }
+  .card-2 .img-bg {
+    background: linear-gradient(135deg, #2F4F2F 0%, #556B2F 30%, #8FBC8F 70%, #98FB98 100%);
+  }
+  .card-3 .img-bg {
+    background: linear-gradient(135deg, #4A3728 0%, #8B6914 30%, #DAA520 60%, #FFD700 100%);
+  }
+  .card-4 .img-bg {
+    background: linear-gradient(135deg, #654321 0%, #A0522D 40%, #CD853F 70%, #F4A460 100%);
+  }
+
+  .dest-card-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(28,25,23,0.75);
+    backdrop-filter: blur(8px);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .dest-card-fav {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+  }
+
+  .dest-card-fav:hover {
+    background: white;
+    transform: scale(1.15);
+  }
+
+  .dest-card-fav:active {
+    transform: scale(0.9);
+  }
+
+  .dest-card-fav svg {
+    transition: all 0.3s;
+  }
+
+  .dest-card-fav.active svg {
+    fill: #e74c3c;
+    stroke: #e74c3c;
+    animation: heartPop 0.4s ease-out;
+  }
+
+  @keyframes heartPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  .dest-card-body {
+    padding: 14px 16px;
+  }
+
+  .dest-card-title {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--stone-800);
+    margin-bottom: 4px;
+  }
+
+  .dest-card-location {
+    font-size: 0.8rem;
+    color: var(--stone-500);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  .dest-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .dest-card-price {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--ochre);
+  }
+
+  .dest-card-price span {
+    font-family: 'Source Sans 3', sans-serif;
+    font-weight: 400;
+    font-size: 0.75rem;
+    color: var(--stone-400);
+  }
+
+  .dest-card-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: var(--stone-600);
+    font-weight: 600;
+  }
+
+  .star-icon {
+    color: #f59e0b;
+    font-size: 0.85rem;
+  }
+
+  /* ===== HOW IT WORKS ===== */
+  .how-section {
+    background: var(--stone-100);
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 16px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+
+  .step:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    transform: translateX(4px);
+  }
+
+  .step-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--ochre), var(--ochre-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.2rem;
+    color: white;
+    transition: transform 0.3s;
+  }
+
+  .step:hover .step-icon {
+    transform: rotate(-8deg) scale(1.1);
+    animation: iconBounce 0.5s ease-out;
+  }
+
+  @keyframes iconBounce {
+    0% { transform: rotate(0) scale(1); }
+    30% { transform: rotate(-12deg) scale(1.15); }
+    60% { transform: rotate(3deg) scale(1.05); }
+    100% { transform: rotate(-8deg) scale(1.1); }
+  }
+
+  .step-content h3 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--stone-800);
+    margin-bottom: 4px;
+  }
+
+  .step-content p {
+    font-size: 0.8rem;
+    color: var(--stone-500);
+    line-height: 1.4;
+  }
+
+  .step-number {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 22px;
+    height: 22px;
+    background: var(--stone-800);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== GUIDES PREVIEW ===== */
+  .guides-scroll {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .guides-scroll::-webkit-scrollbar { height: 0; }
+
+  .guide-chip {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: white;
+    border: 1px solid var(--stone-200);
+    border-radius: 40px;
+    padding: 8px 16px 8px 8px;
+    scroll-snap-align: start;
+    transition: all 0.3s;
+    cursor: pointer;
+  }
+
+  .guide-chip:hover {
+    border-color: var(--ochre);
+    box-shadow: 0 4px 16px rgba(196,133,42,0.15);
+    transform: translateY(-2px);
+  }
+
+  .guide-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    color: white;
+    font-weight: 600;
+  }
+
+  .guide-info {
+    white-space: nowrap;
+  }
+
+  .guide-name {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--stone-800);
+  }
+
+  .guide-spec {
+    font-size: 0.7rem;
+    color: var(--stone-500);
+  }
+
+  /* ===== CTA BANNER ===== */
+  .cta-banner {
+    margin: 0 20px 24px;
+    padding: 28px 24px;
+    background: linear-gradient(135deg, var(--stone-800), var(--stone-900));
+    border-radius: 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-banner::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -30%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(196,133,42,0.2), transparent 70%);
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .cta-banner h3 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: white;
+    margin-bottom: 8px;
+    position: relative;
+  }
+
+  .cta-banner p {
+    font-size: 0.85rem;
+    color: var(--stone-400);
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  /* ===== BOTTOM NAV ===== */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 68px;
+    background: white;
+    border-top: 1px solid var(--stone-200);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 8px;
+    z-index: 100;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 12px;
+    transition: all 0.3s;
+    border: none;
+    background: none;
+    position: relative;
+  }
+
+  .nav-item:hover {
+    background: var(--stone-100);
+  }
+
+  .nav-item:active {
+    transform: scale(0.92);
+  }
+
+  .nav-item.active {
+    color: var(--ochre);
+  }
+
+  .nav-item.active::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background: var(--ochre);
+    border-radius: 0 0 3px 3px;
+  }
+
+  .nav-icon {
+    width: 22px;
+    height: 22px;
+    transition: transform 0.3s;
+  }
+
+  .nav-item:hover .nav-icon {
+    transform: translateY(-2px);
+    animation: navBounce 0.4s ease-out;
+  }
+
+  @keyframes navBounce {
+    0% { transform: translateY(0); }
+    40% { transform: translateY(-5px); }
+    70% { transform: translateY(-1px); }
+    100% { transform: translateY(-2px); }
+  }
+
+  .nav-label {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--stone-500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .nav-item.active .nav-label {
+    color: var(--ochre);
+  }
+
+  /* ===== PULSE DOT ===== */
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--ochre);
+    border-radius: 50%;
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+
+  /* ===== STATUS BAR (fake) ===== */
+  .status-bar {
+    height: 44px;
+    background: var(--stone-900);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+  }
+
+  .status-icons {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  /* ===== DIRECTION LABEL ===== */
+  .direction-label {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: var(--stone-900);
+    color: var(--stone-400);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-family: 'Source Sans 3', sans-serif;
+    border: 1px solid var(--stone-700);
+    z-index: 1000;
+  }
+
+  .direction-label strong {
+    color: var(--ochre);
+  }
+</style>
+</head>
+<body>
+
+<div class="direction-label">
+  <strong>Direction A</strong> — Motion & Micro-interações
+</div>
+
+<div class="phone-frame">
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <div class="status-icons">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="white"><rect x="0" y="6" width="3" height="6" rx="1"/><rect x="4.5" y="4" width="3" height="8" rx="1"/><rect x="9" y="2" width="3" height="10" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1" opacity="0.3"/></svg>
+      <svg width="16" height="12" viewBox="0 0 24 12" fill="white"><rect x="0" y="0" width="22" height="12" rx="3" stroke="white" stroke-width="1.5" fill="none"/><rect x="2" y="2" width="14" height="8" rx="1.5" fill="white"/><rect x="23" y="3.5" width="2" height="5" rx="1" fill="white"/></svg>
+    </div>
+  </div>
+
+  <div class="phone-scroll" id="scrollContainer">
+
+    <!-- ===== HERO ===== -->
+    <section class="hero" id="hero">
+      <div class="hero-bg" id="heroBg"></div>
+
+      <!-- Floating elements -->
+      <div class="float-element float-el-1"></div>
+      <div class="float-element float-el-2"></div>
+      <div class="float-element float-el-3"></div>
+
+      <div class="hero-content">
+        <div class="hero-logo">
+          <!-- Simplified petroglyph SVG -->
+          <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 38 C8 20 24 6 40 6" stroke="#C4852A" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <circle cx="16" cy="26" r="3" fill="#C4852A"/>
+            <line x1="16" y1="29" x2="16" y2="38" stroke="#C4852A" stroke-width="2" stroke-linecap="round"/>
+            <line x1="16" y1="32" x2="12" y2="35" stroke="#C4852A" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="16" y1="32" x2="20" y2="35" stroke="#C4852A" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="16" y1="38" x2="13" y2="42" stroke="#C4852A" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="16" y1="38" x2="19" y2="42" stroke="#C4852A" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="30" cy="22" r="3" fill="#C4852A"/>
+            <line x1="30" y1="25" x2="30" y2="34" stroke="#C4852A" stroke-width="2" stroke-linecap="round"/>
+            <line x1="30" y1="28" x2="26" y2="31" stroke="#C4852A" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="30" y1="28" x2="34" y2="31" stroke="#C4852A" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="30" y1="34" x2="27" y2="38" stroke="#C4852A" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="30" y1="34" x2="33" y2="38" stroke="#C4852A" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="38" cy="10" r="2.5" fill="#C4852A"/>
+          </svg>
+        </div>
+        <h1>CAPI</h1>
+        <p class="tagline">caminho entre quem <em>explora</em> e quem <em>opera</em></p>
+        <div class="hero-cta">
+          <button class="btn-primary" onclick="document.getElementById('destinations').scrollIntoView({behavior:'smooth'})">
+            Explorar destinos
+            <span class="btn-icon">→</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== STATS BAR ===== -->
+    <div class="stats-bar reveal">
+      <div class="stat-item">
+        <div class="stat-number" data-target="142">0</div>
+        <div class="stat-label">Guias</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" data-target="38">0</div>
+        <div class="stat-label">Roteiros</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" data-target="2840">0</div>
+        <div class="stat-label">Turistas</div>
+      </div>
+    </div>
+
+    <!-- ===== DESTINATIONS ===== -->
+    <section class="section" id="destinations">
+      <div class="section-header reveal">
+        <h2 class="section-title">Destinos em Alta</h2>
+        <p class="section-subtitle">Trilhas, história e natureza com guias locais</p>
+      </div>
+
+      <div class="destinations-grid">
+        <!-- Card 1 -->
+        <div class="dest-card card-1 reveal delay-1">
+          <div class="dest-card-img">
+            <div class="img-bg"></div>
+            <span class="dest-card-badge">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="#f59e0b"><polygon points="5,0 6.5,3.5 10,3.5 7,6 8.5,10 5,7.5 1.5,10 3,6 0,3.5 3.5,3.5"/></svg>
+              Popular
+            </span>
+            <button class="dest-card-fav" onclick="this.classList.toggle('active')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#292524" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>
+          </div>
+          <div class="dest-card-body">
+            <h3 class="dest-card-title">Serra da Capivara</h3>
+            <div class="dest-card-location">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              São Raimundo Nonato, PI
+            </div>
+            <div class="dest-card-footer">
+              <div class="dest-card-price">R$ 180 <span>/pessoa</span></div>
+              <div class="dest-card-rating"><span class="star-icon">★</span> 4.9</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="dest-card card-2 reveal delay-2">
+          <div class="dest-card-img">
+            <div class="img-bg"></div>
+            <span class="dest-card-badge">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="#22c55e"><circle cx="5" cy="5" r="4"/></svg>
+              Vagas Abertas
+            </span>
+            <button class="dest-card-fav" onclick="this.classList.toggle('active')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#292524" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>
+          </div>
+          <div class="dest-card-body">
+            <h3 class="dest-card-title">Trilha do Boqueirão</h3>
+            <div class="dest-card-location">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Coronel José Dias, PI
+            </div>
+            <div class="dest-card-footer">
+              <div class="dest-card-price">R$ 120 <span>/pessoa</span></div>
+              <div class="dest-card-rating"><span class="star-icon">★</span> 4.7</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="dest-card card-3 reveal delay-3">
+          <div class="dest-card-img">
+            <div class="img-bg"></div>
+            <span class="dest-card-badge">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="#C4852A"><polygon points="5,0 6.5,3.5 10,3.5 7,6 8.5,10 5,7.5 1.5,10 3,6 0,3.5 3.5,3.5"/></svg>
+              Exclusivo
+            </span>
+            <button class="dest-card-fav" onclick="this.classList.toggle('active')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#292524" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>
+          </div>
+          <div class="dest-card-body">
+            <h3 class="dest-card-title">Pinturas Rupestres</h3>
+            <div class="dest-card-location">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Parque Nacional, PI
+            </div>
+            <div class="dest-card-footer">
+              <div class="dest-card-price">R$ 250 <span>/pessoa</span></div>
+              <div class="dest-card-rating"><span class="star-icon">★</span> 5.0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="dest-card card-4 reveal delay-4">
+          <div class="dest-card-img">
+            <div class="img-bg"></div>
+            <span class="dest-card-badge">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="#22c55e"><circle cx="5" cy="5" r="4"/></svg>
+              Novo
+            </span>
+            <button class="dest-card-fav" onclick="this.classList.toggle('active')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#292524" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>
+          </div>
+          <div class="dest-card-body">
+            <h3 class="dest-card-title">Cânion do Varedão</h3>
+            <div class="dest-card-location">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Serra da Capivara, PI
+            </div>
+            <div class="dest-card-footer">
+              <div class="dest-card-price">R$ 160 <span>/pessoa</span></div>
+              <div class="dest-card-rating"><span class="star-icon">★</span> 4.8</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== GUIDES PREVIEW ===== -->
+    <section class="section" style="padding-top: 0;">
+      <div class="section-header reveal">
+        <h2 class="section-title">Condutores Locais</h2>
+        <p class="section-subtitle">Quem conhece de verdade</p>
+      </div>
+      <div class="guides-scroll reveal delay-1">
+        <div class="guide-chip">
+          <div class="guide-avatar" style="background: linear-gradient(135deg, #C4852A, #d4a04a);">JC</div>
+          <div class="guide-info">
+            <div class="guide-name">João Carlos</div>
+            <div class="guide-spec">Arqueologia ★ 4.9</div>
+          </div>
+        </div>
+        <div class="guide-chip">
+          <div class="guide-avatar" style="background: linear-gradient(135deg, #57534e, #78716c);">MA</div>
+          <div class="guide-info">
+            <div class="guide-name">Maria Antônia</div>
+            <div class="guide-spec">Trilhas ★ 4.8</div>
+          </div>
+        </div>
+        <div class="guide-chip">
+          <div class="guide-avatar" style="background: linear-gradient(135deg, #8B4513, #CD853F);">PS</div>
+          <div class="guide-info">
+            <div class="guide-name">Pedro Silva</div>
+            <div class="guide-spec">Fauna ★ 5.0</div>
+          </div>
+        </div>
+        <div class="guide-chip">
+          <div class="guide-avatar" style="background: linear-gradient(135deg, #2F4F2F, #556B2F);">LR</div>
+          <div class="guide-info">
+            <div class="guide-name">Lúcia Reis</div>
+            <div class="guide-spec">História ★ 4.7</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== HOW IT WORKS ===== -->
+    <section class="section how-section" id="howItWorks">
+      <div class="section-header reveal">
+        <h2 class="section-title">Como Funciona</h2>
+        <p class="section-subtitle">Do clique à trilha em 3 passos</p>
+      </div>
+
+      <div class="steps">
+        <div class="step reveal-left delay-1">
+          <div class="step-icon">🔍</div>
+          <div class="step-content">
+            <h3>Escolha o Roteiro</h3>
+            <p>Filtre por destino, duração ou tipo de experiência. Compare guias e avaliações.</p>
+          </div>
+        </div>
+
+        <div class="step reveal-right delay-2">
+          <div class="step-icon">📅</div>
+          <div class="step-content">
+            <h3>Reserve a Data</h3>
+            <p>Veja disponibilidade em tempo real e garanta sua vaga com pagamento seguro via PIX.</p>
+          </div>
+        </div>
+
+        <div class="step reveal-left delay-3">
+          <div class="step-icon">🥾</div>
+          <div class="step-content">
+            <h3>Viva a Experiência</h3>
+            <p>Encontre seu guia no ponto de partida e descubra o Piauí como ninguém mais mostra.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CTA BANNER ===== -->
+    <div class="cta-banner reveal-scale">
+      <h3>É condutor local?</h3>
+      <p>Cadastre seus roteiros e receba turistas na sua região.</p>
+      <button class="btn-primary">
+        Quero ser guia
+        <span class="btn-icon">→</span>
+      </button>
+    </div>
+
+    <!-- Spacer for bottom nav -->
+    <div style="height: 20px;"></div>
+
+  </div>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <nav class="bottom-nav">
+    <button class="nav-item active">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <span class="nav-label">Início</span>
+    </button>
+
+    <button class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <span class="nav-label">Buscar</span>
+    </button>
+
+    <button class="nav-item" style="position:relative;">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <span class="nav-label">Reservas</span>
+      <span class="pulse-dot"></span>
+    </button>
+
+    <button class="nav-item">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span class="nav-label">Perfil</span>
+    </button>
+  </nav>
+</div>
+
+<script>
+  const scrollContainer = document.getElementById('scrollContainer');
+
+  // ===== PARALLAX on hero background =====
+  const heroBg = document.getElementById('heroBg');
+  scrollContainer.addEventListener('scroll', () => {
+    const scrollY = scrollContainer.scrollTop;
+    heroBg.style.transform = `translateY(${scrollY * 0.35}px)`;
+  });
+
+  // ===== SCROLL REVEAL with IntersectionObserver =====
+  const revealElements = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale');
+
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, {
+    root: scrollContainer,
+    threshold: 0.15,
+    rootMargin: '0px 0px -40px 0px'
+  });
+
+  revealElements.forEach(el => revealObserver.observe(el));
+
+  // ===== ANIMATED COUNTERS =====
+  function animateCounter(el) {
+    const target = parseInt(el.dataset.target);
+    const duration = 1500;
+    const start = performance.now();
+
+    function update(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(eased * target);
+
+      if (target >= 1000) {
+        el.textContent = current.toLocaleString('pt-BR');
+      } else {
+        el.textContent = current;
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      } else {
+        // Add + suffix
+        el.textContent = (target >= 1000 ? target.toLocaleString('pt-BR') : target) + '+';
+      }
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  const statNumbers = document.querySelectorAll('.stat-number[data-target]');
+  const statsObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        animateCounter(entry.target);
+        statsObserver.unobserve(entry.target);
+      }
+    });
+  }, {
+    root: scrollContainer,
+    threshold: 0.5
+  });
+
+  statNumbers.forEach(el => statsObserver.observe(el));
+
+  // ===== NAV ITEM ACTIVE STATE =====
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>

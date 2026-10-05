@@ -1,7 +1,59 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import Link from "next/link"
+import { ArrowLeft, Building2, CalendarCheck, Check, Compass, ShieldCheck, UserRound } from "lucide-react"
+import { Alert, Button, Input, ListGroup, ListRow, Stepper } from "@/src/components/ui/capi"
+
+/* ── Layout de acesso (local; candidato a componente do DS) ── */
+const BENEFITS = [
+  { icon: Compass, text: "Roteiros e guias locais num só lugar" },
+  { icon: CalendarCheck, text: "Reservas, agenda e check-in organizados" },
+  { icon: ShieldCheck, text: "Guias e operadoras aprovados pela equipe CAPI" },
+]
+
+function AuthLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid min-h-dvh bg-page lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <aside className="sticky top-0 hidden h-dvh flex-col justify-between gap-12 bg-surface-brand p-12 text-on-brand lg:flex">
+        <Link href="/" className="inline-block self-start rounded-sm">
+          <Image src="/images/logo.png" alt="CAPI" width={120} height={108} className="block brightness-0 invert" />
+        </Link>
+        <div>
+          <p className="font-display text-4xl leading-tight xl:text-5xl">Caminho entre quem explora e quem opera</p>
+          <ul className="mt-10 flex flex-col gap-5">
+            {BENEFITS.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3" style={{ color: "var(--text-on-brand-secondary)" }}>
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full text-on-brand" style={{ background: "var(--terra-700)" }}>
+                  <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+                </span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+      <main className="flex min-w-0 items-center justify-center py-10 lg:py-16">
+        <div className="capi-container capi-container--form">
+          <Link href="/" className="mb-8 inline-block rounded-sm lg:hidden">
+            <Image src="/images/logo.png" alt="CAPI" width={120} height={108} priority className="block in-data-[theme=dark]:brightness-0 in-data-[theme=dark]:invert" />
+          </Link>
+          {children}
+        </div>
+      </main>
+    </div>
+  )
+}
+
+function FormSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <fieldset className="flex min-w-0 flex-col gap-5 border-0">
+      <legend className="mb-4 text-base font-bold">{title}</legend>
+      {children}
+    </fieldset>
+  )
+}
 
 function slugify(str: string): string {
   return str
@@ -124,516 +176,218 @@ export default function OnboardingPage() {
     }
   }
 
-  const slugIndicator =
+  // Status do slug vira dica/erro do campo (só apresentação; a verificação é a mesma).
+  const slugError =
+    slugStatus === "unavailable"
+      ? "Esse código já está em uso. Escolha outro."
+      : slugStatus === "invalid-format"
+        ? "Formato inválido: use letras minúsculas, números e hífens."
+        : null
+  const slugHint =
     slugStatus === "available" ? (
-      <span style={{ color: "#15803D", fontSize: "14px" }} aria-live="polite">✓ Disponível</span>
-    ) : slugStatus === "unavailable" ? (
-      <span style={{ color: "#DC2626", fontSize: "14px" }} aria-live="polite">✗ Já utilizado</span>
+      <span className="inline-flex items-center gap-1 text-success" aria-live="polite">
+        <Check size={16} strokeWidth={1.75} aria-hidden="true" /> Disponível
+      </span>
     ) : slugStatus === "checking" ? (
-      <span style={{ color: "var(--stone-500)", fontSize: "14px" }} aria-live="polite">Verificando…</span>
-    ) : slugStatus === "invalid-format" ? (
-      <span style={{ color: "#DC2626", fontSize: "14px" }} aria-live="polite">✗ Formato inválido (use letras, números e hífens)</span>
-    ) : null
+      <span aria-live="polite">Verificando disponibilidade…</span>
+    ) : (
+      "Use letras minúsculas, números e hífens. Os guias usam esse código para se cadastrar."
+    )
+
+  // Código não encontrado/vazio vai para o campo; falhas de rede ficam no Alert.
+  const guideSlugFieldError = guideSlugError && !guideSlugError.startsWith("Erro") ? guideSlugError : null
+  const guideSlugAlert = guideSlugError && !guideSlugFieldError ? guideSlugError : null
 
   // ── Step: choose ──────────────────────────────────────────────────────────
   if (step === "choose") {
     return (
-      <main
-        style={{
-          minHeight: "100dvh",
-          background: "var(--stone-50)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "24px",
-        }}
-      >
-        <div
-          style={{
-            background: "white",
-            border: "1px solid var(--stone-200)",
-            borderRadius: "8px",
-            padding: "clamp(32px, 5vw, 48px) clamp(24px, 5vw, 40px)",
-            width: "100%",
-            maxWidth: "480px",
-          }}
-        >
-          <p
-            style={{
-              fontSize: "11px",
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              color: "var(--ochre)",
-              marginBottom: "8px",
-            }}
-          >
-            CAPI
-          </p>
-          <h1
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "24px",
-              fontWeight: 400,
-              color: "var(--stone-900)",
-              marginBottom: "8px",
-            }}
-          >
-            Criar conta
-          </h1>
-          <p style={{ fontSize: "14px", color: "var(--stone-500)", marginBottom: "32px" }}>
-            Como você quer usar o CAPI?
-          </p>
+      <AuthLayout>
+        <Stepper steps={["Tipo de conta", "Seus dados", "Aprovação"]} current={0} />
+        <h1 className="mt-8 text-2xl font-bold">Criar conta</h1>
+        <p className="mt-2 text-fg-secondary">Como você quer usar o CAPI?</p>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <button
+        <div className="mt-8">
+          <ListGroup>
+            <ListRow
               onClick={() => setStep("operator")}
-              style={{
-                width: "100%",
-                padding: "20px 20px",
-                background: "white",
-                border: "1px solid var(--stone-200)",
-                borderRadius: "8px",
-                cursor: "pointer",
-                textAlign: "left",
-                transition: "border-color 0.15s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--ochre)")}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--stone-200)")}
-            >
-              <p style={{ fontSize: "15px", fontWeight: 600, color: "var(--stone-900)", margin: "0 0 4px" }}>
-                Sou Operadora
-              </p>
-              <p style={{ fontSize: "13px", color: "var(--stone-500)", margin: 0 }}>
-                Cadastre sua empresa e gerencie guias e roteiros
-              </p>
-            </button>
-
-            <button
+              leading={
+                <span className="flex size-10 items-center justify-center rounded-full bg-subtle text-fg-primary">
+                  <Building2 size={20} strokeWidth={1.75} aria-hidden="true" />
+                </span>
+              }
+              title="Sou operadora"
+              subtitle="Cadastre sua empresa e gerencie guias e roteiros"
+            />
+            <ListRow
               onClick={() => setStep("guide")}
-              style={{
-                width: "100%",
-                padding: "20px 20px",
-                background: "white",
-                border: "1px solid var(--stone-200)",
-                borderRadius: "8px",
-                cursor: "pointer",
-                textAlign: "left",
-                transition: "border-color 0.15s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--ochre)")}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--stone-200)")}
-            >
-              <p style={{ fontSize: "15px", fontWeight: 600, color: "var(--stone-900)", margin: "0 0 4px" }}>
-                Sou Guia
-              </p>
-              <p style={{ fontSize: "13px", color: "var(--stone-500)", margin: 0 }}>
-                Cadastre-se como condutor em uma operadora parceira
-              </p>
-            </button>
-          </div>
-
-          <p
-            style={{
-              fontSize: "14px",
-              color: "var(--stone-500)",
-              textAlign: "center",
-              marginTop: "28px",
-            }}
-          >
-            Já tem conta?{" "}
-            <Link href="/login" style={{ color: "var(--ochre)", fontWeight: 600, textDecoration: "none" }}>
-              Entrar
-            </Link>
-          </p>
+              leading={
+                <span className="flex size-10 items-center justify-center rounded-full bg-subtle text-fg-primary">
+                  <UserRound size={20} strokeWidth={1.75} aria-hidden="true" />
+                </span>
+              }
+              title="Sou guia"
+              subtitle="Cadastre-se como condutor em uma operadora parceira"
+            />
+          </ListGroup>
         </div>
-      </main>
+
+        <p className="mt-6 text-center text-sm text-fg-secondary">
+          Já tem conta?{" "}
+          <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-fg-primary underline-offset-4 hover:underline">
+            Entrar
+          </Link>
+        </p>
+      </AuthLayout>
     )
   }
 
   // ── Step: guide ───────────────────────────────────────────────────────────
   if (step === "guide") {
     return (
-      <main
-        style={{
-          minHeight: "100dvh",
-          background: "var(--stone-50)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "24px",
-        }}
-      >
-        <div
-          style={{
-            background: "white",
-            border: "1px solid var(--stone-200)",
-            borderRadius: "8px",
-            padding: "clamp(32px, 5vw, 48px) clamp(24px, 5vw, 40px)",
-            width: "100%",
-            maxWidth: "480px",
-          }}
+      <AuthLayout>
+        <Button
+          variant="ghost"
+          size="sm"
+          iconLeft={ArrowLeft}
+          className="mb-4 -ml-2"
+          onClick={() => { setStep("choose"); setGuideSlug(""); setGuideSlugError(null) }}
         >
-          <button
-            onClick={() => { setStep("choose"); setGuideSlug(""); setGuideSlugError(null) }}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: 600,
-              color: "var(--stone-500)",
-              padding: 0,
-              marginBottom: "24px",
-              display: "block",
-            }}
-          >
-            ← Voltar
-          </button>
+          Voltar
+        </Button>
+        <Stepper steps={["Tipo de conta", "Operadora", "Seus dados"]} current={1} />
+        <h1 className="mt-8 text-2xl font-bold">Cadastro de guia</h1>
+        <p className="mt-2 text-fg-secondary">
+          Informe o código da operadora à qual você pertence.
+          Peça esse código ao admin da sua operadora.
+        </p>
 
-          <p
-            style={{
-              fontSize: "11px",
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              color: "var(--ochre)",
-              marginBottom: "8px",
-            }}
-          >
-            CAPI
-          </p>
-          <h1
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "24px",
-              fontWeight: 400,
-              color: "var(--stone-900)",
-              marginBottom: "8px",
-            }}
-          >
-            Cadastro de Guia
-          </h1>
-          <p style={{ fontSize: "14px", color: "var(--stone-500)", marginBottom: "32px" }}>
-            Informe o código da operadora à qual você pertence.
-            Peça esse código ao admin da sua operadora.
-          </p>
+        <form onSubmit={handleGuideSubmit} noValidate className="mt-8 flex flex-col gap-5">
+          <Input
+            id="guide-slug"
+            label="Código da operadora"
+            type="text"
+            required
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="ex: trilhas-do-norte"
+            value={guideSlug}
+            onChange={(e) => setGuideSlug(e.target.value.toLowerCase().replace(/\s/g, "-"))}
+            error={guideSlugFieldError}
+          />
 
-          {guideSlugError && (
-            <div
-              role="alert"
-              aria-live="polite"
-              style={{
-                background: "#FEF2F2",
-                border: "1px solid #FCA5A5",
-                borderRadius: "4px",
-                padding: "8px 12px",
-                marginBottom: "16px",
-                fontSize: "14px",
-                color: "#DC2626",
-              }}
-            >
-              {guideSlugError}
-            </div>
-          )}
+          {guideSlugAlert && <Alert tone="danger">{guideSlugAlert}</Alert>}
 
-          <form onSubmit={handleGuideSubmit} noValidate>
-            <div style={{ marginBottom: "24px" }}>
-              <label
-                htmlFor="guide-slug"
-                style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--stone-700)", marginBottom: "6px" }}
-              >
-                Código da operadora
-              </label>
-              <input
-                id="guide-slug"
-                type="text"
-                required
-                placeholder="ex: trilhas-do-norte"
-                value={guideSlug}
-                onChange={(e) => setGuideSlug(e.target.value.toLowerCase().replace(/\s/g, "-"))}
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  border: "1px solid var(--stone-200)",
-                  borderRadius: "4px",
-                  fontSize: "16px",
-                  fontFamily: "var(--font-body)",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
+          <Button type="submit" size="lg" fullWidth loading={guideSlugChecking}>
+            Continuar
+          </Button>
+        </form>
 
-            <button
-              type="submit"
-              disabled={guideSlugChecking}
-              style={{
-                width: "100%",
-                minHeight: "44px",
-                background: guideSlugChecking ? "var(--stone-400)" : "var(--ochre)",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                fontSize: "16px",
-                fontWeight: 600,
-                cursor: guideSlugChecking ? "not-allowed" : "pointer",
-                fontFamily: "var(--font-body)",
-              }}
-            >
-              {guideSlugChecking ? "Verificando…" : "Continuar"}
-            </button>
-          </form>
-        </div>
-      </main>
+        <p className="mt-6 text-center text-sm text-fg-secondary">
+          Sem código de operadora?{" "}
+          <Link href="/cadastro/guia" className="inline-flex min-h-11 items-center font-semibold text-fg-primary underline-offset-4 hover:underline">
+            Cadastre-se como guia independente
+          </Link>
+        </p>
+      </AuthLayout>
     )
   }
 
   // ── Step: operator ────────────────────────────────────────────────────────
   return (
-    <main
-      style={{
-        minHeight: "100dvh",
-        background: "var(--stone-50)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px",
-      }}
-    >
-      <div
-        style={{
-          background: "white",
-          border: "1px solid var(--stone-200)",
-          borderRadius: "8px",
-          padding: "clamp(32px, 5vw, 48px) clamp(24px, 5vw, 40px)",
-          width: "100%",
-          maxWidth: "480px",
-        }}
+    <AuthLayout>
+      <Button
+        variant="ghost"
+        size="sm"
+        iconLeft={ArrowLeft}
+        className="mb-4 -ml-2"
+        onClick={() => { setStep("choose"); setError(null) }}
       >
-        <button
-          onClick={() => { setStep("choose"); setError(null) }}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: "13px",
-            fontWeight: 600,
-            color: "var(--stone-500)",
-            padding: 0,
-            marginBottom: "24px",
-            display: "block",
-          }}
-        >
-          ← Voltar
-        </button>
+        Voltar
+      </Button>
+      <Stepper steps={["Tipo de conta", "Dados da operadora", "Aprovação"]} current={1} />
+      <h1 className="mt-8 text-2xl font-bold">Cadastre sua operadora</h1>
+      <p className="mt-2 text-fg-secondary">Depois do envio, a equipe CAPI analisa e libera o acesso ao painel.</p>
 
-        <p
-          style={{
-            fontSize: "11px",
-            fontWeight: 600,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            color: "var(--ochre)",
-            marginBottom: "8px",
-          }}
-        >
-          CAPI
-        </p>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "24px",
-            fontWeight: 400,
-            color: "var(--stone-900)",
-            marginBottom: "32px",
-          }}
-        >
-          Cadastre sua Operadora
-        </h1>
+      <form onSubmit={handleOperatorSubmit} noValidate className="mt-8 flex flex-col gap-8">
+        <FormSection title="Sua operadora">
+          <Input
+            id="name"
+            label="Nome fantasia da operadora"
+            type="text"
+            required
+            autoComplete="organization"
+            value={name}
+            onChange={(e) => { setName(e.target.value); slugAutoGenerated.current = true }}
+          />
+          <Input
+            id="slug"
+            label="Código da operadora (slug)"
+            type="text"
+            required
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={slug}
+            onChange={(e) => handleSlugChange(e.target.value)}
+            error={slugError}
+            hint={slugHint}
+          />
+          <Input
+            id="cnpj"
+            label="CNPJ"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            required
+            placeholder="XX.XXX.XXX/XXXX-XX"
+            minLength={14}
+            maxLength={18}
+            value={cnpj}
+            onChange={(e) => setCnpj(e.target.value)}
+          />
+        </FormSection>
 
-        {error && (
-          <div
-            role="alert"
-            aria-live="polite"
-            style={{
-              background: "#FEF2F2",
-              border: "1px solid #FCA5A5",
-              borderRadius: "4px",
-              padding: "8px 12px",
-              marginBottom: "16px",
-              fontSize: "14px",
-              color: "#DC2626",
-            }}
-          >
-            {error}
-          </div>
-        )}
+        <FormSection title="Acesso ao painel">
+          <Input
+            id="email"
+            label="E-mail"
+            type="email"
+            inputMode="email"
+            required
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Input
+            id="password"
+            label="Senha"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            hint="Mínimo 8 caracteres"
+          />
+        </FormSection>
 
-        <form onSubmit={handleOperatorSubmit} noValidate>
-          <div style={{ marginBottom: "20px" }}>
-            <label
-              htmlFor="name"
-              style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--stone-700)", marginBottom: "6px" }}
-            >
-              Nome fantasia da operadora
-            </label>
-            <input
-              id="name"
-              type="text"
-              required
-              value={name}
-              onChange={(e) => { setName(e.target.value); slugAutoGenerated.current = true }}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: "1px solid var(--stone-200)",
-                borderRadius: "4px",
-                fontSize: "16px",
-                fontFamily: "var(--font-body)",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
+        <div className="flex flex-col gap-4">
+          {error && <Alert tone="danger">{error}</Alert>}
+          <Button type="submit" size="lg" fullWidth loading={loading}>
+            Cadastrar operadora
+          </Button>
+        </div>
+      </form>
 
-          <div style={{ marginBottom: "20px" }}>
-            <label
-              htmlFor="slug"
-              style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--stone-700)", marginBottom: "6px" }}
-            >
-              Slug da operadora
-            </label>
-            <input
-              id="slug"
-              type="text"
-              required
-              value={slug}
-              onChange={(e) => handleSlugChange(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: "1px solid var(--stone-200)",
-                borderRadius: "4px",
-                fontSize: "16px",
-                fontFamily: "var(--font-body)",
-                boxSizing: "border-box",
-              }}
-            />
-            <div style={{ marginTop: "4px", minHeight: "20px" }}>{slugIndicator}</div>
-          </div>
-
-          <div style={{ marginBottom: "20px" }}>
-            <label
-              htmlFor="email"
-              style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--stone-700)", marginBottom: "6px" }}
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: "1px solid var(--stone-200)",
-                borderRadius: "4px",
-                fontSize: "16px",
-                fontFamily: "var(--font-body)",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: "20px" }}>
-            <label
-              htmlFor="cnpj"
-              style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--stone-700)", marginBottom: "6px" }}
-            >
-              CNPJ
-            </label>
-            <input
-              id="cnpj"
-              type="text"
-              required
-              placeholder="XX.XXX.XXX/XXXX-XX"
-              minLength={14}
-              maxLength={18}
-              value={cnpj}
-              onChange={(e) => setCnpj(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: "1px solid var(--stone-200)",
-                borderRadius: "4px",
-                fontSize: "16px",
-                fontFamily: "var(--font-body)",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: "28px" }}>
-            <label
-              htmlFor="password"
-              style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "var(--stone-700)", marginBottom: "6px" }}
-            >
-              Senha
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: "1px solid var(--stone-200)",
-                borderRadius: "4px",
-                fontSize: "16px",
-                fontFamily: "var(--font-body)",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              minHeight: "44px",
-              background: loading ? "var(--stone-400)" : "var(--ochre)",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              fontSize: "16px",
-              fontWeight: 600,
-              cursor: loading ? "not-allowed" : "pointer",
-              fontFamily: "var(--font-body)",
-            }}
-          >
-            {loading ? "Cadastrando…" : "Cadastrar Operadora"}
-          </button>
-        </form>
-
-        <p
-          style={{
-            fontSize: "14px",
-            color: "var(--stone-500)",
-            textAlign: "center",
-            marginTop: "24px",
-          }}
-        >
-          Já tem conta?{" "}
-          <Link href="/login" style={{ color: "var(--ochre)", fontWeight: 600, textDecoration: "none" }}>
-            Acesse o painel da sua operadora.
-          </Link>
-        </p>
-      </div>
-    </main>
+      <p className="mt-6 text-center text-sm text-fg-secondary">
+        Já tem conta?{" "}
+        <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-fg-primary underline-offset-4 hover:underline">
+          Acesse o painel da sua operadora
+        </Link>
+      </p>
+    </AuthLayout>
   )
 }

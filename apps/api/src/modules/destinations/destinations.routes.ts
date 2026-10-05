@@ -12,6 +12,7 @@ import {
   rejectDestination,
   updateDestination,
 } from './destinations.service'
+import { auditLog } from '../../shared/audit.js'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -70,6 +71,8 @@ export async function destinationsRoutes(app: FastifyInstance) {
         photos: true,
         tagline: true,
         approvalStatus: true,
+        lat: true,
+        lng: true,
       },
     })
 
@@ -530,6 +533,10 @@ export async function destinationsRoutes(app: FastifyInstance) {
         input.approvalStatus === 'APPROVED'
           ? await approveDestination(id)
           : await rejectDestination(id, input.rejectionReason)
+
+      if (input.approvalStatus === 'APPROVED') {
+        auditLog(prisma, { actorType: 'USER', actorId: (request.user as { sub: string }).sub, action: 'destination.approved', targetType: 'DESTINATION', targetId: destination.id, ipAddress: request.ip, metadata: { destinationName: destination.title } })
+      }
 
       return reply.status(200).send(destination)
     },
