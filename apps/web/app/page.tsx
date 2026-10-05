@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { LayoutDashboard } from 'lucide-react';
 import { Button } from '@/src/components/ui/capi';
 import HeroSection from '@/src/components/home/HeroSection';
+import type { HeroSlide } from '@/src/components/home/HeroSlideshow';
 import DestinationsSection from '@/src/components/home/DestinationsSection';
 import HowItWorksSection from '@/src/components/home/HowItWorksSection';
 import GuidesSection from '@/src/components/home/GuidesSection';
@@ -28,6 +29,7 @@ interface DestinationSummary {
   state: string;
   heroImageUrl: string | null;
   heroImageBlurDataUrl: string | null;
+  photos?: string[];
 }
 
 interface GuideSummary {
@@ -44,6 +46,39 @@ interface PackageSummary {
   difficulty: string;
   guideName: string;
   guideId: string;
+  photos?: string[];
+}
+
+/** Máximo de fotos no hero: acima disso o visitante raramente vê e só gasta dados. */
+const HERO_MAX_SLIDES = 12;
+
+/** Junta capa + galeria de cada destino e as fotos dos roteiros, sem repetir URL. */
+function buildHeroSlides(destinations: DestinationSummary[], packages: PackageSummary[]): HeroSlide[] {
+  const seen = new Set<string>();
+  const destSlides: HeroSlide[] = [];
+  const pkgSlides: HeroSlide[] = [];
+  const push = (list: HeroSlide[], slide: HeroSlide) => {
+    if (!slide.src || seen.has(slide.src)) return;
+    seen.add(slide.src);
+    list.push(slide);
+  };
+
+  for (const d of destinations) {
+    const base = { label: d.state ? `${d.title}, ${d.state}` : d.title, kind: 'Destino', href: `/destinos/${d.slug}` };
+    if (d.heroImageUrl) push(destSlides, { ...base, src: d.heroImageUrl, blurDataUrl: d.heroImageBlurDataUrl });
+    for (const src of d.photos ?? []) push(destSlides, { ...base, src });
+  }
+  for (const p of packages) {
+    for (const src of p.photos ?? []) push(pkgSlides, { src, label: p.name, kind: 'Roteiro', href: `/guias/${p.guideId}` });
+  }
+
+  // Intercala destino e roteiro para o hero não mostrar 5 fotos do mesmo lugar seguidas.
+  const mixed: HeroSlide[] = [];
+  for (let i = 0; mixed.length < HERO_MAX_SLIDES && (i < destSlides.length || i < pkgSlides.length); i++) {
+    if (destSlides[i]) mixed.push(destSlides[i]);
+    if (pkgSlides[i] && mixed.length < HERO_MAX_SLIDES) mixed.push(pkgSlides[i]);
+  }
+  return mixed;
 }
 
 async function fetchGuides(): Promise<GuideSummary[] | null> {
@@ -63,7 +98,7 @@ async function fetchPackages(guides: GuideSummary[]): Promise<PackageSummary[]> 
         const res = await fetch(`${API_URL}/guides/${g.id}/packages`, { cache: 'no-store' });
         if (!res.ok) return [];
         const pkgs = await res.json();
-        return pkgs.map((p: { id: string; name: string; price: number; difficulty: string }) => ({
+        return pkgs.map((p: { id: string; name: string; price: number; difficulty: string; photos?: string[] }) => ({
           ...p,
           guideName: g.name,
           guideId: g.id,
@@ -111,16 +146,15 @@ export default async function HomePage() {
     packages: packages.length,
   };
   const hasStats = stats.destinations + stats.guides + stats.packages > 0;
-  // Foto do hero: o primeiro destino que tiver imagem. Sem foto, o hero usa surface-brand.
-  const heroDestination = previewDestinations.find((d) => d.heroImageUrl);
+  // Fotos do hero: todos os destinos (capa + galeria) e roteiros. Sem fotos, o hero usa surface-brand.
+  const heroSlides = buildHeroSlides(destinations ?? [], packages);
 
   return (
     <PublicLayout>
       <ScrollRevealProvider>
         <main>
           <HeroSection
-            imageUrl={heroDestination?.heroImageUrl}
-            imageBlurDataUrl={heroDestination?.heroImageBlurDataUrl}
+            slides={heroSlides}
             quickLinks={previewDestinations.map((d) => ({ href: `/destinos/${d.slug}`, label: d.title }))}
           />
 

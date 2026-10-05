@@ -407,6 +407,7 @@ export async function guidesRoutes(app: FastifyInstance) {
             durationMinHours: true,
             durationMaxHours: true,
             difficulty: true,
+            photos: true,
           },
         },
       },
@@ -420,6 +421,7 @@ export async function guidesRoutes(app: FastifyInstance) {
         durationMinHours: pg.package.durationMinHours,
         durationMaxHours: pg.package.durationMaxHours,
         difficulty: pg.package.difficulty,
+        photos: pg.package.photos,
       }))
     )
   })
