@@ -61,7 +61,7 @@ interface PackageDetail {
   id: string;
   name: string;
   description: string;
-  duration?: number; // minutes
+  duration?: number; // horas (cadastro do painel)
   price?: number; // decimal, e.g. 120.00
   difficulty?: 'EASY' | 'MODERATE' | 'HARD';
   durationMinHours?: number | null;
@@ -121,7 +121,7 @@ export default async function RoteiroDetailPage({ params }: Props) {
   const priceLabel = priceCents != null ? formatPrice(priceCents) : null;
   const durationLabel =
     pkg?.duration != null
-      ? formatDuration(pkg.duration)
+      ? formatDuration(pkg.duration * 60)
       : pkg?.durationMinHours != null && pkg?.durationMaxHours != null
         ? `${pkg.durationMinHours}–${pkg.durationMaxHours}h`
         : pkg?.durationMinHours != null

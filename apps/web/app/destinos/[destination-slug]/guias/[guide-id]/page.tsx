@@ -263,7 +263,7 @@ export default async function GuideProfilePage({ params }: Props) {
                         <p className="gprofile__pkg-meta">
                           <span>
                             <Clock size={16} strokeWidth={1.75} aria-hidden="true" />
-                            {formatDuration(pkg.duration)}
+                            {formatDuration(pkg.duration * 60)}
                           </span>
                           <span>
                             <strong>{formatPrice(Math.round(pkg.price * 100))}</strong>

@@ -11,7 +11,7 @@ export function formatPrice(cents: number): string {
   }).format(cents / 100)
 }
 
-/** Minutos → "4h", "2h 30min", "45min". */
+/** Minutos → "4h", "2h 30min", "45min". A API grava `duration` em horas: converta com `* 60` antes. */
 export function formatDuration(minutes: number): string {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
