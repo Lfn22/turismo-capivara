@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: turismo
+          POSTGRES_PASSWORD: turismo123
+          POSTGRES_DB: turismo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://turismo:turismo123@localhost:5432/turismo_test
+      JWT_SECRET: ci-test-secret-minimum-32-characters-xxxx
+      MP_ACCESS_TOKEN: ""
+      MP_WEBHOOK_SECRET: test-webhook-secret
+      CPF_SECRET: test-cpf-secret
+      ANONYMIZATION_SALT: test-anonymization-salt
+      CLOUDFLARE_ACCOUNT_ID: test
+      CLOUDFLARE_API_TOKEN: test
+      R2_BUCKET_NAME: test
+      R2_PUBLIC_URL: https://test.r2.dev
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @turismo/api exec prisma generate
+
+      - name: Run migrations
+        run: pnpm --filter @turismo/api exec prisma migrate deploy
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test API
+        run: pnpm --filter @turismo/api test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Upload Sentry source maps
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: pnpm --filter @turismo/api sentry:sourcemaps || true
