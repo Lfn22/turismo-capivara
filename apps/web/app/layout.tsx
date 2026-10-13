@@ -4,6 +4,8 @@ import "./globals.css"
 import { Suspense } from "react"
 import { Providers } from "./providers"
 import { PostHogProvider } from "@/src/components/providers/PostHogProvider"
+import { ConsentBanner } from "@/src/components/providers/ConsentBanner"
+import { ToastProvider } from "@/src/components/providers/ToastProvider"
 
 // Interface: Plus Jakarta Sans. Momentos de marca (hero, nome de destino): Playfair Display.
 const jakarta = Plus_Jakarta_Sans({
@@ -68,10 +70,13 @@ export default function RootLayout({
     <html lang="pt-BR" data-theme="light" className={`${jakarta.variable} ${playfair.variable}`}>
       <body className="antialiased">
         <Providers>
-          <Suspense fallback={null}>
-            <PostHogProvider>{children}</PostHogProvider>
-          </Suspense>
+          <ToastProvider>
+            <Suspense fallback={null}>
+              <PostHogProvider>{children}</PostHogProvider>
+            </Suspense>
+          </ToastProvider>
         </Providers>
+        <ConsentBanner />
       </body>
     </html>
   )

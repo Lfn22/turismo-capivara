@@ -21,6 +21,9 @@ export default withSentryConfig(nextConfig, {
   project: process.env.SENTRY_PROJECT,
   silent: !process.env.CI,
   widenClientFileUpload: true,
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
   // Sentry 11: opções de build do webpack (substituem disableLogger/automaticVercelMonitors no topo)
   webpack: {
     treeshake: { removeDebugLogging: true },

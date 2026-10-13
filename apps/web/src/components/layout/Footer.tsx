@@ -14,6 +14,7 @@ export default function Footer() {
 
   return (
     <footer
+      role="contentinfo"
       className="bg-[var(--color-primary-dark)] text-white relative"
       style={{
         background: 'linear-gradient(180deg, var(--color-primary-dark) 0%, var(--stone-700) 50%, var(--color-text) 100%)',

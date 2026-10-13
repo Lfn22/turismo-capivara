@@ -40,7 +40,7 @@ export default function Header() {
         </Link>
 
         {/* Nav desktop */}
-        <nav className="hidden items-center gap-6 md:flex" aria-label="Navegação principal">
+        <nav role="navigation" className="hidden items-center gap-6 md:flex" aria-label="Menu principal">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}

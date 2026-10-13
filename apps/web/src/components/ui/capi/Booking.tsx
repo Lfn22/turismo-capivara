@@ -28,7 +28,7 @@ export function SlotPicker({ days, selectedDay, onSelectDay, times = [], selecte
         {days.map((d) => {
           const on = d.value === selectedDay
           return (
-            <button key={d.value} type="button" role="option" aria-selected={on} disabled={d.available === false} className={cx("capi-slots__day", on && "is-selected")} onClick={() => onSelectDay?.(d.value)}>
+            <button key={d.value} type="button" role="option" aria-selected={on} aria-label={`${d.weekday}, ${d.day} de ${d.month}${d.available === false ? " — indisponível" : ""}`} disabled={d.available === false} className={cx("capi-slots__day", on && "is-selected")} onClick={() => onSelectDay?.(d.value)}>
               <span className="capi-slots__wd">{d.weekday}</span>
               <span className="capi-slots__dn">{d.day}</span>
               <span className="capi-slots__mo">{d.month}</span>
@@ -47,7 +47,7 @@ export function SlotPicker({ days, selectedDay, onSelectDay, times = [], selecte
                 const on = t.value === selectedTime
                 const full = t.spots === 0
                 return (
-                  <button key={t.value} type="button" role="option" aria-selected={on} disabled={full} className={cx("capi-slots__time", on && "is-selected")} onClick={() => onSelectTime?.(t.value)}>
+                  <button key={t.value} type="button" role="option" aria-selected={on} aria-label={`${t.label ?? t.value} — ${full ? "esgotado" : `${t.spots} ${t.spots === 1 ? "vaga" : "vagas"}`}`} disabled={full} className={cx("capi-slots__time", on && "is-selected")} onClick={() => onSelectTime?.(t.value)}>
                     <span className="capi-slots__t">{t.label ?? t.value}</span>
                     <span className="capi-slots__spots">{full ? "Esgotado" : `${t.spots} ${t.spots === 1 ? "vaga" : "vagas"}`}</span>
                   </button>
