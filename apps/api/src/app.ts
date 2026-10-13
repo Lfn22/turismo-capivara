@@ -31,7 +31,11 @@ import { webhooksRoutes } from './modules/webhooks/webhooks.routes'
 import { destinationsRoutes } from './modules/destinations/destinations.routes'
 import { uploadsRoutes } from './modules/uploads/uploads.routes'
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes'
+import { reportsRoutes } from './modules/reports/reports.routes'
+import { reviewsRoutes } from './modules/reviews/reviews.routes'
+import { auditRoutes } from './modules/audit/audit.routes'
 import { createBookingExpiryJob } from './modules/bookings/expiry.job'
+import { createTokenCleanupJob } from './modules/auth/token.service'
 import { AppError } from './shared/errors/AppError'
 
 const isProd = process.env.NODE_ENV === 'production'
@@ -103,18 +107,28 @@ app.register(jwt, {
 })
 
 app.register(fastifyCron, {
-  jobs: [createBookingExpiryJob(app)],
+  jobs: [createBookingExpiryJob(app), createTokenCleanupJob(app)],
 })
 
 app.get('/health', { config: { rateLimit: false } }, async (request, reply) => {
+  const checks: Record<string, 'ok' | 'error'> = {}
+
   try {
     const prisma = (await import('./database')).default
     await prisma.$queryRaw`SELECT 1`
-    return reply.status(200).send({ db: 'ok' })
+    checks.database = 'ok'
   } catch (err) {
     app.log.error(err, 'Health check DB probe failed')
-    return reply.status(503).send({ db: 'error' })
+    checks.database = 'error'
   }
+
+  const allOk = Object.values(checks).every((v) => v === 'ok')
+
+  return reply.status(allOk ? 200 : 503).send({
+    status: allOk ? 'healthy' : 'degraded',
+    checks,
+    timestamp: new Date().toISOString(),
+  })
 })
 
 app.register(authRoutes)
@@ -127,6 +141,9 @@ app.register(webhooksRoutes)
 app.register(destinationsRoutes)
 app.register(uploadsRoutes)
 app.register(dashboardRoutes)
+app.register(reviewsRoutes)
+app.register(reportsRoutes)
+app.register(auditRoutes)
 
 app.addHook('onSend', async (request, reply) => {
   reply.header('X-Request-Id', request.id)
