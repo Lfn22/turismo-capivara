@@ -26,9 +26,10 @@ vi.mock('../services/payment.service', () => ({
 vi.mock('../database', () => ({
   default: {
     tenant: { findUnique: vi.fn() },
-    booking: { findUnique: vi.fn(), update: vi.fn() },
+    booking: { findUnique: vi.fn(), update: vi.fn(), count: vi.fn() },
     departureSlot: { update: vi.fn() },
     tourPackage: { findFirst: vi.fn() },
+    auditLog: { create: vi.fn().mockResolvedValue({}) },
     $transaction: vi.fn(),
   },
 }))
@@ -46,7 +47,7 @@ import { createPixPayment } from '../services/payment.service'
 
 const db = prisma as unknown as {
   tenant: { findUnique: Mock }
-  booking: { findUnique: Mock; update: Mock }
+  booking: { findUnique: Mock; update: Mock; count: Mock }
   departureSlot: { update: Mock }
   tourPackage: { findFirst: Mock }
   $transaction: Mock
@@ -94,6 +95,7 @@ beforeEach(() => {
   db.tenant.findUnique.mockResolvedValue(TENANT)
   // No idempotency key by default — return null for findUnique
   db.booking.findUnique.mockResolvedValue(null)
+  db.booking.count.mockResolvedValue(0) // rate limit: sem bookings recentes
 })
 
 // ---------------------------------------------------------------------------
@@ -171,37 +173,46 @@ describe('POST /bookings — capacity check', () => {
 // ---------------------------------------------------------------------------
 describe('POST /bookings — happy path', () => {
   it('returns 201 with qrCode and calls createPixPayment with correct amount', async () => {
-    const createdBooking = { ...CREATED_BOOKING }
+    const bookingWithPayment = {
+      ...CREATED_BOOKING,
+      paymentId: 'mp-1',
+      paymentUrl: 'https://mp.com/1',
+      qrCode: 'qr-data',
+      cancelToken: 'mock-cancel-token',
+      cancelTokenExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+    }
 
-    db.$transaction.mockImplementation(async (fn: Function) => {
-      const tx = {
-        $queryRaw: vi.fn().mockResolvedValue([{
-          id: 'slot-1',
-          booked: 2,
-          capacity: 10,
-          status: 'OPEN',
-          packageId: 'pkg-1',
-          tenantId: TENANT.id,
-        }]),
-        departureSlot: { update: vi.fn().mockResolvedValue({}) },
-        booking: { create: vi.fn().mockResolvedValue(createdBooking) },
-      }
-      return fn(tx)
-    })
+    db.$transaction
+      .mockImplementationOnce(async (fn: Function) => {
+        // Tx1: lock slot + increment booked
+        const tx = {
+          $queryRaw: vi.fn().mockResolvedValue([{
+            id: 'slot-1',
+            booked: 2,
+            capacity: 10,
+            status: 'OPEN',
+            packageId: 'pkg-1',
+            tenantId: TENANT.id,
+          }]),
+          departureSlot: { update: vi.fn().mockResolvedValue({}) },
+        }
+        return fn(tx)
+      })
+      .mockImplementationOnce(async (fn: Function) => {
+        // Tx2: create booking with payment data
+        const tx = {
+          booking: { create: vi.fn().mockResolvedValue(bookingWithPayment) },
+        }
+        return fn(tx)
+      })
 
-    db.tourPackage.findFirst.mockResolvedValue({ price: '150.00', name: 'Trilha' })
+    db.tourPackage.findFirst.mockResolvedValue({ price: '150.00', name: 'Trilha', conductor: null, departureSlots: [{ startsAt: new Date() }] })
 
     mockCreatePixPayment.mockResolvedValue({
       paymentId: 'mp-1',
       paymentUrl: 'https://mp.com/1',
       qrCode: 'qr-data',
-    })
-
-    db.booking.update.mockResolvedValue({
-      ...createdBooking,
-      paymentId: 'mp-1',
-      paymentUrl: 'https://mp.com/1',
-      qrCode: 'qr-data',
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     })
 
     const res = await app.inject({

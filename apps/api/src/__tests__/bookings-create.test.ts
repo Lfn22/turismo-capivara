@@ -26,9 +26,10 @@ vi.mock('../shared/email', () => ({
 vi.mock('../database', () => ({
   default: {
     tenant: { findUnique: vi.fn() },
-    booking: { findUnique: vi.fn(), update: vi.fn() },
+    booking: { findUnique: vi.fn(), update: vi.fn(), count: vi.fn() },
     departureSlot: { update: vi.fn() },
     tourPackage: { findFirst: vi.fn() },
+    auditLog: { create: vi.fn().mockResolvedValue({}) },
     $transaction: vi.fn(),
   },
 }))
@@ -38,7 +39,7 @@ import * as paymentService from '../services/payment.service'
 
 const db = prisma as unknown as {
   tenant: { findUnique: Mock }
-  booking: { findUnique: Mock; update: Mock }
+  booking: { findUnique: Mock; update: Mock; count: Mock }
   departureSlot: { update: Mock }
   tourPackage: { findFirst: Mock }
   $transaction: Mock
@@ -49,7 +50,7 @@ const mockCreatePixPayment = paymentService.createPixPayment as Mock
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
-const TENANT = { id: 'tenant-1', slug: 'capivara' }
+const TENANT = { id: 'tenant-1', slug: 'capivara', approvalStatus: 'APPROVED' }
 const SLOT_ID = 'slot-1'
 const FUTURE_DATE = new Date(Date.now() + 48 * 60 * 60 * 1000)
 
@@ -98,6 +99,8 @@ const BOOKING_WITH_PAYMENT = {
   paymentId: PAYMENT_RESULT.paymentId,
   paymentUrl: PAYMENT_RESULT.paymentUrl,
   qrCode: PAYMENT_RESULT.qrCode,
+  cancelToken: 'mock-cancel-token',
+  cancelTokenExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
 }
 
 const VALID_BODY = {
@@ -105,7 +108,7 @@ const VALID_BODY = {
   customerName: 'João Turista',
   customerEmail: 'joao@example.com',
   customerPhone: '11999999999',
-  customerCpf: '12345678901',
+  customerCpf: '52998224725',
   pax: 2,
 }
 
@@ -121,20 +124,29 @@ beforeEach(() => {
   vi.clearAllMocks()
   db.tenant.findUnique.mockResolvedValue(TENANT)
   db.booking.findUnique.mockResolvedValue(null) // sem idempotência por padrão
+  db.booking.count.mockResolvedValue(0) // rate limit: sem bookings recentes
 })
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 function mockCreateTransaction() {
-  db.$transaction.mockImplementation(async (fn: Function) => {
-    const tx = {
-      $queryRaw: vi.fn().mockResolvedValue([OPEN_SLOT]),
-      departureSlot: { update: vi.fn().mockResolvedValue({}) },
-      booking: { create: vi.fn().mockResolvedValue(BOOKING_PENDING) },
-    }
-    return fn(tx)
-  })
+  db.$transaction
+    .mockImplementationOnce(async (fn: Function) => {
+      // Tx1: lock slot + increment booked
+      const tx = {
+        $queryRaw: vi.fn().mockResolvedValue([OPEN_SLOT]),
+        departureSlot: { update: vi.fn().mockResolvedValue({}) },
+      }
+      return fn(tx)
+    })
+    .mockImplementationOnce(async (fn: Function) => {
+      // Tx2: create booking with payment data
+      const tx = {
+        booking: { create: vi.fn().mockResolvedValue(BOOKING_WITH_PAYMENT) },
+      }
+      return fn(tx)
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -274,23 +286,20 @@ describe('POST /tenants/:slug/bookings', () => {
 
   describe('falha no pagamento + compensação', () => {
     it('executa transação de compensação e retorna 5xx quando createPixPayment falha', async () => {
-      // Primeira transação: cria booking
-      const mockCompensationDelete = vi.fn().mockResolvedValue({})
       const mockCompensationSlotUpdate = vi.fn().mockResolvedValue({})
 
       db.$transaction
         .mockImplementationOnce(async (fn: Function) => {
+          // Tx1: lock slot + increment booked
           const tx = {
             $queryRaw: vi.fn().mockResolvedValue([OPEN_SLOT]),
             departureSlot: { update: vi.fn().mockResolvedValue({}) },
-            booking: { create: vi.fn().mockResolvedValue(BOOKING_PENDING) },
           }
           return fn(tx)
         })
         .mockImplementationOnce(async (fn: Function) => {
-          // Segunda transação: compensação
+          // Tx2: compensação — restore slot (no booking.delete, booking was never created)
           const tx = {
-            booking: { delete: mockCompensationDelete },
             departureSlot: {
               findUnique: vi.fn().mockResolvedValue({ status: 'OPEN' }),
               update: mockCompensationSlotUpdate,
@@ -309,9 +318,6 @@ describe('POST /tenants/:slug/bookings', () => {
       })
 
       expect(res.statusCode).toBeGreaterThanOrEqual(500)
-      expect(mockCompensationDelete).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: BOOKING_PENDING.id } })
-      )
       expect(mockCompensationSlotUpdate).toHaveBeenCalled()
     })
   })

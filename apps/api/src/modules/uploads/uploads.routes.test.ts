@@ -123,7 +123,7 @@ describe('POST /uploads/photos — query validation', () => {
       headers: { authorization: `Bearer ${conductorToken}` },
     })
     expect(res.statusCode).toBe(400)
-    expect(res.json().error).toBeDefined()
+    expect(res.json().message).toBeDefined()
   })
 })
 
@@ -140,7 +140,7 @@ describe('POST /uploads/photos — no file', () => {
       headers: { authorization: `Bearer ${conductorToken}` },
     })
     expect(res.statusCode).toBe(400)
-    expect(res.json().error).toBe('Nenhum arquivo enviado')
+    expect(res.json().message).toBe('Nenhum arquivo enviado')
   })
 })
 
@@ -205,7 +205,7 @@ describe('POST /uploads/photos — file validation errors', () => {
     })
 
     expect(res.statusCode).toBe(400)
-    expect(res.json().error).toContain('Formato inválido')
+    expect(res.json().message).toContain('Formato inválido')
   })
 
   it('returns 400 when file exceeds 5MB', async () => {
@@ -226,7 +226,7 @@ describe('POST /uploads/photos — file validation errors', () => {
     })
 
     expect(res.statusCode).toBe(400)
-    expect(res.json().error).toContain('Arquivo muito grande')
+    expect(res.json().message).toContain('Arquivo muito grande')
   })
 })
 

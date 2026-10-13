@@ -28,6 +28,7 @@ vi.mock('../database', () => ({
     booking: { findFirst: vi.fn(), update: vi.fn() },
     departureSlot: { findUnique: vi.fn(), update: vi.fn() },
     tourPackage: { findFirst: vi.fn() },
+    auditLog: { create: vi.fn().mockResolvedValue({}) },
     $transaction: vi.fn(),
   },
 }))
@@ -214,11 +215,20 @@ describe('POST /tenants/:slug/bookings/repay', () => {
   it('creates new PIX payment and resets EXPIRED booking to PENDING', async () => {
     const expiredBooking = { ...BASE_BOOKING, status: 'EXPIRED', qrCode: null, paymentUrl: null }
     db.booking.findFirst.mockResolvedValue(expiredBooking)
+    db.departureSlot.findUnique.mockResolvedValue({ status: 'OPEN' })
     mockCreatePixPayment.mockResolvedValue({
       paymentId: 'mp-999',
       paymentUrl: 'https://mp.com/pay/999',
       qrCode: 'new-qr-data',
       expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+    })
+    db.$transaction.mockImplementation(async (fn: Function) => {
+      const tx = {
+        $queryRaw: vi.fn().mockResolvedValue([{ status: 'OPEN', booked: 0, capacity: 10 }]),
+        departureSlot: { update: vi.fn().mockResolvedValue({}) },
+        booking: { update: vi.fn().mockResolvedValue({}) },
+      }
+      return fn(tx)
     })
     db.booking.update.mockResolvedValue({})
 
