@@ -86,9 +86,13 @@ async function fetchPackageDetail(
   }
 }
 
-// ── Revalidation ──────────────────────────────────────────────────────────────
+// ── Static params (ISR) ───────────────────────────────────────────────────────
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  return [];
+}
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 

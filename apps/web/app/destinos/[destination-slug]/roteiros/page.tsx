@@ -57,6 +57,21 @@ async function fetchDestinationPackages(slug: string): Promise<DestinationPackag
   }
 }
 
+// ── Static params (ISR) ───────────────────────────────────────────────────────
+
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  try {
+    const res = await fetch(`${API_URL}/destinations`, { next: { revalidate: 3600 } });
+    if (!res.ok) return [];
+    const destinations: { slug: string }[] = await res.json();
+    return destinations.map((d) => ({ 'destination-slug': d.slug }));
+  } catch {
+    return [];
+  }
+}
+
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
 export async function generateMetadata({
