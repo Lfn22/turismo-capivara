@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import prisma from '../../database'
 import { getResend, getEmailFrom } from '../../shared/email'
 import { bookingExpiredEmailText, bookingExpiredSubject } from './emails/booking-expired-email'
+import { bookingsExpiredCounter } from '../../shared/metrics.js'
 
 const BOOKING_EXPIRY_LOCK_ID = 1_234_567_890
 
@@ -84,6 +85,7 @@ export function createBookingExpiryJob(app: FastifyInstance) {
             })
 
             app.log.info(`[cron:expiry] Expired booking ${booking.id}`)
+            bookingsExpiredCounter.add(1)
 
             // Send NOTIF-04 fire-and-forget (D-12): email failure MUST NOT revert expiry
             const resend = getResend()

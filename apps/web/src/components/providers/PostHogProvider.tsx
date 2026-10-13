@@ -9,6 +9,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams()
 
   useEffect(() => {
+    if (localStorage.getItem('capi-cookie-consent') !== 'accepted') return
     initPostHog()
   }, [])
 
