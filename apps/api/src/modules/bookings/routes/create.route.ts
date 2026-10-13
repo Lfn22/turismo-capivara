@@ -172,7 +172,7 @@ export async function createBookingRoute(app: FastifyInstance) {
             customerName,
             pax,
             packageName,
-            startsAt: departureStartsAt,
+            slotDate: departureStartsAt,
           }),
         })
         .catch((emailErr: unknown) => {

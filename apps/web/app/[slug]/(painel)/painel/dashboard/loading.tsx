@@ -2,34 +2,30 @@ import { Skeleton } from '../../../../../src/components/ui/capi'
 
 export default function DashboardLoading() {
   return (
-    <div className="space-y-6 p-6">
-      <Skeleton className="h-8 w-40" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1.5rem' }}>
+      <Skeleton width={160} height={32} />
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border p-4 space-y-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-8 w-16" />
+          <div key={i} style={{ border: '1px solid var(--capi-border, #E8DDD0)', borderRadius: 12, padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <Skeleton width={96} height={16} />
+            <Skeleton width={64} height={32} />
           </div>
         ))}
       </div>
 
-      {/* Table skeleton */}
-      <div className="rounded-xl border overflow-hidden">
-        <div className="p-4 border-b">
-          <Skeleton className="h-5 w-32" />
+      <div style={{ border: '1px solid var(--capi-border, #E8DDD0)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ padding: '1rem', borderBottom: '1px solid var(--capi-border, #E8DDD0)' }}>
+          <Skeleton width={128} height={20} />
         </div>
-        <div className="divide-y">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 p-4">
-              <Skeleton className="h-4 w-1/4" />
-              <Skeleton className="h-4 w-1/4" />
-              <Skeleton className="h-4 w-1/6" />
-              <Skeleton className="h-4 w-1/6 ml-auto" />
-            </div>
-          ))}
-        </div>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', borderBottom: '1px solid var(--capi-border, #E8DDD0)' }}>
+            <Skeleton width="25%" height={16} />
+            <Skeleton width="25%" height={16} />
+            <Skeleton width="16%" height={16} />
+            <Skeleton width="16%" height={16} />
+          </div>
+        ))}
       </div>
     </div>
   )

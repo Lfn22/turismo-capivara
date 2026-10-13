@@ -2,35 +2,24 @@ import { Skeleton } from '../../../../../src/components/ui/capi'
 
 export default function ReservasLoading() {
   return (
-    <div className="space-y-4 p-6">
-      <Skeleton className="h-8 w-36" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
+      <Skeleton width={144} height={32} />
 
-      {/* Filters row */}
-      <div className="flex gap-3">
-        <Skeleton className="h-9 w-40 rounded-lg" />
-        <Skeleton className="h-9 w-32 rounded-lg" />
+      <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <Skeleton width={160} height={36} radius={8} />
+        <Skeleton width={128} height={36} radius={8} />
       </div>
 
-      {/* Table */}
-      <div className="rounded-xl border overflow-hidden">
-        {/* Header */}
-        <div className="flex gap-4 p-4 bg-muted/40 border-b">
-          {[120, 100, 80, 80, 60].map((w, i) => (
-            <Skeleton key={i} className="h-4 rounded" style={{ width: w }} />
-          ))}
-        </div>
-        {/* Rows */}
-        <div className="divide-y">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 p-4">
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-6 w-16 rounded-full" />
-            </div>
-          ))}
-        </div>
+      <div style={{ border: '1px solid var(--capi-border, #E8DDD0)', borderRadius: 12, overflow: 'hidden' }}>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', borderBottom: '1px solid var(--capi-border, #E8DDD0)' }}>
+            <Skeleton width={112} height={16} />
+            <Skeleton width={96} height={16} />
+            <Skeleton width={80} height={16} />
+            <Skeleton width={80} height={16} />
+            <Skeleton width={64} height={24} radius={12} />
+          </div>
+        ))}
       </div>
     </div>
   )
