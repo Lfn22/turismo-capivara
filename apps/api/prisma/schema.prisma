@@ -53,7 +53,9 @@ model Tenant {
   users               User[]
   tourPackages        TourPackage[]
   bookings            Booking[]
+  reviews             Review[]
   tenantDestinations  TenantDestination[]
+  refreshTokens       RefreshToken[]
 
   @@index([destinationId])
 }
@@ -78,6 +80,8 @@ model User {
   destinations        Destination[]        @relation("DestinationCreator")
   tenantDestinationsCreated TenantDestination[] @relation("TenantDestinationCreator")
 
+  refreshTokens       RefreshToken[]
+
   @@unique([tenantId, email])
 }
 
@@ -97,6 +101,7 @@ model GuideProfile {
   packageGuides  PackageGuide[]
   departureSlots DepartureSlot[]
   testimonials   Testimonial[]
+  reviews        Review[]
 }
 
 model TourPackage {
@@ -149,7 +154,8 @@ model DepartureSlot {
 
 model Booking {
   id            String        @id @default(cuid())
-  cancelToken   String        @unique
+  cancelToken            String        @unique
+  cancelTokenExpiresAt   DateTime?
   tenantId      String
   slotId        String
   customerName  String
@@ -169,6 +175,7 @@ model Booking {
   tenant  Tenant        @relation(fields: [tenantId], references: [id])
   slot    DepartureSlot @relation(fields: [slotId], references: [id])
   voucher Voucher?
+  review  Review?
 
   @@unique([tenantId, idempotencyKey])
 }
@@ -334,4 +341,39 @@ model AuditLog {
   @@index([targetType, targetId])
   @@index([createdAt])
   @@index([actorType])
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  tenantId      String
+  bookingId     String   @unique
+  guideId       String
+  rating        Int
+  comment       String?
+  customerName  String
+  customerEmail String
+  createdAt     DateTime @default(now())
+
+  tenant  Tenant       @relation(fields: [tenantId], references: [id])
+  booking Booking      @relation(fields: [bookingId], references: [id])
+  guide   GuideProfile @relation(fields: [guideId], references: [id])
+
+  @@index([guideId])
+  @@index([tenantId])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  tenantId  String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([userId])
+  @@index([token])
 }

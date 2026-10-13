@@ -6,6 +6,7 @@ import { getResend, getEmailFrom } from '../../shared/email'
 import { bookingConfirmedEmailText, bookingConfirmedSubject } from '../bookings/emails/booking-confirmed-email'
 import { auditLog } from '../../shared/audit.js'
 import { bookingsConfirmedCounter } from '../../shared/metrics.js'
+import { Sentry } from '../../shared/sentry'
 
 
 function validateMpSignature(
@@ -56,6 +57,9 @@ export async function webhooksRoutes(app: FastifyInstance) {
       config: { rawBody: true, rateLimit: false }, // rawBody: fastify-raw-body; rateLimit: exempt webhook from global limit
     },
     async (request, reply) => {
+      Sentry.setTag('module', 'webhooks')
+      Sentry.setTag('action', 'payment-notification')
+
       // 1. Validate x-signature header present.
       // Return 200 (not 400) regardless of why validation fails — a 400 here
       // would leak that the endpoint inspects headers, enabling enumeration.
