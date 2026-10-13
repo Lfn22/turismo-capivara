@@ -169,6 +169,7 @@ export async function createBookingRoute(app: FastifyInstance) {
           to: [conductorEmail],
           subject: bookingGuideNotificationSubject,
           text: bookingGuideNotificationEmailText({
+            bookingId: result.booking.id,
             customerName,
             pax,
             packageName,
