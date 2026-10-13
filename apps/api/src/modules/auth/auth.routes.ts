@@ -1,11 +1,13 @@
 import { FastifyInstance } from 'fastify'
 import { compareSync, hashSync } from 'bcryptjs'
-import { z, ZodError } from 'zod'
+import { z } from 'zod'
+import { parseBody, parseParams } from '../../shared/utils/zod-error'
 import { Prisma } from '@prisma/client'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { hashCpf } from '../../shared/utils/hash'
+import { createRefreshToken, rotateRefreshToken, revokeAllUserTokens, ACCESS_TOKEN_EXPIRY } from './token.service'
 import { lookupTenantRoute } from './routes/lookup-tenant'
 import { requestPasswordResetRoute } from './routes/request-password-reset'
 import { resetPasswordRoute } from './routes/reset-password'
@@ -39,21 +41,8 @@ const registerBodySchema = z.discriminatedUnion('role', [
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/login', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
-    let body
-    try {
-      body = loginBodySchema.parse(request.body)
-    } catch (err) {
-      if (err instanceof ZodError) {
-        return reply.status(400).send({
-          message: 'Dados inválidos',
-          errors: err.issues.map((e) => ({
-            field: e.path.join('.'),
-            message: e.message,
-          })),
-        })
-      }
-      throw err
-    }
+    const { data: body, error: bodyError } = parseBody(loginBodySchema, request.body, reply)
+    if (bodyError) return
     const { email, password, tenantSlug } = body
 
     const tenant = await prisma.tenant.findUnique({
@@ -91,44 +80,20 @@ export async function authRoutes(app: FastifyInstance) {
         name: user.name,
         approvalStatus: user.approvalStatus,
       },
-      { expiresIn: '7d' }
+      { expiresIn: ACCESS_TOKEN_EXPIRY }
     )
 
-    return reply.status(200).send({ token })
+    const refreshToken = await createRefreshToken(user.id, user.tenantId)
+
+    return reply.status(200).send({ token, refreshToken })
   })
 
   app.post('/tenants/:slug/auth/register', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
-    let params
-    try {
-      params = slugParamsSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) {
-        return reply.status(400).send({
-          message: 'Dados inválidos',
-          errors: err.issues.map((e) => ({
-            field: e.path.join('.'),
-            message: e.message,
-          })),
-        })
-      }
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    if (paramsError) return
 
-    let body
-    try {
-      body = registerBodySchema.parse(request.body)
-    } catch (err) {
-      if (err instanceof ZodError) {
-        return reply.status(400).send({
-          message: 'Dados inválidos',
-          errors: err.issues.map((e) => ({
-            field: e.path.join('.'),
-            message: e.message,
-          })),
-        })
-      }
-      throw err
-    }
+    const { data: body, error: bodyError } = parseBody(registerBodySchema, request.body, reply)
+    if (bodyError) return
 
     const tenant = await prisma.tenant.findUnique({
       where: { slug: params.slug },
@@ -213,18 +178,8 @@ export async function authRoutes(app: FastifyInstance) {
       cadastur: z.string().min(1, { message: 'Número CADASTUR obrigatório' }),
     })
 
-    let body
-    try {
-      body = independentBodySchema.parse(request.body)
-    } catch (err) {
-      if (err instanceof ZodError) {
-        return reply.status(400).send({
-          message: 'Dados inválidos',
-          errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })),
-        })
-      }
-      throw err
-    }
+    const { data: body, error: bodyError } = parseBody(independentBodySchema, request.body, reply)
+    if (bodyError) return
 
     // Garante que o tenant "independente" existe
     let systemTenant = await prisma.tenant.findFirst({ where: { slug: 'independente' } })
@@ -269,6 +224,32 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     return reply.status(201).send({ message: 'Conta criada com sucesso. Aguarde aprovação.' })
+  })
+
+  app.post('/auth/refresh', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const { refreshToken } = request.body as { refreshToken?: string }
+    if (!refreshToken) throw new AppError('Refresh token obrigatório', 400)
+
+    const result = await rotateRefreshToken(refreshToken)
+    if (!result) throw new AppError('Token inválido ou expirado', 401)
+
+    const user = await prisma.user.findUnique({
+      where: { id: result.userId },
+      select: { id: true, role: true, tenantId: true, name: true, approvalStatus: true },
+    })
+    if (!user) throw new AppError('Usuário não encontrado', 401)
+
+    const accessToken = await reply.jwtSign(
+      { sub: user.id, tenantId: user.tenantId, role: user.role, name: user.name, approvalStatus: user.approvalStatus },
+      { expiresIn: ACCESS_TOKEN_EXPIRY }
+    )
+
+    return reply.send({ token: accessToken, refreshToken: result.newToken })
+  })
+
+  app.post('/auth/logout', { preHandler: [authenticate] }, async (request, reply) => {
+    await revokeAllUserTokens((request.user as { sub: string }).sub)
+    return reply.status(204).send()
   })
 
   await app.register(lookupTenantRoute)

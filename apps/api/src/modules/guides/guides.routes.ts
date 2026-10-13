@@ -1,11 +1,14 @@
 import { FastifyInstance } from 'fastify'
-import { z, ZodError } from 'zod'
+import { z } from 'zod'
+import { parseBody, parseParams, parseQuery } from '../../shared/utils/zod-error'
+import { paginationQuerySchema, paginatedResponse } from '../../shared/utils/pagination'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { getResend, getEmailFrom } from '../../shared/email'
 import { guideApprovedEmailText, guideApprovedSubject } from '../bookings/emails/guide-approved-email'
+import { Sentry } from '../../shared/sentry'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -32,29 +35,18 @@ const updateProfileBodySchema = z.object({
   portfolioPhotos: z.array(z.string().url({ message: 'URL inválida' })).optional(),
 })
 
-function zodError(err: ZodError) {
-  return {
-    message: 'Dados inválidos',
-    errors: err.issues.map((e) => ({
-      field: e.path.join('.'),
-      message: e.message,
-    })),
-  }
-}
 
 export async function guidesRoutes(app: FastifyInstance) {
   // GET /tenants/:slug/guides — PUBLIC: list approved guides
   app.get('/tenants/:slug/guides', async (request, reply) => {
-    let params
-    try {
-      params = slugParamsSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    if (paramsError) return
 
     const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
     if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+    const { data: pagination, error: pgErr } = parseQuery(paginationQuerySchema, request.query, reply)
+    if (pgErr) return
 
     const guides = await prisma.guideProfile.findMany({
       where: {
@@ -63,6 +55,9 @@ export async function guidesRoutes(app: FastifyInstance) {
           approvalStatus: 'APPROVED',
         },
       },
+      take: pagination.limit + 1,
+      ...(pagination.cursor ? { cursor: { id: pagination.cursor }, skip: 1 } : {}),
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         bio: true,
@@ -78,18 +73,13 @@ export async function guidesRoutes(app: FastifyInstance) {
       },
     })
 
-    return reply.status(200).send({ guides })
+    return reply.status(200).send(paginatedResponse(guides, pagination.limit))
   })
 
   // GET /tenants/:slug/guides/:id — PUBLIC: single approved guide
   app.get('/tenants/:slug/guides/:id', async (request, reply) => {
-    let params
-    try {
-      params = guideIdParamsSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(guideIdParamsSchema, request.params, reply)
+    if (paramsError) return
 
     const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
     if (!tenant) throw new AppError('Tenant não encontrado', 404)
@@ -120,7 +110,19 @@ export async function guidesRoutes(app: FastifyInstance) {
 
     if (!guide) throw new AppError('Guia não encontrado', 404)
 
-    return reply.status(200).send({ guide })
+    const stats = await prisma.review.aggregate({
+      where: { guideId: guide.id, tenantId: tenant.id },
+      _avg: { rating: true },
+      _count: { id: true },
+    })
+
+    return reply.status(200).send({
+      guide: {
+        ...guide,
+        averageRating: stats._avg.rating ? Number(stats._avg.rating.toFixed(1)) : null,
+        reviewCount: stats._count.id,
+      },
+    })
   })
 
   // GET /tenants/:slug/admin/guides?status=PENDING — ADMIN only
@@ -129,21 +131,11 @@ export async function guidesRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const admin = request.user as { sub: string; tenantId: string; role: string }
 
-    let params
-    try {
-      params = slugParamsSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    if (paramsError) return
 
-    let query
-    try {
-      query = adminGuidesQuerySchema.parse(request.query)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: query, error: queryError } = parseQuery(adminGuidesQuerySchema, request.query, reply)
+    if (queryError) return
 
     const guides = await prisma.guideProfile.findMany({
       where: {
@@ -180,13 +172,12 @@ export async function guidesRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const admin = request.user as { sub: string; tenantId: string; role: string }
 
-    let params
-    try {
-      params = guideIdParamsSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(guideIdParamsSchema, request.params, reply)
+    if (paramsError) return
+
+    Sentry.setTag('module', 'guides')
+    Sentry.setTag('tenant', params.slug)
+    Sentry.setTag('action', 'approve')
 
     const guideProfile = await prisma.guideProfile.findFirst({
       where: {
@@ -233,21 +224,15 @@ export async function guidesRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const admin = request.user as { sub: string; tenantId: string; role: string }
 
-    let params
-    try {
-      params = guideIdParamsSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(guideIdParamsSchema, request.params, reply)
+    if (paramsError) return
 
-    let body
-    try {
-      body = rejectBodySchema.parse(request.body)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: body, error: bodyError } = parseBody(rejectBodySchema, request.body, reply)
+    if (bodyError) return
+
+    Sentry.setTag('module', 'guides')
+    Sentry.setTag('tenant', params.slug)
+    Sentry.setTag('action', 'reject')
 
     const guideProfile = await prisma.guideProfile.findFirst({
       where: {
@@ -276,13 +261,8 @@ export async function guidesRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const conductor = request.user as { sub: string; tenantId: string; role: string }
 
-    let params
-    try {
-      params = slugParamsSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    if (paramsError) return
 
     const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
     if (!tenant) throw new AppError('Tenant não encontrado', 404)
@@ -345,13 +325,8 @@ export async function guidesRoutes(app: FastifyInstance) {
   // GET /guides/:id — perfil público de um guia aprovado
   app.get('/guides/:id', async (request, reply) => {
     const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
-    let params
-    try {
-      params = guideOnlyIdSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(guideOnlyIdSchema, request.params, reply)
+    if (paramsError) return
 
     const guide = await prisma.guideProfile.findFirst({
       where: {
@@ -371,6 +346,12 @@ export async function guidesRoutes(app: FastifyInstance) {
 
     if (!guide) throw new AppError('Guia não encontrado', 404)
 
+    const stats = await prisma.review.aggregate({
+      where: { guideId: guide.id },
+      _avg: { rating: true },
+      _count: { id: true },
+    })
+
     return reply.status(200).send({
       id: guide.id,
       name: guide.user.name,
@@ -379,19 +360,16 @@ export async function guidesRoutes(app: FastifyInstance) {
       specialties: guide.especialidades,
       regions: guide.regioes,
       portfolioPhotos: guide.portfolioPhotos,
+      averageRating: stats._avg.rating ? Number(stats._avg.rating.toFixed(1)) : null,
+      reviewCount: stats._count.id,
     })
   })
 
   // GET /guides/:id/packages — pacotes atendidos por um guia (público)
   app.get('/guides/:id/packages', async (request, reply) => {
     const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
-    let params
-    try {
-      params = guideOnlyIdSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(guideOnlyIdSchema, request.params, reply)
+    if (paramsError) return
 
     const packageGuides = await prisma.packageGuide.findMany({
       where: {
@@ -432,21 +410,11 @@ export async function guidesRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const conductor = request.user as { sub: string; tenantId: string; role: string }
 
-    let params
-    try {
-      params = slugParamsSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    if (paramsError) return
 
-    let body
-    try {
-      body = updateProfileBodySchema.parse(request.body)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: body, error: bodyError } = parseBody(updateProfileBodySchema, request.body, reply)
+    if (bodyError) return
 
     const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
     if (!tenant) throw new AppError('Tenant não encontrado', 404)
@@ -477,13 +445,8 @@ export async function guidesRoutes(app: FastifyInstance) {
   // GET /guides/:id/testimonials — depoimentos públicos de um guia
   app.get('/guides/:id/testimonials', async (request, reply) => {
     const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
-    let params
-    try {
-      params = guideOnlyIdSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(guideOnlyIdSchema, request.params, reply)
+    if (paramsError) return
 
     const guide = await prisma.guideProfile.findFirst({
       where: { id: params.id, user: { approvalStatus: 'APPROVED' } },
@@ -519,21 +482,11 @@ export async function guidesRoutes(app: FastifyInstance) {
       rating: z.number().int().min(1).max(5).default(5),
     })
 
-    let params
-    try {
-      params = guideOnlyIdSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(guideOnlyIdSchema, request.params, reply)
+    if (paramsError) return
 
-    let body
-    try {
-      body = testimonialBodySchema.parse(request.body)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
+    const { data: body, error: bodyError } = parseBody(testimonialBodySchema, request.body, reply)
+    if (bodyError) return
 
     const guide = await prisma.guideProfile.findFirst({
       where: { id: params.id, user: { approvalStatus: 'APPROVED' } },

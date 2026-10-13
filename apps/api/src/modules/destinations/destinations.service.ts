@@ -97,6 +97,10 @@ export async function updateDestination(
     }
   }
 
+  if (userRole !== 'ADMIN' && destination.approvalStatus === 'APPROVED') {
+    throw new AppError('Não é possível editar destino aprovado', 400)
+  }
+
   let coords: { lat: number; lng: number } | null = null
   if (input.name !== undefined) {
     coords = await geocode(input.name, input.state)
@@ -112,8 +116,8 @@ export async function updateDestination(
       ...(input.highlights !== undefined && { highlights: input.highlights }),
       ...(input.heroImageUrl !== undefined && { heroImageUrl: input.heroImageUrl }),
       ...(coords && { lat: coords.lat, lng: coords.lng }),
-      // CONDUTOR editando destino aprovado: volta para revisão
-      ...(userRole !== 'ADMIN' && destination.approvalStatus === 'APPROVED' && { approvalStatus: 'PENDING' }),
+      // CONDUTOR editando destino rejeitado: volta para revisão
+      ...(userRole !== 'ADMIN' && destination.approvalStatus === 'REJECTED' && { approvalStatus: 'PENDING' }),
     },
     select: { id: true, slug: true, title: true, state: true, description: true, highlights: true, photos: true, approvalStatus: true, createdAt: true, createdById: true, lat: true, lng: true },
   })

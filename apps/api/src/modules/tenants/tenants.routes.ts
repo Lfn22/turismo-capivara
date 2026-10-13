@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
-import { z, ZodError } from 'zod'
+import { z } from 'zod'
+import { parseBody, parseParams, parseQuery } from '../../shared/utils/zod-error'
 import { Prisma } from '@prisma/client'
 import { hashSync } from 'bcryptjs'
 import prisma from '../../database'
@@ -36,12 +37,6 @@ const rejectBodySchema = z.object({
   reason: z.string().min(1, { message: 'Informe o motivo da rejeição' }),
 })
 
-function zodError400(err: ZodError) {
-  return {
-    message: 'Dados inválidos',
-    errors: err.issues.map((e) => ({ field: e.path.join('.'), message: e.message })),
-  }
-}
 
 
 export async function tenantsRoutes(app: FastifyInstance) {
@@ -61,21 +56,8 @@ export async function tenantsRoutes(app: FastifyInstance) {
   })
 
   app.get('/tenants/:slug', async (request, reply) => {
-    let params
-    try {
-      params = slugParamsSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) {
-        return reply.status(400).send({
-          message: 'Dados inválidos',
-          errors: err.issues.map((e) => ({
-            field: e.path.join('.'),
-            message: e.message,
-          })),
-        })
-      }
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    if (paramsError) return
     const { slug } = params
 
     const tenant = await prisma.tenant.findUnique({
@@ -102,13 +84,8 @@ export async function tenantsRoutes(app: FastifyInstance) {
   app.post('/tenants/signup', {
     config: { rateLimit: { max: 5, timeWindow: '1 hour' } },
   }, async (request, reply) => {
-    let body
-    try {
-      body = signupBodySchema.parse(request.body)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
-      throw err
-    }
+    const { data: body, error: bodyError } = parseBody(signupBodySchema, request.body, reply)
+    if (bodyError) return
 
     const hashedPassword = hashSync(body.password, 10)
 
@@ -147,13 +124,8 @@ export async function tenantsRoutes(app: FastifyInstance) {
   // ---------------------------------------------------------------------------
 
   app.get('/tenants/check-slug', async (request, reply) => {
-    let query
-    try {
-      query = z.object({ slug: z.string().min(1, { message: 'Slug obrigatório' }) }).parse(request.query)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
-      throw err
-    }
+    const { data: query, error: queryError } = parseQuery(z.object({ slug: z.string().min(1, { message: 'Slug obrigatório' }) }), request.query, reply)
+    if (queryError) return
     const existing = await prisma.tenant.findUnique({
       where: { slug: query.slug },
       select: { id: true },
@@ -172,13 +144,8 @@ export async function tenantsRoutes(app: FastifyInstance) {
       limit: z.coerce.number().int().min(1).max(100).default(20),
       offset: z.coerce.number().int().min(0).default(0),
     })
-    let query
-    try {
-      query = pendingQuerySchema.parse(request.query)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
-      throw err
-    }
+    const { data: query, error: queryError } = parseQuery(pendingQuerySchema, request.query, reply)
+    if (queryError) return
     const [tenants, total] = await Promise.all([
       prisma.tenant.findMany({
         where: { approvalStatus: 'PENDING' },
@@ -211,13 +178,8 @@ export async function tenantsRoutes(app: FastifyInstance) {
       offset: z.coerce.number().int().min(0).default(0),
       status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
     })
-    let query
-    try {
-      query = allQuerySchema.parse(request.query)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
-      throw err
-    }
+    const { data: query, error: queryError } = parseQuery(allQuerySchema, request.query, reply)
+    if (queryError) return
     const where = query.status ? { approvalStatus: query.status } : {}
     const [tenants, total] = await Promise.all([
       prisma.tenant.findMany({
@@ -246,13 +208,11 @@ export async function tenantsRoutes(app: FastifyInstance) {
   app.patch('/tenants/:id/approve', {
     preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
   }, async (request, reply) => {
-    let params
-    try {
-      params = tenantIdParamsSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(tenantIdParamsSchema, request.params, reply)
+    if (paramsError) return
+
+    Sentry.setTag('module', 'tenants')
+    Sentry.setTag('action', 'approve')
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: params.id },
@@ -297,15 +257,13 @@ export async function tenantsRoutes(app: FastifyInstance) {
   app.patch('/tenants/:id/reject', {
     preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
   }, async (request, reply) => {
-    let params
-    let body
-    try {
-      params = tenantIdParamsSchema.parse(request.params)
-      body = rejectBodySchema.parse(request.body)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(tenantIdParamsSchema, request.params, reply)
+    if (paramsError) return
+    const { data: body, error: bodyError } = parseBody(rejectBodySchema, request.body, reply)
+    if (bodyError) return
+
+    Sentry.setTag('module', 'tenants')
+    Sentry.setTag('action', 'reject')
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: params.id },
@@ -347,13 +305,8 @@ export async function tenantsRoutes(app: FastifyInstance) {
 
   // GET /tenants/:slug/destination — destino vinculado ao tenant (público)
   app.get('/tenants/:slug/destination', async (request, reply) => {
-    let params
-    try {
-      params = slugParamsSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    if (paramsError) return
 
     const tenant = await prisma.tenant.findUnique({
       where: { slug: params.slug },
@@ -381,14 +334,10 @@ export async function tenantsRoutes(app: FastifyInstance) {
   app.patch('/tenants/:id/link-destination', {
     preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
   }, async (request, reply) => {
-    let params, body
-    try {
-      params = z.object({ id: z.string().min(1) }).parse(request.params)
-      body = z.object({ destinationId: z.string().nullable() }).parse(request.body)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError400(err))
-      throw err
-    }
+    const { data: params, error: paramsError } = parseParams(z.object({ id: z.string().min(1) }), request.params, reply)
+    if (paramsError) return
+    const { data: body, error: bodyError } = parseBody(z.object({ destinationId: z.string().nullable() }), request.body, reply)
+    if (bodyError) return
 
     const tenant = await prisma.tenant.findUnique({ where: { id: params.id }, select: { id: true } })
     if (!tenant) throw new AppError('Operadora não encontrada', 404)
