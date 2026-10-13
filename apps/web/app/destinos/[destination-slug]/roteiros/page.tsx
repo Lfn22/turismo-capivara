@@ -65,7 +65,8 @@ export async function generateStaticParams() {
   try {
     const res = await fetch(`${API_URL}/destinations`, { next: { revalidate: 3600 } });
     if (!res.ok) return [];
-    const destinations: { slug: string }[] = await res.json();
+    const body = await res.json();
+    const destinations: { slug: string }[] = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
     return destinations.map((d) => ({ 'destination-slug': d.slug }));
   } catch {
     return [];

@@ -114,8 +114,10 @@ async function fetchPackages(guides: GuideSummary[]): Promise<PackageSummary[]> 
 async function fetchDestinations(): Promise<DestinationSummary[] | null> {
   try {
     const res = await fetch(`${API_URL}/destinations`, { cache: 'no-store' });
-    if (res.ok) return res.json();
-    return null; // API respondeu com erro (4xx/5xx)
+    if (!res.ok) return null;
+    const body = await res.json();
+    // API pode retornar array (legado) ou { data: [...] } (paginado)
+    return Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : null;
   } catch {
     return null; // rede inacessível
   }
