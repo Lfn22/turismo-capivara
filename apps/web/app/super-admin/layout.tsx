@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Toaster } from "sonner"
 import SuperAdminNav from "./SuperAdminNav"
+import { isPlatformStaff } from "@/lib/roles"
 
 export default async function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
@@ -12,7 +13,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     redirect("/login")
   }
 
-  if ((session.user as any).role !== "SUPER_ADMIN") {
+  if (!isPlatformStaff((session.user as any).role)) {
     redirect("/login?error=forbidden")
   }
 
@@ -41,8 +42,8 @@ export default async function SuperAdminLayout({ children }: { children: React.R
         >
           CAPI
         </Link>
-        <span style={{ color: "var(--stone-400)", fontSize: "14px" }}>Painel Super-Admin</span>
-        <SuperAdminNav />
+        <span style={{ color: "var(--stone-400)", fontSize: "14px" }}>Painel da Plataforma</span>
+        <SuperAdminNav role={session.user.role} />
       </header>
       <main
         style={{

@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache"
 import { getToken } from "next-auth/jwt"
 import { NextRequest, NextResponse } from "next/server"
+import { isPlatformStaff } from "@/lib/roles"
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
 
@@ -12,7 +13,7 @@ export async function PATCH(
   if (!jwt?.apiToken) {
     return NextResponse.json({ message: "Não autenticado" }, { status: 401 })
   }
-  if (jwt.role !== "SUPER_ADMIN" && jwt.role !== "ADMIN") {
+  if (!isPlatformStaff(jwt.role as string)) {
     return NextResponse.json({ message: "Acesso negado" }, { status: 403 })
   }
   const { id } = await params

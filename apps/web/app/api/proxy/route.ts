@@ -28,18 +28,21 @@ async function handler(req: NextRequest) {
 
   // Normaliza o path para eliminar sequências de path traversal (/../)
   let path: string
+  let search: string
   try {
-    path = new URL(rawPath ?? "", "http://internal").pathname
+    const normalized = new URL(rawPath ?? "", "http://internal")
+    path = normalized.pathname
+    search = normalized.search
   } catch {
     return NextResponse.json({ message: "Parâmetro 'path' inválido" }, { status: 400 })
   }
 
-  const ALLOWED_PATH = /^\/tenants\/[^/\s]+\//
+  const ALLOWED_PATH = /^\/(tenants\/[^/\s]+\/|notifications(\/|$))/
   if (!rawPath || !ALLOWED_PATH.test(path)) {
     return NextResponse.json({ message: "Parâmetro 'path' inválido" }, { status: 400 })
   }
 
-  const upstream = `${API_URL}${path}`
+  const upstream = `${API_URL}${path}${search}`
   const headers: Record<string, string> = {
     Authorization: `Bearer ${jwt.apiToken}`,
     "Content-Type": "application/json",

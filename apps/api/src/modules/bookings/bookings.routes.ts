@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { z, ZodError } from 'zod'
+import { Prisma } from '@prisma/client'
 import prisma from '../../database'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
@@ -13,6 +14,7 @@ import { randomBytes } from 'crypto'
 import { bookingCancelledEmailText } from './emails/booking-cancelled-email'
 import { bookingGuideNotificationEmailText, bookingGuideNotificationSubject } from './emails/booking-guide-notification-email'
 import * as paymentService from '../../services/payment.service'
+import { notifyBookingEvent } from '../notifications/booking-events'
 
 function isValidCPF(cpf: string): boolean {
   // Rejeitar sequências de dígitos iguais (00000000000, 11111111111, etc.)
@@ -71,6 +73,37 @@ function zodError400(err: ZodError) {
   }
 }
 
+/** Public shape of a booking on create — omits customerPhone and customerCpfHash. */
+function bookingResponse(b: {
+  id: string
+  tenantId: string
+  slotId: string
+  customerName: string
+  customerEmail: string
+  pax: number
+  status: string
+  paymentId: string | null
+  paymentUrl: string | null
+  expiresAt: Date | null
+  createdAt: Date
+  qrCode: string | null
+}) {
+  return {
+    id: b.id,
+    tenantId: b.tenantId,
+    slotId: b.slotId,
+    customerName: b.customerName,
+    customerEmail: b.customerEmail,
+    pax: b.pax,
+    status: b.status,
+    paymentId: b.paymentId,
+    paymentUrl: b.paymentUrl,
+    expiresAt: b.expiresAt,
+    createdAt: b.createdAt,
+    qrCode: b.qrCode,
+  }
+}
+
 export async function bookingsRoutes(app: FastifyInstance) {
   app.post('/tenants/:slug/bookings', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (request, reply) => {
     let params
@@ -92,7 +125,15 @@ export async function bookingsRoutes(app: FastifyInstance) {
     const { slug } = params
     const { slotId, customerName, customerEmail, customerPhone, customerCpf, pax } = body
 
-    const expiryMinutes = Number(process.env.BOOKING_EXPIRY_MINUTES ?? '30')
+    // JWT opcional: só turista (CLIENTE) logado vincula a reserva; token ruim segue como guest
+    let userId: string | null = null
+    try {
+      await request.jwtVerify()
+      const user = request.user as { sub: string; role: string }
+      if (user.role === 'CLIENTE') userId = user.sub
+    } catch {
+      userId = null
+    }
 
     const tenant = await prisma.tenant.findUnique({
       where: { slug },
@@ -107,75 +148,134 @@ export async function bookingsRoutes(app: FastifyInstance) {
       throw new AppError('Reservas indisponíveis no momento.', 403)
     }
 
-    // HARDENING-01: Idempotency check — deve vir ANTES do $transaction
     const idempotencyKey = (request.headers['idempotency-key'] as string | undefined)?.trim() || undefined
 
+    // Fast path: a retry that already succeeded returns the same booking without work.
+    // This is only an optimisation — the real guarantee is the unique constraint claimed
+    // inside the transaction below (C-3), which is what makes concurrent retries safe.
     if (idempotencyKey) {
       const existing = await prisma.booking.findUnique({
         where: { tenantId_idempotencyKey: { tenantId: tenant.id, idempotencyKey } },
       })
       if (existing && existing.tenantId === tenant.id) {
-        return reply.status(200).send({
-          id: existing.id,
-          tenantId: existing.tenantId,
-          slotId: existing.slotId,
-          customerName: existing.customerName,
-          customerEmail: existing.customerEmail,
-          pax: existing.pax,
-          status: existing.status,
-          paymentId: existing.paymentId,
-          paymentUrl: existing.paymentUrl,
-          expiresAt: existing.expiresAt,
-          createdAt: existing.createdAt,
-          qrCode: existing.qrCode,
-        })
+        return reply.status(200).send(bookingResponse(existing))
       }
     }
 
-    // Tx 1: Lock slot, validate and increment — booking NOT created yet (PAY-02)
-    await prisma.$transaction(async (tx) => {
-      // Lock the slot row to prevent concurrent overbooking (WR-04)
-      const [slot] = await tx.$queryRaw<Array<{
-        id: string
-        booked: number
-        capacity: number
-        status: string
-        packageId: string
-        tenantId: string
-      }>>`
-        SELECT ds.id, ds.booked, ds.capacity, ds.status, ds."packageId", tp."tenantId"
-        FROM "DepartureSlot" ds
-        JOIN "TourPackage" tp ON tp.id = ds."packageId"
-        WHERE ds.id = ${slotId}
-        FOR UPDATE
-      `
+    // C-2: expiry is decided from OUR clock, before any external call, so the booking row
+    // can be written durably up front. BOOKING_EXPIRY_MINUTES is now actually honoured.
+    const expiryMinutes = Number(process.env.BOOKING_EXPIRY_MINUTES ?? '30')
+    const expiresAt = new Date(Date.now() + expiryMinutes * 60_000)
+    const bookingId = randomBytes(16).toString('hex')
+    const cancelToken = randomBytes(32).toString('hex')
 
-      if (!slot) {
-        throw new AppError('Slot não encontrado', 404)
-      }
+    // Single transaction: lock the slot, validate, increment seats AND persist the booking.
+    //
+    // C-2: previously the seat increment committed on its own and the Booking row was only
+    // created after the Mercado Pago round-trip. A crash in that window left seats held by a
+    // booking that never existed — unreclaimable, because the expiry job scans Booking rows.
+    // Now seats are never held without a row that the expiry job can find and reverse.
+    //
+    // C-3: the idempotency key is claimed by the unique constraint inside this same
+    // transaction, so a losing concurrent request rolls back the seat increment too,
+    // instead of leaking capacity and creating a second PIX charge.
+    let booking
+    try {
+      booking = await prisma.$transaction(async (tx) => {
+        // Lock the slot row to prevent concurrent overbooking (WR-04)
+        const [slot] = await tx.$queryRaw<Array<{
+          id: string
+          booked: number
+          capacity: number
+          status: string
+          packageId: string
+          tenantId: string
+        }>>`
+          SELECT ds.id, ds.booked, ds.capacity, ds.status, ds."packageId", tp."tenantId"
+          FROM "DepartureSlot" ds
+          JOIN "TourPackage" tp ON tp.id = ds."packageId"
+          WHERE ds.id = ${slotId}
+          FOR UPDATE
+        `
 
-      if (slot.tenantId !== tenant.id) {
-        throw new AppError('Slot não encontrado', 404)
-      }
+        if (!slot) {
+          throw new AppError('Slot não encontrado', 404)
+        }
 
-      if (slot.status !== 'OPEN') {
-        throw new AppError('Slot indisponível', 400)
-      }
+        if (slot.tenantId !== tenant.id) {
+          throw new AppError('Slot não encontrado', 404)
+        }
 
-      if (slot.booked + pax > slot.capacity) {
-        throw new AppError('Capacidade insuficiente', 400)
-      }
+        if (slot.status !== 'OPEN') {
+          throw new AppError('Slot indisponível', 400)
+        }
 
-      await tx.departureSlot.update({
-        where: { id: slotId },
-        data: {
-          booked: { increment: pax },
-          status: slot.booked + pax >= slot.capacity ? 'FULL' : 'OPEN',
-        },
+        if (slot.booked + pax > slot.capacity) {
+          throw new AppError('Capacidade insuficiente', 400)
+        }
+
+        await tx.departureSlot.update({
+          where: { id: slotId },
+          data: {
+            booked: { increment: pax },
+            status: slot.booked + pax >= slot.capacity ? 'FULL' : 'OPEN',
+          },
+        })
+
+        return tx.booking.create({
+          data: {
+            id: bookingId,
+            tenantId: tenant.id,
+            slotId,
+            customerName,
+            customerEmail,
+            customerPhone,
+            customerCpfHash: hashCpf(customerCpf),
+            pax,
+            status: 'PENDING',
+            expiresAt,
+            idempotencyKey: idempotencyKey ?? null,
+            cancelToken,
+            userId,
+          },
+        })
       })
-    })
+    } catch (err) {
+      // C-3: another request with the same Idempotency-Key won the race. Its transaction
+      // committed; ours rolled back entirely (seats included). Return its booking.
+      if (
+        idempotencyKey &&
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        const winner = await prisma.booking.findUnique({
+          where: { tenantId_idempotencyKey: { tenantId: tenant.id, idempotencyKey } },
+        })
+        if (winner) return reply.status(200).send(bookingResponse(winner))
+      }
+      throw err
+    }
 
-    // Query package price OUTSIDE $transaction (keeps tx minimal)
+    // From here on the booking exists and holds its seats. Every failure path below is
+    // recoverable: worst case the row stays PENDING and the expiry job releases the seats.
+    const releaseBooking = async () => {
+      await prisma.$transaction(async (tx) => {
+        const released = await tx.booking.updateMany({
+          where: { id: bookingId, status: 'PENDING' },
+          data: { status: 'EXPIRED' },
+        })
+        if (released.count === 0) return
+        const slot = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
+        await tx.departureSlot.updateMany({
+          where: { id: slotId, booked: { gte: pax } },
+          data: {
+            booked: { decrement: pax },
+            ...(slot?.status === 'FULL' ? { status: 'OPEN' } : {}),
+          },
+        })
+      })
+    }
+
     const pkg = await prisma.tourPackage.findFirst({
       where: { departureSlots: { some: { id: slotId } } },
       select: {
@@ -186,22 +286,13 @@ export async function bookingsRoutes(app: FastifyInstance) {
       },
     })
 
-    // Guard: package must exist to build a valid PIX amount — rollback slot if missing
     if (!pkg) {
-      await prisma.$transaction(async (tx) => {
-        const s1 = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
-        await tx.departureSlot.update({
-          where: { id: slotId },
-          data: { booked: { decrement: pax }, ...(s1?.status === 'FULL' ? { status: 'OPEN' } : {}) },
-        })
-      })
+      await releaseBooking()
       throw new AppError('Pacote não encontrado para este slot', 500)
     }
 
-    // MP call happens OUTSIDE $transaction — per D-02
-    // booking does NOT exist yet; paymentId will be set on create (PAY-02)
-    // CR-001 fix: pre-generate ID so external_reference matches the real booking.id
-    const bookingId = randomBytes(16).toString('hex')
+    // MP call stays OUTSIDE the transaction (per D-02) — a network round-trip must never
+    // hold a row lock. external_reference matches the booking id already persisted.
     let paymentResult
     try {
       paymentResult = await createPixPayment({
@@ -210,47 +301,21 @@ export async function bookingsRoutes(app: FastifyInstance) {
         description: `Reserva — ${pkg.name}`,
         customerEmail,
         customerCpf,
+        expiresAt,
       })
     } catch (err) {
-      // Compensation: restore slot atomically (per D-02)
-      await prisma.$transaction(async (tx) => {
-        const s2 = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
-        await tx.departureSlot.update({
-          where: { id: slotId },
-          data: {
-            booked: { decrement: pax },
-            ...(s2?.status === 'FULL' ? { status: 'OPEN' } : {}),
-          },
-        })
-      })
+      await releaseBooking()
       throw err // AppError 502 propagates to error handler
     }
 
-    // Tx 2: Create booking with paymentId already in hand — never exists without PIX data (PAY-02)
-    const booking = await prisma.$transaction(async (tx) => {
-      const cancelToken = randomBytes(32).toString('hex')
-      return tx.booking.create({
-        data: {
-          id: bookingId,
-          tenantId: tenant.id,
-          slotId,
-          customerName,
-          customerEmail,
-          customerPhone,
-          customerCpfHash: hashCpf(customerCpf),
-          pax,
-          status: 'PENDING',
-          expiresAt: paymentResult.expiresAt,
-          idempotencyKey: idempotencyKey ?? null,
-          paymentId: paymentResult.paymentId,
-          paymentUrl: paymentResult.paymentUrl,
-          qrCode: paymentResult.qrCode,
-          cancelToken,
-        },
-      })
+    const updatedBooking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        paymentId: paymentResult.paymentId,
+        paymentUrl: paymentResult.paymentUrl,
+        qrCode: paymentResult.qrCode,
+      },
     })
-
-    const updatedBooking = booking
 
     // NOTIF-01: Notify customer of pending booking with PIX details (fire-and-forget)
     const resend = getResend()
@@ -296,20 +361,9 @@ export async function bookingsRoutes(app: FastifyInstance) {
         })
     }
 
-    return reply.status(201).send({
-      id: updatedBooking.id,
-      tenantId: updatedBooking.tenantId,
-      slotId: updatedBooking.slotId,
-      customerName: updatedBooking.customerName,
-      customerEmail: updatedBooking.customerEmail,
-      pax: updatedBooking.pax,
-      status: updatedBooking.status,
-      paymentId: updatedBooking.paymentId,
-      paymentUrl: updatedBooking.paymentUrl,
-      expiresAt: updatedBooking.expiresAt,
-      createdAt: updatedBooking.createdAt,
-      qrCode: paymentResult.qrCode,
-    })
+    void notifyBookingEvent(app.log, updatedBooking.id, 'created').catch(() => {})
+
+    return reply.status(201).send(bookingResponse(updatedBooking))
   })
 
   // POST /tenants/:slug/bookings/lookup — public, no JWT
@@ -459,6 +513,8 @@ export async function bookingsRoutes(app: FastifyInstance) {
             app.log.warn({ err: emailErr }, '[email] Failed to send cancellation email')
           })
       }
+
+      void notifyBookingEvent(app.log, booking.id, 'cancelled').catch(() => {})
 
       return reply.status(200).send({ message: 'Reserva cancelada com sucesso' })
     }
@@ -630,7 +686,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
   app.patch(
     '/tenants/:slug/bookings/:id/cancel',
-    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR', 'SUPER_ADMIN'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       let params
       try {
@@ -691,6 +747,8 @@ export async function bookingsRoutes(app: FastifyInstance) {
         })
       })
 
+      void notifyBookingEvent(app.log, updated.id, 'cancelled').catch(() => {})
+
       const { customerCpfHash, customerPhone, ...safeBooking } = updated
       return safeBooking
     }
@@ -698,7 +756,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
 
   app.patch(
     '/tenants/:slug/bookings/:id/confirm',
-    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR', 'SUPER_ADMIN'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       let params
       try {
@@ -738,10 +796,17 @@ export async function bookingsRoutes(app: FastifyInstance) {
         throw new AppError('Apenas reservas pendentes podem ser confirmadas', 400)
       }
 
-      const updated = await prisma.booking.update({
-        where: { id },
+      const confirmed = await prisma.booking.updateMany({
+        where: { id, status: 'PENDING' },
         data: { status: 'CONFIRMED' },
       })
+      if (confirmed.count === 0) {
+        throw new AppError('Apenas reservas pendentes podem ser confirmadas', 400)
+      }
+
+      const updated = await prisma.booking.findUniqueOrThrow({ where: { id } })
+
+      void notifyBookingEvent(app.log, updated.id, 'confirmed').catch(() => {})
 
       const { customerCpfHash, customerPhone, ...safeBooking } = updated
       return safeBooking
@@ -751,7 +816,7 @@ export async function bookingsRoutes(app: FastifyInstance) {
   app.get(
     '/tenants/:slug/bookings',
     {
-      onRequest: [authenticate, authorize(['ADMIN', 'ATENDENTE'])],
+      onRequest: [authenticate, authorize(['ADMIN'])],
     },
     async (request, reply) => {
       let params

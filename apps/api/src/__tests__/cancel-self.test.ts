@@ -9,6 +9,10 @@ import { AppError } from '../shared/errors/AppError'
 const TEST_JWT_SECRET = 'test-secret-minimum-32-characters-xx'
 
 // Mock prisma so no real DB needed
+vi.mock('../modules/notifications/booking-events', () => ({
+  notifyBookingEvent: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('../database', () => ({
   default: {
     tenant: {

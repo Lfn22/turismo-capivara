@@ -1,11 +1,14 @@
 import { FastifyInstance } from 'fastify'
 import { z, ZodError } from 'zod'
+import { Prisma } from '@prisma/client'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { getResend, getEmailFrom } from '../../shared/email'
+import { notifyGuideDecision } from '../notifications/guide-events'
 import { guideApprovedEmailText, guideApprovedSubject } from '../bookings/emails/guide-approved-email'
+import { guideRejectedEmailText, guideRejectedSubject } from '../bookings/emails/guide-rejected-email'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -224,6 +227,8 @@ export async function guidesRoutes(app: FastifyInstance) {
         })
     }
 
+    void notifyGuideDecision(app.log, guideProfile.userId, { approved: true }, admin.sub).catch(() => {})
+
     return reply.status(200).send({ message: 'Guia aprovado com sucesso' })
   })
 
@@ -257,7 +262,10 @@ export async function guidesRoutes(app: FastifyInstance) {
           role: 'CONDUTOR',
         },
       },
-      select: { userId: true },
+      select: {
+        userId: true,
+        user: { select: { name: true, email: true } },
+      },
     })
 
     if (!guideProfile) throw new AppError('Guia não encontrado', 404)
@@ -266,6 +274,31 @@ export async function guidesRoutes(app: FastifyInstance) {
       where: { id: guideProfile.userId },
       data: { approvalStatus: 'REJECTED', rejectionReason: body.reason },
     })
+
+    const resend = getResend()
+    if (resend && guideProfile.user.email) {
+      resend.emails
+        .send({
+          from: getEmailFrom(),
+          to: guideProfile.user.email,
+          subject: guideRejectedSubject,
+          text: guideRejectedEmailText({
+            guideName: guideProfile.user.name ?? 'Guia',
+            reason: body.reason,
+            slug: params.slug,
+          }),
+        })
+        .catch((emailErr: unknown) => {
+          app.log.warn({ err: emailErr, guideId: params.id }, '[email] Failed to send guide-rejected email')
+        })
+    }
+
+    void notifyGuideDecision(
+      app.log,
+      guideProfile.userId,
+      { approved: false, reason: body.reason },
+      admin.sub,
+    ).catch(() => {})
 
     return reply.status(200).send({ message: 'Guia rejeitado' })
   })
@@ -499,46 +532,108 @@ export async function guidesRoutes(app: FastifyInstance) {
   })
 
   // POST /guides/:id/testimonials — turista deixa depoimento
-  app.post('/guides/:id/testimonials', async (request, reply) => {
-    const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
-    const testimonialBodySchema = z.object({
-      text: z.string().min(10, { message: 'Depoimento muito curto' }).max(500, { message: 'Depoimento muito longo' }),
-      touristName: z.string().min(2, { message: 'Nome obrigatório' }).max(100),
-      rating: z.number().int().min(1).max(5).default(5),
-    })
+  //
+  // A-3: era público, sem autenticação e sem vínculo com reserva — qualquer pessoa
+  // publicava avaliações ilimitadas, com nome arbitrário, para qualquer guia aprovado.
+  // Num marketplace onde a reputação decide quem recebe reserva, essa era a superfície
+  // de abuso mais rentável do sistema.
+  //
+  // A prova de experiência exigida agora é a mesma usada em GET /tenants/:slug/bookings/:id:
+  // id da reserva + e-mail do titular. Além disso a reserva precisa estar paga, com a data
+  // do passeio já vencida, e ser do guia avaliado. Um depoimento por reserva.
+  app.post(
+    '/guides/:id/testimonials',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
+      const testimonialBodySchema = z.object({
+        bookingId: z.string().min(1, { message: 'ID da reserva obrigatório' }),
+        customerEmail: z.string().email({ message: 'Email inválido' }),
+        text: z.string().min(10, { message: 'Depoimento muito curto' }).max(500, { message: 'Depoimento muito longo' }),
+        rating: z.number().int().min(1).max(5).default(5),
+      })
 
-    let params
-    try {
-      params = guideOnlyIdSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
+      let params
+      try {
+        params = guideOnlyIdSchema.parse(request.params)
+      } catch (err) {
+        if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+        throw err
+      }
+
+      let body
+      try {
+        body = testimonialBodySchema.parse(request.body)
+      } catch (err) {
+        if (err instanceof ZodError) return reply.status(400).send(zodError(err))
+        throw err
+      }
+
+      const guide = await prisma.guideProfile.findFirst({
+        where: { id: params.id, user: { approvalStatus: 'APPROVED' } },
+        select: { id: true, userId: true },
+      })
+      if (!guide) throw new AppError('Guia não encontrado', 404)
+
+      const booking = await prisma.booking.findUnique({
+        where: { id: body.bookingId },
+        select: {
+          id: true,
+          customerEmail: true,
+          customerName: true,
+          status: true,
+          slot: {
+            select: {
+              startsAt: true,
+              guideId: true,
+              package: { select: { conductorId: true } },
+            },
+          },
+        },
+      })
+
+      // 404 idêntico para "não existe" e "e-mail não confere", como em bookings.routes.ts
+      if (!booking || booking.customerEmail.toLowerCase() !== body.customerEmail.toLowerCase()) {
+        throw new AppError('Reserva não encontrada', 404)
+      }
+
+      // Só quem pagou avalia. COMPLETED entra por completude — hoje nenhuma transição o define.
+      if (booking.status !== 'CONFIRMED' && booking.status !== 'COMPLETED') {
+        throw new AppError('BOOKING_NOT_ELIGIBLE', 403)
+      }
+
+      // O passeio precisa ter acontecido
+      if (!booking.slot || booking.slot.startsAt > new Date()) {
+        throw new AppError('TOUR_NOT_FINISHED', 403)
+      }
+
+      // E precisa ter sido com ESTE guia — pelo guia do slot ou pelo condutor do pacote
+      const isGuideOfBooking =
+        booking.slot.guideId === guide.id || booking.slot.package?.conductorId === guide.userId
+      if (!isGuideOfBooking) {
+        throw new AppError('BOOKING_NOT_FOR_THIS_GUIDE', 403)
+      }
+
+      try {
+        const testimonial = await prisma.testimonial.create({
+          data: {
+            guideProfileId: params.id,
+            bookingId: booking.id,
+            text: body.text,
+            // Nome vem da reserva, não do corpo — senão dá para assinar como outra pessoa
+            touristName: booking.customerName,
+            rating: body.rating,
+          },
+          select: { id: true, text: true, touristName: true, rating: true, createdAt: true },
+        })
+
+        return reply.status(201).send({ testimonial })
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          throw new AppError('TESTIMONIAL_ALREADY_SUBMITTED', 409)
+        }
+        throw err
+      }
     }
-
-    let body
-    try {
-      body = testimonialBodySchema.parse(request.body)
-    } catch (err) {
-      if (err instanceof ZodError) return reply.status(400).send(zodError(err))
-      throw err
-    }
-
-    const guide = await prisma.guideProfile.findFirst({
-      where: { id: params.id, user: { approvalStatus: 'APPROVED' } },
-      select: { id: true },
-    })
-    if (!guide) throw new AppError('Guia não encontrado', 404)
-
-    const testimonial = await prisma.testimonial.create({
-      data: {
-        guideProfileId: params.id,
-        text: body.text,
-        touristName: body.touristName,
-        rating: body.rating,
-      },
-      select: { id: true, text: true, touristName: true, rating: true, createdAt: true },
-    })
-
-    return reply.status(201).send({ testimonial })
-  })
+  )
 }

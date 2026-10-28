@@ -7,11 +7,15 @@ const navItems = [
   { label: "Destinos", href: "/super-admin/destinos" },
 ]
 
-export default function SuperAdminNav() {
+export default function SuperAdminNav({ role }: { role: string }) {
   const pathname = usePathname()
+  const items =
+    role === "SUPER_ADMIN"
+      ? [...navItems, { label: "Admins", href: "/super-admin/admins" }]
+      : navItems
   return (
     <nav style={{ display: "flex", gap: "4px" }}>
-      {navItems.map((item) => {
+      {items.map((item) => {
         const active = pathname.startsWith(item.href)
         return (
           <Link

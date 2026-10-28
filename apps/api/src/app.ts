@@ -28,7 +28,10 @@ import { webhooksRoutes } from './modules/webhooks/webhooks.routes'
 import { destinationsRoutes } from './modules/destinations/destinations.routes'
 import { uploadsRoutes } from './modules/uploads/uploads.routes'
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes'
+import { platformAdminsRoutes } from './modules/platform-admins/platform-admins.routes'
+import { notificationsRoutes } from './modules/notifications/notifications.routes'
 import { createBookingExpiryJob } from './modules/bookings/expiry.job'
+import { createNotificationDigestJob } from './modules/notifications/digest.job'
 import { AppError } from './shared/errors/AppError'
 
 const app = Fastify({
@@ -81,7 +84,7 @@ app.register(jwt, {
 })
 
 app.register(fastifyCron, {
-  jobs: [createBookingExpiryJob(app)],
+  jobs: [createBookingExpiryJob(app), createNotificationDigestJob(app)],
 })
 
 app.get('/health', { config: { rateLimit: false } }, async (request, reply) => {
@@ -105,6 +108,8 @@ app.register(webhooksRoutes)
 app.register(destinationsRoutes)
 app.register(uploadsRoutes)
 app.register(dashboardRoutes)
+app.register(platformAdminsRoutes)
+app.register(notificationsRoutes)
 
 app.addHook('onSend', async (request, reply) => {
   reply.header('X-Request-Id', request.id)

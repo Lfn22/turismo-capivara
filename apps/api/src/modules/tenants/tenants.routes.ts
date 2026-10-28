@@ -120,7 +120,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
           data: {
             tenantId: tenant.id,
             name: body.name,
-            email: body.email,
+            email: body.email.toLowerCase(),
             password: hashedPassword,
             role: 'ADMIN',
             approvalStatus: 'APPROVED',

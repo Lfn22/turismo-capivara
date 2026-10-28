@@ -4,6 +4,7 @@ import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
+import { isPlatformStaff } from '../../shared/auth/roles'
 import { ApprovalUpdateInput, CreateDestinationInput, UpdateDestinationInput } from './destinations.schemas'
 import {
   approveDestination,
@@ -293,12 +294,12 @@ export async function destinationsRoutes(app: FastifyInstance) {
     )
   })
 
-  // PATCH /destinations/:destinationSlug — atualiza fotos (ADMIN/SUPER_ADMIN/CONDUTOR)
-  // CONDUTOR só pode editar o destino vinculado ao seu próprio tenant
+  // PATCH /destinations/:destinationSlug — atualiza a vitrine do destino
+  // Escopo: ADMIN e CONDUTOR só editam o destino vinculado ao próprio tenant; SUPER_ADMIN/PLATFORM_ADMIN, qualquer um.
   // NOTE: Esta rota chama prisma.destination.update() diretamente, sem passar por updateDestination().
-  // Isso é intencional: o serviço updateDestination() bloqueia edições em destinos APPROVED para
-  // usuários não-admin. Admins precisam editar destinos aprovados via esta rota. Qualquer refatoração
-  // que redirecione esta rota pelo serviço deve preservar essa distinção explicitamente.
+  // Isso é intencional: updateDestination() rebaixa destinos APPROVED para PENDING quando o editor não
+  // é ADMIN, tirando-os do ar até nova curadoria. Esta rota edita a vitrine sem despublicar. Qualquer
+  // refatoração que a redirecione pelo serviço deve preservar essa distinção explicitamente.
   app.patch(
     '/destinations/:destinationSlug',
     { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN', 'CONDUTOR'])] },
@@ -315,8 +316,12 @@ export async function destinationsRoutes(app: FastifyInstance) {
         throw err
       }
 
-      // Escopo de tenant: CONDUTOR só edita o destino do seu próprio tenant
-      if (request.user.role === 'CONDUTOR') {
+      // A-1: escopo de tenant vale para TODO papel de operadora, não só CONDUTOR.
+      // Destination não tem coluna tenantId — é entidade global do marketplace —, então
+      // sem esta checagem o ADMIN de qualquer operadora reescreve a vitrine de qualquer
+      // concorrente. O parâmetro aqui chama-se `destinationSlug`, então o guard cross-tenant
+      // de authenticate() (que só dispara em `params.slug`) também não protege esta rota.
+      if (!isPlatformStaff(request.user.role)) {
         const tenant = await prisma.tenant.findUnique({
           where: { id: request.user.tenantId },
           select: { destination: { select: { slug: true } } },
@@ -373,12 +378,12 @@ export async function destinationsRoutes(app: FastifyInstance) {
     },
   )
 
-  // GET /tenants/:slug/destinations — lista destinos do tenant (ADMIN/CONDUTOR/ATENDENTE)
+  // GET /tenants/:slug/destinations — lista destinos do tenant (ADMIN/CONDUTOR)
   app.get(
     '/tenants/:slug/destinations',
-    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'ATENDENTE'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR'])] },
     async (request, reply) => {
-      // CONDUTOR vê apenas seus próprios destinos; ADMIN/ATENDENTE vê todos
+      // CONDUTOR vê apenas seus próprios destinos; ADMIN vê todos
       const whereClause =
         request.user.role === 'CONDUTOR'
           ? { createdById: request.user.sub }
@@ -404,10 +409,10 @@ export async function destinationsRoutes(app: FastifyInstance) {
     },
   )
 
-  // GET /tenants/:slug/destinations/:id — busca destino por ID (ADMIN/CONDUTOR/ATENDENTE)
+  // GET /tenants/:slug/destinations/:id — busca destino por ID (ADMIN/CONDUTOR)
   app.get(
     '/tenants/:slug/destinations/:id',
-    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'ATENDENTE'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR'])] },
     async (request, reply) => {
       const { id } = request.params as { slug: string; id: string }
       const whereClause =
@@ -467,11 +472,15 @@ export async function destinationsRoutes(app: FastifyInstance) {
       // Verificar que o destino pertence ao tenant indicado pelo slug
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
       if (!tenant) throw new AppError('Tenant não encontrado', 404)
-      // ADMIN: acesso direto por id (isolamento garantido pela UI); CONDUTOR: exige createdBy no tenant
+      // A-1: o escopo de tenant é verificado no servidor para TODOS os papéis.
+      // Antes, ADMIN buscava por id puro — "isolamento garantido pela UI", o que qualquer
+      // curl ignora. Dentro do tenant, updateDestination() ainda restringe CONDUTOR ao
+      // próprio createdById; ADMIN edita qualquer destino da sua operadora.
       const userRole = request.user.role
-      const linked = userRole === 'ADMIN'
-        ? await prisma.destination.findFirst({ where: { id }, select: { id: true } })
-        : await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } }, select: { id: true } })
+      const linked = await prisma.destination.findFirst({
+        where: { id, createdBy: { tenant: { slug } } },
+        select: { id: true },
+      })
       if (!linked) throw new AppError('Destino não encontrado', 404)
 
       let input
@@ -498,11 +507,12 @@ export async function destinationsRoutes(app: FastifyInstance) {
       // Verificar que o destino pertence ao tenant indicado pelo slug
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
       if (!tenant) throw new AppError('Tenant não encontrado', 404)
-      // ADMIN: acesso direto por id; CONDUTOR: exige createdBy no tenant
+      // A-1: mesmo escopo de tenant do PATCH — verificado no servidor, não na UI
       const userRole = request.user.role
-      const linked = userRole === 'ADMIN'
-        ? await prisma.destination.findFirst({ where: { id }, select: { id: true } })
-        : await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } }, select: { id: true } })
+      const linked = await prisma.destination.findFirst({
+        where: { id, createdBy: { tenant: { slug } } },
+        select: { id: true },
+      })
       if (!linked) throw new AppError('Destino não encontrado', 404)
 
       const userId = request.user.sub
@@ -512,9 +522,12 @@ export async function destinationsRoutes(app: FastifyInstance) {
   )
 
   // PATCH /destinations/:id/approve — super-admin aprova ou rejeita destino
+  // A-2: moderação é ação de plataforma, não de operadora. Com ADMIN aqui, o administrador
+  // de qualquer operadora aprovava o próprio destino sem passar pela curadoria — e rejeitava
+  // o de um concorrente. Alinha com /tenants/:id/approve, que já era SUPER_ADMIN.
   app.patch(
     '/destinations/:id/approve',
-    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
+    { preHandler: [authenticate, authorize(['SUPER_ADMIN'])] },
     async (request, reply) => {
       const { id } = request.params as { id: string }
 
@@ -535,10 +548,10 @@ export async function destinationsRoutes(app: FastifyInstance) {
     },
   )
 
-  // GET /admin/destinations — listagem completa para admin (ADMIN/SUPER_ADMIN)
+  // GET /admin/destinations — listagem completa da plataforma (A-2: SUPER_ADMIN apenas)
   app.get(
     '/admin/destinations',
-    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
+    { preHandler: [authenticate, authorize(['SUPER_ADMIN'])] },
     async (request, reply) => {
       const querySchema = z.object({
         limit: z.coerce.number().int().min(1).max(100).default(50),
@@ -588,10 +601,10 @@ export async function destinationsRoutes(app: FastifyInstance) {
     },
   )
 
-  // GET /admin/destinations/pending — fila de aprovação (ADMIN)
+  // GET /admin/destinations/pending — fila de curadoria (A-2: SUPER_ADMIN apenas)
   app.get(
     '/admin/destinations/pending',
-    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
+    { preHandler: [authenticate, authorize(['SUPER_ADMIN'])] },
     async (request, reply) => {
       const querySchema = z.object({
         limit: z.coerce.number().int().min(1).max(100).default(50),

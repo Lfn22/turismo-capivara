@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import prisma from '../../database'
 import { getResend, getEmailFrom } from '../../shared/email'
+import { notifyBookingEvent } from '../notifications/booking-events'
 import { bookingExpiredEmailText, bookingExpiredSubject } from './emails/booking-expired-email'
 
 const BOOKING_EXPIRY_LOCK_ID = 1_234_567_890
@@ -53,6 +54,7 @@ export function createBookingExpiryJob(app: FastifyInstance) {
         for (const booking of expiredBookings) {
           try {
             // Atomically expire booking and release slot seats (D-11)
+            let expired = false
             await prisma.$transaction(async (tx) => {
               const updated = await tx.booking.updateMany({
                 where: { id: booking.id, status: 'PENDING' },
@@ -60,6 +62,7 @@ export function createBookingExpiryJob(app: FastifyInstance) {
               })
               // If no rows updated, booking was already CONFIRMED/CANCELLED — skip slot adjustment
               if (updated.count === 0) return
+              expired = true
 
               const [currentSlot] = await tx.$queryRaw<Array<{
                 id: string; booked: number; capacity: number; status: string
@@ -84,6 +87,10 @@ export function createBookingExpiryJob(app: FastifyInstance) {
             })
 
             app.log.info(`[cron:expiry] Expired booking ${booking.id}`)
+
+            if (expired) {
+              void notifyBookingEvent(app.log, booking.id, 'expired').catch(() => {})
+            }
 
             // Send NOTIF-04 fire-and-forget (D-12): email failure MUST NOT revert expiry
             const resend = getResend()

@@ -14,6 +14,10 @@ import { bookingsRoutes } from '../modules/bookings/bookings.routes'
 // ---------------------------------------------------------------------------
 // Mocks — must be declared before any import that uses these modules
 // ---------------------------------------------------------------------------
+vi.mock('../modules/notifications/booking-events', () => ({
+  notifyBookingEvent: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('../services/payment.service', () => ({
   createPixPayment: vi.fn(),
 }))
@@ -50,7 +54,7 @@ let crossTenantAdminToken: string
 
 beforeAll(async () => {
   await app.ready()
-  // Cancel route requires ADMIN or ATENDENTE
+  // Cancel route requires ADMIN
   adminToken = app.jwt.sign({ sub: 'admin-1', role: 'ADMIN', tenantId: TENANT.id, name: 'Admin' })
   crossTenantAdminToken = app.jwt.sign({ sub: 'admin-x', role: 'ADMIN', tenantId: 'other-tenant', name: 'Admin X' })
 })

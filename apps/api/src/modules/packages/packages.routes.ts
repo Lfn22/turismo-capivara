@@ -5,6 +5,7 @@ import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { Role } from '@prisma/client'
+import { notifyGuideJoinedPackage } from '../notifications/guide-events'
 import { updatePackagePhotos, updatePackageHighlights } from './packages.service'
 
 const slugParamsSchema = z.object({
@@ -291,11 +292,20 @@ export async function packagesRoutes(app: FastifyInstance) {
     })
     if (!pkg) throw new AppError('Roteiro não encontrado', 404)
 
+    const existingLink = await prisma.packageGuide.findUnique({
+      where: { packageId_guideId: { packageId: params!.id, guideId: guideProfile.id } },
+      select: { active: true },
+    })
+
     await prisma.packageGuide.upsert({
       where: { packageId_guideId: { packageId: params!.id, guideId: guideProfile.id } },
       create: { packageId: params!.id, guideId: guideProfile.id, active: true },
       update: { active: true },
     })
+
+    if (!existingLink?.active) {
+      void notifyGuideJoinedPackage(app.log, user.sub, params!.id).catch(() => {})
+    }
 
     return reply.status(200).send({ message: 'Guia vinculado ao roteiro com sucesso' })
   })

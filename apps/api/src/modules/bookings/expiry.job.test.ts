@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock prisma
+vi.mock('../notifications/booking-events', () => ({
+  notifyBookingEvent: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('../../database', () => ({
   default: {
     $queryRaw: vi.fn(),
@@ -18,6 +22,7 @@ vi.mock('../../shared/email', () => ({
 import prisma from '../../database'
 import { getResend } from '../../shared/email'
 import { createBookingExpiryJob } from './expiry.job'
+import { notifyBookingEvent } from '../notifications/booking-events'
 
 function makeApp() {
   return {
@@ -242,5 +247,44 @@ describe('createBookingExpiryJob (OPS-01)', () => {
     // Second $queryRaw call is the unlock
     const calls = mockPrisma.$queryRaw.mock.calls
     expect(calls.length).toBeGreaterThanOrEqual(2)
+  })
+})
+
+describe('createBookingExpiryJob notificação por transição', () => {
+  const pending = {
+    id: 'bk-n',
+    customerName: 'X',
+    customerEmail: null,
+    pax: 1,
+    slotId: 's1',
+    tenantId: 't1',
+    slot: null,
+  }
+
+  function runWith(count: number) {
+    mockPrisma.$queryRaw
+      .mockResolvedValueOnce([{ pg_try_advisory_lock: true }])
+      .mockResolvedValueOnce([{}])
+    mockPrisma.booking.findMany.mockResolvedValueOnce([pending])
+    mockPrisma.$transaction.mockImplementationOnce(async (fn: Function) => {
+      const tx = {
+        booking: { updateMany: vi.fn().mockResolvedValue({ count }) },
+        departureSlot: { update: vi.fn() },
+        $queryRaw: vi.fn().mockResolvedValue([{ id: 's1', booked: 1, capacity: 4, status: 'OPEN' }]),
+      }
+      await fn(tx)
+    })
+    mockGetResend.mockReturnValue(null)
+    return createBookingExpiryJob(makeApp()).onTick()
+  }
+
+  it('notifica expired quando a transição ocorreu', async () => {
+    await runWith(1)
+    expect(notifyBookingEvent).toHaveBeenCalledWith(expect.anything(), 'bk-n', 'expired')
+  })
+
+  it('não notifica quando count === 0', async () => {
+    await runWith(0)
+    expect(notifyBookingEvent).not.toHaveBeenCalled()
   })
 })

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { isPlatformStaff } from '@/lib/roles';
 
 interface Props {
   slug: string;
@@ -44,7 +45,7 @@ export default function DestinationPhotoEditor({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN' && role !== 'CONDUTOR') return null;
+  if (role !== 'ADMIN' && role !== 'CONDUTOR' && !isPlatformStaff(role)) return null;
 
   function setPhoto(index: number, value: string) {
     setPhotoInputs((prev) => { const n = [...prev]; n[index] = value; return n; });
