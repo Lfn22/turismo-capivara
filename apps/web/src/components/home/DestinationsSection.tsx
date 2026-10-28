@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import DestinationCard from '@/src/components/ui/DestinationCard';
 
 interface Destination {
@@ -30,10 +29,10 @@ export default function DestinationsSection({ destinations }: Props) {
             style={{ color: 'var(--stone-800)' }}>
             Para onde vamos?
           </h2>
-          <Link href="/destinos" className="text-sm font-semibold no-underline hidden md:block"
+          <a href="/destinos" className="text-sm font-semibold no-underline hidden md:block"
             style={{ color: 'var(--ochre)' }}>
             Ver todos &rarr;
-          </Link>
+          </a>
         </div>
       </div>
 

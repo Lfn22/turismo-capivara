@@ -14,6 +14,12 @@ interface CreatePixPaymentInput {
   description: string
   customerEmail: string
   customerCpf: string
+  /**
+   * When the booking releases its seats. The PIX charge is set to expire at the same
+   * instant, so a customer can never pay a charge for a booking that already expired.
+   * Optional for the repay flow, which computes its own window.
+   */
+  expiresAt?: Date
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -25,7 +31,9 @@ async function attemptCreatePayment(
   input: CreatePixPaymentInput
 ): Promise<PixPaymentResult> {
   const token = process.env.MP_ACCESS_TOKEN
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+  // A-4: the caller owns the expiry window (it must match when the seats are released).
+  // The 24h fallback only applies to callers that do not pass one.
+  const expiresAt = input.expiresAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000)
 
   // 1. Bypass para ambiente de desenvolvimento (Mock)
   if (!token) {
@@ -58,6 +66,10 @@ async function attemptCreatePayment(
       },
       external_reference: input.bookingId,
     },
+    // C-1: chave estável por reserva — as 3 tentativas de createPixPayment enviam
+    // a mesma chave, então um timeout local em uma tentativa que o MP já processou
+    // retorna o pagamento existente em vez de criar uma segunda cobrança PIX.
+    requestOptions: { idempotencyKey: input.bookingId },
   })
 
   const ticketUrl = response.point_of_interaction?.transaction_data?.ticket_url
