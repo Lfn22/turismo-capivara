@@ -12,12 +12,12 @@ import {
 } from '../destinations.service'
 
 export async function tenantDestinationsRoute(app: FastifyInstance) {
-  // GET /tenants/:slug/destinations — lista destinos do tenant (ADMIN/CONDUTOR/ATENDENTE)
+  // GET /tenants/:slug/destinations — lista destinos do tenant (ADMIN/CONDUTOR/PLATFORM_ADMIN)
   app.get(
     '/tenants/:slug/destinations',
-    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'ATENDENTE'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'PLATFORM_ADMIN'])] },
     async (request, reply) => {
-      // CONDUTOR vê apenas seus próprios destinos; ADMIN/ATENDENTE vê todos
+      // CONDUTOR vê apenas seus próprios destinos; ADMIN/PLATFORM_ADMIN vê todos
       const whereClause =
         request.user.role === 'CONDUTOR'
           ? { createdById: request.user.sub }
@@ -43,10 +43,10 @@ export async function tenantDestinationsRoute(app: FastifyInstance) {
     },
   )
 
-  // GET /tenants/:slug/destinations/:id — busca destino por ID (ADMIN/CONDUTOR/ATENDENTE)
+  // GET /tenants/:slug/destinations/:id — busca destino por ID (ADMIN/CONDUTOR/PLATFORM_ADMIN)
   app.get(
     '/tenants/:slug/destinations/:id',
-    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'ATENDENTE'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'PLATFORM_ADMIN'])] },
     async (request, reply) => {
       const { id } = request.params as { slug: string; id: string }
       const whereClause =

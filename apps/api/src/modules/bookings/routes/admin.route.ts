@@ -20,7 +20,7 @@ const slugAndIdParamsSchema = z.object({
 export async function adminBookingsRoute(app: FastifyInstance) {
   app.get(
     '/tenants/:slug/bookings/:id',
-    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR', 'SUPER_ADMIN'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       const { data: params, error: paramsError } = parseParams(slugAndIdParamsSchema, request.params, reply)
       if (paramsError) return
@@ -60,7 +60,7 @@ export async function adminBookingsRoute(app: FastifyInstance) {
 
   app.patch(
     '/tenants/:slug/bookings/:id/cancel',
-    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR', 'SUPER_ADMIN'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       const { data: params, error: paramsError } = parseParams(slugAndIdParamsSchema, request.params, reply)
       if (paramsError) return
@@ -127,7 +127,7 @@ export async function adminBookingsRoute(app: FastifyInstance) {
 
   app.patch(
     '/tenants/:slug/bookings/:id/confirm',
-    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR', 'SUPER_ADMIN'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       const { data: params, error: paramsError } = parseParams(slugAndIdParamsSchema, request.params, reply)
       if (paramsError) return
@@ -179,7 +179,7 @@ export async function adminBookingsRoute(app: FastifyInstance) {
   app.get(
     '/tenants/:slug/bookings',
     {
-      preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE'])],
+      preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN'])],
     },
     async (request, reply) => {
       const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
