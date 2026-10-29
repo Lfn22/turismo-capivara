@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 const navItems = [
   { label: "Operadoras", href: "/super-admin/operadoras" },
   { label: "Destinos", href: "/super-admin/destinos" },
+  { label: "Guias", href: "/super-admin/guias" },
 ]
 
 export default function SuperAdminNav({ role }: { role: string }) {

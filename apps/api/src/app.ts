@@ -22,10 +22,16 @@ import { tenantsRoutes } from './modules/tenants/tenants.routes'
 import { packagesRoutes } from './modules/packages/packages.routes'
 import { bookingsRoutes } from './modules/bookings/bookings.routes'
 import { authRoutes } from './modules/auth/auth.routes'
+import { guideSignupRoutes } from './modules/guide-signup/guide-signup.routes'
+import { platformGuidesRoutes } from './modules/guide-signup/platform-guides.routes'
+import { affiliationsRoutes } from './modules/guide-signup/affiliations.routes'
 import { usersRoutes } from './modules/users/users.routes'
 import { guidesRoutes } from './modules/guides/guides.routes'
 import { webhooksRoutes } from './modules/webhooks/webhooks.routes'
 import { destinationsRoutes } from './modules/destinations/destinations.routes'
+import { destinationMembershipRoutes } from './modules/memberships/destination-membership.routes'
+import { packageMembershipRoutes } from './modules/memberships/package-membership.routes'
+import { myMembershipsRoutes } from './modules/memberships/my-memberships.routes'
 import { uploadsRoutes } from './modules/uploads/uploads.routes'
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes'
 import { platformAdminsRoutes } from './modules/platform-admins/platform-admins.routes'
@@ -99,6 +105,9 @@ app.get('/health', { config: { rateLimit: false } }, async (request, reply) => {
 })
 
 app.register(authRoutes)
+app.register(guideSignupRoutes)
+app.register(platformGuidesRoutes)
+app.register(affiliationsRoutes)
 app.register(tenantsRoutes)
 app.register(packagesRoutes)
 app.register(bookingsRoutes)
@@ -106,6 +115,9 @@ app.register(usersRoutes)
 app.register(guidesRoutes)
 app.register(webhooksRoutes)
 app.register(destinationsRoutes)
+app.register(destinationMembershipRoutes)
+app.register(packageMembershipRoutes)
+app.register(myMembershipsRoutes)
 app.register(uploadsRoutes)
 app.register(dashboardRoutes)
 app.register(platformAdminsRoutes)

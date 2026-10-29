@@ -1,6 +1,7 @@
 "use client"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import { NotificationActions } from "@/src/components/notifications/NotificationActions"
 import {
   fetchNotifications,
   fetchSummary,
@@ -32,6 +33,7 @@ export function NotificationBell({ role }: { role?: string }) {
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
   const refreshSummary = useCallback(() => {
@@ -86,10 +88,16 @@ export function NotificationBell({ role }: { role?: string }) {
   useEffect(() => {
     if (!open) return
     function onDown(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false)
+        setNotice(null)
+      }
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false)
+      if (e.key === "Escape") {
+        setOpen(false)
+        setNotice(null)
+      }
     }
     document.addEventListener("mousedown", onDown)
     document.addEventListener("keydown", onKey)
@@ -98,6 +106,14 @@ export function NotificationBell({ role }: { role?: string }) {
       document.removeEventListener("keydown", onKey)
     }
   }, [open])
+
+  useEffect(() => {
+    function onChanged() {
+      refreshSummary()
+    }
+    window.addEventListener("notifications:changed", onChanged)
+    return () => window.removeEventListener("notifications:changed", onChanged)
+  }, [refreshSummary])
 
   async function onItemClick(n: NotificationDTO) {
     try {
@@ -111,6 +127,7 @@ export function NotificationBell({ role }: { role?: string }) {
     refreshSummary()
     if (n.link) {
       setOpen(false)
+      setNotice(null)
       router.push(n.link)
     }
   }
@@ -145,6 +162,7 @@ export function NotificationBell({ role }: { role?: string }) {
         aria-expanded={open}
         onClick={() => {
           if (!open) loadPage()
+          setNotice(null)
           setOpen((v) => !v)
         }}
         style={{
@@ -209,6 +227,11 @@ export function NotificationBell({ role }: { role?: string }) {
               Marcar todas como lidas
             </button>
           </div>
+          {notice && (
+            <p role="alert" style={{ padding: "8px 14px", fontSize: "13px", color: "#DC2626", margin: 0 }}>
+              {notice}
+            </p>
+          )}
           {error && (
             <p style={{ padding: "14px", fontSize: "14px", color: "#DC2626" }}>
               Não foi possível carregar as notificações.
@@ -218,8 +241,8 @@ export function NotificationBell({ role }: { role?: string }) {
             <p style={{ padding: "14px", fontSize: "14px", color: "var(--stone-500)" }}>{emptyText}</p>
           )}
           {items.map((n) => (
+            <div key={n.id} style={{ borderBottom: "1px solid var(--stone-200)" }}>
             <button
-              key={n.id}
               type="button"
               onClick={() => onItemClick(n)}
               style={{
@@ -228,7 +251,6 @@ export function NotificationBell({ role }: { role?: string }) {
                 textAlign: "left",
                 padding: "10px 14px",
                 border: "none",
-                borderBottom: "1px solid var(--stone-200)",
                 background: n.readAt ? "transparent" : "white",
                 borderLeft: n.readAt ? "3px solid transparent" : "3px solid var(--ochre)",
                 cursor: "pointer",
@@ -247,6 +269,8 @@ export function NotificationBell({ role }: { role?: string }) {
                 </span>
               )}
             </button>
+            <NotificationActions n={n} onDone={() => loadPage()} onNotice={setNotice} />
+            </div>
           ))}
           {loading && (
             <p style={{ padding: "14px", fontSize: "14px", color: "var(--stone-500)" }}>Carregando…</p>

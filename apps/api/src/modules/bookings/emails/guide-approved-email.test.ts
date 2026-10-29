@@ -12,7 +12,7 @@ describe('guideApprovedEmail', () => {
       slug: 'capivara-adventures',
     })
     expect(result).toContain('Roberto Explorador')
-    expect(result).toContain('https://capi.turismo/capivara-adventures/guia/perfil')
+    expect(result).toContain('https://capi.turismo/capivara-adventures/painel/dashboard')
     expect(result).toContain('— Equipe CAPI')
   })
 

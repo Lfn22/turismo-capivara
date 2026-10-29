@@ -37,7 +37,8 @@ async function handler(req: NextRequest) {
     return NextResponse.json({ message: "Parâmetro 'path' inválido" }, { status: 400 })
   }
 
-  const ALLOWED_PATH = /^\/(tenants\/[^/\s]+\/|notifications(\/|$))/
+  const ALLOWED_PATH =
+    /^\/(tenants\/[^/\s]+\/|notifications(\/|$)|guides\/me(\/|$)|platform\/guides$|platform\/guides\/[^/]+\/(approve|reject)$|affiliations\/[^/]+\/(accept|reject)$|packages\/[^/]+\/(membership|guides\/me|guide-requests\/[^/]+\/(accept|reject))$|destinations\/[^/]+\/(membership|guides\/me)$)/
   if (!rawPath || !ALLOWED_PATH.test(path)) {
     return NextResponse.json({ message: "Parâmetro 'path' inválido" }, { status: 400 })
   }

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { isPlatformStaff, safeCallbackUrl } from "@/lib/roles"
+import { isGuideUnverified } from "@/lib/guide-status"
 
 const inputStyle: React.CSSProperties = {
   display: "block",
@@ -86,6 +87,8 @@ function LoginForm() {
         router.push(callbackUrl)
       } else if (isPlatformStaff(role)) {
         router.push("/super-admin/operadoras")
+      } else if (role === "CONDUTOR" && (await isGuideUnverified())) {
+        router.push("/guia/status")
       } else if (!tenantSlug) {
         router.push("/login")
       } else if (role === "ADMIN") {

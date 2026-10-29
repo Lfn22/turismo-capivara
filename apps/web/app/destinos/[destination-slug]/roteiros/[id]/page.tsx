@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import PackageMembershipButton from '@/src/components/membership/PackageMembershipButton';
 import GuideCard, { GuideCardGuide } from '@/src/components/ui/GuideCard';
 
 // ── Data layer ────────────────────────────────────────────────────────────────
@@ -196,6 +197,7 @@ export default async function RoteiroDetailPage({ params }: Props) {
           <p className="rdet__subtitle">
             {pkg?.description ?? 'Escolha o guia ideal para sua aventura.'}
           </p>
+          <PackageMembershipButton packageId={id} />
         </header>
 
         {/* Body */}

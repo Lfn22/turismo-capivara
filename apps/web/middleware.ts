@@ -21,7 +21,7 @@ export default withAuth(
     if (!token) {
       // Caminho relativo (não req.url) para sobreviver ao safeCallbackUrl no login
       const callbackUrl = encodeURIComponent(pathname + req.nextUrl.search)
-      if (pathname.startsWith('/super-admin') || pathname.startsWith('/pendencias')) {
+      if (pathname.startsWith('/super-admin') || pathname.startsWith('/pendencias') || pathname === '/guia' || pathname.startsWith('/guia/')) {
         return NextResponse.redirect(new URL(`/login?callbackUrl=${callbackUrl}`, req.url))
       }
       return NextResponse.redirect(
@@ -71,5 +71,6 @@ export const config = {
     "/:slug/admin/:path*",
     "/super-admin/:path*",
     "/pendencias",
+    "/guia/:path*",
   ],
 }

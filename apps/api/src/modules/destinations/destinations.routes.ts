@@ -104,10 +104,8 @@ export async function destinationsRoutes(app: FastifyInstance) {
         user: {
           role: 'CONDUTOR',
           approvalStatus: 'APPROVED',
-          tenant: {
-            destinationId: destination.id,
-          },
         },
+        destinations: { some: { destinationId: destination.id } },
       },
       select: {
         id: true,
@@ -164,8 +162,8 @@ export async function destinationsRoutes(app: FastifyInstance) {
         user: {
           role: 'CONDUTOR',
           approvalStatus: 'APPROVED',
-          tenant: { destinationId: destination.id },
         },
+        destinations: { some: { destinationId: destination.id } },
       },
       select: {
         id: true,

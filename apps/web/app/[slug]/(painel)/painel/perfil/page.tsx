@@ -20,6 +20,23 @@ interface GuideProfileData {
   }
 }
 
+interface Memberships {
+  destinations: { slug: string; title: string }[]
+  packages: {
+    id: string
+    name: string
+    destinationSlug: string | null
+    state: "PENDING" | "REJECTED" | "IN"
+    rejectionReason: string | null
+  }[]
+}
+
+function membershipBadge(state: "PENDING" | "REJECTED" | "IN", reason: string | null) {
+  if (state === "PENDING") return "Aguardando aprovação"
+  if (state === "REJECTED") return `Recusado: ${reason ?? ""}`
+  return "Você atua aqui ✓"
+}
+
 export default function PerfilPage({
   params,
 }: {
@@ -32,6 +49,8 @@ export default function PerfilPage({
   const [profile, setProfile] = useState<GuideProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+
+  const [memberships, setMemberships] = useState<Memberships | null>(null)
 
   // Form fields
   const [bio, setBio] = useState("")
@@ -53,45 +72,42 @@ export default function PerfilPage({
     setLoading(true)
     setLoadError(false)
 
-    // GET /tenants/:slug/guides returns only APPROVED guides.
-    // For PENDING guides, fall back to an empty profile using session data.
-    fetch(`/api/proxy?path=/tenants/${slug}/guides`)
+    fetch("/api/proxy?path=/guides/me")
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
       })
       .then((data) => {
-        const guides: GuideProfileData[] = Array.isArray(data)
-          ? data
-          : data.guides ?? []
-        const mine = guides.find((g) => g.user?.id === sessionUserId)
-        if (mine) {
-          setProfile(mine)
-          setBio(mine.bio ?? "")
-          setEspecialidades((mine.especialidades ?? []).join(", "))
-          setRegioes((mine.regioes ?? []).join(", "))
-          setPortfolioPhotos(mine.portfolioPhotos ?? [])
-        } else {
-          // Guia PENDING ou sem perfil aprovado — exibir formulário vazio
-          setProfile({
-            id: "",
-            bio: null,
-            photoUrl: null,
-            especialidades: [],
-            regioes: [],
-            portfolioPhotos: [],
-            user: {
-              id: sessionUserId,
-              name: (session?.user as any)?.name ?? "",
-              email: (session?.user as any)?.email ?? "",
-              approvalStatus: "PENDING_APPROVAL",
-            },
-          })
-        }
+        const p = data.profile ?? {}
+        setProfile({
+          id: "",
+          bio: p.bio ?? null,
+          photoUrl: p.photoUrl ?? null,
+          especialidades: p.especialidades ?? [],
+          regioes: p.regioes ?? [],
+          portfolioPhotos: p.portfolioPhotos ?? [],
+          user: {
+            id: sessionUserId,
+            name: (session?.user as any)?.name ?? "",
+            email: (session?.user as any)?.email ?? "",
+            approvalStatus: data.approvalStatus,
+          },
+        })
+        setBio(p.bio ?? "")
+        setEspecialidades((p.especialidades ?? []).join(", "))
+        setRegioes((p.regioes ?? []).join(", "))
+        setPortfolioPhotos(p.portfolioPhotos ?? [])
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
   }, [slug, sessionUserId])
+
+  useEffect(() => {
+    fetch("/api/proxy?path=/guides/me/memberships")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data && setMemberships(data))
+      .catch(() => {})
+  }, [])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -428,6 +444,35 @@ export default function PerfilPage({
             )}
           </div>
         </form>
+      )}
+
+      {memberships && (memberships.destinations.length > 0 || memberships.packages.length > 0) && (
+        <section style={{ maxWidth: "640px", marginTop: "40px" }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "20px", color: "var(--stone-900)", margin: "0 0 16px" }}>
+            Meus destinos e roteiros
+          </h2>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "8px" }}>
+            {memberships.destinations.map((d) => (
+              <li key={d.slug} style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", padding: "12px", border: "1px solid var(--stone-200)", borderRadius: "4px" }}>
+                <a href={`/destinos/${d.slug}`} style={{ color: "var(--stone-900)", fontWeight: 600 }}>{d.title}</a>
+                <span style={{ fontSize: "14px", color: "#15803D" }}>{membershipBadge("IN", null)}</span>
+              </li>
+            ))}
+            {memberships.packages.map((p) => (
+              <li key={p.id} style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", padding: "12px", border: "1px solid var(--stone-200)", borderRadius: "4px" }}>
+                <a
+                  href={p.destinationSlug ? `/destinos/${p.destinationSlug}/roteiros/${p.id}` : `/${slug}/roteiros/${p.id}`}
+                  style={{ color: "var(--stone-900)", fontWeight: 600 }}
+                >
+                  {p.name}
+                </a>
+                <span style={{ fontSize: "14px", color: p.state === "REJECTED" ? "#DC2626" : p.state === "IN" ? "#15803D" : "var(--stone-500)" }}>
+                  {membershipBadge(p.state, p.rejectionReason)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <style>{`

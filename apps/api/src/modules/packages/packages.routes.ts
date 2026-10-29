@@ -5,7 +5,6 @@ import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { Role } from '@prisma/client'
-import { notifyGuideJoinedPackage } from '../notifications/guide-events'
 import { updatePackagePhotos, updatePackageHighlights } from './packages.service'
 
 const slugParamsSchema = z.object({
@@ -188,7 +187,8 @@ export async function packagesRoutes(app: FastifyInstance) {
     const guides = await prisma.packageGuide.findMany({
       where: {
         packageId: params!.id,
-        active: true,
+        status: 'ACCEPTED',
+        guide: { user: { approvalStatus: 'APPROVED' } },
       },
       include: {
         guide: {
@@ -261,7 +261,7 @@ export async function packagesRoutes(app: FastifyInstance) {
 
       if (guideProfile) {
         await tx.packageGuide.create({
-          data: { packageId: pkg.id, guideId: guideProfile.id, active: true },
+          data: { packageId: pkg.id, guideId: guideProfile.id, status: 'ACCEPTED', decidedAt: new Date() },
         })
       }
 
@@ -269,45 +269,6 @@ export async function packagesRoutes(app: FastifyInstance) {
     })
 
     return reply.status(201).send(tourPackage)
-  })
-
-  // POST /tenants/:slug/packages/:id/guides/me — condutor se vincula ao próprio roteiro
-  app.post('/tenants/:slug/packages/:id/guides/me', {
-    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
-  }, async (request, reply) => {
-    const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
-    if (error) return
-
-    const user = request.user as { sub: string; role: string }
-
-    const guideProfile = await prisma.guideProfile.findUnique({
-      where: { userId: user.sub },
-      select: { id: true },
-    })
-    if (!guideProfile) throw new AppError('Perfil de guia não encontrado', 404)
-
-    const pkg = await prisma.tourPackage.findFirst({
-      where: { id: params!.id, tenantId: { not: undefined } },
-      select: { id: true },
-    })
-    if (!pkg) throw new AppError('Roteiro não encontrado', 404)
-
-    const existingLink = await prisma.packageGuide.findUnique({
-      where: { packageId_guideId: { packageId: params!.id, guideId: guideProfile.id } },
-      select: { active: true },
-    })
-
-    await prisma.packageGuide.upsert({
-      where: { packageId_guideId: { packageId: params!.id, guideId: guideProfile.id } },
-      create: { packageId: params!.id, guideId: guideProfile.id, active: true },
-      update: { active: true },
-    })
-
-    if (!existingLink?.active) {
-      void notifyGuideJoinedPackage(app.log, user.sub, params!.id).catch(() => {})
-    }
-
-    return reply.status(200).send({ message: 'Guia vinculado ao roteiro com sucesso' })
   })
 
   app.put('/tenants/:slug/packages/:id', {

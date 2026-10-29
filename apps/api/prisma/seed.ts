@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { createHmac } from 'crypto'
+import { createHmac, randomUUID } from 'crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 import { hashSync } from 'bcryptjs'
@@ -47,14 +47,24 @@ async function createTenantData(
     },
   })
 
-  await prisma.guideProfile.create({
+  const perfilAprovado = await prisma.guideProfile.create({
     data: {
       userId: guiaAprovado.id,
       bio: guia1.bio,
       especialidades: guia1.especialidades,
       regioes: guia1.regioes,
+      credentialType: 'CADASTUR',
+      credentialNumber: '00000000000-0',
+      credentialSubmittedAt: new Date(),
     },
   })
+
+  const tenantDoGuia = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { destinationId: true } })
+  if (tenantDoGuia?.destinationId) {
+    await prisma.guideDestination.create({
+      data: { guideId: perfilAprovado.id, destinationId: tenantDoGuia.destinationId },
+    })
+  }
 
   const guiaPendente = await prisma.user.create({
     data: {
@@ -115,6 +125,7 @@ async function createTenantData(
           customerCpfHash: hashCpf('11122233344'),
           pax: 2,
           status: 'PENDING',
+          cancelToken: randomUUID(),
         },
       })
       await prisma.departureSlot.update({
@@ -218,6 +229,7 @@ async function main() {
     data: {
       name: 'Guias Serra da Capivara',
       slug: 'serra-capivara',
+      type: 'AGENCIA',
       cnpj: '11222333000181',
       approvalStatus: 'APPROVED',
       destinationId: destSerraCapivara.id,
@@ -228,6 +240,7 @@ async function main() {
     data: {
       name: 'Jalapão Expedições',
       slug: 'jalapao',
+      type: 'AGENCIA',
       cnpj: '22333444000192',
       approvalStatus: 'APPROVED',
       destinationId: destJalapao.id,
@@ -238,6 +251,7 @@ async function main() {
     data: {
       name: 'Petrolina Turismo',
       slug: 'petrolina',
+      type: 'AGENCIA',
       cnpj: '33444555000103',
       approvalStatus: 'APPROVED',
       destinationId: destPetrolina.id,
@@ -377,6 +391,7 @@ async function main() {
     data: {
       name: 'CAPI Platform',
       slug: 'capi-platform',
+      type: 'AGENCIA',
       approvalStatus: 'APPROVED',
     },
   })

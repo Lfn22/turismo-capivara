@@ -26,7 +26,7 @@ async function main() {
     })
     if (existing) { pgSkipped++; continue }
     await prisma.packageGuide.create({
-      data: { packageId: pkg.id, guideId: guide.id, active: true },
+      data: { packageId: pkg.id, guideId: guide.id, status: 'ACCEPTED', decidedAt: new Date() },
     })
     pgCreated++
     console.log(`  + PackageGuide: ${pkg.name} → guide ${guide.id}`)

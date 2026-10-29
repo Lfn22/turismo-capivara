@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import DestinationHero from '@/src/components/ui/DestinationHero';
 import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
+import DestinationMembershipButton from '@/src/components/membership/DestinationMembershipButton';
 import BackButton from '@/src/components/ui/BackButton';
 import MapWidgetClient, { type PartnerData } from '@/src/components/ui/MapWidgetClient';
 
@@ -634,6 +635,7 @@ export default async function DestinationPage({ params }: Props) {
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </Link>
+          <DestinationMembershipButton destinationSlug={slug} />
         </div>
       </section>
     </>

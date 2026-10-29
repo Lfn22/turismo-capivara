@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter, useParams, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { isPlatformStaff, safeCallbackUrl } from "@/lib/roles"
+import { isGuideUnverified } from "@/lib/guide-status"
 
 export default function LoginPage() {
   const params = useParams<{ slug: string }>()
@@ -36,6 +37,8 @@ export default function LoginPage() {
         router.push(callbackUrl)
       } else if (isPlatformStaff(role)) {
         router.push("/super-admin/operadoras")
+      } else if (role === "CONDUTOR" && (await isGuideUnverified())) {
+        router.push("/guia/status")
       } else if (!tenantSlug) {
         router.push("/login")
       } else if (role === "ADMIN") {

@@ -10,7 +10,7 @@ export function guideApprovedEmailText({ guideName, slug }: GuideApprovedEmailPa
 
 Sua conta de guia foi aprovada. Você já pode acessar seu painel e começar a receber reservas.
 
-Acesse seu painel em: https://capi.turismo/${slug}/guia/perfil
+Acesse seu painel em: https://capi.turismo/${slug}/painel/dashboard
 
 — Equipe CAPI`
 }

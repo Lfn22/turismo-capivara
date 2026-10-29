@@ -7,8 +7,8 @@ datasource db {
 }
 
 model Destination {
-  id                   String   @id @default(cuid())
-  slug                 String   @unique
+  id                   String         @id @default(cuid())
+  slug                 String         @unique
   title                String
   subtitle             String?
   description          String
@@ -17,8 +17,8 @@ model Destination {
   photos               String[]
   tagline              String?
   state                String
-  lat                  Float?   // latitude para widget de mapa
-  lng                  Float?   // longitude para widget de mapa
+  lat                  Float? // latitude para widget de mapa
+  lng                  Float? // longitude para widget de mapa
   highlights           String[]
   active               Boolean        @default(true)
   approvalStatus       ApprovalStatus @default(PENDING)
@@ -27,8 +27,60 @@ model Destination {
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
 
-  tenants     Tenant[]
-  createdBy   User?    @relation("DestinationCreator", fields: [createdById], references: [id])
+  tenants   Tenant[]
+  createdBy User?              @relation("DestinationCreator", fields: [createdById], references: [id])
+  guides    GuideDestination[]
+}
+
+enum TenantType {
+  AGENCIA
+  ASSOCIACAO
+}
+
+enum CredentialType {
+  ICMBIO
+  CADASTUR
+}
+
+enum PackageGuideStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  LEFT
+}
+
+enum AffiliationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model GuideDestination {
+  id            String   @id @default(cuid())
+  guideId       String
+  destinationId String
+  createdAt     DateTime @default(now())
+
+  guide       GuideProfile @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  destination Destination  @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@unique([guideId, destinationId])
+  @@index([destinationId])
+}
+
+model GuideAffiliation {
+  id              String            @id @default(cuid())
+  guideId         String            @unique
+  tenantId        String
+  status          AffiliationStatus @default(PENDING)
+  rejectionReason String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  guide  GuideProfile @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  tenant Tenant       @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, status])
 }
 
 model Tenant {
@@ -40,13 +92,15 @@ model Tenant {
   approvalStatus  TenantApprovalStatus @default(PENDING)
   rejectionReason String?
   whatsapp        String?
+  type            TenantType           @default(AGENCIA)
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
-  destination  Destination?  @relation(fields: [destinationId], references: [id])
+  destination  Destination?       @relation(fields: [destinationId], references: [id])
   users        User[]
   tourPackages TourPackage[]
   bookings     Booking[]
+  affiliations GuideAffiliation[]
 
   @@index([destinationId])
 }
@@ -71,45 +125,49 @@ model User {
   destinations        Destination[]        @relation("DestinationCreator")
   notifications       Notification[]
   bookings            Booking[]
-
 }
 
 model GuideProfile {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  bio             String?
-  photoUrl        String?
-  especialidades  String[]
-  regioes         String[]
-  portfolioPhotos String[]
-  cadastur        String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                    String          @id @default(cuid())
+  userId                String          @unique
+  bio                   String?
+  photoUrl              String?
+  especialidades        String[]
+  regioes               String[]
+  portfolioPhotos       String[]
+  credentialType        CredentialType?
+  credentialNumber      String?
+  credentialDocKey      String?
+  credentialSubmittedAt DateTime?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
-  user           User            @relation(fields: [userId], references: [id])
+  user           User               @relation(fields: [userId], references: [id])
   packageGuides  PackageGuide[]
   departureSlots DepartureSlot[]
   testimonials   Testimonial[]
+  destinations   GuideDestination[]
+  affiliation    GuideAffiliation?
 }
 
 model TourPackage {
-  id          String   @id @default(cuid())
-  tenantId    String
-  conductorId  String?
-  name        String
-  description String
-  duration    Int
-  price       Decimal  @db.Decimal(10, 2)
-  capacity    Int
-  difficulty  Difficulty
-  photos      String[] @default([])
-  highlights  String[] @default([])
-  active           Boolean  @default(true)
+  id               String     @id @default(cuid())
+  tenantId         String
+  conductorId      String?
+  name             String
+  description      String
+  duration         Int
+  price            Decimal    @db.Decimal(10, 2)
+  capacity         Int
+  difficulty       Difficulty
+  photos           String[]   @default([])
+  highlights       String[]   @default([])
+  active           Boolean    @default(true)
   durationMinHours Int?
   durationMaxHours Int?
-  bufferMinutes    Int      @default(60)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  bufferMinutes    Int        @default(60)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   tenant         Tenant          @relation(fields: [tenantId], references: [id])
   conductor      User?           @relation("ConductorPackages", fields: [conductorId], references: [id])
@@ -123,7 +181,7 @@ model DepartureSlot {
   guideId     String?
   startsAt    DateTime
   capacity    Int
-  minCapacity  Int        @default(1)
+  minCapacity Int        @default(1)
   booked      Int        @default(0)
   status      SlotStatus @default(OPEN)
   createdAt   DateTime   @default(now())
@@ -137,24 +195,24 @@ model DepartureSlot {
 }
 
 model Booking {
-  id            String        @id @default(cuid())
-  cancelToken   String        @unique
-  tenantId      String
-  slotId        String
-  customerName  String
-  customerEmail String
-  customerPhone String
-  pax           Int
+  id              String        @id @default(cuid())
+  cancelToken     String        @unique
+  tenantId        String
+  slotId          String
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  pax             Int
   customerCpfHash String?
-  paymentId     String?
-  paymentUrl    String?
-  qrCode        String?
-  expiresAt     DateTime?
-  status         BookingStatus @default(PENDING)
-  idempotencyKey String?
-  userId         String?
-  createdAt      DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  paymentId       String?
+  paymentUrl      String?
+  qrCode          String?
+  expiresAt       DateTime?
+  status          BookingStatus @default(PENDING)
+  idempotencyKey  String?
+  userId          String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   tenant      Tenant        @relation(fields: [tenantId], references: [id])
   slot        DepartureSlot @relation(fields: [slotId], references: [id])
@@ -191,12 +249,12 @@ model Notification {
 }
 
 model Voucher {
-  id        String   @id @default(cuid())
-  bookingId String   @unique
-  code      String   @unique
+  id        String    @id @default(cuid())
+  bookingId String    @unique
+  code      String    @unique
   pdfUrl    String?
   sentAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   booking Booking @relation(fields: [bookingId], references: [id])
 }
@@ -257,11 +315,14 @@ enum TenantApprovalStatus {
 }
 
 model PackageGuide {
-  id        String   @id @default(cuid())
-  packageId String
-  guideId   String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id              String             @id @default(cuid())
+  packageId       String
+  guideId         String
+  status          PackageGuideStatus @default(PENDING)
+  rejectionReason String?
+  decidedAt       DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   package TourPackage  @relation(fields: [packageId], references: [id])
   guide   GuideProfile @relation(fields: [guideId], references: [id])
