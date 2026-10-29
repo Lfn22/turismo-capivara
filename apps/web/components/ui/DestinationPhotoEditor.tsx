@@ -148,12 +148,12 @@ export default function DestinationPhotoEditor({
             <h3 className="dpe__title">Conteúdo</h3>
 
             <Input
-              label="Frase de impacto ("Sobre o destino")"
+              label='Frase de impacto ("Sobre o destino")'
               optional
               value={taglineVal}
               onChange={(e) => setTaglineVal(e.target.value)}
               placeholder="Ex.: A natureza que cura quem chega"
-              hint="Substitui o texto padrão "Um lugar que transforma quem visita"."
+              hint='Substitui o texto padrão "Um lugar que transforma quem visita".'
             />
 
             <Input label="Título" value={titleVal} onChange={(e) => setTitleVal(e.target.value)} />
