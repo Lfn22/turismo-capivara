@@ -6,7 +6,6 @@ import { getResend, getEmailFrom } from '../../../shared/email'
 
 const bodySchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
-  tenantSlug: z.string().min(1, { message: 'Slug do tenant obrigatório' }),
 })
 
 function hashToken(token: string): string {
@@ -44,24 +43,14 @@ export async function requestPasswordResetRoute(app: FastifyInstance) {
       }
 
       const email = body.email.toLowerCase()
-      const { tenantSlug } = body
 
       // Always respond with same message — no user enumeration
       const genericResponse = {
         message: 'Se este email estiver cadastrado, você receberá um link para redefinir sua senha.',
       }
 
-      const tenant = await prisma.tenant.findUnique({
-        where: { slug: tenantSlug },
-        select: { id: true, slug: true },
-      })
-
-      if (!tenant) {
-        return reply.status(200).send(genericResponse)
-      }
-
-      const user = await prisma.user.findFirst({
-        where: { email, tenantId: tenant.id },
+      const user = await prisma.user.findUnique({
+        where: { email },
         select: { id: true, name: true, tenant: { select: { slug: true } } },
       })
 

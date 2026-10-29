@@ -319,16 +319,50 @@ describe('updateDestination', () => {
     ).rejects.toMatchObject({ statusCode: 403, message: 'Não autorizado' })
   })
 
-  it('throws 400 when owner tries to edit APPROVED destination', async () => {
+  it('rebaixa destino APPROVED para PENDING quando o criador o edita', async () => {
+    // Comportamento decidido: a edição passa e o destino volta para a fila de curadoria.
+    // Consequência aceita: ele sai do ar no marketplace até ser reaprovado.
+    // (O teste antigo esperava 400 — refletia uma intenção anterior, não o código.)
     mockPrisma.destination.findUnique.mockResolvedValue({
       id: 'dest-1',
       createdById: 'user-1',
       approvalStatus: 'APPROVED',
     })
+    mockPrisma.destination.update.mockResolvedValue({
+      id: 'dest-1',
+      title: 'Nome Ajustado',
+      approvalStatus: 'PENDING',
+    })
 
-    await expect(
-      updateDestination('dest-1', 'user-1', { name: 'Alteração indevida' }),
-    ).rejects.toMatchObject({ statusCode: 400, message: 'Não é possível editar destino aprovado' })
+    const result = await updateDestination('dest-1', 'user-1', { name: 'Nome Ajustado' })
+
+    expect(result.approvalStatus).toBe('PENDING')
+    expect(mockPrisma.destination.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ approvalStatus: 'PENDING' }),
+      })
+    )
+  })
+
+  it('ADMIN edita destino APPROVED sem rebaixá-lo', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({
+      id: 'dest-1',
+      createdById: 'outro-user',
+      approvalStatus: 'APPROVED',
+    })
+    mockPrisma.destination.update.mockResolvedValue({
+      id: 'dest-1',
+      title: 'Ajuste do admin',
+      approvalStatus: 'APPROVED',
+    })
+
+    await updateDestination('dest-1', 'admin-user', { name: 'Ajuste do admin' }, 'ADMIN')
+
+    expect(mockPrisma.destination.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.not.objectContaining({ approvalStatus: 'PENDING' }),
+      })
+    )
   })
 
   it('throws 400 when owner tries to edit APPROVED destination (REJECTED allowed)', async () => {

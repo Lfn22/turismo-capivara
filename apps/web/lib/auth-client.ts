@@ -1,20 +1,3 @@
-export async function lookupTenant(
-  email: string
-): Promise<{ tenantName: string; tenantSlug: string } | null> {
-  const res = await fetch(`/api/tenant-lookup?email=${encodeURIComponent(email)}`)
-
-  if (!res.ok) {
-    if (res.status === 404) return null
-    const err = await res.json().catch(() => ({ message: `HTTP ${res.status}` }))
-    throw new Error(err.message ?? `HTTP ${res.status}`)
-  }
-
-  const data = await res.json()
-  if (!data.tenant) return null
-
-  return { tenantName: data.tenant.tenantName, tenantSlug: data.tenant.tenantSlug }
-}
-
 export async function requestPasswordReset(email: string): Promise<void> {
   const res = await fetch("/api/request-password-reset", {
     method: "POST",

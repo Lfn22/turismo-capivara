@@ -31,6 +31,7 @@ vi.mock('../../../database', () => ({
     },
     user: {
       create: vi.fn(),
+      findUnique: vi.fn(),
     },
     auditLog: { create: vi.fn().mockResolvedValue({}) },
     $transaction: vi.fn(),
@@ -63,7 +64,7 @@ const mockCaptureException = Sentry.captureException as ReturnType<typeof vi.fn>
 const prismaMock = prisma as unknown as {
   $transaction: Mock
   tenant: { findMany: Mock; findUnique: Mock; create: Mock; update: Mock }
-  user: { create: Mock }
+  user: { create: Mock; findUnique: Mock }
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +87,8 @@ afterAll(async () => {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // authenticate revalida tokens de equipe no banco
+  prismaMock.user.findUnique.mockResolvedValue({ role: 'SUPER_ADMIN' })
 })
 
 const mockTenant = {

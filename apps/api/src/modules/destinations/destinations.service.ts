@@ -1,5 +1,6 @@
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
+import { isPlatformStaff } from '../../shared/auth/roles'
 import { CreateDestinationInputType, UpdateDestinationInputType } from './destinations.schemas'
 
 async function geocode(name: string, state?: string): Promise<{ lat: number; lng: number } | null> {
@@ -66,7 +67,10 @@ export async function createDestination(
       photos: input.photos ?? [],
       highlights: input.highlights ?? [],
       heroImageUrl: input.heroImageUrl ?? null,
-      approvalStatus: userRole === 'ADMIN' ? 'APPROVED' : 'PENDING',
+      // A-2: só a plataforma publica sem curadoria. Com 'ADMIN' aqui, o administrador de
+      // qualquer operadora criava destinos já APPROVED, contornando a fila de moderação —
+      // o mesmo bypass que a rota /destinations/:id/approve permitia por outro caminho.
+      approvalStatus: isPlatformStaff(userRole ?? '') ? 'APPROVED' : 'PENDING',
       createdById: userId,
       ...(coords && { lat: coords.lat, lng: coords.lng }),
     },

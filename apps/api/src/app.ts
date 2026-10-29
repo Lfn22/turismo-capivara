@@ -34,8 +34,11 @@ import { dashboardRoutes } from './modules/dashboard/dashboard.routes'
 import { reportsRoutes } from './modules/reports/reports.routes'
 import { reviewsRoutes } from './modules/reviews/reviews.routes'
 import { auditRoutes } from './modules/audit/audit.routes'
+import { platformAdminsRoutes } from './modules/platform-admins/platform-admins.routes'
+import { notificationsRoutes } from './modules/notifications/notifications.routes'
 import { createBookingExpiryJob } from './modules/bookings/expiry.job'
 import { createTokenCleanupJob } from './modules/auth/token.service'
+import { createNotificationDigestJob } from './modules/notifications/digest.job'
 import { AppError } from './shared/errors/AppError'
 
 const isProd = process.env.NODE_ENV === 'production'
@@ -107,7 +110,7 @@ app.register(jwt, {
 })
 
 app.register(fastifyCron, {
-  jobs: [createBookingExpiryJob(app), createTokenCleanupJob(app)],
+  jobs: [createBookingExpiryJob(app), createTokenCleanupJob(app), createNotificationDigestJob(app)],
 })
 
 app.get('/health', { config: { rateLimit: false } }, async (request, reply) => {
@@ -144,6 +147,8 @@ app.register(dashboardRoutes)
 app.register(reviewsRoutes)
 app.register(reportsRoutes)
 app.register(auditRoutes)
+app.register(platformAdminsRoutes)
+app.register(notificationsRoutes)
 
 app.addHook('onSend', async (request, reply) => {
   reply.header('X-Request-Id', request.id)

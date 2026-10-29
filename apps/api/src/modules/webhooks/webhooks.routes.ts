@@ -2,16 +2,17 @@ import { FastifyInstance } from 'fastify'
 import crypto from 'node:crypto'
 import { MercadoPagoConfig, Payment } from 'mercadopago'
 import prisma from '../../database'
+import { Sentry } from '../../shared/sentry'
 import { getResend, getEmailFrom } from '../../shared/email'
+import { notifyBookingEvent } from '../notifications/booking-events'
 import { bookingConfirmedEmailText, bookingConfirmedSubject } from '../bookings/emails/booking-confirmed-email'
 import { auditLog } from '../../shared/audit.js'
 import { bookingsConfirmedCounter } from '../../shared/metrics.js'
-import { Sentry } from '../../shared/sentry'
-
 
 function validateMpSignature(
   signatureHeader: string,
-  paymentId: string
+  paymentId: string,
+  requestId: string | undefined
 ): boolean {
   // Parse "ts=<timestamp>,v1=<hash>" from x-signature header
   const parts: Record<string, string> = {}
@@ -31,8 +32,13 @@ function validateMpSignature(
   const tsAge = Math.abs(Date.now() / 1000 - Number(ts))
   if (tsAge > 300) return false
 
-  // Manifest format per MP 2024+ docs: "id:<paymentId>;request-date:<ts>;"
-  const manifest = `id:${paymentId};request-date:${ts};`
+  // Manifest template per MP docs: "id:<data.id>;request-id:<x-request-id>;ts:<ts>;"
+  // - data.id is lowercased when it contains uppercase alphanumerics
+  // - a component whose value is absent from the notification is omitted entirely
+  const manifest =
+    `id:${paymentId.toLowerCase()};` +
+    (requestId ? `request-id:${requestId};` : '') +
+    `ts:${ts};`
 
   const computed = crypto
     .createHmac('sha256', process.env.MP_WEBHOOK_SECRET!)
@@ -77,11 +83,20 @@ export async function webhooksRoutes(app: FastifyInstance) {
         return reply.status(200).send({ message: 'ok' })
       }
 
-      // 3. Validate HMAC-SHA256 signature using manifest: "id:<paymentId>;request-date:<ts>;"
-      const isValid = validateMpSignature(signatureHeader, paymentId)
+      // 3. Validate HMAC-SHA256 signature using manifest: "id:<data.id>;request-id:<x-request-id>;ts:<ts>;"
+      const requestIdHeader = request.headers['x-request-id']
+      const requestId = typeof requestIdHeader === 'string' ? requestIdHeader : undefined
+      const isValid = validateMpSignature(signatureHeader, paymentId, requestId)
 
       if (!isValid) {
-        app.log.warn({ sig: signatureHeader.slice(0, 40) }, 'Assinatura de webhook inválida')
+        // Escalated from warn to error + Sentry: a systematically wrong manifest rejects
+        // EVERY webhook while still answering 200, so MP stops retrying and paid bookings
+        // silently never reach CONFIRMED. This must be visible, not buried in logs.
+        app.log.error(
+          { sig: signatureHeader.slice(0, 40), paymentId, hasRequestId: Boolean(requestId) },
+          'Assinatura de webhook inválida'
+        )
+        Sentry.captureException(new Error('Mercado Pago webhook signature validation failed'))
         return reply.status(200).send({ message: 'ok' })
       }
 
@@ -161,8 +176,8 @@ export async function webhooksRoutes(app: FastifyInstance) {
           where: { id: booking.id, status: 'PENDING' },
           data: { status: 'CONFIRMED' },
         })
-
         if (confirmResult.count > 0) {
+          void notifyBookingEvent(app.log, booking.id, 'confirmed').catch(() => {})
           bookingsConfirmedCounter.add(1, { tenant: booking.tenant?.slug ?? 'unknown' })
         }
 
@@ -216,6 +231,8 @@ export async function webhooksRoutes(app: FastifyInstance) {
             })
           }
         })
+
+        void notifyBookingEvent(app.log, booking.id, 'expired').catch(() => {})
       }
       // Other statuses (pending, in_process) — no-op, acknowledge with 200
 

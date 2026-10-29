@@ -12,7 +12,7 @@ const slugParamsSchema = z.object({
 export async function dashboardRoutes(app: FastifyInstance) {
   app.get(
     '/tenants/:slug/dashboard',
-    { preHandler: [authenticate, authorize(['ADMIN', 'ATENDENTE', 'CONDUTOR', 'SUPER_ADMIN'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       let params
       try {

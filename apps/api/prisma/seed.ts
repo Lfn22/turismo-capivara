@@ -402,6 +402,17 @@ async function main() {
     },
   })
 
+  await prisma.user.create({
+    data: {
+      tenantId: platformTenant.id,
+      name: 'Admin da Plataforma',
+      email: process.env.PLATFORM_ADMIN_EMAIL ?? 'admin@capi.turismo',
+      password: hashSync(process.env.PLATFORM_ADMIN_PASSWORD ?? 'admin123', 10),
+      role: 'PLATFORM_ADMIN',
+      approvalStatus: 'APPROVED',
+    },
+  })
+
   console.log('\nSeed concluído!')
   console.log('\nDestinations: serra-da-capivara | jalapao | petrolina')
   console.log('Tenants: serra-capivara | jalapao | petrolina | capi-platform')
@@ -420,6 +431,7 @@ async function main() {
   console.log('    CONDUTOR (PENDING): juliana@petrolina.com / senha123')
   console.log('  [Super Admin]')
   console.log('    SUPER_ADMIN: superadmin@capi.turismo / superadmin123')
+  console.log('    PLATFORM_ADMIN: admin@capi.turismo / admin123')
 }
 
 main()

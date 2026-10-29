@@ -8,14 +8,13 @@ import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { hashCpf } from '../../shared/utils/hash'
 import { createRefreshToken, rotateRefreshToken, revokeAllUserTokens, ACCESS_TOKEN_EXPIRY } from './token.service'
-import { lookupTenantRoute } from './routes/lookup-tenant'
+import { notifyGuideRegistered } from '../notifications/guide-events'
 import { requestPasswordResetRoute } from './routes/request-password-reset'
 import { resetPasswordRoute } from './routes/reset-password'
 
 const loginBodySchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
   password: z.string().min(1, { message: 'Senha obrigatória' }),
-  tenantSlug: z.string().min(1, { message: 'Slug do tenant obrigatório' }),
 })
 
 const slugParamsSchema = z.object({
@@ -43,22 +42,10 @@ export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/login', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { data: body, error: bodyError } = parseBody(loginBodySchema, request.body, reply)
     if (bodyError) return
-    const { email, password, tenantSlug } = body
+    const { email, password } = body
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { slug: tenantSlug },
-      select: { id: true },
-    })
-
-    if (!tenant) {
-      throw new AppError('Credenciais inválidas', 401)
-    }
-
-    const user = await prisma.user.findFirst({
-      where: {
-        email: email.toLowerCase(),
-        tenantId: tenant.id,
-      },
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
       select: { id: true, tenantId: true, role: true, name: true, approvalStatus: true, password: true },
     })
 
@@ -105,6 +92,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     const hashedPassword = hashSync(body.password, 10)
 
+    let guideUserId: string | null = null
     try {
       if (body.role === 'CLIENTE') {
         await prisma.user.create({
@@ -118,7 +106,7 @@ export async function authRoutes(app: FastifyInstance) {
           select: { id: true },
         })
       } else {
-        await prisma.$transaction(async (tx) => {
+        guideUserId = await prisma.$transaction(async (tx) => {
           const user = await tx.user.create({
             data: {
               tenantId: tenant.id,
@@ -139,6 +127,7 @@ export async function authRoutes(app: FastifyInstance) {
               cadastur: body.role === 'CONDUTOR' ? body.cadastur : undefined,
             },
           })
+          return user.id
         })
       }
     } catch (err) {
@@ -152,6 +141,8 @@ export async function authRoutes(app: FastifyInstance) {
       throw err
     }
 
+    if (guideUserId) void notifyGuideRegistered(app.log, guideUserId).catch(() => {})
+
     return reply.status(201).send({ message: 'Conta criada com sucesso' })
   })
 
@@ -161,10 +152,15 @@ export async function authRoutes(app: FastifyInstance) {
   // yet still protects against credential-stuffing enumeration.
   app.get('/auth/me', { preHandler: [authenticate], config: { rateLimit: { max: 120, timeWindow: '1 minute' } } }, async (request, reply) => {
     const user = request.user as { sub: string; role: string; tenantId: string }
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: { slug: true },
+    })
     return reply.status(200).send({
       id: user.sub,
       role: user.role,
       tenantId: user.tenantId,
+      tenantSlug: tenant?.slug ?? null,
     })
   })
 
@@ -191,8 +187,9 @@ export async function authRoutes(app: FastifyInstance) {
 
     const hashedPassword = hashSync(body.password, 10)
 
+    let guideUserId: string
     try {
-      await prisma.$transaction(async (tx) => {
+      guideUserId = await prisma.$transaction(async (tx) => {
         const user = await tx.user.create({
           data: {
             tenantId: systemTenant!.id,
@@ -213,6 +210,7 @@ export async function authRoutes(app: FastifyInstance) {
             cadastur: body.cadastur,
           },
         })
+        return user.id
       })
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
@@ -222,6 +220,8 @@ export async function authRoutes(app: FastifyInstance) {
       }
       throw err
     }
+
+    void notifyGuideRegistered(app.log, guideUserId).catch(() => {})
 
     return reply.status(201).send({ message: 'Conta criada com sucesso. Aguarde aprovação.' })
   })
@@ -252,7 +252,6 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.status(204).send()
   })
 
-  await app.register(lookupTenantRoute)
   await app.register(requestPasswordResetRoute)
   await app.register(resetPasswordRoute)
 }

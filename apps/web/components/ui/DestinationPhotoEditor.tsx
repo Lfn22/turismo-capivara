@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Link2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Alert, Button, IconButton, Input, Modal, Textarea } from '@/src/components/ui/capi';
+import { isPlatformStaff } from '@/lib/roles';
 
 interface Props {
   slug: string;
@@ -48,7 +49,7 @@ export default function DestinationPhotoEditor({
   // Estável: o Modal reexecuta o efeito de foco sempre que onClose muda.
   const closeModal = useCallback(() => setOpen(false), []);
 
-  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN' && role !== 'CONDUTOR') return null;
+  if (role !== 'ADMIN' && role !== 'CONDUTOR' && !isPlatformStaff(role)) return null;
 
   function setPhoto(index: number, value: string) {
     setPhotoInputs((prev) => { const n = [...prev]; n[index] = value; return n; });
@@ -147,12 +148,12 @@ export default function DestinationPhotoEditor({
             <h3 className="dpe__title">Conteúdo</h3>
 
             <Input
-              label="Frase de impacto (“Sobre o destino”)"
+              label="Frase de impacto ("Sobre o destino")"
               optional
               value={taglineVal}
               onChange={(e) => setTaglineVal(e.target.value)}
               placeholder="Ex.: A natureza que cura quem chega"
-              hint="Substitui o texto padrão “Um lugar que transforma quem visita”."
+              hint="Substitui o texto padrão "Um lugar que transforma quem visita"."
             />
 
             <Input label="Título" value={titleVal} onChange={(e) => setTitleVal(e.target.value)} />

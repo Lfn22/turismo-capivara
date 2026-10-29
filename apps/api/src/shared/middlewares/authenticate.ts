@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import prisma from '../../database'
 import { AppError } from '../errors/AppError'
+import { isPlatformStaff } from '../auth/roles'
 
 export async function authenticate(
   request: FastifyRequest,
@@ -10,6 +11,14 @@ export async function authenticate(
     await request.jwtVerify()
   } catch {
     return reply.status(401).send({ message: 'Token inválido ou expirado' })
+  }
+
+  // Staff tokens are revalidated against the DB so a removed/demoted admin loses access immediately
+  if (isPlatformStaff(request.user.role)) {
+    const user = await prisma.user.findUnique({ where: { id: request.user.sub }, select: { role: true } })
+    if (!user || user.role !== request.user.role) {
+      return reply.status(401).send({ message: 'Token inválido ou expirado' })
+    }
   }
 
   // Cross-tenant ownership check (D-08, D-09)
@@ -23,7 +32,7 @@ export async function authenticate(
       throw new AppError('Tenant não encontrado', 404)
     }
 
-    if (request.user.role !== 'SUPER_ADMIN' && request.user.tenantId !== tenant.id) {
+    if (!isPlatformStaff(request.user.role) && request.user.tenantId !== tenant.id) {
       throw new AppError('Acesso negado a este tenant', 403)
     }
   }

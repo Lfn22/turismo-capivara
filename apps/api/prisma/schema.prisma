@@ -64,7 +64,7 @@ model User {
   id              String         @id @default(cuid())
   tenantId        String
   name            String
-  email           String
+  email           String         @unique
   password        String
   role            Role
   cpf             String?        @unique
@@ -79,10 +79,10 @@ model User {
   passwordResetTokens PasswordResetToken[]
   destinations        Destination[]        @relation("DestinationCreator")
   tenantDestinationsCreated TenantDestination[] @relation("TenantDestinationCreator")
-
   refreshTokens       RefreshToken[]
+  notifications       Notification[]
+  bookings            Booking[]
 
-  @@unique([tenantId, email])
 }
 
 model GuideProfile {
@@ -169,15 +169,43 @@ model Booking {
   expiresAt     DateTime?
   status         BookingStatus @default(PENDING)
   idempotencyKey String?
+  userId         String?
   createdAt      DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  tenant  Tenant        @relation(fields: [tenantId], references: [id])
-  slot    DepartureSlot @relation(fields: [slotId], references: [id])
-  voucher Voucher?
-  review  Review?
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  slot        DepartureSlot @relation(fields: [slotId], references: [id])
+  voucher     Voucher?
+  review      Review?
+  testimonial Testimonial?
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@unique([tenantId, idempotencyKey])
+  @@index([userId])
+}
+
+model Notification {
+  id             String    @id @default(cuid())
+  userId         String
+  type           String
+  title          String
+  body           String
+  link           String?
+  groupKey       String?
+  count          Int       @default(1)
+  actionKey      String?
+  resolvedAt     DateTime?
+  resolvedByName String?
+  readAt         DateTime?
+  digestedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+  @@index([userId, readAt])
+  @@index([actionKey])
 }
 
 model Voucher {
@@ -205,10 +233,10 @@ model PasswordResetToken {
 
 enum Role {
   ADMIN
-  ATENDENTE
   CONDUTOR
   CLIENTE
   SUPER_ADMIN
+  PLATFORM_ADMIN
 }
 
 enum ApprovalStatus {
@@ -268,7 +296,14 @@ model Testimonial {
   rating         Int          @default(5)
   guideProfileId String
   guideProfile   GuideProfile @relation(fields: [guideProfileId], references: [id])
+  // A-3: prova de que o depoimento veio de quem realmente fez o passeio.
+  // Nullable por causa das linhas criadas antes desta trava; único, para garantir
+  // um depoimento por reserva (impede inflar nota repetindo a mesma reserva).
+  bookingId      String?      @unique
+  booking        Booking?     @relation(fields: [bookingId], references: [id])
   createdAt      DateTime     @default(now())
+
+  @@index([guideProfileId])
 }
 
 model ProcessedWebhookEvent {

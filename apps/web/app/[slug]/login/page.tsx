@@ -1,11 +1,12 @@
 "use client"
 import { signIn, getSession } from "next-auth/react"
 import { useState, type ReactNode } from "react"
-import { useRouter, useParams } from "next/navigation"
+import { useRouter, useParams, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { CalendarCheck, Compass, ShieldCheck } from "lucide-react"
 import { Alert, Button, Input } from "@/src/components/ui/capi"
+import { isPlatformStaff, safeCallbackUrl } from "@/lib/roles"
 
 /* ── Layout de acesso (local; candidato a componente do DS) ── */
 const BENEFITS = [
@@ -54,6 +55,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -63,7 +65,6 @@ export default function LoginPage() {
       const result = await signIn("credentials", {
         email,
         password,
-        tenantSlug: params.slug,
         redirect: false,
       })
       if (result?.error) {
@@ -71,13 +72,19 @@ export default function LoginPage() {
         return
       }
       const session = await getSession()
-      const role = (session?.user as { role?: string })?.role
-      if (role === "ADMIN") {
-        router.push(`/${params.slug}/admin/guias`)
-      } else if (role === "SUPER_ADMIN") {
-        router.push(`/super-admin/operadoras`)
+      const role = session?.user?.role
+      const tenantSlug = session?.user?.tenantSlug
+      const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"), window.location.origin)
+      if (callbackUrl) {
+        router.push(callbackUrl)
+      } else if (isPlatformStaff(role)) {
+        router.push("/super-admin/operadoras")
+      } else if (!tenantSlug) {
+        router.push("/login")
+      } else if (role === "ADMIN") {
+        router.push(`/${tenantSlug}/admin/guias`)
       } else {
-        router.push(`/${params.slug}/painel/dashboard`)
+        router.push(`/${tenantSlug}/painel/dashboard`)
       }
     } finally {
       setLoading(false)

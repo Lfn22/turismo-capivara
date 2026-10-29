@@ -7,6 +7,7 @@ import Link from "next/link"
 import { CalendarCheck, Compass, ShieldCheck, UserPlus } from "lucide-react"
 import { lookupTenant } from "@/lib/auth-client"
 import { Alert, Button, Input } from "@/src/components/ui/capi"
+import { isPlatformStaff, safeCallbackUrl } from "@/lib/roles"
 
 /* ── Layout de acesso (local; candidato a componente do DS) ── */
 const BENEFITS = [
@@ -57,22 +58,26 @@ function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [tenantName, setTenantName] = useState("")
-  const [tenantSlug, setTenantSlug] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  function goBackToEmail() {
+    setStep("email")
+    setPassword("")
+    setError(null)
+  }
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
     try {
-      const result = await lookupTenant(email.trim())
-      if (!result) {
-        setError("Nenhuma conta encontrada com esse email.")
+      const tenant = await lookupTenant(email.trim())
+      if (!tenant) {
+        setError("Nenhuma operadora encontrada para este e-mail.")
         return
       }
-      setTenantName(result.tenantName)
-      setTenantSlug(result.tenantSlug)
+      setTenantName(tenant.name ?? tenant.slug)
       setStep("password")
     } catch {
       setError("Erro de conexão. Verifique sua internet e tente novamente.")
@@ -87,9 +92,8 @@ function LoginForm() {
     setLoading(true)
     try {
       const result = await signIn("credentials", {
-        email,
+        email: email.trim(),
         password,
-        tenantSlug,
         redirect: false,
       })
       if (!result?.ok) {
@@ -97,9 +101,15 @@ function LoginForm() {
         return
       }
       const session = await getSession()
-      const role = (session?.user as { role?: string })?.role
-      if (role === "SUPER_ADMIN") {
+      const role = session?.user?.role
+      const tenantSlug = session?.user?.tenantSlug
+      const callbackUrl = safeCallbackUrl(searchParams.get("callbackUrl"), window.location.origin)
+      if (callbackUrl) {
+        router.push(callbackUrl)
+      } else if (isPlatformStaff(role)) {
         router.push("/super-admin/operadoras")
+      } else if (!tenantSlug) {
+        router.push("/login")
       } else if (role === "ADMIN") {
         router.push(`/${tenantSlug}/admin/guias`)
       } else {
@@ -110,14 +120,6 @@ function LoginForm() {
     } finally {
       setLoading(false)
     }
-  }
-
-  function goBackToEmail() {
-    setStep("email")
-    setPassword("")
-    setError(null)
-    setTenantName("")
-    setTenantSlug("")
   }
 
   return (

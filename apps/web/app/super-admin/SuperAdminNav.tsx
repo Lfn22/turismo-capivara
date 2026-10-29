@@ -3,10 +3,10 @@ import { useCallback, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Building2, Map as MapIcon, Menu } from "lucide-react"
+import { Building2, Map as MapIcon, Menu, Users } from "lucide-react"
 import { Avatar, IconButton, Modal, SidebarLinks, cx, type NavItem } from "@/src/components/ui/capi"
 
-const navItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
   { label: "Operadoras", href: "/super-admin/operadoras", icon: Building2 },
   { label: "Destinos", href: "/super-admin/destinos", icon: MapIcon },
 ]
@@ -31,7 +31,7 @@ function Logo({ height }: { height?: number }) {
   )
 }
 
-function Sidebar({ collapsed, userName, userEmail }: { collapsed?: boolean; userName?: string | null; userEmail?: string | null }) {
+function Sidebar({ collapsed, userName, userEmail, navItems }: { collapsed?: boolean; userName?: string | null; userEmail?: string | null; navItems: NavItem[] }) {
   return (
     <aside className={cx("capi-sidebar", collapsed && "is-collapsed")} aria-label="Menu do super-admin">
       <div className="capi-sidebar__brand">
@@ -56,10 +56,16 @@ function Sidebar({ collapsed, userName, userEmail }: { collapsed?: boolean; user
  * Navegação do super-admin: top bar + menu em sheet abaixo de 768px,
  * sidebar recolhida de 768 a 1023px e sidebar completa a partir de 1024px.
  */
-export default function SuperAdminNav({ userName, userEmail }: { userName?: string | null; userEmail?: string | null }) {
+export default function SuperAdminNav({ userName, userEmail, role }: { userName?: string | null; userEmail?: string | null; role?: string }) {
   const pathname = usePathname() ?? ""
   const [menuOpen, setMenuOpen] = useState(false)
   const closeMenu = useCallback(() => setMenuOpen(false), [])
+
+  const navItems: NavItem[] =
+    role === "SUPER_ADMIN"
+      ? [...baseNavItems, { label: "Admins", href: "/super-admin/admins", icon: Users }]
+      : baseNavItems
+
   const current = navItems.find((i) => pathname === i.href || pathname.startsWith(i.href + "/"))
 
   return (
@@ -98,12 +104,12 @@ export default function SuperAdminNav({ userName, userEmail }: { userName?: stri
 
       {/* Tablet: sidebar recolhida */}
       <div className="hidden md:block lg:hidden shrink-0">
-        <Sidebar collapsed userName={userName} userEmail={userEmail} />
+        <Sidebar collapsed userName={userName} userEmail={userEmail} navItems={navItems} />
       </div>
 
       {/* Desktop: sidebar completa */}
       <div className="hidden lg:block shrink-0">
-        <Sidebar userName={userName} userEmail={userEmail} />
+        <Sidebar userName={userName} userEmail={userEmail} navItems={navItems} />
       </div>
     </>
   )

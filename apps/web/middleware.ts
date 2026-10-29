@@ -1,5 +1,6 @@
 import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
+import { isPlatformStaff } from "@/lib/roles"
 
 export default withAuth(
   function middleware(req) {
@@ -18,15 +19,17 @@ export default withAuth(
     // Sem sessão — redireciona para /{slug}/login (tenant-aware)
     // Exceto para /super-admin que não tem slug-based login
     if (!token) {
-      if (pathname.startsWith('/super-admin')) {
-        return NextResponse.redirect(new URL(`/login?callbackUrl=${encodeURIComponent(req.url)}`, req.url))
+      // Caminho relativo (não req.url) para sobreviver ao safeCallbackUrl no login
+      const callbackUrl = encodeURIComponent(pathname + req.nextUrl.search)
+      if (pathname.startsWith('/super-admin') || pathname.startsWith('/pendencias')) {
+        return NextResponse.redirect(new URL(`/login?callbackUrl=${callbackUrl}`, req.url))
       }
       return NextResponse.redirect(
-        new URL(`/${slug}/login?callbackUrl=${encodeURIComponent(req.url)}`, req.url)
+        new URL(`/${slug}/login?callbackUrl=${callbackUrl}`, req.url)
       )
     }
 
-    const PAINEL_ROLES = ["CONDUTOR", "ADMIN", "ATENDENTE"]
+    const PAINEL_ROLES = ["CONDUTOR", "ADMIN"]
     if (
       pathname.includes("/painel") &&
       !pathname.startsWith('/super-admin') &&
@@ -43,8 +46,13 @@ export default withAuth(
       )
     }
 
-    if (pathname.startsWith('/super-admin') && token?.role !== 'SUPER_ADMIN') {
+    if (pathname.startsWith('/super-admin') && !isPlatformStaff(token?.role as string)) {
       return NextResponse.redirect(new URL('/login?error=forbidden', req.url))
+    }
+
+    // Gestão de admins da plataforma é exclusiva do SUPER_ADMIN
+    if (pathname.startsWith('/super-admin/admins') && token?.role !== 'SUPER_ADMIN') {
+      return NextResponse.redirect(new URL('/super-admin/operadoras', req.url))
     }
 
     return NextResponse.next()
@@ -62,5 +70,6 @@ export const config = {
     "/:slug/painel/:path*",
     "/:slug/admin/:path*",
     "/super-admin/:path*",
+    "/pendencias",
   ],
 }

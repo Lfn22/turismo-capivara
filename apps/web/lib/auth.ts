@@ -8,10 +8,9 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Senha", type: "password" },
-        tenantSlug: { label: "Tenant", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password || !credentials?.tenantSlug) {
+        if (!credentials?.email || !credentials?.password) {
           return null
         }
         const apiUrl = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
@@ -22,7 +21,6 @@ export const authOptions: NextAuthOptions = {
             body: JSON.stringify({
               email: credentials.email,
               password: credentials.password,
-              tenantSlug: credentials.tenantSlug,
             }),
           })
           if (!res.ok) return null
@@ -32,13 +30,14 @@ export const authOptions: NextAuthOptions = {
             headers: { Authorization: `Bearer ${token}` },
           })
           if (!meRes.ok) return null
-          const { id, role, tenantId } = await meRes.json()
+          const { id, role, tenantId, tenantSlug } = await meRes.json()
           return {
             id,
             name: credentials.email,
             email: credentials.email,
             role,
             tenantId,
+            tenantSlug,
             token,
           }
         } catch (err) {
@@ -54,6 +53,7 @@ export const authOptions: NextAuthOptions = {
         token.apiToken = (user as any).token
         token.role = (user as any).role
         token.tenantId = (user as any).tenantId
+        token.tenantSlug = (user as { tenantSlug?: string | null }).tenantSlug ?? null
       }
       return token
     },
@@ -63,6 +63,7 @@ export const authOptions: NextAuthOptions = {
         id: token.sub as string,
         role: token.role as string,
         tenantId: token.tenantId as string,
+        tenantSlug: token.tenantSlug as string | null,
         // NOTE: apiToken is kept only in the encrypted JWT cookie (server-side).
         // Client components must proxy API calls through a Next.js route handler.
         // RSC pages use getToken() from next-auth/jwt to read apiToken server-side.
