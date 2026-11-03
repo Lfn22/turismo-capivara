@@ -1,108 +1,43 @@
+import { Skeleton } from '@/src/components/ui/capi';
+
+/** Esqueleto da lista de roteiros: cabeçalho, abas e grade de PackageCard (foto 4:3 + texto). */
 export default function Loading() {
   return (
-    <>
+    <div className="bg-page" style={{ minHeight: '100dvh' }} role="status" aria-label="Carregando roteiros">
       <style>{`
-        .droteiros-loading {
-          min-height: 100dvh;
-          background: var(--stone-50, #fafaf9);
-        }
-
-        .droteiros-loading__header {
-          background: var(--stone-900, #1c1917);
-          padding: clamp(48px, 8vw, 80px) clamp(16px, 5vw, 64px) clamp(32px, 5vw, 48px);
-        }
-
-        .droteiros-loading__skel {
-          border-radius: 3px;
-          background: var(--stone-800, #292524);
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .droteiros-loading__body {
-          max-width: 1120px;
-          margin: 0 auto;
-          padding: clamp(24px, 5vw, 48px) clamp(16px, 5vw, 64px);
-        }
-
-        .droteiros-loading__grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-          gap: 20px;
-        }
-
-        .droteiros-loading__card {
-          background: #fff;
-          border: 1px solid var(--stone-200, #e7e5e4);
-          border-radius: 3px;
-          overflow: hidden;
-        }
-
-        .droteiros-loading__photo {
-          width: 100%;
-          aspect-ratio: 4/3;
-          background: var(--stone-200, #e7e5e4);
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .droteiros-loading__card-body {
-          padding: 1rem 1.1rem 1.1rem;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .droteiros-loading__line {
-          border-radius: 2px;
-          background: var(--stone-200, #e7e5e4);
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-
-        @media (max-width: 480px) {
-          .droteiros-loading__grid {
-            grid-template-columns: 1fr;
-          }
-        }
+        .rload__head { padding-top: calc(56px + var(--space-6)); padding-bottom: var(--space-6); display: flex; flex-direction: column; gap: var(--space-3); }
+        @media (min-width: 768px) { .rload__head { padding-top: calc(var(--topbar-height) + var(--space-10)); padding-bottom: var(--space-8); } }
+        .rload__tabs { display: flex; gap: var(--space-4); height: 45px; align-items: center; border-bottom: 1px solid var(--border); margin-bottom: var(--space-6); }
+        .rload__card { display: flex; flex-direction: column; gap: var(--space-3); }
       `}</style>
-
-      <div className="droteiros-loading">
-        {/* Header skeleton */}
-        <div className="droteiros-loading__header">
-          <div className="droteiros-loading__skel" style={{ width: 90, height: 32, marginBottom: 20 }} />
-          <div className="droteiros-loading__skel" style={{ width: 120, height: 14, marginBottom: 20 }} />
-          <div className="droteiros-loading__skel" style={{ width: 180, height: 11, marginBottom: 10 }} />
-          <div className="droteiros-loading__skel" style={{ width: '50%', maxWidth: 360, height: 40, marginBottom: 10 }} />
-          <div className="droteiros-loading__skel" style={{ width: '35%', maxWidth: 260, height: 15 }} />
+      <div className="capi-container">
+        <div className="rload__head">
+          <Skeleton width={110} height={14} />
+          <Skeleton width={140} height={12} />
+          <Skeleton width="55%" height={40} radius={10} />
+          <Skeleton width="40%" height={16} />
         </div>
-
-        {/* Body skeleton */}
-        <div className="droteiros-loading__body">
-          <div className="droteiros-loading__line" style={{ width: 120, height: 13, marginBottom: 24 }} />
-          <div className="droteiros-loading__grid">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="droteiros-loading__card">
-                <div className="droteiros-loading__photo" />
-                <div className="droteiros-loading__card-body">
-                  <div className="droteiros-loading__line" style={{ width: '80%', height: 18 }} />
-                  <div className="droteiros-loading__line" style={{ width: 70, height: 22, borderRadius: 2 }} />
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <div className="droteiros-loading__line" style={{ width: 55, height: 18 }} />
-                    <div className="droteiros-loading__line" style={{ width: 55, height: 18 }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div className="droteiros-loading__line" style={{ width: 90, height: 14 }} />
-                    <div className="droteiros-loading__line" style={{ width: 50, height: 14 }} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="rload__tabs">
+          <Skeleton width={72} height={14} />
+          <Skeleton width={56} height={14} />
+          <Skeleton width={56} height={14} />
+        </div>
+        <div className="mb-4"><Skeleton width={140} height={14} /></div>
+        <div className="capi-grid-cards pb-16">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="rload__card">
+              <span
+                className="capi-skel"
+                aria-hidden="true"
+                style={{ width: '100%', aspectRatio: '4 / 3', borderRadius: 'var(--radius-lg)' }}
+              />
+              <Skeleton width="80%" height={18} />
+              <Skeleton width="50%" height={14} />
+              <Skeleton width="40%" height={16} />
+            </div>
+          ))}
         </div>
       </div>
-    </>
+    </div>
   );
 }

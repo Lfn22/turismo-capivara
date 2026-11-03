@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { Button } from '@/src/components/ui/capi';
 
 export interface StickyDestinationNavProps {
   destinationName: string;
@@ -15,9 +17,9 @@ export interface StickyDestinationNavProps {
  * Nav unificada da página de destino.
  *
  * Estados visuais (controlados por class toggle via refs — sem re-render):
- *   - Transparente: hero visível no viewport
- *   - Opaca:        hero fora do viewport (scroll down)
- *   - Oculta:       scroll up ativo (translates -100%)
+ *   - Transparente: hero visível no viewport (texto e logo brancos sobre a foto)
+ *   - Opaca:        hero fora do viewport (vidro claro, `.dest-nav--opaque` em globals.css)
+ *   - Oculta:       rolando para baixo fora do hero (translates -100%)
  *
  * Lógica:
  *   1. IntersectionObserver no hero → detecta quando saiu do viewport
@@ -37,23 +39,29 @@ export default function StickyDestinationNav({
     const nav = navRef.current;
     if (!nav) return;
 
+    const setOpaque = (opaque: boolean) => {
+      nav.classList.toggle('dest-nav--opaque', opaque);
+      nav.classList.toggle('dest-nav--transparent', !opaque);
+    };
+
     // ── 1. Observa o hero para alternar transparente ↔ opaco ──
     const hero = document.getElementById('hero');
     const observer = hero
       ? new IntersectionObserver(
           ([entry]) => {
             heroVisible.current = entry.isIntersecting;
-            if (entry.isIntersecting) {
-              nav.classList.remove('snav--opaque');
-            } else {
-              nav.classList.add('snav--opaque');
-            }
+            setOpaque(!entry.isIntersecting);
           },
           { threshold: 0.1 }
         )
       : null;
 
     if (hero && observer) observer.observe(hero);
+    // Sem hero na página: a nav já começa sólida para manter o contraste.
+    else {
+      heroVisible.current = false;
+      setOpaque(true);
+    }
 
     // ── 2. Detecta direção de scroll para mostrar/ocultar ────
     const THRESHOLD = 6; // px mínimos para considerar mudança de direção
@@ -67,11 +75,11 @@ export default function StickyDestinationNav({
       if (delta > 0) {
         // Scroll down → hide nav
         if (!heroVisible.current) {
-          nav.classList.add('snav--hidden');
+          nav.classList.add('dest-nav--hidden');
         }
       } else {
         // Scroll up → show nav
-        nav.classList.remove('snav--hidden');
+        nav.classList.remove('dest-nav--hidden');
       }
 
       lastScrollY.current = currentY;
@@ -85,221 +93,130 @@ export default function StickyDestinationNav({
     };
   }, []);
 
+  const tabs = [
+    { key: 'roteiros', label: 'Roteiros', href: `/destinos/${destinationSlug}/roteiros` },
+    { key: 'guias', label: 'Guias', href: `/destinos/${destinationSlug}/guias` },
+  ] as const;
+
   return (
     <>
       <style>{`
-        .snav {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 50;
+        .snav__inner {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 clamp(1.5rem, 5vw, 3.5rem);
+          gap: var(--space-3);
           height: 56px;
-          background: transparent;
-          transition:
-            background-color 0.3s ease,
-            transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-            backdrop-filter 0.3s ease;
-          will-change: transform;
+          max-width: var(--container-wide);
+          margin: 0 auto;
+          padding: 0 var(--gutter-mobile);
+          font-family: var(--font-sans);
         }
+        @media (min-width: 768px) { .snav__inner { height: var(--topbar-height); padding: 0 var(--gutter-tablet); } }
+        @media (min-width: 1024px) { .snav__inner { padding: 0 var(--gutter-desktop); } }
 
-        /* Opaco: hero fora do viewport */
-        .snav--opaque {
-          background-color: var(--stone-900);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        }
+        .snav__left { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
 
-        /* Oculto: scroll up */
-        .snav--hidden {
-          transform: translateY(-100%);
+        .snav__logo {
+          display: inline-flex; align-items: center; flex-shrink: 0;
+          min-height: var(--touch-target);
+          border-radius: var(--radius-sm);
         }
+        .snav__logo img { height: 36px; width: auto; display: block; transition: filter .2s ease; }
+        .dest-nav--transparent .snav__logo img { filter: brightness(0) invert(1); }
 
-        /* Grupo esquerdo */
-        .snav__left {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
+        .snav__sep { width: 1px; height: 20px; flex-shrink: 0; background: var(--border-strong); }
+        .dest-nav--transparent .snav__sep { background: var(--text-on-brand-secondary); opacity: .5; }
 
         .snav__back {
-          display: flex;
-          align-items: center;
-          gap: 0.4rem;
-          color: rgba(255, 255, 255, 0.65);
-          font-size: 0.72rem;
-          font-weight: 500;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          text-decoration: none;
-          transition: color 0.2s;
-          padding: 0.5rem 0;
+          display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+          min-height: var(--touch-target); padding: 0 var(--space-2);
+          border-radius: var(--radius-pill);
+          font-size: 14px; font-weight: 600; text-decoration: none;
+          color: var(--text-secondary);
+          transition: color .15s ease, background-color .15s ease;
         }
-
-        .snav__back:hover { color: var(--stone-50); }
-
-        /* Separador vertical */
-        .snav__sep {
-          width: 1px;
-          height: 16px;
-          background: rgba(255, 255, 255, 0.18);
-        }
+        .snav__back:hover { color: var(--text); background: var(--bg-subtle); }
+        .dest-nav--transparent .snav__back { color: var(--text-on-brand); }
+        .dest-nav--transparent .snav__back:hover { color: var(--text-on-brand); background: transparent; text-decoration: underline; }
 
         /* Nome do destino — aparece só quando opaco */
         .snav__name {
-          font-family: var(--font-display), Georgia, serif;
-          font-size: 0.95rem;
-          color: rgba(255, 255, 255, 0.9);
-          letter-spacing: -0.01em;
-          opacity: 0;
-          transform: translateY(4px);
-          transition: opacity 0.25s ease, transform 0.25s ease;
-          pointer-events: none;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 200px;
-        }
-
-        .snav--opaque .snav__name {
-          opacity: 1;
-          transform: translateY(0);
-          pointer-events: auto;
-        }
-
-        /* CTA direito */
-        .snav__cta {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.4rem;
-          font-size: 0.72rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: var(--stone-900);
-          background: var(--ochre);
-          text-decoration: none;
-          padding: 0.5rem 1.1rem;
-          border-radius: 2px;
-          transition: background 0.2s, transform 0.15s;
-          white-space: nowrap;
-        }
-
-        .snav__cta:hover {
-          background: var(--ochre-dark);
-          transform: translateY(-1px);
-        }
-
-        .snav__logo {
           font-family: var(--font-display);
-          font-size: 0.9rem;
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          color: var(--ochre);
-          text-decoration: none;
-          flex-shrink: 0;
+          font-size: 17px; font-weight: 700;
+          color: var(--text);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          max-width: 40vw;
+          opacity: 0; transform: translateY(4px);
+          transition: opacity .2s ease, transform .2s ease;
         }
-        .snav__logo:hover { color: var(--ochre-dark, #a07010); }
+        .snav__name-sep { display: none; }
+        .dest-nav--opaque .snav__name { opacity: 1; transform: none; }
+        .dest-nav--opaque .snav__name-sep { display: block; }
 
-        /* Tabs de navegação */
-        .snav__tabs {
-          display: none;
-          align-items: center;
-          gap: 0;
-        }
-
-        .snav--opaque .snav__tabs {
-          display: flex;
-        }
-
+        /* Abas — só quando opaco e com espaço */
+        .snav__tabs { display: none; align-items: stretch; height: 100%; }
+        @media (min-width: 640px) { .dest-nav--opaque .snav__tabs { display: flex; } }
         .snav__tab {
-          font-size: 0.72rem;
-          font-weight: 600;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.6);
-          text-decoration: none;
-          padding: 0 1rem;
-          height: 56px;
-          display: flex;
-          align-items: center;
+          display: inline-flex; align-items: center;
+          padding: 0 var(--space-4);
+          font-size: 15px; font-weight: 500; text-decoration: none;
+          color: var(--text-secondary);
           border-bottom: 2px solid transparent;
-          transition: color 0.2s, border-color 0.2s;
-          white-space: nowrap;
+          transition: color .15s ease, border-color .15s ease;
         }
+        .snav__tab:hover { color: var(--text); }
+        .snav__tab[aria-current="page"] { color: var(--text); font-weight: 600; border-bottom-color: var(--brand); }
 
-        .snav__tab:hover {
-          color: rgba(255, 255, 255, 0.9);
-        }
-
-        .snav__tab--active {
-          color: #fff;
-          border-bottom-color: var(--ochre, #c8961c);
-        }
-
-        /* Mobile: esconde o CTA em telas muito pequenas */
-        @media (max-width: 360px) {
+        @media (max-width: 380px) {
           .snav__cta { display: none; }
-          .snav__name { max-width: 140px; }
         }
-
-        @media (max-width: 500px) {
-          .snav__tabs { display: none !important; }
+        @media (prefers-reduced-motion: reduce) {
+          .snav__name { transform: none; transition: none; }
         }
       `}</style>
 
-      <nav ref={navRef} className="snav" aria-label="Navegação do destino">
-        <div className="snav__left">
-          <Link href="/" className="snav__logo" aria-label="Página inicial"><Image src="/images/logo.png" alt="CAPI" width={64} height={58} style={{ filter: 'brightness(0) invert(1)' }} /></Link>
-          <div className="snav__sep" aria-hidden="true" />
-          <Link href="/destinos" className="snav__back" aria-label="Voltar para destinos">
-            <svg
-              width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5"
-              strokeLinecap="round" strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M19 12H5M12 5l-7 7 7 7" />
-            </svg>
-            Destinos
-          </Link>
-          <div className="snav__sep" aria-hidden="true" />
-          <span className="snav__name">{destinationName}</span>
-        </div>
+      <nav
+        ref={navRef}
+        className="dest-nav dest-nav--transparent"
+        aria-label="Navegação do destino"
+      >
+        <div className="snav__inner">
+          <div className="snav__left">
+            <Link href="/" className="snav__logo" aria-label="CAPI — página inicial">
+              <Image src="/images/logo.png" alt="CAPI" width={40} height={36} />
+            </Link>
+            <span className="snav__sep" aria-hidden="true" />
+            <Link href="/destinos" className="snav__back" aria-label="Voltar para destinos">
+              <ArrowLeft size={18} strokeWidth={1.75} aria-hidden="true" />
+              Destinos
+            </Link>
+            <span className="snav__sep snav__name-sep" aria-hidden="true" />
+            <span className="snav__name">{destinationName}</span>
+          </div>
 
-        <div className="snav__tabs">
-          <Link
+          <div className="snav__tabs">
+            {tabs.map((t) => (
+              <Link
+                key={t.key}
+                href={t.href}
+                className="snav__tab"
+                aria-current={activeTab === t.key ? 'page' : undefined}
+              >
+                {t.label}
+              </Link>
+            ))}
+          </div>
+
+          <Button
             href={`/destinos/${destinationSlug}/roteiros`}
-            className={`snav__tab${activeTab === 'roteiros' ? ' snav__tab--active' : ''}`}
+            size="sm"
+            iconRight={ArrowRight}
+            className="snav__cta"
           >
-            Roteiros
-          </Link>
-          <Link
-            href={`/destinos/${destinationSlug}/guias`}
-            className={`snav__tab${activeTab === 'guias' ? ' snav__tab--active' : ''}`}
-          >
-            Guias
-          </Link>
+            Ver roteiros
+          </Button>
         </div>
-
-        <Link
-          href={`/destinos/${destinationSlug}/roteiros`}
-          className="snav__cta"
-          aria-label="Ver roteiros disponíveis"
-        >
-          Ver roteiros
-          <svg
-            width="13" height="13" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2.5"
-            strokeLinecap="round" strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M5 12h14M12 5l7 7-7 7" />
-          </svg>
-        </Link>
       </nav>
     </>
   );

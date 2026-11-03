@@ -3,6 +3,7 @@ import prisma from '../../database'
 import { getResend, getEmailFrom } from '../../shared/email'
 import { notifyBookingEvent } from '../notifications/booking-events'
 import { bookingExpiredEmailText, bookingExpiredSubject } from './emails/booking-expired-email'
+import { bookingsExpiredCounter } from '../../shared/metrics.js'
 
 const BOOKING_EXPIRY_LOCK_ID = 1_234_567_890
 
@@ -87,6 +88,7 @@ export function createBookingExpiryJob(app: FastifyInstance) {
             })
 
             app.log.info(`[cron:expiry] Expired booking ${booking.id}`)
+            bookingsExpiredCounter.add(1)
 
             if (expired) {
               void notifyBookingEvent(app.log, booking.id, 'expired').catch(() => {})

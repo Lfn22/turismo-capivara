@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAPI — Background Color Schemes Comparison</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: #111;
+    color: #eee;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: #999;
+    margin-bottom: 40px;
+    font-size: 14px;
+  }
+
+  .grid {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .scheme {
+    flex: 0 0 320px;
+  }
+
+  .scheme-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .scheme-desc {
+    font-size: 12px;
+    color: #999;
+    text-align: center;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+
+  .phone {
+    width: 320px;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 3px solid #444;
+    max-height: 700px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #666 transparent;
+  }
+
+  .phone::-webkit-scrollbar { width: 4px; }
+  .phone::-webkit-scrollbar-thumb { background: #666; border-radius: 2px; }
+
+  /* Section base */
+  .section {
+    padding: 28px 20px;
+    transition: background 0.3s;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    margin-bottom: 12px;
+    opacity: 0.9;
+  }
+
+  .section-text {
+    font-size: 11px;
+    opacity: 0.6;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  /* Hero */
+  .hero { padding: 40px 20px 32px; }
+  .hero .section-title { font-size: 22px; margin-bottom: 6px; }
+  .hero .tagline { font-size: 13px; opacity: 0.7; margin-bottom: 16px; }
+  .hero .cta-btn {
+    display: inline-block;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    background: #C4852A;
+    color: #fff;
+    border: none;
+  }
+
+  /* Stats bar */
+  .stats-bar { padding: 16px 20px; display: flex; gap: 8px; justify-content: space-around; }
+  .stat { text-align: center; }
+  .stat-num { font-size: 18px; font-weight: 700; color: #C4852A; }
+  .stat-label { font-size: 9px; opacity: 0.6; text-transform: uppercase; }
+
+  /* Cards row */
+  .cards { display: flex; gap: 10px; overflow-x: hidden; }
+  .card {
+    flex: 0 0 120px;
+    height: 90px;
+    border-radius: 10px;
+    display: flex;
+    align-items: flex-end;
+    padding: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+    border-radius: 10px;
+  }
+  .card span { position: relative; z-index: 1; }
+
+  .card-1 { background: #8B7355; }
+  .card-2 { background: #6B8E5A; }
+  .card-3 { background: #5A7B8B; }
+
+  /* Steps */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #C4852A;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step-text { font-size: 12px; opacity: 0.8; }
+
+  /* Guide cards */
+  .guide-cards { display: flex; gap: 10px; }
+  .guide-card {
+    flex: 1;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .guide-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    margin: 0 auto 6px;
+    background: #C4852A;
+    opacity: 0.5;
+  }
+  .guide-name { font-size: 11px; font-weight: 600; }
+  .guide-rating { font-size: 10px; color: #C4852A; }
+
+  /* CTA section */
+  .cta-section { text-align: center; }
+  .cta-section .section-title { font-size: 18px; }
+
+  /* Footer */
+  .footer { padding: 20px; text-align: center; }
+  .footer-text { font-size: 10px; opacity: 0.4; }
+
+  /* ====== SCHEME 1: Current (Contraste) ====== */
+  .s1 .hero { background: linear-gradient(180deg, #1a1714, #1F0E08, #3D2415); color: #FAFAF7; }
+  .s1 .stats-bar { background: #3D2415; color: #FAFAF7; }
+  .s1 .destinations { background: #FAFAF7; color: #1F0E08; }
+  .s1 .how-it-works { background: #F5F0E8; color: #1F0E08; }
+  .s1 .guides { background: #3D2415; color: #FAFAF7; }
+  .s1 .guides .guide-card { background: rgba(255,255,255,0.08); }
+  .s1 .cta-section { background: #1F0E08; color: #FAFAF7; }
+  .s1 .footer { background: #1F0E08; color: #FAFAF7; }
+
+  /* ====== SCHEME 2: Mostly Dark ====== */
+  .s2 .hero { background: linear-gradient(180deg, #1a1714, #1F0E08); color: #FAFAF7; }
+  .s2 .stats-bar { background: #1F0E08; color: #FAFAF7; }
+  .s2 .destinations { background: #3D2415; color: #FAFAF7; }
+  .s2 .destinations .card { border: 1px solid rgba(255,255,255,0.1); }
+  .s2 .how-it-works { background: #1F0E08; color: #FAFAF7; }
+  .s2 .guides { background: #3D2415; color: #FAFAF7; }
+  .s2 .guides .guide-card { background: rgba(255,255,255,0.06); }
+  .s2 .cta-section { background: #1F0E08; color: #FAFAF7; border-top: 3px solid #C4852A; border-bottom: 3px solid #C4852A; }
+  .s2 .footer { background: #000; color: #FAFAF7; }
+
+  /* ====== SCHEME 3: Warm Earth ====== */
+  .s3 .hero { background: linear-gradient(180deg, #1a1410, #2a1f15); color: #FAF5EE; }
+  .s3 .stats-bar { background: #2a1f15; color: #FAF5EE; }
+  .s3 .destinations { background: #FAF5EE; color: #1a1410; }
+  .s3 .how-it-works { background: #F5EDE0; color: #1a1410; }
+  .s3 .guides { background: #2a1f15; color: #FAF5EE; }
+  .s3 .guides .guide-card { background: rgba(255,255,255,0.07); }
+  .s3 .cta-section { background: #9C6318; color: #FAF5EE; }
+  .s3 .footer { background: #1a1410; color: #FAF5EE; }
+
+  /* ====== SCHEME 4: Stone Gradient ====== */
+  .s4 .hero { background: #1F0E08; color: #FAFAF7; }
+  .s4 .stats-bar { background: #3D2415; color: #FAFAF7; }
+  .s4 .destinations { background: linear-gradient(180deg, #7D5E4A, #B8A090); color: #1F0E08; }
+  .s4 .how-it-works { background: linear-gradient(180deg, #D4C4B0, #E8DDD0); color: #1F0E08; }
+  .s4 .guides { background: linear-gradient(180deg, #E8DDD0, #B8A090); color: #1F0E08; }
+  .s4 .guides .guide-card { background: rgba(255,255,255,0.25); }
+  .s4 .cta-section { background: #5C3D2A; color: #FAFAF7; }
+  .s4 .footer { background: #1F0E08; color: #FAFAF7; }
+
+  /* ====== SCHEME 5: Ochre Accent Bands ====== */
+  .s5 .hero { background: #1F0E08; color: #FAFAF7; }
+  .s5 .stats-bar { background: #9C6318; color: #FAFAF7; }
+  .s5 .destinations { background: #FAFAF7; color: #1F0E08; }
+  .s5 .how-it-works { background: #F5F0E8; color: #1F0E08; }
+  .s5 .guides { background: #1F0E08; color: #FAFAF7; }
+  .s5 .guides .guide-card { background: rgba(255,255,255,0.08); }
+  .s5 .cta-section { background: #C4852A; color: #FAFAF7; }
+  .s5 .footer { background: #1F0E08; color: #FAFAF7; }
+</style>
+</head>
+<body>
+
+<h1>CAPI — Background Color Schemes</h1>
+<p class="subtitle">Comparacao do fluxo de cores entre secoes da home page. Scroll cada mockup para ver todas as secoes.</p>
+
+<div class="grid">
+
+  <!-- SCHEME 1 -->
+  <div class="scheme">
+    <div class="scheme-label">1. Current (Contraste)</div>
+    <div class="scheme-desc">Light/dark alternado. Stone-50 claro, Stone-800/900 escuro.</div>
+    <div class="phone s1">
+      <div class="section hero">
+        <div class="section-title">Descubra a Serra da Capivara</div>
+        <div class="tagline">Caminho entre quem explora e quem opera</div>
+        <div class="cta-btn">Explorar roteiros</div>
+      </div>
+      <div class="stats-bar">
+        <div class="stat"><div class="stat-num">150+</div><div class="stat-label">Roteiros</div></div>
+        <div class="stat"><div class="stat-num">40+</div><div class="stat-label">Guias</div></div>
+        <div class="stat"><div class="stat-num">4.9</div><div class="stat-label">Avaliacao</div></div>
+      </div>
+      <div class="section destinations">
+        <div class="section-title">Destinos Populares</div>
+        <div class="cards">
+          <div class="card card-1"><span>Boqueirão</span></div>
+          <div class="card card-2"><span>Baixão</span></div>
+          <div class="card card-3"><span>Toca do Sítio</span></div>
+        </div>
+      </div>
+      <div class="section how-it-works">
+        <div class="section-title">Como funciona</div>
+        <div class="steps">
+          <div class="step"><div class="step-num">1</div><div class="step-text">Escolha seu destino</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">Selecione um guia</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text">Reserve e explore</div></div>
+        </div>
+      </div>
+      <div class="section guides">
+        <div class="section-title">Guias em destaque</div>
+        <div class="guide-cards">
+          <div class="guide-card"><div class="guide-avatar"></div><div class="guide-name">Carlos M.</div><div class="guide-rating">★★★★★</div></div>
+          <div class="guide-card"><div class="guide-avatar"></div><div class="guide-name">Ana R.</div><div class="guide-rating">★★★★★</div></div>
+        </div>
+      </div>
+      <div class="section cta-section">
+        <div class="section-title">Pronto para explorar?</div>
+        <div class="section-text">Encontre o guia perfeito para sua aventura.</div>
+        <div class="cta-btn">Comece agora</div>
+      </div>
+      <div class="footer"><div class="footer-text">© 2026 CAPI · Serra da Capivara</div></div>
+    </div>
+  </div>
+
+  <!-- SCHEME 2 -->
+  <div class="scheme">
+    <div class="scheme-label">2. Mostly Dark</div>
+    <div class="scheme-desc">Quase todo escuro. Cards claros sobre fundo dark.</div>
+    <div class="phone s2">
+      <div class="section hero">
+        <div class="section-title">Descubra a Serra da Capivara</div>
+        <div class="tagline">Caminho entre quem explora e quem opera</div>
+        <div class="cta-btn">Explorar roteiros</div>
+      </div>
+      <div class="stats-bar">
+        <div class="stat"><div class="stat-num">150+</div><div class="stat-label">Roteiros</div></div>
+        <div class="stat"><div class="stat-num">40+</div><div class="stat-label">Guias</div></div>
+        <div class="stat"><div class="stat-num">4.9</div><div class="stat-label">Avaliacao</div></div>
+      </div>
+      <div class="section destinations">
+        <div class="section-title">Destinos Populares</div>
+        <div class="cards">
+          <div class="card card-1"><span>Boqueirão</span></div>
+          <div class="card card-2"><span>Baixão</span></div>
+          <div class="card card-3"><span>Toca do Sítio</span></div>
+        </div>
+      </div>
+      <div class="section how-it-works">
+        <div class="section-title">Como funciona</div>
+        <div class="steps">
+          <div class="step"><div class="step-num">1</div><div class="step-text">Escolha seu destino</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">Selecione um guia</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text">Reserve e explore</div></div>
+        </div>
+      </div>
+      <div class="section guides">
+        <div class="section-title">Guias em destaque</div>
+        <div class="guide-cards">
+          <div class="guide-card"><div class="guide-avatar"></div><div class="guide-name">Carlos M.</div><div class="guide-rating">★★★★★</div></div>
+          <div class="guide-card"><div class="guide-avatar"></div><div class="guide-name">Ana R.</div><div class="guide-rating">★★★★★</div></div>
+        </div>
+      </div>
+      <div class="section cta-section">
+        <div class="section-title">Pronto para explorar?</div>
+        <div class="section-text">Encontre o guia perfeito para sua aventura.</div>
+        <div class="cta-btn">Comece agora</div>
+      </div>
+      <div class="footer"><div class="footer-text">© 2026 CAPI · Serra da Capivara</div></div>
+    </div>
+  </div>
+
+  <!-- SCHEME 3 -->
+  <div class="scheme">
+    <div class="scheme-label">3. Warm Earth</div>
+    <div class="scheme-desc">Tons terrosos com ocre. Calor e natureza.</div>
+    <div class="phone s3">
+      <div class="section hero">
+        <div class="section-title">Descubra a Serra da Capivara</div>
+        <div class="tagline">Caminho entre quem explora e quem opera</div>
+        <div class="cta-btn">Explorar roteiros</div>
+      </div>
+      <div class="stats-bar">
+        <div class="stat"><div class="stat-num">150+</div><div class="stat-label">Roteiros</div></div>
+        <div class="stat"><div class="stat-num">40+</div><div class="stat-label">Guias</div></div>
+        <div class="stat"><div class="stat-num">4.9</div><div class="stat-label">Avaliacao</div></div>
+      </div>
+      <div class="section destinations">
+        <div class="section-title">Destinos Populares</div>
+        <div class="cards">
+          <div class="card card-1"><span>Boqueirão</span></div>
+          <div class="card card-2"><span>Baixão</span></div>
+          <div class="card card-3"><span>Toca do Sítio</span></div>
+        </div>
+      </div>
+      <div class="section how-it-works">
+        <div class="section-title">Como funciona</div>
+        <div class="steps">
+          <div class="step"><div class="step-num">1</div><div class="step-text">Escolha seu destino</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">Selecione um guia</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text">Reserve e explore</div></div>
+        </div>
+      </div>
+      <div class="section guides">
+        <div class="section-title">Guias em destaque</div>
+        <div class="guide-cards">
+          <div class="guide-card"><div class="guide-avatar"></div><div class="guide-name">Carlos M.</div><div class="guide-rating">★★★★★</div></div>
+          <div class="guide-card"><div class="guide-avatar"></div><div class="guide-name">Ana R.</div><div class="guide-rating">★★★★★</div></div>
+        </div>
+      </div>
+      <div class="section cta-section">
+        <div class="section-title">Pronto para explorar?</div>
+        <div class="section-text">Encontre o guia perfeito para sua aventura.</div>
+        <div class="cta-btn">Comece agora</div>
+      </div>
+      <div class="footer"><div class="footer-text">© 2026 CAPI · Serra da Capivara</div></div>
+    </div>
+  </div>
+
+  <!-- SCHEME 4 -->
+  <div class="scheme">
+    <div class="scheme-label">4. Stone Gradient</div>
+    <div class="scheme-desc">Gradiente continuo sem quebras. Fluxo suave.</div>
+    <div class="phone s4">
+      <div class="section hero">
+        <div class="section-title">Descubra a Serra da Capivara</div>
+        <div class="tagline">Caminho entre quem explora e quem opera</div>
+        <div class="cta-btn">Explorar roteiros</div>
+      </div>
+      <div class="stats-bar">
+        <div class="stat"><div class="stat-num">150+</div><div class="stat-label">Roteiros</div></div>
+        <div class="stat"><div class="stat-num">40+</div><div class="stat-label">Guias</div></div>
+        <div class="stat"><div class="stat-num">4.9</div><div class="stat-label">Avaliacao</div></div>
+      </div>
+      <div class="section destinations">
+        <div class="section-title">Destinos Populares</div>
+        <div class="cards">
+          <div class="card card-1"><span>Boqueirão</span></div>
+          <div class="card card-2"><span>Baixão</span></div>
+          <div class="card card-3"><span>Toca do Sítio</span></div>
+        </div>
+      </div>
+      <div class="section how-it-works">
+        <div class="section-title">Como funciona</div>
+        <div class="steps">
+          <div class="step"><div class="step-num">1</div><div class="step-text">Escolha seu destino</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">Selecione um guia</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text">Reserve e explore</div></div>
+        </div>
+      </div>
+      <div class="section guides">
+        <div class="section-title">Guias em destaque</div>
+        <div class="guide-cards">
+          <div class="guide-card"><div class="guide-avatar"></div><div class="guide-name">Carlos M.</div><div class="guide-rating">★★★★★</div></div>
+          <div class="guide-card"><div class="guide-avatar"></div><div class="guide-name">Ana R.</div><div class="guide-rating">★★★★★</div></div>
+        </div>
+      </div>
+      <div class="section cta-section">
+        <div class="section-title">Pronto para explorar?</div>
+        <div class="section-text">Encontre o guia perfeito para sua aventura.</div>
+        <div class="cta-btn">Comece agora</div>
+      </div>
+      <div class="footer"><div class="footer-text">© 2026 CAPI · Serra da Capivara</div></div>
+    </div>
+  </div>
+
+  <!-- SCHEME 5 -->
+  <div class="scheme">
+    <div class="scheme-label">5. Ochre Accent Bands</div>
+    <div class="scheme-desc">Stone neutro com faixas de destaque em ocre.</div>
+    <div class="phone s5">
+      <div class="section hero">
+        <div class="section-title">Descubra a Serra da Capivara</div>
+        <div class="tagline">Caminho entre quem explora e quem opera</div>
+        <div class="cta-btn">Explorar roteiros</div>
+      </div>
+      <div class="stats-bar">
+        <div class="stat"><div class="stat-num">150+</div><div class="stat-label">Roteiros</div></div>
+        <div class="stat"><div class="stat-num">40+</div><div class="stat-label">Guias</div></div>
+        <div class="stat"><div class="stat-num">4.9</div><div class="stat-label">Avaliacao</div></div>
+      </div>
+      <div class="section destinations">
+        <div class="section-title">Destinos Populares</div>
+        <div class="cards">
+          <div class="card card-1"><span>Boqueirão</span></div>
+          <div class="card card-2"><span>Baixão</span></div>
+          <div class="card card-3"><span>Toca do Sítio</span></div>
+        </div>
+      </div>
+      <div class="section how-it-works">
+        <div class="section-title">Como funciona</div>
+        <div class="steps">
+          <div class="step"><div class="step-num">1</div><div class="step-text">Escolha seu destino</div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-text">Selecione um guia</div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-text">Reserve e explore</div></div>
+        </div>
+      </div>
+      <div class="section guides">
+        <div class="section-title">Guias em destaque</div>
+        <div class="guide-cards">
+          <div class="guide-card"><div class="guide-avatar"></div><div class="guide-name">Carlos M.</div><div class="guide-rating">★★★★★</div></div>
+          <div class="guide-card"><div class="guide-avatar"></div><div class="guide-name">Ana R.</div><div class="guide-rating">★★★★★</div></div>
+        </div>
+      </div>
+      <div class="section cta-section">
+        <div class="section-title">Pronto para explorar?</div>
+        <div class="section-text">Encontre o guia perfeito para sua aventura.</div>
+        <div class="cta-btn">Comece agora</div>
+      </div>
+      <div class="footer"><div class="footer-text">© 2026 CAPI · Serra da Capivara</div></div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

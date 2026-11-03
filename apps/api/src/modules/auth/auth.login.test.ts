@@ -5,6 +5,7 @@ vi.mock('../../database', () => ({
   default: {
     user: { findUnique: vi.fn(), findFirst: vi.fn() },
     tenant: { findUnique: vi.fn() },
+    refreshToken: { create: vi.fn().mockResolvedValue({}) },
   },
 }))
 

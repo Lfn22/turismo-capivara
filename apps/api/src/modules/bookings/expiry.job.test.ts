@@ -17,6 +17,12 @@ vi.mock('../../database', () => ({
 // Mock shared email
 vi.mock('../../shared/email', () => ({
   getResend: vi.fn(),
+  getEmailFrom: vi.fn(() => 'noreply@capi.app'),
+}))
+
+// Mock metrics
+vi.mock('../../shared/metrics.js', () => ({
+  bookingsExpiredCounter: { add: vi.fn() },
 }))
 
 import prisma from '../../database'
@@ -153,7 +159,7 @@ describe('createBookingExpiryJob (OPS-01)', () => {
     mockPrisma.booking.findMany.mockResolvedValueOnce([fakeBooking])
     mockPrisma.$transaction.mockImplementationOnce(async (fn: Function) => {
       const tx = {
-        booking: { update: vi.fn() },
+        booking: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
         departureSlot: { update: vi.fn() },
         $queryRaw: vi.fn().mockResolvedValueOnce([{
           id: 'slot-2', booked: 1, capacity: 5, status: 'OPEN',
@@ -200,7 +206,7 @@ describe('createBookingExpiryJob (OPS-01)', () => {
     mockPrisma.booking.findMany.mockResolvedValueOnce([fakeBooking])
     mockPrisma.$transaction.mockImplementationOnce(async (fn: Function) => {
       const tx = {
-        booking: { update: vi.fn() },
+        booking: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
         departureSlot: { update: vi.fn() },
         $queryRaw: vi.fn().mockResolvedValueOnce([{
           id: 'slot-3', booked: 1, capacity: 3, status: 'OPEN',

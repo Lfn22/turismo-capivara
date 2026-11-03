@@ -31,9 +31,10 @@ vi.mock('../modules/notifications/booking-events', () => ({
 vi.mock('../database', () => ({
   default: {
     tenant: { findUnique: vi.fn() },
-    booking: { findUnique: vi.fn(), update: vi.fn() },
+    booking: { findUnique: vi.fn(), update: vi.fn(), count: vi.fn() },
     departureSlot: { update: vi.fn() },
     tourPackage: { findFirst: vi.fn() },
+    auditLog: { create: vi.fn().mockResolvedValue({}) },
     $transaction: vi.fn(),
   },
 }))
@@ -44,7 +45,7 @@ import { notifyBookingEvent } from '../modules/notifications/booking-events'
 
 const db = prisma as unknown as {
   tenant: { findUnique: Mock }
-  booking: { findUnique: Mock; update: Mock }
+  booking: { findUnique: Mock; update: Mock; count: Mock }
   departureSlot: { update: Mock }
   tourPackage: { findFirst: Mock }
   $transaction: Mock
@@ -105,6 +106,8 @@ const BOOKING_WITH_PAYMENT = {
   paymentId: PAYMENT_RESULT.paymentId,
   paymentUrl: PAYMENT_RESULT.paymentUrl,
   qrCode: PAYMENT_RESULT.qrCode,
+  cancelToken: 'mock-cancel-token',
+  cancelTokenExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
 }
 
 const VALID_BODY = {
@@ -113,8 +116,7 @@ const VALID_BODY = {
   customerEmail: 'joao@example.com',
   customerPhone: '11999999999',
   // Precisa passar em isValidCPF (dígitos verificadores), não só no regex de 11 dígitos.
-  // '12345678901' era usado aqui e é inválido — toda request morria em 400 antes da rota.
-  customerCpf: '11144477735',
+  customerCpf: '52998224725',
   pax: 2,
 }
 
@@ -130,6 +132,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   db.tenant.findUnique.mockResolvedValue(TENANT)
   db.booking.findUnique.mockResolvedValue(null) // sem idempotência por padrão
+  db.booking.count.mockResolvedValue(0) // rate limit: sem bookings recentes
 })
 
 // ---------------------------------------------------------------------------
@@ -333,6 +336,7 @@ describe('POST /tenants/:slug/bookings', () => {
 
       db.$transaction
         .mockImplementationOnce(async (fn: Function) => {
+          // Tx1: lock slot + increment booked + persist booking
           const tx = {
             $queryRaw: vi.fn().mockResolvedValue([OPEN_SLOT]),
             departureSlot: { update: vi.fn().mockResolvedValue({}) },

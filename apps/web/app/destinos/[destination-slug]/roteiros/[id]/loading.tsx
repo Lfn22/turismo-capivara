@@ -1,107 +1,49 @@
+import { Skeleton } from '@/src/components/ui/capi';
+
+/** Esqueleto do detalhe do roteiro: galeria, título, fatos rápidos, guias e coluna de reserva. */
 export default function Loading() {
   return (
-    <>
+    <div className="bg-page" style={{ minHeight: '100dvh' }} role="status" aria-label="Carregando roteiro">
       <style>{`
-        .rdet-loading {
-          min-height: 100dvh;
-          background: var(--stone-50, #fafaf9);
-        }
-
-        .rdet-loading__header {
-          background: var(--stone-900, #1c1917);
-          padding: clamp(48px, 8vw, 80px) clamp(16px, 5vw, 64px) clamp(32px, 5vw, 48px);
-        }
-
-        .rdet-loading__skel {
-          border-radius: 3px;
-          background: var(--stone-800, #292524);
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .rdet-loading__body {
-          max-width: 1120px;
-          margin: 0 auto;
-          padding: clamp(24px, 5vw, 48px) clamp(16px, 5vw, 64px);
-        }
-
-        .rdet-loading__grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-          gap: 20px;
-        }
-
-        .rdet-loading__card {
-          background: #fff;
-          border: 1px solid var(--stone-200, #e7e5e4);
-          border-radius: 3px;
-          overflow: hidden;
-        }
-
-        .rdet-loading__photo {
-          width: 100%;
-          aspect-ratio: 4/3;
-          background: var(--stone-200, #e7e5e4);
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .rdet-loading__card-body {
-          padding: 1rem 1.1rem 1.1rem;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .rdet-loading__line {
-          border-radius: 2px;
-          background: var(--stone-200, #e7e5e4);
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-
-        @media (max-width: 480px) {
-          .rdet-loading__grid {
-            grid-template-columns: 1fr;
-          }
-        }
+        .rdload__top { padding-top: calc(56px + var(--space-3)); display: flex; flex-direction: column; gap: var(--space-3); }
+        @media (min-width: 768px) { .rdload__top { padding-top: calc(var(--topbar-height) + var(--space-6)); } }
+        .rdload__media { width: 100%; aspect-ratio: 4 / 3; border-radius: var(--radius-lg); }
+        @media (min-width: 768px) { .rdload__media { aspect-ratio: 21 / 9; } }
+        .rdload__layout { display: grid; gap: var(--space-10); padding-block: var(--space-6) var(--space-16); }
+        @media (min-width: 1024px) { .rdload__layout { grid-template-columns: minmax(0, 1fr) 360px; gap: var(--space-12); padding-top: var(--space-8); } }
+        .rdload__facts { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); margin-top: var(--space-6); }
+        .rdload__aside { display: none; }
+        @media (min-width: 1024px) { .rdload__aside { display: block; } }
       `}</style>
-
-      <div className="rdet-loading">
-        {/* Header skeleton */}
-        <div className="rdet-loading__header">
-          <div className="rdet-loading__skel" style={{ width: 90, height: 32, marginBottom: 20 }} />
-          <div className="rdet-loading__skel" style={{ width: 80, height: 14, marginBottom: 20 }} />
-          <div className="rdet-loading__skel" style={{ width: 100, height: 11, marginBottom: 10 }} />
-          <div className="rdet-loading__skel" style={{ width: '50%', maxWidth: 360, height: 40, marginBottom: 10 }} />
-          <div className="rdet-loading__skel" style={{ width: '35%', maxWidth: 260, height: 15 }} />
-        </div>
-
-        {/* Body skeleton */}
-        <div className="rdet-loading__body">
-          <div className="rdet-loading__line" style={{ width: 120, height: 13, marginBottom: 24 }} />
-          <div className="rdet-loading__grid">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="rdet-loading__card">
-                <div className="rdet-loading__photo" />
-                <div className="rdet-loading__card-body">
-                  <div className="rdet-loading__line" style={{ width: '75%', height: 18 }} />
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <div className="rdet-loading__line" style={{ width: 60, height: 20 }} />
-                    <div className="rdet-loading__line" style={{ width: 60, height: 20 }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div className="rdet-loading__line" style={{ width: 80, height: 14 }} />
-                    <div className="rdet-loading__line" style={{ width: 50, height: 14 }} />
-                  </div>
-                </div>
-              </div>
-            ))}
+      <div className="capi-container rdload__top">
+        <Skeleton width={90} height={14} />
+        <span className="capi-skel rdload__media" aria-hidden="true" />
+      </div>
+      <div className="capi-container">
+        <div className="rdload__layout">
+          <div className="flex flex-col gap-3">
+            <Skeleton width={70} height={12} />
+            <Skeleton width="70%" height={32} radius={8} />
+            <Skeleton width={80} height={24} radius={999} />
+            <div className="rdload__facts">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} height={74} radius={16} />
+              ))}
+            </div>
+            <div className="mt-8 flex flex-col gap-3">
+              <Skeleton width={90} height={20} />
+              <Skeleton lines={4} />
+            </div>
+            <div className="mt-8 flex flex-col gap-3">
+              <Skeleton width={160} height={20} />
+              <Skeleton height={96} radius={16} />
+            </div>
+          </div>
+          <div className="rdload__aside">
+            <Skeleton height={300} radius={16} />
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

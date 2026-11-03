@@ -1,6 +1,7 @@
 'use client'
 
-import React from 'react'
+import { MapPin, Pencil, Trash2 } from 'lucide-react'
+import { Button, Media } from '@/src/components/ui/capi'
 import { DestinationStatusBadge } from './DestinationStatusBadge'
 
 export interface PainelDestination {
@@ -22,12 +23,6 @@ interface PainelDestinationCardProps {
   onDelete?: (id: string) => void
 }
 
-const STATUS_BADGE = {
-  PENDING:  { label: 'Pendente',  className: 'pdcard__status-badge--pending' },
-  APPROVED: { label: 'Aprovado',  className: 'pdcard__status-badge--approved' },
-  REJECTED: { label: 'Rejeitado', className: 'pdcard__status-badge--rejected' },
-} as const
-
 export function PainelDestinationCard({
   destination,
   isOwner,
@@ -41,206 +36,129 @@ export function PainelDestinationCard({
     <>
       <style precedence="default">{`
         .pdcard {
-          background: #fff;
-          border: 1px solid var(--stone-200, #e7e5e4);
-          border-radius: 8px;
-          overflow: hidden;
           display: flex;
           flex-direction: column;
-        }
-        .pdcard__thumb {
-          position: relative;
-          width: 100%;
-          aspect-ratio: 16 / 9;
-          background: var(--stone-800, #292524);
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
           overflow: hidden;
-          flex-shrink: 0;
+          box-shadow: var(--shadow-xs);
+          font-family: var(--font-sans);
         }
-        .pdcard__thumb img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
-        .pdcard__thumb-placeholder {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, var(--stone-800, #292524), var(--stone-700, #44403c));
-          color: var(--stone-600, #57534e);
-        }
-        .pdcard__badge-overlay {
+        .pdcard__media.capi-media { border-radius: 0; }
+        .pdcard__status {
           position: absolute;
-          top: 8px;
-          left: 8px;
+          top: var(--space-3);
+          left: var(--space-3);
+          z-index: 1;
         }
         .pdcard__body {
-          padding: 16px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: var(--space-2);
           flex: 1;
-        }
-        .pdcard__state {
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: var(--ochre, #c2783c);
-          margin: 0;
+          padding: var(--space-4);
         }
         .pdcard__name {
-          font-family: var(--font-display, Georgia, serif);
-          font-size: 16px;
-          font-weight: 700;
-          color: var(--stone-900, #1c1917);
           margin: 0;
-          line-height: 1.3;
+          font-size: 16px;
+          font-weight: 600;
+          line-height: 1.35;
+          color: var(--text);
+        }
+        .pdcard__state {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          margin: 0;
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-secondary);
+        }
+        .pdcard__meta {
+          margin: 0;
+          font-size: 13px;
+          color: var(--text-tertiary);
+        }
+        .pdcard__reason {
+          margin: 0;
+          padding: var(--space-2) var(--space-3);
+          border-radius: var(--radius-sm);
+          background: var(--danger-subtle);
+          color: var(--danger);
+          font-size: 13px;
+          line-height: 1.45;
         }
         .pdcard__actions {
           display: flex;
-          gap: 8px;
+          gap: var(--space-2);
           margin-top: auto;
-          padding-top: 8px;
+          padding-top: var(--space-2);
         }
-        .pdcard__btn {
-          flex: 1;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 44px;
-          padding: 8px 12px;
-          border-radius: 4px;
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
-          border: none;
-          letter-spacing: 0.04em;
-        }
-        .pdcard__btn--edit {
-          background: var(--ochre, #c2783c);
-          color: white;
-        }
-        .pdcard__btn--delete {
-          background: transparent;
-          border: 1px solid var(--stone-300, #d6d3d1) !important;
-          color: var(--stone-700, #44403c);
-        }
-        .pdcard__btn:hover {
-          opacity: 0.85;
-        }
-        .pdcard__meta {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .pdcard__status-badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 4px 8px;
-          border-radius: 9999px;
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          align-self: flex-start;
-        }
-        .pdcard__status-badge--pending {
-          background: #fffbeb;
-          border: 1px solid #fde68a;
-          color: #92400e;
-        }
-        .pdcard__status-badge--approved {
-          background: #f0fdf4;
-          border: 1px solid #bbf7d0;
-          color: #166534;
-        }
-        .pdcard__status-badge--rejected {
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          color: #991b1b;
-        }
-        .pdcard__submitted-at {
-          font-size: 0.8rem;
-          font-weight: 400;
-          color: var(--stone-500, #78716c);
-          margin: 0;
-        }
-        .pdcard__rejection-reason {
-          font-size: 0.8rem;
-          font-weight: 400;
-          color: #991b1b;
-          margin: 0;
-        }
+        .pdcard__actions .capi-btn { min-height: var(--touch-target, 44px); }
       `}</style>
-      <div className="pdcard">
-        <div className="pdcard__thumb">
-          {thumbnail ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={thumbnail} alt={destination.name} />
-          ) : (
-            <div className="pdcard__thumb-placeholder" aria-hidden="true">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-            </div>
-          )}
+      <article className="pdcard">
+        <Media
+          src={thumbnail}
+          alt={destination.name}
+          ratio="16 / 9"
+          placeholder="mountain"
+          className="pdcard__media"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        >
           {showStatus && (
-            <div className="pdcard__badge-overlay">
+            <span className="pdcard__status">
               <DestinationStatusBadge status={destination.approvalStatus} />
-            </div>
+            </span>
           )}
-        </div>
+        </Media>
 
         <div className="pdcard__body">
-          <p className="pdcard__state">{destination.state}</p>
           <h2 className="pdcard__name">{destination.name}</h2>
+          <p className="pdcard__state">
+            <MapPin size={14} strokeWidth={1.75} aria-hidden="true" />
+            {destination.state}
+          </p>
 
           {showStatus && (
-            <div className="pdcard__meta">
-              <span
-                className={`pdcard__status-badge ${STATUS_BADGE[destination.approvalStatus].className}`}
-              >
-                {STATUS_BADGE[destination.approvalStatus].label}
-              </span>
-              <p className="pdcard__submitted-at">
+            <>
+              <p className="pdcard__meta">
                 Enviado em {new Date(destination.createdAt).toLocaleDateString('pt-BR')}
               </p>
               {destination.approvalStatus === 'REJECTED' && destination.rejectionReason && (
-                <p className="pdcard__rejection-reason">
-                  Motivo: {destination.rejectionReason}
-                </p>
+                <p className="pdcard__reason">Motivo: {destination.rejectionReason}</p>
               )}
-            </div>
+            </>
           )}
 
           {isOwner && (onEdit || onDelete) && (
             <div className="pdcard__actions">
               {onEdit && (
-                <button
-                  type="button"
-                  className="pdcard__btn pdcard__btn--edit"
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  iconLeft={Pencil}
                   onClick={() => onEdit(destination.id)}
+                  aria-label={`Editar ${destination.name}`}
                 >
                   Editar
-                </button>
+                </Button>
               )}
               {onDelete && (
-                <button
-                  type="button"
-                  className="pdcard__btn pdcard__btn--delete"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  iconLeft={Trash2}
                   onClick={() => onDelete(destination.id)}
+                  aria-label={`Excluir ${destination.name}`}
                 >
                   Excluir
-                </button>
+                </Button>
               )}
             </div>
           )}
         </div>
-      </div>
+      </article>
     </>
   )
 }

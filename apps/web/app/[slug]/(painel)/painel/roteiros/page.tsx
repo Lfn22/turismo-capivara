@@ -3,9 +3,9 @@ import { getToken } from "next-auth/jwt"
 import { cookies } from "next/headers"
 import { authOptions } from "@/lib/auth"
 import { apiFetch } from "@/lib/api/client"
-import Link from "next/link"
-import BackButton from "@/src/components/ui/BackButton"
+import { CalendarDays, Images, Plus, Users } from "lucide-react"
 import EmptyState from "@/src/components/ui/EmptyState"
+import { Alert, Badge, Button, Media, PageHeader, StatusBadge } from "@/src/components/ui/capi"
 
 interface Package {
   id: string
@@ -16,13 +16,12 @@ interface Package {
   active: boolean
   capacity: number
   conductorId?: string
+  photos?: string[]
 }
 
-const DIFFICULTY: Record<string, { label: string; bg: string; color: string }> = {
-  EASY:     { label: "Fácil",    bg: "#F0FDF4", color: "#15803D" },
-  MODERATE: { label: "Moderado", bg: "#FEF9EC", color: "#B45309" },
-  HARD:     { label: "Difícil",  bg: "#FEF2F2", color: "#DC2626" },
-  EXTREME:  { label: "Extremo",  bg: "#FEF2F2", color: "#7F1D1D" },
+function DifficultyBadge({ difficulty }: { difficulty: Package["difficulty"] }) {
+  if (difficulty === "EXTREME") return <Badge tone="danger">Extremo</Badge>
+  return <StatusBadge kind="difficulty" status={difficulty ?? "MODERATE"} />
 }
 
 function formatPrice(price: string | number) {
@@ -60,74 +59,40 @@ export default async function RoteirosPage({
 
   return (
     <>
-      <BackButton />
-      {/* Page header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          marginBottom: "32px",
-          flexWrap: "wrap",
-          gap: "16px",
-        }}
-      >
-        <div>
-          <p
-            style={{
-              fontSize: "11px",
-              color: "var(--ochre)",
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              marginBottom: "8px",
-            }}
-          >
-            Painel do Guia
-          </p>
-          <h1
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "24px",
-              color: "var(--stone-900)",
-              lineHeight: 1.2,
-            }}
-          >
-            Meus Roteiros
-          </h1>
-        </div>
+      <style>{`
+        .roteiro-card { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+        .roteiro-card__head { display: flex; gap: var(--space-3); align-items: flex-start; }
+        .roteiro-card__thumb { flex: none; width: 56px; }
+        .roteiro-card__title { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.35; color: var(--text); }
+        .roteiro-card__desc { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .roteiro-card__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-top: auto; padding-top: var(--space-3); border-top: 1px solid var(--border); }
+        .roteiro-card__price { margin: 0; font-size: 16px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+        .roteiro-card__price span { font-size: 13px; font-weight: 400; color: var(--text-secondary); }
+        .roteiro-card__actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-2); }
+        .roteiro-grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+      `}</style>
 
-        <Link
-          href={`/${slug}/painel/roteiros/novo`}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            background: "var(--ochre)",
-            color: "white",
-            padding: "8px 20px",
-            borderRadius: "4px",
-            fontSize: "14px",
-            fontWeight: 600,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            textDecoration: "none",
-            minHeight: "44px",
-          }}
-        >
-          Novo Roteiro
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow="Painel do guia"
+        title="Meus roteiros"
+        description="Cadastre roteiros, adicione fotos e experiências e abra horários na agenda."
+        actions={
+          <Button href={`/${slug}/painel/roteiros/novo`} iconLeft={Plus}>
+            Novo roteiro
+          </Button>
+        }
+      />
 
       {loadError ? (
-        <p
-          style={{
-            textAlign: "center",
-            padding: "48px 24px",
-            fontSize: "16px",
-            color: "var(--stone-500)",
-          }}
-        >
-          Erro ao carregar dados. Tente novamente.
-        </p>
+        <Alert
+          tone="danger"
+          title="Erro ao carregar dados. Tente novamente."
+          action={
+            <Button href={`/${slug}/painel/roteiros`} variant="secondary" size="sm">
+              Recarregar
+            </Button>
+          }
+        />
       ) : packages.length === 0 ? (
         <EmptyState
           title="Nenhum roteiro cadastrado"
@@ -136,157 +101,46 @@ export default async function RoteirosPage({
           ctaHref={`/${slug}/painel/roteiros/novo`}
         />
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            gap: "16px",
-          }}
-        >
-          {packages.map((pkg) => {
-            const diff = DIFFICULTY[pkg.difficulty] ?? DIFFICULTY.MODERATE
-            return (
-              <div
-                key={pkg.id}
-                style={{
-                  background: "white",
-                  border: "1px solid var(--stone-200)",
-                  borderRadius: "8px",
-                  padding: "24px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    gap: "8px",
-                  }}
-                >
-                  <h2
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: "16px",
-                      color: "var(--stone-800)",
-                      margin: 0,
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {pkg.name}
-                  </h2>
-                  <span
-                    style={{
-                      padding: "4px 8px",
-                      borderRadius: "4px",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      background: diff.bg,
-                      color: diff.color,
-                      whiteSpace: "nowrap",
-                      letterSpacing: "0.06em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {diff.label}
-                  </span>
+        <div className="roteiro-grid">
+          {packages.map((pkg) => (
+            <article key={pkg.id} className="roteiro-card">
+              <div className="roteiro-card__head">
+                <div className="roteiro-card__thumb">
+                  <Media src={pkg.photos?.[0]} alt="" ratio="1 / 1" sizes="56px" placeholder="mountain" />
                 </div>
-
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "var(--stone-500)",
-                    margin: 0,
-                    lineHeight: 1.5,
-                    WebkitLineClamp: 2,
-                    overflow: "hidden",
-                    display: "-webkit-box",
-                    WebkitBoxOrient: "vertical",
-                  }}
-                >
-                  {pkg.description}
-                </p>
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginTop: "auto",
-                  }}
-                >
-                  <p
-                    style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: "16px",
-                      color: "var(--stone-800)",
-                      margin: 0,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {formatPrice(pkg.price)}
-                  </p>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: pkg.active ? "#15803D" : "var(--stone-400)",
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {pkg.active ? "Ativo" : "Inativo"}
-                  </span>
-                </div>
-
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <Link
-                    href={`/${slug}/painel/roteiros/${pkg.id}`}
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      textAlign: "center",
-                      padding: "8px 12px",
-                      border: "none",
-                      borderRadius: "4px",
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      color: "white",
-                      textDecoration: "none",
-                      background: "var(--ochre, #c2783c)",
-                      minHeight: "44px",
-                    }}
-                  >
-                    Fotos / Experiências
-                  </Link>
-                  <Link
-                    href={`/${slug}/painel/disponibilidade`}
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      textAlign: "center",
-                      padding: "8px 12px",
-                      border: "1px solid var(--stone-300)",
-                      borderRadius: "4px",
-                      fontSize: "14px",
-                      fontWeight: 600,
-                      color: "var(--stone-700)",
-                      textDecoration: "none",
-                      background: "transparent",
-                      minHeight: "44px",
-                    }}
-                  >
-                    Gerenciar Slots
-                  </Link>
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
+                  <h2 className="roteiro-card__title">{pkg.name}</h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <DifficultyBadge difficulty={pkg.difficulty} />
+                    <Badge tone={pkg.active ? "success" : "neutral"} dot>
+                      {pkg.active ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </div>
                 </div>
               </div>
-            )
-          })}
+
+              {pkg.description ? <p className="roteiro-card__desc">{pkg.description}</p> : null}
+
+              <div className="roteiro-card__foot">
+                <p className="roteiro-card__price">
+                  {formatPrice(pkg.price)} <span>/pessoa</span>
+                </p>
+                <span className="inline-flex items-center gap-1 text-fg-secondary" style={{ fontSize: 13 }}>
+                  <Users size={14} strokeWidth={1.75} aria-hidden="true" />
+                  até {pkg.capacity}
+                </span>
+              </div>
+
+              <div className="roteiro-card__actions">
+                <Button href={`/${slug}/painel/roteiros/${pkg.id}`} size="sm" iconLeft={Images}>
+                  Fotos e experiências
+                </Button>
+                <Button href={`/${slug}/painel/disponibilidade`} variant="secondary" size="sm" iconLeft={CalendarDays}>
+                  Gerenciar horários
+                </Button>
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </>

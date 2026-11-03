@@ -1,54 +1,49 @@
 "use client"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
+import Image from "next/image"
 import Link from "next/link"
+import { ArrowLeft, CalendarCheck, Compass, ShieldCheck } from "lucide-react"
 import { requestPasswordReset } from "@/lib/auth-client"
+import { Alert, Button, Input } from "@/src/components/ui/capi"
 
-const inputStyle: React.CSSProperties = {
-  display: "block",
-  width: "100%",
-  padding: "12px",
-  border: "1px solid var(--stone-200)",
-  borderRadius: "4px",
-  fontSize: "16px",
-  fontFamily: "var(--font-body)",
-  color: "var(--stone-900)",
-  background: "white",
-  boxSizing: "border-box",
-}
+/* ── Layout de acesso (local; candidato a componente do DS) ── */
+const BENEFITS = [
+  { icon: Compass, text: "Roteiros e guias locais num só lugar" },
+  { icon: CalendarCheck, text: "Reservas, agenda e check-in organizados" },
+  { icon: ShieldCheck, text: "Guias e operadoras aprovados pela equipe CAPI" },
+]
 
-const btnStyle = (disabled: boolean): React.CSSProperties => ({
-  display: "block",
-  width: "100%",
-  padding: "12px",
-  background: disabled ? "var(--stone-200)" : "var(--ochre)",
-  color: disabled ? "var(--stone-500)" : "white",
-  border: "none",
-  borderRadius: "4px",
-  fontSize: "16px",
-  fontFamily: "var(--font-body)",
-  fontWeight: 600,
-  cursor: disabled ? "not-allowed" : "pointer",
-  marginTop: "8px",
-})
-
-const alertStyle: React.CSSProperties = {
-  background: "#FEF2F2",
-  border: "1px solid #FCA5A5",
-  borderRadius: "4px",
-  padding: "8px 12px",
-  marginBottom: "16px",
-  fontSize: "14px",
-  color: "#DC2626",
-}
-
-const successStyle: React.CSSProperties = {
-  background: "#F0FDF4",
-  border: "1px solid #86EFAC",
-  borderRadius: "4px",
-  padding: "12px",
-  marginBottom: "16px",
-  fontSize: "14px",
-  color: "#15803D",
+function AuthLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid min-h-dvh bg-page lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <aside className="sticky top-0 hidden h-dvh flex-col justify-between gap-12 bg-surface-brand p-12 text-on-brand lg:flex">
+        <Link href="/" className="inline-block self-start rounded-sm">
+          <Image src="/images/logo.png" alt="CAPI" width={120} height={108} className="block brightness-0 invert" />
+        </Link>
+        <div>
+          <p className="font-display text-4xl leading-tight xl:text-5xl">Caminho entre quem explora e quem opera</p>
+          <ul className="mt-10 flex flex-col gap-5">
+            {BENEFITS.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3" style={{ color: "var(--text-on-brand-secondary)" }}>
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full text-on-brand" style={{ background: "var(--terra-700)" }}>
+                  <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+                </span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </aside>
+      <main className="flex min-w-0 items-center justify-center py-10 lg:py-16">
+        <div className="capi-container capi-container--form">
+          <Link href="/" className="mb-8 inline-block rounded-sm lg:hidden">
+            <Image src="/images/logo.png" alt="CAPI" width={120} height={108} priority className="block in-data-[theme=dark]:brightness-0 in-data-[theme=dark]:invert" />
+          </Link>
+          {children}
+        </div>
+      </main>
+    </div>
+  )
 }
 
 export default function EsqueciASenhaPage() {
@@ -72,138 +67,48 @@ export default function EsqueciASenhaPage() {
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100dvh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--stone-50, #FAFAF9)",
-        padding: "clamp(16px, 4vw, 32px)",
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: "400px" }}>
-        <p
-          style={{
-            fontFamily: "var(--font-body)",
-            fontSize: "12px",
-            fontWeight: 700,
-            color: "var(--ochre)",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            marginBottom: "8px",
-          }}
-        >
-          CAPI
-        </p>
+    <AuthLayout>
+      <h1 className="text-2xl font-bold">Recuperar senha</h1>
+      <p className="mt-2 text-fg-secondary">
+        Informe seu email e enviaremos um link para redefinir sua senha.
+      </p>
 
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "24px",
-            fontWeight: 400,
-            color: "var(--stone-900)",
-            lineHeight: 1.2,
-            marginBottom: "8px",
-          }}
-        >
-          Recuperar senha
-        </h1>
+      {sent ? (
+        <div className="mt-8 flex flex-col gap-6">
+          <Alert tone="success" title="Confira seu e-mail">
+            Se este email estiver cadastrado, você receberá as instruções em breve.
+          </Alert>
+          <Button href="/login" variant="secondary" size="lg" fullWidth iconLeft={ArrowLeft}>
+            Voltar para o login
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
+          <Input
+            id="email"
+            label="E-mail"
+            type="email"
+            inputMode="email"
+            required
+            autoFocus
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-        <p
-          style={{
-            fontFamily: "var(--font-body)",
-            fontSize: "14px",
-            color: "var(--stone-500)",
-            marginBottom: "28px",
-          }}
-        >
-          Informe seu email e enviaremos um link para redefinir sua senha.
-        </p>
+          {error && <Alert tone="danger">{error}</Alert>}
 
-        {sent ? (
-          <div>
-            <div style={successStyle}>
-              Se este email estiver cadastrado, você receberá as instruções em breve.
-            </div>
-            <Link
-              href="/login"
-              style={{
-                display: "block",
-                textAlign: "center",
-                fontFamily: "var(--font-body)",
-                fontSize: "14px",
-                color: "var(--ochre)",
-                fontWeight: 600,
-                textDecoration: "none",
-                marginTop: "16px",
-              }}
-            >
-              ← Voltar para o login
-            </Link>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            {error && (
-              <div role="alert" aria-live="polite" style={alertStyle}>
-                {error}
-              </div>
-            )}
+          <Button type="submit" size="lg" fullWidth loading={loading}>
+            Enviar link de recuperação
+          </Button>
 
-            <div style={{ marginBottom: "20px" }}>
-              <label
-                htmlFor="email"
-                style={{
-                  display: "block",
-                  fontFamily: "var(--font-body)",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: "var(--stone-700)",
-                  marginBottom: "6px",
-                }}
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoFocus
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={inputStyle}
-                onFocus={(e) => {
-                  e.currentTarget.style.outline = "2px solid var(--ochre)"
-                  e.currentTarget.style.outlineOffset = "2px"
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.outline = "none"
-                }}
-              />
-            </div>
-
-            <button type="submit" disabled={loading} style={btnStyle(loading)}>
-              {loading ? "Enviando…" : "Enviar link de recuperação"}
-            </button>
-
-            <Link
-              href="/login"
-              style={{
-                display: "block",
-                textAlign: "center",
-                fontFamily: "var(--font-body)",
-                fontSize: "14px",
-                color: "var(--stone-500)",
-                textDecoration: "none",
-                marginTop: "16px",
-              }}
-            >
-              ← Voltar para o login
-            </Link>
-          </form>
-        )}
-      </div>
-    </main>
+          <Button href="/login" variant="ghost" fullWidth iconLeft={ArrowLeft}>
+            Voltar para o login
+          </Button>
+        </form>
+      )}
+    </AuthLayout>
   )
 }

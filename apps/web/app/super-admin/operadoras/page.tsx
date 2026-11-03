@@ -1,6 +1,19 @@
 "use client"
-import { useState, useEffect } from "react"
-import { Modal } from "@/components/ui/Modal"
+import { useState, useEffect, useCallback, type ReactNode } from "react"
+import { Building2, Check, Eye, Link2, RotateCw, X } from "lucide-react"
+import {
+  Alert,
+  Avatar,
+  Button,
+  EmptyState,
+  ListGroup,
+  Modal,
+  PageHeader,
+  Select,
+  Skeleton,
+  StatusBadge,
+  Textarea,
+} from "@/src/components/ui/capi"
 
 interface Tenant {
   id: string
@@ -19,19 +32,60 @@ interface DestinationOption {
   slug: string
 }
 
-const TENANT_STATUS: Record<string, { label: string; bg: string; color: string }> = {
-  PENDING: { label: "Aguardando", bg: "#FEF9EC", color: "#B45309" },
-  APPROVED: { label: "Aprovada", bg: "#F0FDF4", color: "#15803D" },
-  REJECTED: { label: "Rejeitada", bg: "#FEF2F2", color: "#DC2626" },
+function formatDate(iso: string) {
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("pt-BR")
 }
 
-// Shimmer animation style
-const shimmerKeyframes = `
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-`
+/** Linha da fila de moderação: avatar, dados e ações; ações descem para a linha de baixo no mobile. */
+function QueueRow({
+  lead,
+  title,
+  subtitle,
+  meta,
+  note,
+  status,
+  actions,
+  busy,
+}: {
+  lead: ReactNode
+  title: ReactNode
+  subtitle?: ReactNode
+  meta?: ReactNode
+  note?: ReactNode
+  status: ReactNode
+  actions?: ReactNode
+  busy?: boolean
+}) {
+  return (
+    <div
+      className="capi-row flex-wrap lg:flex-nowrap"
+      style={{ opacity: busy ? 0.6 : 1, transition: "opacity .15s ease" }}
+      aria-busy={busy || undefined}
+    >
+      <div className="capi-row__lead">{lead}</div>
+      <div className="capi-row__main">
+        <p className="capi-row__title">{title}</p>
+        {subtitle ? <p className="capi-row__sub">{subtitle}</p> : null}
+        {meta ? <p className="capi-row__sub">{meta}</p> : null}
+        {note ? <p className="mt-1 text-[13px] text-danger">{note}</p> : null}
+      </div>
+      <div className="flex w-full flex-wrap items-center justify-between gap-2 lg:w-auto lg:flex-nowrap lg:justify-end">
+        {status}
+        {actions ? <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div> : null}
+      </div>
+    </div>
+  )
+}
+
+function DetailItem({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <dt className="text-[13px] text-fg-secondary">{label}</dt>
+      <dd className="m-0 text-[15px] font-medium text-fg break-words">{children}</dd>
+    </div>
+  )
+}
 
 export default function SuperAdminOperadorasPage() {
   const [items, setItems] = useState<Tenant[]>([])
@@ -51,6 +105,12 @@ export default function SuperAdminOperadorasPage() {
   const [linkDestinationId, setLinkDestinationId] = useState<string>("")
   const [linkSubmitting, setLinkSubmitting] = useState(false)
   const [linkError, setLinkError] = useState<string | null>(null)
+  // Só apresentação: operadora aberta no painel "Revisar" (usa os dados já carregados)
+  const [reviewTarget, setReviewTarget] = useState<Tenant | null>(null)
+  // onClose estável: o Modal capi refoca o painel quando onClose muda
+  const closeReview = useCallback(() => setReviewTarget(null), [])
+  const closeReject = useCallback(() => setRejectTarget(null), [])
+  const closeLink = useCallback(() => setLinkTarget(null), [])
 
   function loadTenants() {
     setLoading(true)
@@ -176,399 +236,273 @@ export default function SuperAdminOperadorasPage() {
     }
   }
 
+  function openReject(tenant: Tenant) {
+    setRejectTarget(tenant)
+    setRejectReason("")
+    setRejectError(null)
+  }
+
+  function openLink(tenant: Tenant) {
+    setLinkTarget(tenant)
+    setLinkDestinationId(tenant.destinationId ?? "")
+    setLinkError(null)
+  }
+
+  function destinationTitle(id: string | null) {
+    if (!id) return null
+    return destinations.find((d) => d.id === id)?.title ?? null
+  }
+
   const pendingCount = items.filter((t) => t.approvalStatus === "PENDING").length
 
   return (
     <>
-      <style>{shimmerKeyframes}</style>
+      <PageHeader
+        eyebrow="Moderação"
+        title="Operadoras"
+        description={
+          pendingCount === 1
+            ? "1 operadora aguardando aprovação."
+            : `${pendingCount} operadoras aguardando aprovação.`
+        }
+      />
 
-      <p
-        style={{
-          fontSize: "11px",
-          fontWeight: 600,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          color: "var(--ochre)",
-          marginBottom: "8px",
-        }}
-      >
-        SUPER ADMIN
-      </p>
-      <h1
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "24px",
-          fontWeight: 400,
-          color: "var(--stone-900)",
-          marginBottom: "4px",
-        }}
-      >
-        Operadoras
-      </h1>
-      <p style={{ fontSize: "14px", color: "var(--stone-500)", marginBottom: "32px" }}>
-        {pendingCount} operadoras aguardando aprovação
-      </p>
-
-      {actionError && (
-        <div
-          role="alert"
-          style={{
-            background: "#FEF2F2",
-            border: "1px solid #FCA5A5",
-            borderRadius: "4px",
-            padding: "8px 12px",
-            marginBottom: "16px",
-            fontSize: "14px",
-            color: "#DC2626",
-          }}
-        >
+      {actionError ? (
+        <Alert tone="danger" className="mb-4">
           {actionError}
-        </div>
-      )}
+        </Alert>
+      ) : null}
 
       {loading ? (
-        // Shimmer skeleton
-        <div>
+        <ListGroup>
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                height: "52px",
-                marginBottom: "8px",
-                borderRadius: "4px",
-                background: "linear-gradient(90deg, var(--stone-100), var(--stone-50), var(--stone-100))",
-                backgroundSize: "200% 100%",
-                animation: "shimmer 1.5s infinite",
-              }}
-            />
+            <div key={i} className="capi-row" aria-hidden="true">
+              <Skeleton width={48} height={48} radius={24} />
+              <div className="capi-row__main flex flex-col gap-2">
+                <Skeleton width="45%" height={14} />
+                <Skeleton width="30%" height={12} />
+              </div>
+            </div>
           ))}
-        </div>
+        </ListGroup>
       ) : loadError ? (
-        <div
-          role="alert"
-          style={{
-            background: "#FEF2F2",
-            border: "1px solid #FCA5A5",
-            borderRadius: "4px",
-            padding: "16px",
-            fontSize: "14px",
-            color: "#DC2626",
-          }}
+        <Alert
+          tone="danger"
+          title="Erro ao carregar operadoras."
+          action={
+            <Button variant="secondary" size="sm" iconLeft={RotateCw} onClick={loadTenants}>
+              Tentar novamente
+            </Button>
+          }
         >
-          Erro ao carregar operadoras.{" "}
-          <button
-            onClick={loadTenants}
-            style={{ background: "none", border: "none", color: "#DC2626", cursor: "pointer", textDecoration: "underline", fontSize: "14px" }}
-          >
-            Tentar novamente
-          </button>
-        </div>
+          Verifique sua conexão e tente de novo.
+        </Alert>
       ) : items.length === 0 ? (
-        <p
-          style={{
-            textAlign: "center",
-            padding: "48px 24px",
-            fontSize: "16px",
-            color: "var(--stone-500)",
-          }}
-        >
-          Nenhuma operadora cadastrada ainda.
-        </p>
+        <ListGroup>
+          <EmptyState
+            icon={Building2}
+            title="Nenhuma operadora cadastrada ainda."
+            description="Quando uma operadora se cadastrar, ela aparece aqui para aprovação."
+          />
+        </ListGroup>
       ) : (
         <div>
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontSize: "14px",
-            }}
-          >
-            <thead>
-              <tr style={{ background: "var(--stone-100)" }}>
-                {["Nome", "Slug", "Email", "Cadastro", "Status", "Ações"].map((col) => (
-                  <th
-                    key={col}
-                    style={{
-                      textAlign: "left",
-                      padding: "12px 16px",
-                      fontWeight: 600,
-                      color: "var(--stone-700)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => {
-                const status = TENANT_STATUS[item.approvalStatus] ?? TENANT_STATUS.PENDING
-                return (
-                  <tr
-                    key={item.id}
-                    style={{
-                      background: index % 2 === 0 ? "white" : "var(--stone-50)",
-                      borderBottom: "1px solid var(--stone-100)",
-                    }}
-                  >
-                    <td style={{ padding: "12px 16px", color: "var(--stone-800)" }}>{item.name}</td>
-                    <td style={{ padding: "12px 16px", color: "var(--stone-600)", fontFamily: "monospace" }}>{item.slug}</td>
-                    <td style={{ padding: "12px 16px", color: "var(--stone-600)" }}>
-                      {item.users[0]?.email ?? "—"}
-                    </td>
-                    <td style={{ padding: "12px 16px", color: "var(--stone-600)", whiteSpace: "nowrap" }}>
-                      {new Date(item.createdAt).toLocaleDateString("pt-BR")}
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <span
-                        style={{
-                          display: "inline-block",
-                          padding: "4px 8px",
-                          borderRadius: "4px",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          background: status.bg,
-                          color: status.color,
-                        }}
+          <ListGroup>
+            {items.map((item) => {
+              const busy = actionLoading === item.id
+              const email = item.users[0]?.email ?? "—"
+              const linked = destinationTitle(item.destinationId)
+              return (
+                <QueueRow
+                  key={item.id}
+                  busy={busy}
+                  lead={<Avatar name={item.name} size={48} />}
+                  title={item.name}
+                  subtitle={`${item.slug} · ${email}`}
+                  meta={
+                    item.approvalStatus === "APPROVED" && item.destinationId
+                      ? `Cadastrada em ${formatDate(item.createdAt)} · Destino: ${linked ?? "vinculado"}`
+                      : `Cadastrada em ${formatDate(item.createdAt)}`
+                  }
+                  note={
+                    item.approvalStatus === "REJECTED" && item.rejectionReason
+                      ? `Motivo: ${item.rejectionReason}`
+                      : null
+                  }
+                  status={<StatusBadge kind="approval" status={item.approvalStatus} />}
+                  actions={
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        iconLeft={Eye}
+                        onClick={() => setReviewTarget(item)}
+                        aria-label={`Revisar operadora ${item.name}`}
                       >
-                        {status.label}
-                      </span>
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
+                        Revisar
+                      </Button>
                       {item.approvalStatus === "PENDING" ? (
-                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                          <button
-                            onClick={() => handleApprove(item)}
-                            disabled={actionLoading === item.id}
-                            aria-label={`Aprovar operadora ${item.name}`}
-                            style={{
-                              background: "var(--ochre)",
-                              color: "white",
-                              border: "none",
-                              padding: "8px 12px",
-                              borderRadius: "4px",
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              cursor: actionLoading === item.id ? "not-allowed" : "pointer",
-                              minHeight: "40px",
-                              opacity: actionLoading === item.id ? 0.6 : 1,
-                            }}
-                          >
-                            Aprovar Operadora
-                          </button>
-                          <button
-                            onClick={() => {
-                              setRejectTarget(item)
-                              setRejectReason("")
-                              setRejectError(null)
-                            }}
-                            disabled={actionLoading === item.id}
+                        <>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => openReject(item)}
+                            disabled={busy}
                             aria-label={`Rejeitar operadora ${item.name}`}
-                            style={{
-                              background: "#DC2626",
-                              color: "white",
-                              border: "none",
-                              padding: "8px 12px",
-                              borderRadius: "4px",
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              cursor: actionLoading === item.id ? "not-allowed" : "pointer",
-                              minHeight: "40px",
-                              opacity: actionLoading === item.id ? 0.6 : 1,
-                            }}
                           >
-                            Rejeitar Operadora
-                          </button>
-                        </div>
+                            Rejeitar
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            iconLeft={Check}
+                            onClick={() => handleApprove(item)}
+                            loading={busy}
+                            aria-label={`Aprovar operadora ${item.name}`}
+                          >
+                            Aprovar
+                          </Button>
+                        </>
                       ) : item.approvalStatus === "APPROVED" ? (
-                        <button
-                          onClick={() => {
-                            setLinkTarget(item)
-                            setLinkDestinationId(item.destinationId ?? "")
-                            setLinkError(null)
-                          }}
-                          style={{
-                            background: "transparent",
-                            color: "var(--ochre)",
-                            border: "1px solid var(--ochre)",
-                            padding: "6px 10px",
-                            borderRadius: "4px",
-                            fontSize: "13px",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
+                        <Button variant="secondary" size="sm" iconLeft={Link2} onClick={() => openLink(item)}>
                           {item.destinationId ? "Alterar destino" : "Vincular destino"}
-                        </button>
-                      ) : (
-                        <span style={{ color: "var(--stone-400)" }}>—</span>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                        </Button>
+                      ) : null}
+                    </>
+                  }
+                />
+              )
+            })}
+          </ListGroup>
           {hasMore && !loading && !loadError && (
-            <div style={{ textAlign: "center", padding: "24px 0" }}>
-              <button
-                onClick={loadMore}
-                disabled={loadingMore}
-                style={{
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: loadingMore ? "#a8a29e" : "#c8961c",
-                  background: "transparent",
-                  border: "1px solid",
-                  borderColor: loadingMore ? "#d6d3d1" : "#c8961c",
-                  borderRadius: "2px",
-                  padding: "10px 24px",
-                  cursor: loadingMore ? "not-allowed" : "pointer",
-                }}
-              >
+            <div className="flex justify-center py-6">
+              <Button variant="secondary" onClick={loadMore} loading={loadingMore}>
                 {loadingMore ? "Carregando..." : "Carregar mais"}
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
 
-      {/* Link Destination Modal */}
+      {/* Revisar: detalhes da operadora já carregada */}
+      <Modal
+        open={!!reviewTarget}
+        onClose={closeReview}
+        title={reviewTarget?.name ?? "Operadora"}
+        description={reviewTarget?.slug}
+        footer={
+          reviewTarget?.approvalStatus === "PENDING" ? (
+            <>
+              <Button
+                variant="secondary"
+                iconLeft={X}
+                onClick={() => {
+                  const target = reviewTarget
+                  setReviewTarget(null)
+                  if (target) openReject(target)
+                }}
+              >
+                Rejeitar
+              </Button>
+              <Button
+                variant="primary"
+                iconLeft={Check}
+                onClick={() => {
+                  const target = reviewTarget
+                  setReviewTarget(null)
+                  if (target) handleApprove(target)
+                }}
+              >
+                Aprovar operadora
+              </Button>
+            </>
+          ) : (
+            <Button variant="secondary" onClick={closeReview}>
+              Fechar
+            </Button>
+          )
+        }
+      >
+        {reviewTarget ? (
+          <div className="flex flex-col gap-5">
+            <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <DetailItem label="Status">
+                <StatusBadge kind="approval" status={reviewTarget.approvalStatus} />
+              </DetailItem>
+              <DetailItem label="Cadastrada em">{formatDate(reviewTarget.createdAt)}</DetailItem>
+              <DetailItem label="Responsável">{reviewTarget.users[0]?.name ?? "—"}</DetailItem>
+              <DetailItem label="E-mail">{reviewTarget.users[0]?.email ?? "—"}</DetailItem>
+              <DetailItem label="Endereço (slug)">{reviewTarget.slug}</DetailItem>
+              <DetailItem label="Destino vinculado">
+                {reviewTarget.destinationId ? destinationTitle(reviewTarget.destinationId) ?? "Vinculado" : "Nenhum"}
+              </DetailItem>
+            </dl>
+            {reviewTarget.approvalStatus === "REJECTED" && reviewTarget.rejectionReason ? (
+              <Alert tone="danger" title="Motivo da rejeição">
+                {reviewTarget.rejectionReason}
+              </Alert>
+            ) : null}
+          </div>
+        ) : null}
+      </Modal>
+
+      {/* Vincular destino */}
       <Modal
         open={!!linkTarget}
-        onClose={() => setLinkTarget(null)}
-        title="Vincular Destino"
+        onClose={closeLink}
+        title="Vincular destino"
+        description={linkTarget ? `Escolha o destino da operadora ${linkTarget.name}.` : undefined}
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeLink}>
+              Cancelar
+            </Button>
+            <Button variant="primary" onClick={handleLinkDestination} loading={linkSubmitting}>
+              {linkSubmitting ? "Salvando..." : "Salvar destino"}
+            </Button>
+          </>
+        }
       >
-        <p style={{ fontSize: "14px", color: "var(--stone-600)", marginBottom: "16px" }}>
-          Selecione o destino para vincular à operadora <strong>{linkTarget?.name}</strong>.
-        </p>
-        <select
+        <Select
+          label="Destino"
           value={linkDestinationId}
           onChange={(e) => setLinkDestinationId(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "8px 12px",
-            border: "1px solid var(--stone-200)",
-            borderRadius: "4px",
-            fontSize: "14px",
-            fontFamily: "var(--font-body)",
-            background: "white",
-            color: "var(--stone-800)",
-            boxSizing: "border-box",
-          }}
+          error={linkError}
+          hint="Só aparecem destinos aprovados."
         >
-          <option value="">— Sem destino vinculado —</option>
+          <option value="">Sem destino vinculado</option>
           {destinations.map((d) => (
             <option key={d.id} value={d.id}>{d.title}</option>
           ))}
-        </select>
-        {linkError && (
-          <p role="alert" style={{ fontSize: "14px", color: "#DC2626", marginTop: "8px" }}>
-            {linkError}
-          </p>
-        )}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "16px" }}>
-          <button
-            onClick={() => setLinkTarget(null)}
-            style={{
-              background: "white",
-              color: "var(--stone-700)",
-              border: "1px solid var(--stone-300)",
-              padding: "8px 16px",
-              borderRadius: "4px",
-              fontSize: "14px",
-              cursor: "pointer",
-            }}
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleLinkDestination}
-            disabled={linkSubmitting}
-            style={{
-              background: linkSubmitting ? "var(--stone-400)" : "var(--ochre)",
-              color: "white",
-              border: "none",
-              padding: "8px 16px",
-              borderRadius: "4px",
-              fontSize: "14px",
-              fontWeight: 600,
-              cursor: linkSubmitting ? "not-allowed" : "pointer",
-            }}
-          >
-            {linkSubmitting ? "Salvando..." : "Salvar"}
-          </button>
-        </div>
+        </Select>
       </Modal>
 
-      {/* Rejection Modal */}
+      {/* Rejeição com motivo obrigatório */}
       <Modal
         open={!!rejectTarget}
-        onClose={() => setRejectTarget(null)}
-        title="Rejeitar Operadora"
+        onClose={closeReject}
+        title="Rejeitar operadora"
+        description="Informe o motivo da rejeição. A operadora receberá este motivo por e-mail."
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeReject}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleRejectSubmit} loading={rejectSubmitting}>
+              {rejectSubmitting ? "Rejeitando..." : "Rejeitar operadora"}
+            </Button>
+          </>
+        }
       >
-        <p style={{ fontSize: "14px", color: "var(--stone-600)", marginBottom: "16px" }}>
-          Informe o motivo da rejeição. A operadora receberá este motivo por email.
-        </p>
-        <textarea
+        <Textarea
+          label="Motivo da rejeição"
           rows={4}
-          placeholder="Descreva o motivo..."
+          placeholder="Ex.: o CNPJ informado não corresponde à razão social."
           value={rejectReason}
           onChange={(e) => setRejectReason(e.target.value)}
+          error={rejectError}
           autoFocus
-          style={{
-            width: "100%",
-            minHeight: "96px",
-            padding: "8px 12px",
-            border: "1px solid var(--stone-200)",
-            borderRadius: "4px",
-            fontSize: "16px",
-            fontFamily: "var(--font-body)",
-            resize: "vertical",
-            boxSizing: "border-box",
-          }}
         />
-        {rejectError && (
-          <p role="alert" style={{ fontSize: "14px", color: "#DC2626", marginTop: "8px" }}>
-            {rejectError}
-          </p>
-        )}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "16px" }}>
-          <button
-            onClick={() => setRejectTarget(null)}
-            style={{
-              background: "white",
-              color: "var(--stone-700)",
-              border: "1px solid var(--stone-300)",
-              padding: "8px 16px",
-              borderRadius: "4px",
-              fontSize: "14px",
-              cursor: "pointer",
-            }}
-          >
-            Fechar Modal
-          </button>
-          <button
-            onClick={handleRejectSubmit}
-            disabled={rejectSubmitting}
-            style={{
-              background: rejectSubmitting ? "var(--stone-400)" : "#DC2626",
-              color: "white",
-              border: "none",
-              padding: "8px 16px",
-              borderRadius: "4px",
-              fontSize: "14px",
-              fontWeight: 600,
-              cursor: rejectSubmitting ? "not-allowed" : "pointer",
-            }}
-          >
-            {rejectSubmitting ? "Rejeitando..." : "Confirmar Rejeição"}
-          </button>
-        </div>
       </Modal>
     </>
   )

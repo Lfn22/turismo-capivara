@@ -3,7 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useParams } from 'next/navigation';
+import { ArrowRight, CalendarSearch, CalendarX } from 'lucide-react';
 import BookingForm from '@/src/components/ui/BookingForm';
+import BackButton from '@/src/components/ui/BackButton';
+import { Button, EmptyState, Stepper } from '@/src/components/ui/capi';
+
+const STEPS = ['Data e horário', 'Seus dados', 'Pagamento'];
 
 export default function ReservarPage() {
   const searchParams = useSearchParams();
@@ -33,68 +38,52 @@ export default function ReservarPage() {
 
   if (!slotId || !packageId) {
     return (
-      <div
-        style={{
-          maxWidth: '480px',
-          margin: '0 auto',
-          padding: '3rem 1.5rem',
-          textAlign: 'center',
-        }}
-      >
-        <p style={{ color: '#78716c', fontSize: '1rem' }}>
-          Selecione um slot antes de reservar.
-        </p>
+      <div className="capi-container capi-container--form py-8">
+        <EmptyState
+          icon={CalendarSearch}
+          title="Escolha uma data primeiro"
+          description="Selecione a data e o horário no roteiro antes de reservar."
+          action={
+            <Button href={`/${slug}/roteiros`} variant="secondary">
+              Ver roteiros
+            </Button>
+          }
+        />
       </div>
     );
   }
 
   if (tenantBlocked) {
     return (
-      <div
-        style={{
-          maxWidth: '480px',
-          margin: '0 auto',
-          padding: '3rem 1.5rem',
-          textAlign: 'center',
-        }}
-      >
-        <p style={{ color: '#78716c', fontSize: '1rem', marginBottom: '1rem' }}>
-          Este roteiro não está disponível para reservas no momento.
-        </p>
-        <a
-          href="/destinos"
-          style={{
-            fontSize: '0.875rem',
-            color: '#c8961c',
-            textDecoration: 'none',
-            fontWeight: 600,
-          }}
-        >
-          Explorar outros destinos →
-        </a>
+      <div className="capi-container capi-container--form py-8">
+        <EmptyState
+          icon={CalendarX}
+          title="Reservas indisponíveis"
+          description="Este roteiro não está disponível para reservas no momento."
+          action={
+            <Button href="/destinos" variant="secondary" iconRight={ArrowRight}>
+              Explorar outros destinos
+            </Button>
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        maxWidth: '480px',
-        margin: '0 auto',
-        padding: '2.5rem 1.5rem',
-      }}
-    >
-      <h1
-        style={{
-          margin: '0 0 1.5rem',
-          fontSize: '1.375rem',
-          fontWeight: 700,
-          color: '#1c1917',
-        }}
-      >
-        Confirmar reserva
-      </h1>
-      <BookingForm slotId={slotId} packageId={packageId} slug={slug} />
+    <div className="capi-has-bottombar capi-has-bottombar--book">
+      <div className="capi-container capi-container--form pt-4 md:pt-6">
+        {/* Cabeçalho simples do checkout: voltar + título + etapa */}
+        <BackButton fallbackHref={`/${slug}/roteiros/${packageId}`} />
+        <div className="mb-4 mt-2 flex items-baseline justify-between gap-3">
+          <h1 className="m-0 text-2xl">Seus dados</h1>
+          <p className="m-0 text-sm text-fg-secondary">Etapa 2 de 3</p>
+        </div>
+        <Stepper steps={STEPS} current={1} />
+      </div>
+      <div className="capi-container capi-container--form py-6">
+        <BookingForm slotId={slotId} packageId={packageId} slug={slug} />
+      </div>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 "use client"
 import { useState, useEffect } from "react"
 import BackButton from "@/src/components/ui/BackButton"
+import { ImagePlus, Link2, Plus, Trash2 } from "lucide-react"
+import { Alert, Button, IconButton, Input, PageHeader, Skeleton, Textarea } from "@/src/components/ui/capi"
 
 interface DestinationData {
   slug: string
@@ -138,258 +140,230 @@ export default function DestinoPage({
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "8px 12px",
-    border: "1px solid var(--stone-300)",
-    borderRadius: "4px",
-    fontSize: "16px",
-    color: "var(--stone-800)",
-    background: "white",
-    boxSizing: "border-box",
-  }
-
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    fontSize: "14px",
-    color: "var(--stone-700)",
-    marginBottom: "4px",
-    fontWeight: 600,
-  }
-
   return (
-    <>
-      <BackButton />
+    <div className="capi-container capi-container--text" style={{ paddingInline: 0 }}>
+      <style precedence="default">{`
+        .mdest-form {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-8);
+          padding-bottom: calc(var(--space-20) + var(--space-4));
+          font-family: var(--font-sans);
+        }
+        @media (min-width: 768px) { .mdest-form { padding-bottom: 0; } }
+        .mdest-section { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+        .mdest-section + .mdest-section { padding-top: var(--space-8); border-top: 1px solid var(--border); }
+        .mdest-head { display: flex; flex-direction: column; gap: var(--space-1); }
+        .mdest-title { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--text); }
+        .mdest-desc { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+        .mdest-row { display: flex; align-items: flex-start; gap: var(--space-2); }
+        .mdest-row > :first-child { flex: 1; min-width: 0; }
+        /* alinha o botão ao campo: rótulo (14px × 1,4) + gap 6px + (48px − 44px) / 2 */
+        .mdest-row > .capi-iconbtn, .mdest-row > .capi-btn { flex: none; margin-top: calc(14px * 1.4 + 6px + 2px); }
+        .mdest-photos { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+        .mdest-photo {
+          display: flex;
+          align-items: center;
+          gap: var(--space-3);
+          padding: var(--space-2);
+          padding-right: var(--space-1);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          background: var(--surface);
+        }
+        .mdest-photo__thumb {
+          width: 56px;
+          height: 56px;
+          flex: none;
+          border-radius: var(--radius-sm);
+          overflow: hidden;
+          background: var(--bg-muted);
+        }
+        .mdest-photo__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .mdest-photo__url {
+          flex: 1;
+          min-width: 0;
+          font-size: 14px;
+          color: var(--text-primary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          text-decoration: underline;
+          text-underline-offset: 3px;
+          text-decoration-thickness: 1px;
+        }
+        .mdest-bar {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: calc(var(--bottombar-height) + env(safe-area-inset-bottom, 0px));
+          z-index: var(--z-sticky);
+          display: flex;
+          padding: var(--space-3) var(--space-4);
+          background: var(--surface);
+          border-top: 1px solid var(--border);
+          box-shadow: var(--shadow-md);
+        }
+        .mdest-bar .capi-btn { flex: 1; }
+        @media (min-width: 768px) {
+          .mdest-bar {
+            position: static;
+            justify-content: flex-end;
+            padding: var(--space-6) 0 0;
+            background: transparent;
+            box-shadow: none;
+          }
+          .mdest-bar .capi-btn { flex: 0 0 auto; }
+        }
+      `}</style>
 
-      <div style={{ marginBottom: "32px" }}>
-        <p
-          style={{
-            fontSize: "11px",
-            color: "var(--ochre)",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            marginBottom: "8px",
-          }}
-        >
-          Painel do Guia
-        </p>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "24px",
-            color: "var(--stone-900)",
-            lineHeight: 1.2,
-            margin: 0,
-          }}
-        >
-          Meu Destino
-        </h1>
-      </div>
+      <BackButton fallbackHref={slug ? `/${slug}/painel` : '/'} />
+
+      <PageHeader
+        eyebrow="Painel do guia"
+        title="Meu destino"
+        description="Textos e imagens da página pública do seu destino."
+      />
 
       {loading ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxWidth: "640px" }}>
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                height: "48px",
-                borderRadius: "4px",
-                background:
-                  "linear-gradient(90deg, var(--stone-200) 25%, var(--stone-100) 50%, var(--stone-200) 75%)",
-                backgroundSize: "200%",
-                animation: "shimmer 1.5s infinite",
-              }}
-            />
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }} aria-busy="true">
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <Skeleton width={120} height={14} />
+              <Skeleton height={48} radius={12} />
+            </div>
           ))}
+          <Skeleton height={140} radius={12} />
         </div>
       ) : loadError ? (
-        <p style={{ fontSize: "16px", color: "var(--stone-500)" }}>
-          Erro ao carregar dados. Tente novamente.
-        </p>
+        <Alert tone="danger" title="Não foi possível carregar seu destino">
+          Recarregue a página para tentar de novo.
+        </Alert>
       ) : (
-        <form
-          onSubmit={handleSave}
-          style={{ maxWidth: "640px", display: "flex", flexDirection: "column", gap: "20px" }}
-        >
-          {/* Texto */}
-          <div>
-            <label style={labelStyle}>Frase de impacto</label>
-            <input
+        <form onSubmit={handleSave} className="mdest-form">
+          {/* Textos */}
+          <section className="mdest-section">
+            <div className="mdest-head">
+              <h2 className="mdest-title">Textos</h2>
+              <p className="mdest-desc">O que o turista lê no topo e na apresentação do destino.</p>
+            </div>
+
+            <Input
+              label="Frase de impacto"
+              optional
               type="text"
               value={tagline}
               onChange={(e) => setTagline(e.target.value)}
-              placeholder='Ex: "A natureza que cura quem chega"'
-              style={inputStyle}
+              placeholder="Ex.: A natureza que cura quem chega"
             />
-          </div>
 
-          <div>
-            <label style={labelStyle}>Título</label>
-            <input
+            <Input
+              label="Título"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              style={inputStyle}
               required
             />
-          </div>
 
-          <div>
-            <label style={labelStyle}>Subtítulo</label>
-            <input
+            <Input
+              label="Subtítulo"
+              optional
               type="text"
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
               placeholder="Frase curta de apoio"
-              style={inputStyle}
             />
-          </div>
 
-          <div>
-            <label style={labelStyle}>Descrição</label>
-            <textarea
+            <Textarea
+              label="Descrição"
+              optional
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={6}
-              placeholder="Separe parágrafos com uma linha em branco."
-              style={{ ...inputStyle, resize: "vertical" }}
+              hint="Separe parágrafos com uma linha em branco."
             />
-          </div>
+          </section>
 
           {/* Destaques */}
-          <div>
-            <label style={labelStyle}>Pontos de interesse</label>
-            <p style={{ fontSize: "14px", color: "var(--stone-400)", marginTop: 0, marginBottom: "8px" }}>
-              Um por campo — aparecem nos cards do destino.
-            </p>
+          <section className="mdest-section">
+            <div className="mdest-head">
+              <h2 className="mdest-title">Pontos de interesse</h2>
+              <p className="mdest-desc">Um por campo. Eles aparecem nos cards do destino.</p>
+            </div>
+
             {highlights.map((h, i) => (
-              <div key={i} style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
-                <input
+              <div key={i} className="mdest-row">
+                <Input
+                  label={`Ponto ${i + 1}`}
                   value={h}
                   onChange={(e) => setHighlight(i, e.target.value)}
                   placeholder={`Ponto ${i + 1}`}
-                  style={{ ...inputStyle, flex: 1 }}
                 />
-                <button
-                  type="button"
+                <IconButton
+                  icon={Trash2}
+                  label={`Remover ponto ${i + 1}`}
+                  variant="ghost"
                   onClick={() => removeHighlight(i)}
-                  aria-label={`Remover ponto ${i + 1}`}
-                  style={{
-                    background: "transparent",
-                    border: "1px solid #DC2626",
-                    color: "#DC2626",
-                    borderRadius: "4px",
-                    padding: "0 12px",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    minHeight: "44px",
-                  }}
-                >
-                  ✕
-                </button>
+                />
               </div>
             ))}
-            <button
-              type="button"
-              onClick={addHighlight}
-              style={{
-                background: "transparent",
-                border: "1px solid var(--stone-300)",
-                color: "var(--stone-700)",
-                borderRadius: "4px",
-                padding: "6px 16px",
-                fontSize: "13px",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              + Adicionar ponto
-            </button>
-          </div>
+
+            <div>
+              <Button variant="secondary" size="sm" iconLeft={Plus} onClick={addHighlight}>
+                Adicionar ponto
+              </Button>
+            </div>
+          </section>
 
           {/* Imagens */}
-          <div>
-            <label style={labelStyle}>Imagem principal (hero)</label>
-            <input
+          <section className="mdest-section">
+            <div className="mdest-head">
+              <h2 className="mdest-title">Imagens</h2>
+              <p className="mdest-desc">Use links públicos (https://) das fotos.</p>
+            </div>
+
+            <Input
+              label="Imagem principal (capa)"
+              optional
               type="url"
               value={heroImageUrl}
               onChange={(e) => setHeroImageUrl(e.target.value)}
               placeholder="https://exemplo.com/capa.jpg"
-              style={inputStyle}
+              leadingIcon={Link2}
             />
-          </div>
 
-          <div>
-            <label style={labelStyle}>Galeria de fotos (máx. 5)</label>
-            <p style={{ fontSize: "14px", color: "var(--stone-400)", marginTop: 0, marginBottom: "8px" }}>
-              Adicione URLs de fotos para a galeria do destino.
-            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              <div className="mdest-head">
+                <p className="mdest-title" style={{ fontSize: 14 }}>Galeria de fotos</p>
+                <p className="mdest-desc">{photos.length}/5 fotos</p>
+              </div>
 
-            {photos.length > 0 && (
-              <ul
-                style={{
-                  listStyle: "none",
-                  padding: 0,
-                  margin: "0 0 12px 0",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px",
-                }}
-              >
-                {photos.map((url, idx) => (
-                  <li
-                    key={idx}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      background: "var(--stone-50)",
-                      border: "1px solid var(--stone-200)",
-                      borderRadius: "4px",
-                      padding: "8px 12px",
-                    }}
-                  >
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        flex: 1,
-                        fontSize: "14px",
-                        color: "var(--ochre)",
-                        wordBreak: "break-all",
-                        textDecoration: "none",
-                      }}
-                    >
-                      {url}
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(idx)}
-                      aria-label={`Remover foto ${idx + 1}`}
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        color: "#DC2626",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                        padding: "4px 8px",
-                      }}
-                    >
-                      Remover
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+              {photos.length > 0 && (
+                <ul className="mdest-photos">
+                  {photos.map((url, idx) => (
+                    <li key={idx} className="mdest-photo">
+                      <span className="mdest-photo__thumb">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- URLs externas informadas pelo guia */}
+                        <img src={url} alt="" />
+                      </span>
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="mdest-photo__url">
+                        {url}
+                      </a>
+                      <IconButton
+                        icon={Trash2}
+                        label={`Remover foto ${idx + 1}`}
+                        variant="ghost"
+                        onClick={() => removePhoto(idx)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
 
-            {photos.length < 5 && (
-              <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
-                <div style={{ flex: 1 }}>
-                  <input
+              {photos.length < 5 && (
+                <div className="mdest-row">
+                  <Input
+                    label="Link da nova foto"
                     type="url"
                     value={newPhoto}
                     onChange={(e) => {
@@ -397,81 +371,33 @@ export default function DestinoPage({
                       setPhotoError(null)
                     }}
                     placeholder="https://exemplo.com/foto.jpg"
-                    style={{
-                      ...inputStyle,
-                      borderColor: photoError ? "#DC2626" : "var(--stone-300)",
-                    }}
-                    aria-describedby={photoError ? "photo-error" : undefined}
+                    leadingIcon={ImagePlus}
+                    error={photoError}
                   />
-                  {photoError && (
-                    <p id="photo-error" style={{ fontSize: "14px", color: "#DC2626", marginTop: "4px" }}>
-                      {photoError}
-                    </p>
-                  )}
+                  <Button variant="secondary" iconLeft={Plus} onClick={addPhoto}>
+                    Adicionar
+                  </Button>
                 </div>
-                <button
-                  type="button"
-                  onClick={addPhoto}
-                  style={{
-                    background: "var(--stone-800)",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "8px 16px",
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    minHeight: "44px",
-                  }}
-                >
-                  Adicionar
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </section>
 
-          {/* Submit */}
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-            <button
-              type="submit"
-              disabled={saving}
-              style={{
-                background: saving ? "var(--stone-400)" : "var(--ochre)",
-                color: "white",
-                padding: "8px 20px",
-                borderRadius: "4px",
-                fontSize: "14px",
-                fontWeight: 600,
-                border: "none",
-                cursor: saving ? "not-allowed" : "pointer",
-                minHeight: "44px",
-              }}
-            >
-              {saving ? "Salvando..." : "Salvar Alterações"}
-            </button>
+          {saveSuccess && (
+            <Alert tone="success">Destino atualizado com sucesso.</Alert>
+          )}
+          {saveError && (
+            <Alert tone="danger" title="Não foi possível salvar">
+              {saveError}
+            </Alert>
+          )}
 
-            {saveSuccess && (
-              <p role="status" aria-live="polite" style={{ fontSize: "14px", color: "#15803D", margin: 0 }}>
-                Destino atualizado com sucesso.
-              </p>
-            )}
-
-            {saveError && (
-              <p role="alert" aria-live="assertive" style={{ fontSize: "14px", color: "#DC2626", margin: 0 }}>
-                {saveError}
-              </p>
-            )}
+          <div className="mdest-bar">
+            <Button type="submit" loading={saving}>
+              {saving ? "Salvando…" : "Salvar alterações"}
+            </Button>
           </div>
         </form>
       )}
-
-      <style>{`
-        @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-      `}</style>
-    </>
+    </div>
   )
 }

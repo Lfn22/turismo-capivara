@@ -20,6 +20,7 @@ vi.mock('../../database', () => ({
     tenant: { findUnique: vi.fn() },
     user: { findUnique: vi.fn() },
     destination: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+    auditLog: { create: vi.fn().mockResolvedValue({}) },
   },
 }))
 

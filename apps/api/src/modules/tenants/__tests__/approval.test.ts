@@ -13,6 +13,7 @@ vi.mock('../../../shared/sentry', () => ({
   Sentry: {
     init: vi.fn(),
     captureException: vi.fn(),
+    setTag: vi.fn(),
   },
   initSentry: vi.fn(),
 }))
@@ -32,6 +33,7 @@ vi.mock('../../../database', () => ({
       create: vi.fn(),
       findUnique: vi.fn(),
     },
+    auditLog: { create: vi.fn().mockResolvedValue({}) },
     $transaction: vi.fn(),
   },
 }))

@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAPI — Tone Picker</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --stone-50: #FAFAF7;
+    --stone-100: #F5F0E8;
+    --stone-200: #E8DDD0;
+    --stone-300: #D4C4B0;
+    --stone-400: #B8A090;
+    --stone-500: #9C7E6A;
+    --stone-600: #7D5E4A;
+    --stone-700: #5C3D2A;
+    --stone-800: #3D2415;
+    --stone-900: #1F0E08;
+    --ochre: #C4852A;
+    --ochre-light: #E8A84A;
+    --ochre-dark: #9C6318;
+  }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: #1a1a1a;
+    color: #eee;
+    min-height: 100vh;
+  }
+
+  /* ── Controls Panel ── */
+  .controls {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #222;
+    border-bottom: 1px solid #444;
+    padding: 16px 24px;
+  }
+
+  .controls h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--ochre-light);
+    margin-bottom: 12px;
+  }
+
+  .control-group {
+    margin-bottom: 14px;
+  }
+
+  .control-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .swatches {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+
+  .swatch:hover { transform: scale(1.1); }
+
+  .swatch-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .swatch.active .swatch-circle {
+    border-color: var(--ochre);
+    box-shadow: 0 0 8px rgba(196,133,42,0.5);
+  }
+
+  .swatch-label {
+    font-size: 10px;
+    color: #999;
+    margin-top: 4px;
+    text-align: center;
+    max-width: 60px;
+    line-height: 1.2;
+  }
+
+  .swatch-hex {
+    font-size: 9px;
+    color: #666;
+    font-family: monospace;
+  }
+
+  .selected-display {
+    display: flex;
+    gap: 24px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: #2a2a2a;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
+  .selected-display span { color: #ccc; }
+  .selected-display code {
+    color: var(--ochre-light);
+    font-family: monospace;
+    font-weight: 600;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .toggle-btn {
+    background: #333;
+    border: 1px solid #555;
+    color: #ccc;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.15s;
+  }
+
+  .toggle-btn.active {
+    background: var(--ochre-dark);
+    border-color: var(--ochre);
+    color: #fff;
+  }
+
+  /* ── Phone Mockup ── */
+  .phone-container {
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px 64px;
+  }
+
+  .phone {
+    width: 375px;
+    min-height: 800px;
+    border-radius: 40px;
+    border: 4px solid #444;
+    overflow: hidden;
+    background: var(--stone-900);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    position: relative;
+  }
+
+  .phone-notch {
+    width: 150px;
+    height: 28px;
+    background: #444;
+    border-radius: 0 0 16px 16px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 5;
+  }
+
+  /* ── Sections ── */
+  .section { width: 100%; }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(180deg, var(--stone-900) 0%, #2a1508 60%, var(--stone-800) 100%);
+    padding: 60px 24px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 30%, rgba(196,133,42,0.12) 0%, transparent 70%);
+  }
+
+  .hero-badge {
+    display: inline-block;
+    background: rgba(196,133,42,0.15);
+    border: 1px solid rgba(196,133,42,0.3);
+    color: var(--ochre-light);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .hero h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    color: var(--stone-50);
+    line-height: 1.2;
+    position: relative;
+  }
+
+  .hero h2 em {
+    color: var(--ochre-light);
+    font-style: normal;
+  }
+
+  .hero p {
+    color: var(--stone-300);
+    font-size: 14px;
+    margin-top: 12px;
+    position: relative;
+  }
+
+  .hero-btn {
+    display: inline-block;
+    margin-top: 20px;
+    background: var(--ochre);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    position: relative;
+  }
+
+  /* Stats */
+  .stats-bar {
+    background: var(--stone-800);
+    display: flex;
+    justify-content: space-around;
+    padding: 14px 12px;
+    border-top: 1px solid rgba(196,133,42,0.2);
+    border-bottom: 1px solid rgba(196,133,42,0.2);
+  }
+
+  .stat { text-align: center; }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--ochre-light);
+    font-weight: 700;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--stone-400);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Destinations */
+  .destinations {
+    padding: 32px 20px;
+    transition: background-color 0.3s;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--stone-800);
+    margin-bottom: 4px;
+  }
+
+  .section-subtitle {
+    font-size: 13px;
+    color: var(--stone-500);
+    margin-bottom: 20px;
+  }
+
+  .dest-cards {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .dest-card {
+    min-width: 140px;
+    height: 180px;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .dest-card-bg {
+    position: absolute;
+    inset: 0;
+  }
+
+  .dest-card:nth-child(1) .dest-card-bg {
+    background: linear-gradient(160deg, #5C3D2A 0%, #9C6318 100%);
+  }
+  .dest-card:nth-child(2) .dest-card-bg {
+    background: linear-gradient(160deg, #3D6B4F 0%, #5A9E6F 100%);
+  }
+  .dest-card:nth-child(3) .dest-card-bg {
+    background: linear-gradient(160deg, #4A5568 0%, #7B8794 100%);
+  }
+
+  .dest-card-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.6));
+  }
+
+  .dest-card-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .dest-card-detail {
+    font-size: 10px;
+    color: rgba(255,255,255,0.7);
+  }
+
+  /* Rupestre Separator */
+  .rupestre-sep {
+    height: 48px;
+    background: var(--stone-800);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .rupestre-sep::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 30px,
+      rgba(196,133,42,0.1) 30px,
+      rgba(196,133,42,0.1) 32px
+    );
+  }
+
+  .rupestre-icon {
+    width: 20px;
+    height: 20px;
+    opacity: 0.3;
+    position: relative;
+  }
+
+  .rupestre-icon::before {
+    content: '🦫';
+    font-size: 16px;
+  }
+
+  /* Guides */
+  .guides {
+    background: linear-gradient(180deg, var(--stone-900) 0%, var(--stone-800) 100%);
+    padding: 32px 20px;
+  }
+
+  .guides .section-title { color: var(--stone-50); }
+  .guides .section-subtitle { color: var(--stone-400); }
+
+  .guide-cards {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .guide-card {
+    min-width: 120px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 16px 12px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .guide-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--ochre-dark), var(--ochre));
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #fff;
+  }
+
+  .guide-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--stone-100);
+  }
+
+  .guide-spec {
+    font-size: 10px;
+    color: var(--stone-400);
+    margin-top: 2px;
+  }
+
+  .guide-rating {
+    font-size: 11px;
+    color: var(--ochre-light);
+    margin-top: 4px;
+  }
+
+  /* How it Works */
+  .how-it-works {
+    padding: 32px 20px;
+    transition: background-color 0.3s;
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 4px;
+  }
+
+  .step {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .step-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(196,133,42,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .step-text h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--stone-800);
+  }
+
+  .step-text p {
+    font-size: 12px;
+    color: var(--stone-500);
+    margin-top: 2px;
+  }
+
+  /* CTA */
+  .cta-section {
+    padding: 32px 20px;
+    text-align: center;
+    transition: background-color 0.3s;
+  }
+
+  .cta-section .section-title {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .cta-section p {
+    font-size: 13px;
+    color: var(--stone-500);
+    margin-bottom: 16px;
+  }
+
+  .cta-btn {
+    display: inline-block;
+    background: var(--ochre);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 32px;
+    border-radius: 8px;
+    text-decoration: none;
+  }
+
+  /* Footer */
+  .footer {
+    background: var(--stone-900);
+    padding: 24px 20px;
+    text-align: center;
+    border-top: 1px solid rgba(196,133,42,0.15);
+  }
+
+  .footer-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--ochre);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .footer-tagline {
+    font-size: 11px;
+    color: var(--stone-500);
+    margin-bottom: 12px;
+  }
+
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--stone-400);
+  }
+
+  .footer-copy {
+    font-size: 10px;
+    color: var(--stone-600);
+    margin-top: 12px;
+  }
+
+  /* ── Diferença (split) mode ── */
+  .phone.split-mode .destinations,
+  .phone.split-mode .how-it-works,
+  .phone.split-mode .cta-section {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .split-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    z-index: 3;
+    border-right: 2px dashed var(--ochre);
+  }
+
+  .phone.split-mode .split-overlay { display: block; }
+
+  .split-label {
+    position: absolute;
+    bottom: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .split-label-before {
+    left: 4px;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+  }
+
+  .split-label-after {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: rgba(196,133,42,0.8);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    z-index: 2;
+    display: none;
+  }
+
+  .phone.split-mode .split-label-after { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Controls -->
+<div class="controls">
+  <h1>CAPI — Tone Picker</h1>
+
+  <div class="control-group">
+    <label>Seções claras (Destinations + Como funciona)</label>
+    <div class="swatches" id="light-swatches"></div>
+  </div>
+
+  <div class="control-group">
+    <label>CTA / Transição</label>
+    <div class="swatches" id="cta-swatches"></div>
+  </div>
+
+  <div class="selected-display">
+    <span>Seções claras: <code id="disp-light">#FAFAF7</code></span>
+    <span>CTA: <code id="disp-cta">#F5F0E8</code></span>
+  </div>
+
+  <div class="toggle-row">
+    <button class="toggle-btn" id="diff-toggle" onclick="toggleDiff()">Diferença (antes / depois)</button>
+  </div>
+</div>
+
+<!-- Phone -->
+<div class="phone-container">
+  <div class="phone" id="phone">
+    <div class="phone-notch"></div>
+
+    <!-- Hero -->
+    <div class="section hero">
+      <div class="hero-badge">Serra da Capivara</div>
+      <h2>Descubra a <em>história</em> mais antiga das Américas</h2>
+      <p>Conectamos você aos melhores guias locais do Parque Nacional.</p>
+      <a class="hero-btn" href="#">Explorar roteiros</a>
+    </div>
+
+    <!-- Stats -->
+    <div class="section stats-bar">
+      <div class="stat"><div class="stat-num">1.300+</div><div class="stat-label">Pinturas</div></div>
+      <div class="stat"><div class="stat-num">50k</div><div class="stat-label">Anos</div></div>
+      <div class="stat"><div class="stat-num">120+</div><div class="stat-label">Sítios</div></div>
+    </div>
+
+    <!-- Destinations -->
+    <div class="section destinations" id="sec-destinations">
+      <div class="split-overlay" id="split-dest">
+        <span class="split-label split-label-before">Antes</span>
+      </div>
+      <span class="split-label-after">Depois</span>
+      <div class="section-title">Para onde vamos?</div>
+      <div class="section-subtitle">Roteiros mais procurados na região</div>
+      <div class="dest-cards">
+        <div class="dest-card">
+          <div class="dest-card-bg"></div>
+          <div class="dest-card-info">
+            <div class="dest-card-name">Boqueirão da Pedra Furada</div>
+            <div class="dest-card-detail">4h · Trilha moderada</div>
+          </div>
+        </div>
+        <div class="dest-card">
+          <div class="dest-card-bg"></div>
+          <div class="dest-card-info">
+            <div class="dest-card-name">Baixão da Perna</div>
+            <div class="dest-card-detail">3h · Trilha leve</div>
+          </div>
+        </div>
+        <div class="dest-card">
+          <div class="dest-card-bg"></div>
+          <div class="dest-card-info">
+            <div class="dest-card-name">Desfiladeiro da Capivara</div>
+            <div class="dest-card-detail">5h · Trilha difícil</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rupestre Separator -->
+    <div class="section rupestre-sep">
+      <span class="rupestre-icon"></span>
+      <span class="rupestre-icon"></span>
+      <span class="rupestre-icon"></span>
+      <span class="rupestre-icon"></span>
+      <span class="rupestre-icon"></span>
+    </div>
+
+    <!-- Guides -->
+    <div class="section guides">
+      <div class="section-title">Nossos guias</div>
+      <div class="section-subtitle">Credenciados pelo ICMBio</div>
+      <div class="guide-cards">
+        <div class="guide-card">
+          <div class="guide-avatar">M</div>
+          <div class="guide-name">Marcos Silva</div>
+          <div class="guide-spec">Arqueologia</div>
+          <div class="guide-rating">★★★★★</div>
+        </div>
+        <div class="guide-card">
+          <div class="guide-avatar">A</div>
+          <div class="guide-name">Ana Costa</div>
+          <div class="guide-spec">Fauna & Flora</div>
+          <div class="guide-rating">★★★★☆</div>
+        </div>
+        <div class="guide-card">
+          <div class="guide-avatar">R</div>
+          <div class="guide-name">Raimundo</div>
+          <div class="guide-spec">Trilhas</div>
+          <div class="guide-rating">★★★★★</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it Works -->
+    <div class="section how-it-works" id="sec-howitworks">
+      <div class="split-overlay" id="split-hiw">
+        <span class="split-label split-label-before">Antes</span>
+      </div>
+      <span class="split-label-after">Depois</span>
+      <div class="section-title">Como funciona</div>
+      <div class="section-subtitle">Sua aventura em 3 passos</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-icon">🔍</div>
+          <div class="step-text">
+            <h4>1. Escolha o roteiro</h4>
+            <p>Filtre por duração, dificuldade e interesses.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-icon">📅</div>
+          <div class="step-text">
+            <h4>2. Reserve seu guia</h4>
+            <p>Veja disponibilidade e pague via PIX.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-icon">🏞️</div>
+          <div class="step-text">
+            <h4>3. Viva a experiência</h4>
+            <p>Encontre seu guia no local e explore.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="section cta-section" id="sec-cta">
+      <div class="split-overlay" id="split-cta">
+        <span class="split-label split-label-before">Antes</span>
+      </div>
+      <span class="split-label-after">Depois</span>
+      <div class="section-title">Pronto para explorar?</div>
+      <p>Conecte-se com guias locais e descubra o parque como nunca antes.</p>
+      <a class="cta-btn" href="#">Começar agora</a>
+    </div>
+
+    <!-- Footer -->
+    <div class="section footer">
+      <div class="footer-logo">CAPI</div>
+      <div class="footer-tagline">caminho entre quem explora e quem opera</div>
+      <div class="footer-links">
+        <span>Sobre</span>
+        <span>Termos</span>
+        <span>Privacidade</span>
+        <span>Contato</span>
+      </div>
+      <div class="footer-copy">© 2026 CAPI. Todos os direitos reservados.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const lightTones = [
+  { hex: '#FAFAF7', name: 'stone-50 (atual)' },
+  { hex: '#F5F0E8', name: 'stone-100' },
+  { hex: '#EFE8DC', name: 'Tone 2' },
+  { hex: '#E8DDD0', name: 'stone-200' },
+  { hex: '#E0D3C3', name: 'Tone 4' },
+  { hex: '#D8C9B6', name: 'Tone 5' },
+  { hex: '#D4C4B0', name: 'stone-300' },
+  { hex: '#C8B8A0', name: 'Tone 7' },
+  { hex: '#B8A090', name: 'stone-400' },
+];
+
+const ctaTones = [
+  { hex: '#F5F0E8', name: 'stone-100' },
+  { hex: '#E8DDD0', name: 'stone-200' },
+  { hex: '#D4C4B0', name: 'stone-300' },
+  { hex: 'rgba(196,133,42,0.08)', resolve: '#F5F0E8', name: 'Ochre-bg', composite: true, base: '#F5F0E8' },
+  { hex: 'rgba(196,133,42,0.05)', resolve: '#E8DDD0', name: 'Ochre sutil', composite: true, base: '#E8DDD0' },
+  { hex: '#B8A090', name: 'stone-400' },
+];
+
+let currentLight = '#FAFAF7';
+let currentCta = '#F5F0E8';
+let diffMode = false;
+
+function renderSwatches(tones, containerId, type) {
+  const container = document.getElementById(containerId);
+  tones.forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'swatch' + (i === 0 ? ' active' : '');
+    div.dataset.type = type;
+    div.dataset.index = i;
+
+    // Compute display color
+    let displayColor = t.hex;
+    if (t.composite) {
+      displayColor = blendRgba(t.hex, t.base);
+    }
+
+    div.innerHTML = `
+      <div class="swatch-circle" style="background:${displayColor}"></div>
+      <div class="swatch-label">${t.name}</div>
+      <div class="swatch-hex">${t.hex.length > 10 ? 'overlay' : t.hex}</div>
+    `;
+
+    div.addEventListener('click', () => selectSwatch(type, i, tones));
+    container.appendChild(div);
+  });
+}
+
+function blendRgba(rgba, baseHex) {
+  // Simple: just use CSS background layering
+  return baseHex;
+}
+
+function selectSwatch(type, index, tones) {
+  const tone = tones[index];
+  const container = type === 'light' ? 'light-swatches' : 'cta-swatches';
+
+  document.querySelectorAll(`#${container} .swatch`).forEach((s, i) => {
+    s.classList.toggle('active', i === index);
+  });
+
+  if (type === 'light') {
+    currentLight = tone.hex;
+    document.getElementById('disp-light').textContent = tone.hex;
+    applyLight();
+  } else {
+    currentCta = tone.composite
+      ? tone.hex
+      : tone.hex;
+    document.getElementById('disp-cta').textContent = tone.hex.length > 20 ? tone.name : tone.hex;
+    applyCta(tone);
+  }
+}
+
+function applyLight() {
+  document.getElementById('sec-destinations').style.backgroundColor = currentLight;
+  document.getElementById('sec-howitworks').style.backgroundColor = currentLight;
+}
+
+function applyCta(tone) {
+  const el = document.getElementById('sec-cta');
+  if (tone && tone.composite) {
+    el.style.backgroundColor = tone.base;
+    el.style.backgroundImage = `linear-gradient(${tone.hex}, ${tone.hex})`;
+  } else {
+    el.style.backgroundColor = tone ? tone.hex : currentCta;
+    el.style.backgroundImage = 'none';
+  }
+}
+
+function toggleDiff() {
+  diffMode = !diffMode;
+  const phone = document.getElementById('phone');
+  const btn = document.getElementById('diff-toggle');
+
+  phone.classList.toggle('split-mode', diffMode);
+  btn.classList.toggle('active', diffMode);
+
+  // Set before-half to original stone-50
+  if (diffMode) {
+    ['split-dest', 'split-hiw', 'split-cta'].forEach(id => {
+      document.getElementById(id).style.backgroundColor = '#FAFAF7';
+    });
+  }
+}
+
+// Init
+renderSwatches(lightTones, 'light-swatches', 'light');
+renderSwatches(ctaTones, 'cta-swatches', 'cta');
+applyLight();
+applyCta(ctaTones[0]);
+</script>
+</body>
+</html>

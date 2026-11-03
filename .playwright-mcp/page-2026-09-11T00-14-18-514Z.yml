@@ -1,0 +1,38 @@
+- generic [active] [ref=f7e1]:
+  - navigation [ref=f7e2]:
+    - link "CAPI" [ref=f7e3] [cursor=pointer]:
+      - /url: /
+    - generic [ref=f7e4]:
+      - link "Destinos" [ref=f7e5] [cursor=pointer]:
+        - /url: /destinos
+      - link "Explorar" [ref=f7e6] [cursor=pointer]:
+        - /url: /explorar
+  - generic [ref=f7e9]:
+    - img "CAPI" [ref=f7e12]
+    - paragraph [ref=f7e80]: Caminho entre quem explora e quem opera
+    - link "Explorar destinos" [ref=f7e81] [cursor=pointer]:
+      - /url: /destinos
+  - generic [ref=f7e97]:
+    - paragraph [ref=f7e98]: Guias locais
+    - heading [level=2] [ref=f7e99]:
+      - text: Quem conhece
+      - emphasis [ref=f7e100]: de verdade
+    - paragraph [ref=f7e101]: Guias nascidos e criados na regiao. Cada trilha tem uma historia, cada pedra tem um nome.
+  - generic [ref=f7e103]:
+    - paragraph [ref=f7e104]: Comece agora
+    - heading [level=2] [ref=f7e105]:
+      - text: Sua próxima
+      - emphasis [ref=f7e106]: aventura
+      - text: começa aqui
+    - paragraph [ref=f7e107]: Encontre guias locais, escolha seu roteiro e reserve com segurança.
+    - link "Explorar destinos" [ref=f7e108] [cursor=pointer]:
+      - /url: /destinos
+  - contentinfo [ref=f7e109]:
+    - generic [ref=f7e110]:
+      - img "CAPI" [ref=f7e111]
+      - link "Acessar painel" [ref=f7e112] [cursor=pointer]:
+        - /url: /login
+      - link "Cadastre sua operadora →" [ref=f7e113] [cursor=pointer]:
+        - /url: /onboarding
+      - paragraph [ref=f7e114]: © 2026 CAPI
+  - button "Open Next.js Dev Tools" [ref=f7e120] [cursor=pointer]

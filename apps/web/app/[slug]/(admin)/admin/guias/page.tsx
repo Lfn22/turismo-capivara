@@ -1,5 +1,7 @@
 "use client"
-import { use, useCallback, useEffect, useState } from "react"
+import { use, useCallback, useEffect, useState, type ReactNode } from "react"
+import { Check, Copy, RotateCw, Users } from "lucide-react"
+import { Alert, Avatar, Button, EmptyState, ListGroup, PageHeader, Skeleton } from "@/src/components/ui/capi"
 import { RejectReasonDialog } from "@/src/components/notifications/RejectReasonDialog"
 import { AlreadyDecidedError, patchViaProxy, type RejectInput } from "@/lib/notification-actions"
 
@@ -17,44 +19,58 @@ function CopyLinkBanner() {
   }
 
   return (
-    <div
-      style={{
-        background: "#FFFBEB",
-        border: "1px solid #FDE68A",
-        borderRadius: "8px",
-        padding: "16px 20px",
-        marginBottom: "24px",
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        gap: "12px",
-      }}
+    <Alert
+      tone="brand"
+      title="Link de cadastro para guias"
+      className="mb-6"
+      action={
+        <Button
+          variant={copied ? "secondary" : "primary"}
+          size="sm"
+          iconLeft={copied ? Check : Copy}
+          onClick={handleCopy}
+          aria-live="polite"
+        >
+          {copied ? "Copiado!" : "Copiar link"}
+        </Button>
+      }
     >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: "12px", fontWeight: 600, color: "#92400E", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-          Link de cadastro para guias
-        </p>
-        <p style={{ fontSize: "13px", color: "#78350F", margin: 0, wordBreak: "break-all" }}>
-          {link}
-        </p>
+      <p className="m-0 font-semibold text-fg" style={{ wordBreak: "break-all" }}>{link}</p>
+    </Alert>
+  )
+}
+
+/** Linha da fila de pedidos: avatar, dados e ações; ações descem para a linha de baixo no mobile. */
+function QueueRow({
+  lead,
+  title,
+  subtitle,
+  meta,
+  actions,
+  busy,
+}: {
+  lead: ReactNode
+  title: ReactNode
+  subtitle?: ReactNode
+  meta?: ReactNode
+  actions?: ReactNode
+  busy?: boolean
+}) {
+  return (
+    <div
+      className="capi-row flex-wrap lg:flex-nowrap"
+      style={{ opacity: busy ? 0.6 : 1, transition: "opacity .15s ease" }}
+      aria-busy={busy || undefined}
+    >
+      <div className="capi-row__lead">{lead}</div>
+      <div className="capi-row__main">
+        <p className="capi-row__title">{title}</p>
+        {subtitle ? <p className="capi-row__sub">{subtitle}</p> : null}
+        {meta ? <p className="capi-row__sub">{meta}</p> : null}
       </div>
-      <button
-        onClick={handleCopy}
-        style={{
-          padding: "8px 16px",
-          background: copied ? "#15803D" : "var(--ochre)",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-          fontSize: "13px",
-          fontWeight: 600,
-          cursor: "pointer",
-          whiteSpace: "nowrap",
-          minHeight: "36px",
-        }}
-      >
-        {copied ? "Copiado!" : "Copiar link"}
-      </button>
+      {actions ? (
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 lg:w-auto lg:flex-nowrap">{actions}</div>
+      ) : null}
     </div>
   )
 }
@@ -65,19 +81,6 @@ interface Affiliation {
   createdAt: string
   guide: { userId: string; name: string; email: string; approvalStatus: string }
 }
-
-const btn = (bg: string): React.CSSProperties => ({
-  background: bg,
-  color: "white",
-  padding: "6px 12px",
-  borderRadius: "4px",
-  fontSize: "13px",
-  fontWeight: 600,
-  border: "none",
-  cursor: "pointer",
-  minHeight: "40px",
-  whiteSpace: "nowrap",
-})
 
 export default function AdminGuiasPage({
   params,
@@ -142,86 +145,85 @@ export default function AdminGuiasPage({
 
   return (
     <>
-      <div style={{ marginBottom: "32px" }}>
-        <p
-          style={{
-            fontSize: "11px",
-            color: "var(--ochre)",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            marginBottom: "8px",
-          }}
-        >
-          Admin
-        </p>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "24px",
-            color: "var(--stone-900)",
-            lineHeight: 1.2,
-            margin: 0,
-          }}
-        >
-          Pedidos de vínculo
-        </h1>
-        <p style={{ fontSize: "14px", color: "var(--stone-500)", margin: "8px 0 0" }}>
-          Guias que declararam atuar com sua agência
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Equipe"
+        title="Pedidos de vínculo"
+        description="Guias que declararam atuar com sua agência"
+      />
 
       <CopyLinkBanner />
 
       {notice && (
-        <p
-          role="alert"
-          style={{
-            fontSize: "14px",
-            color: "#DC2626",
-            marginBottom: "16px",
-            padding: "8px 12px",
-            background: "#FEF2F2",
-            borderRadius: "4px",
-          }}
-        >
+        <Alert tone="danger" className="mb-4">
           {notice}
-        </p>
+        </Alert>
       )}
 
       {loadError ? (
-        <p style={{ color: "var(--stone-500)" }}>Erro ao carregar dados. Tente novamente.</p>
+        <Alert
+          tone="danger"
+          title="Erro ao carregar dados. Tente novamente."
+          action={
+            <Button variant="secondary" size="sm" iconLeft={RotateCw} onClick={load}>
+              Tentar novamente
+            </Button>
+          }
+        />
       ) : !items ? (
-        <p style={{ color: "var(--stone-500)" }}>Carregando…</p>
-      ) : items.length === 0 ? (
-        <p style={{ color: "var(--stone-500)" }}>Nenhuma pendência</p>
-      ) : (
-        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "12px" }}>
-          {items.map((a) => (
-            <li
-              key={a.id}
-              style={{
-                background: "white",
-                border: "1px solid var(--stone-200)",
-                borderRadius: "8px",
-                padding: "16px",
-              }}
-            >
-              <p style={{ margin: 0, fontWeight: 700, color: "var(--stone-900)" }}>{a.guide.name}</p>
-              <p style={{ margin: "2px 0 4px", fontSize: "14px", color: "var(--stone-500)" }}>{a.guide.email}</p>
-              <p style={{ margin: "0 0 12px", fontSize: "12px", color: "var(--stone-500)" }}>
-                Pedido em {new Date(a.createdAt).toLocaleDateString("pt-BR")}
-              </p>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <button disabled={busyId === a.id} onClick={() => accept(a)} style={btn("var(--ochre)")}>
-                  Confirmar vínculo
-                </button>
-                <button disabled={busyId === a.id} onClick={() => setRejecting(a)} style={btn("#DC2626")}>
-                  Recusar
-                </button>
+        <ListGroup>
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="capi-row" aria-hidden="true">
+              <Skeleton width={48} height={48} radius={24} />
+              <div className="capi-row__main flex flex-col gap-2">
+                <Skeleton width="40%" height={14} />
+                <Skeleton width="55%" height={12} />
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
+        </ListGroup>
+      ) : items.length === 0 ? (
+        <ListGroup>
+          <EmptyState icon={Users} title="Nenhuma pendência" />
+        </ListGroup>
+      ) : (
+        <ListGroup>
+          {items.map((a) => {
+            const isActing = busyId === a.id
+            return (
+              <QueueRow
+                key={a.id}
+                busy={isActing}
+                lead={<Avatar name={a.guide.name} size={48} />}
+                title={a.guide.name}
+                subtitle={a.guide.email}
+                meta={`Pedido em ${new Date(a.createdAt).toLocaleDateString("pt-BR")}`}
+                actions={
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={isActing}
+                      onClick={() => setRejecting(a)}
+                      aria-label={`Recusar vínculo de ${a.guide.name}`}
+                    >
+                      Recusar
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      iconLeft={Check}
+                      loading={isActing}
+                      onClick={() => accept(a)}
+                      aria-label={`Confirmar vínculo de ${a.guide.name}`}
+                    >
+                      Confirmar vínculo
+                    </Button>
+                  </>
+                }
+              />
+            )
+          })}
+        </ListGroup>
       )}
 
       {rejecting && (

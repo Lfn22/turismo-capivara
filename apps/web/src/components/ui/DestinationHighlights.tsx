@@ -1,40 +1,34 @@
+import { MapPin } from 'lucide-react';
+
 interface Props {
   highlights: string[];
 }
 
+/** Lista de pontos de interesse do destino (ícone + texto, tokens do CAPI v2). */
 export default function DestinationHighlights({ highlights }: Props) {
   if (!highlights.length) return null;
   return (
     <>
-      <style precedence="default">{`
-        .dhl {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
+      <style>{`
+        .dhl { display: flex; flex-direction: column; gap: var(--space-3); list-style: none; }
+        .dhl__item { display: flex; align-items: flex-start; gap: var(--space-3); font-size: 15px; line-height: 1.5; color: var(--text); }
+        .dhl__icon {
+          flex: none; display: inline-flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; border-radius: var(--radius-round);
+          background: var(--primary-subtle); color: var(--text-primary);
         }
-        .dhl__item {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          font-size: 0.85rem;
-          color: var(--stone-500, #78716c);
-        }
-        .dhl__dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--ochre, #c8961c);
-          flex-shrink: 0;
-        }
+        .dhl__text { padding-top: 3px; }
       `}</style>
-      <div className="dhl">
+      <ul className="dhl">
         {highlights.map((h) => (
-          <div key={h} className="dhl__item">
-            <div className="dhl__dot" aria-hidden="true" />
-            <span>{h}</span>
-          </div>
+          <li key={h} className="dhl__item">
+            <span className="dhl__icon" aria-hidden="true">
+              <MapPin size={16} strokeWidth={1.75} />
+            </span>
+            <span className="dhl__text">{h}</span>
+          </li>
         ))}
-      </div>
+      </ul>
     </>
   );
 }

@@ -1,4 +1,6 @@
+import { ArrowLeft, BadgeCheck, Clock, Map as MapIcon, MapPin, UserX } from 'lucide-react'
 import SlotPicker from '@/src/components/ui/SlotPicker'
+import { Avatar, Badge, Button, EmptyState, StatusBadge } from '@/src/components/ui/capi'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 
@@ -30,10 +32,16 @@ interface TourPackage {
   departureSlots: DepartureSlot[]
 }
 
-const difficultyLabel: Record<string, string> = {
-  EASY: 'Fácil',
-  MODERATE: 'Moderada',
-  HARD: 'Difícil',
+/** Normaliza a dificuldade vinda da API para o enum do StatusBadge. */
+const DIFFICULTY_KEY: Record<string, 'EASY' | 'MODERATE' | 'HARD'> = {
+  EASY: 'EASY',
+  MEDIUM: 'MODERATE',
+  MODERATE: 'MODERATE',
+  HARD: 'HARD',
+}
+
+function formatPriceBRL(price: number | string) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(price))
 }
 
 export default async function GuideProfilePage({
@@ -70,198 +78,128 @@ export default async function GuideProfilePage({
 
   if (loadError || !guide) {
     return (
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '3rem 1.5rem', textAlign: 'center' }}>
-        <p style={{ color: '#78716c', fontSize: '1rem' }}>Guia não encontrado.</p>
+      <div className="capi-container capi-container--text capi-section">
+        <EmptyState
+          icon={UserX}
+          title="Guia não encontrado"
+          description="Este perfil pode ter sido removido ou o link está incorreto."
+          action={
+            <Button href={`/${slug}/guias`} variant="secondary" iconLeft={ArrowLeft}>
+              Ver todos os guias
+            </Button>
+          }
+        />
       </div>
     )
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
-      {/* Guide header */}
-      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
-        <div
-          style={{
-            width: '96px',
-            height: '96px',
-            borderRadius: '50%',
-            backgroundColor: '#f5f5f4',
-            flexShrink: 0,
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {guide.photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={guide.photoUrl}
-              alt={guide.user.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          ) : (
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#a8a29e"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="8" r="4" />
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-            </svg>
-          )}
-        </div>
-
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#1c1917' }}>
-              {guide.user.name}
-            </h1>
+    <div className="capi-container capi-container--content py-8 md:py-12">
+      {/* Cabeçalho do guia */}
+      <header className="mb-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center">
+        <Avatar
+          name={guide.user.name}
+          src={guide.photoUrl}
+          size={96}
+          verified={guide.user.approvalStatus === 'APPROVED'}
+        />
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <h1 className="font-display m-0 text-3xl">{guide.user.name}</h1>
             {guide.user.approvalStatus === 'APPROVED' && (
-              <span
-                title="Guia verificado"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  backgroundColor: '#f0fdf4',
-                  color: '#15803d',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  padding: '0.2rem 0.6rem',
-                  borderRadius: '999px',
-                  border: '1px solid #bbf7d0',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
+              <Badge tone="success" icon={BadgeCheck}>
                 Verificado
-              </span>
+              </Badge>
             )}
           </div>
 
           {guide.especialidades.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.75rem' }}>
+            <div className="mb-3 flex flex-wrap gap-2">
               {guide.especialidades.map((esp) => (
-                <span
-                  key={esp}
-                  style={{
-                    backgroundColor: '#fef3c7',
-                    color: '#92400e',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    padding: '0.2rem 0.6rem',
-                    borderRadius: '999px',
-                  }}
-                >
+                <Badge key={esp} tone="brand">
                   {esp}
-                </span>
+                </Badge>
               ))}
             </div>
           )}
 
           {guide.regioes.length > 0 && (
-            <p style={{ margin: 0, fontSize: '0.875rem', color: '#78716c' }}>
+            <p className="m-0 inline-flex items-center gap-1.5 text-sm text-fg-secondary">
+              <MapPin size={16} strokeWidth={1.75} aria-hidden="true" />
               Regiões: {guide.regioes.join(', ')}
             </p>
           )}
         </div>
-      </div>
+      </header>
 
       {guide.bio && (
-        <div style={{ marginBottom: '2.5rem' }}>
-          <h2 style={{ margin: '0 0 0.75rem', fontSize: '1rem', fontWeight: 600, color: '#1c1917' }}>
-            Sobre o guia
-          </h2>
-          <p style={{ margin: 0, fontSize: '0.95rem', color: '#44403c', lineHeight: 1.7 }}>{guide.bio}</p>
-        </div>
+        <section className="mb-10">
+          <h2 className="m-0 mb-3 text-lg">Sobre o guia</h2>
+          <p className="m-0 leading-relaxed text-fg-secondary">{guide.bio}</p>
+        </section>
       )}
 
-      {/* Packages */}
-      <div>
-        <h2 style={{ margin: '0 0 1.5rem', fontSize: '1.125rem', fontWeight: 700, color: '#1c1917' }}>
-          Roteiros disponíveis
-        </h2>
+      {/* Roteiros */}
+      <section>
+        <h2 className="font-display m-0 mb-6 text-2xl">Roteiros disponíveis</h2>
 
         {packages.length === 0 ? (
-          <p style={{ color: '#78716c', fontSize: '0.95rem' }}>
-            Nenhum roteiro disponível no momento.
-          </p>
+          <EmptyState
+            compact
+            icon={MapIcon}
+            title="Nenhum roteiro disponível no momento"
+            description="Volte em breve para ver as próximas saídas deste guia."
+          />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="flex flex-col gap-6">
             {packages.map((pkg) => {
               const openSlots = (pkg.departureSlots ?? []).filter(
                 (s) => s.status === 'OPEN' && s.booked < s.capacity
               )
+              const difficulty = DIFFICULTY_KEY[pkg.difficulty]
               return (
-                <div
+                <article
                   key={pkg.id}
-                  style={{
-                    border: '1px solid #e7e5e4',
-                    borderRadius: '12px',
-                    padding: '1.25rem 1.5rem',
-                    backgroundColor: '#ffffff',
-                  }}
+                  className="rounded-2xl border border-line bg-surface p-5 md:p-6"
+                  style={{ boxShadow: 'var(--shadow-xs)' }}
                 >
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      marginBottom: '0.5rem',
-                      gap: '1rem',
-                    }}
-                  >
-                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#1c1917' }}>
-                      {pkg.name}
+                  <div className="mb-2 flex items-start justify-between gap-4">
+                    <h3 className="m-0 text-lg">
+                      <a href={`/${slug}/roteiros/${pkg.id}`} className="text-fg no-underline hover:underline">
+                        {pkg.name}
+                      </a>
                     </h3>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#d97706', flexShrink: 0 }}>
-                      R$ {Number(pkg.price).toFixed(2).replace('.', ',')}
-                    </span>
+                    <p className="m-0 shrink-0 text-right">
+                      <strong className="text-lg text-fg">{formatPriceBRL(pkg.price)}</strong>
+                      <span className="text-xs text-fg-secondary"> /pessoa</span>
+                    </p>
                   </div>
 
-                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.875rem', color: '#78716c', lineHeight: 1.6 }}>
-                    {pkg.description}
-                  </p>
+                  <p className="m-0 mb-3 text-sm leading-relaxed text-fg-secondary">{pkg.description}</p>
 
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '1rem',
-                      marginBottom: '1rem',
-                      fontSize: '0.8rem',
-                      color: '#a8a29e',
-                    }}
-                  >
-                    <span>{pkg.duration}h de duração</span>
-                    <span>Dificuldade: {difficultyLabel[pkg.difficulty] ?? pkg.difficulty}</span>
+                  <div className="mb-5 flex flex-wrap items-center gap-3 text-sm text-fg-secondary">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock size={16} strokeWidth={1.75} aria-hidden="true" />
+                      {pkg.duration}h de duração
+                    </span>
+                    {difficulty ? (
+                      <StatusBadge kind="difficulty" status={difficulty} />
+                    ) : (
+                      <Badge>{pkg.difficulty}</Badge>
+                    )}
                   </div>
 
                   {openSlots.length > 0 ? (
-                    <>
-                      <p style={{ margin: '0 0 0.5rem', fontSize: '0.8rem', fontWeight: 600, color: '#44403c' }}>
-                        Datas disponíveis:
-                      </p>
-                      <SlotPicker slots={openSlots} packageId={pkg.id} slug={slug} />
-                    </>
+                    <SlotPicker slots={openSlots} packageId={pkg.id} slug={slug} />
                   ) : (
-                    <p style={{ margin: 0, fontSize: '0.875rem', color: '#78716c' }}>
-                      Nenhuma data disponível no momento.
-                    </p>
+                    <p className="m-0 text-sm text-fg-secondary">Nenhuma data disponível no momento.</p>
                   )}
-                </div>
+                </article>
               )
             })}
           </div>
         )}
-      </div>
+      </section>
     </div>
   )
 }

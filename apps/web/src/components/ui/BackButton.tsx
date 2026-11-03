@@ -1,6 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/src/components/ui/capi'
 
 export default function BackButton({ fallbackHref = '/' }: { fallbackHref?: string }) {
   const router = useRouter()
@@ -11,33 +13,15 @@ export default function BackButton({ fallbackHref = '/' }: { fallbackHref?: stri
   }
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="sm"
+      iconLeft={ArrowLeft}
       onClick={handleBack}
       aria-label="Voltar para página anterior"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        color: 'var(--stone-600)',
-        fontFamily: 'var(--font-body)',
-        fontSize: '0.875rem',
-        fontWeight: 500,
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '0.75rem 0',
-        minHeight: '44px',
-        minWidth: '44px',
-        textDecoration: 'none',
-      }}
-      onMouseOver={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.color = 'var(--stone-800)'
-      }}
-      onMouseOut={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.color = 'var(--stone-600)'
-      }}
+      style={{ minHeight: 'var(--touch-target)' }}
     >
-      ← Voltar
-    </button>
+      Voltar
+    </Button>
   )
 }

@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PainelDestinationCard, PainelDestination } from '@/src/components/ui/PainelDestinationCard'
-import EmptyState from '@/src/components/ui/EmptyState'
 import BackButton from '@/src/components/ui/BackButton'
+import { MapPinned, Plus, RotateCw, Trash2 } from 'lucide-react'
+import { Alert, Button, EmptyState, Modal, PageHeader, Skeleton } from '@/src/components/ui/capi'
 
 export default function DestinosPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -64,160 +65,106 @@ export default function DestinosPage() {
         const body = await res.json().catch(() => ({}))
         const msg = body?.message ?? ''
         if (res.status === 400 && msg.includes('aprovado')) {
-          toast.error('Não é possível excluir um local já aprovado. Entre em contato com o suporte.')
+          toast.error('Não é possível excluir um destino já aprovado. Entre em contato com o suporte.')
         } else {
           throw new Error(`HTTP ${res.status}`)
         }
         return
       }
-      toast.success('Local excluído com sucesso.')
+      toast.success('Destino excluído.')
       setDeleteConfirm(null)
       await fetchDestinations()
     } catch {
-      toast.error('Falha ao excluir local. Tente novamente.')
+      toast.error('Não foi possível excluir o destino. Tente novamente.')
     } finally {
       setDeleting(false)
     }
   }, [deleteConfirm, slug, fetchDestinations])
 
+  const closeDelete = useCallback(() => {
+    if (!deleting) setDeleteConfirm(null)
+  }, [deleting])
+
+  const deleteTarget = deleteConfirm ? destinations.find((d) => d.id === deleteConfirm) : undefined
+
   return (
     <>
       <style precedence="default">{`
-        .destinos-header {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          margin-bottom: 32px;
-          flex-wrap: wrap;
-          gap: 16px;
-        }
         .destinos-grid {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 16px;
+          gap: var(--space-4);
         }
         @media (min-width: 640px) {
-          .destinos-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
+          .destinos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (min-width: 1024px) {
-          .destinos-grid {
-            grid-template-columns: repeat(3, 1fr);
-          }
+          .destinos-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); }
         }
-        .destinos-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.5);
+        .destinos-skel {
           display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 50;
-          padding: 24px;
+          flex-direction: column;
+          gap: var(--space-3);
+          padding-bottom: var(--space-4);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          background: var(--surface);
+          overflow: hidden;
         }
-        .destinos-dialog {
-          background: white;
-          border-radius: 8px;
-          padding: 24px;
-          max-width: 400px;
-          width: 100%;
-        }
-        .destinos-dialog h2 {
-          font-family: var(--font-display, Georgia, serif);
-          font-size: 18px;
-          color: var(--stone-900, #1c1917);
-          margin: 0 0 12px;
-        }
-        .destinos-dialog p {
-          font-size: 14px;
-          color: var(--stone-500, #78716c);
-          margin: 0 0 24px;
-        }
-        .destinos-dialog-actions {
-          display: flex;
-          gap: 12px;
-          justify-content: flex-end;
-        }
+        .destinos-skel__body { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-4); }
       `}</style>
 
-      <BackButton />
+      <BackButton fallbackHref={`/${slug}/painel`} />
 
-      <div className="destinos-header">
-        <div>
-          <p
-            style={{
-              fontSize: '11px',
-              color: 'var(--ochre)',
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
-              marginBottom: '8px',
-            }}
-          >
-            Painel do Guia
-          </p>
-          <h1
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '24px',
-              color: 'var(--stone-900)',
-              lineHeight: 1.2,
-              margin: 0,
-            }}
-          >
-            Locais
-          </h1>
-        </div>
-
-        <a
-          href={`/${slug}/painel/destinos/novo`}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            background: 'var(--ochre, #c2783c)',
-            color: 'white',
-            padding: '8px 20px',
-            borderRadius: '4px',
-            fontSize: '14px',
-            fontWeight: 600,
-            letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-            textDecoration: 'none',
-            minHeight: '44px',
-          }}
-        >
-          + Criar local
-        </a>
-      </div>
+      <PageHeader
+        eyebrow="Painel do guia"
+        title="Destinos"
+        description="Locais que você cadastrou. Cada novo destino passa por aprovação antes de aparecer no marketplace."
+        actions={
+          <Button href={`/${slug}/painel/destinos/novo`} iconLeft={Plus}>
+            Novo destino
+          </Button>
+        }
+      />
 
       {loading ? (
-        <p
-          style={{
-            textAlign: 'center',
-            padding: '48px 24px',
-            fontSize: '16px',
-            color: 'var(--stone-500)',
-          }}
-        >
-          Carregando locais...
-        </p>
+        <div className="destinos-grid" aria-busy="true" aria-label="Carregando destinos">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="destinos-skel">
+              <span className="capi-skel" aria-hidden="true" style={{ aspectRatio: '16 / 9', borderRadius: 0 }} />
+              <div className="destinos-skel__body">
+                <Skeleton width="70%" height={18} />
+                <Skeleton width="30%" height={14} />
+                <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                  <Skeleton width={88} height={36} />
+                  <Skeleton width={88} height={36} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : loadError ? (
-        <p
-          style={{
-            textAlign: 'center',
-            padding: '48px 24px',
-            fontSize: '16px',
-            color: 'var(--stone-500)',
-          }}
+        <Alert
+          tone="danger"
+          title="Não foi possível carregar seus destinos"
+          action={
+            <Button variant="secondary" size="sm" iconLeft={RotateCw} onClick={() => fetchDestinations()}>
+              Tentar novamente
+            </Button>
+          }
         >
-          Erro ao carregar locais. Tente novamente.
-        </p>
+          Verifique sua conexão e tente de novo.
+        </Alert>
       ) : destinations.length === 0 ? (
         <EmptyState
-          title="Nenhum local ainda"
-          description="Crie seu primeiro local para aparecer no marketplace."
-          ctaLabel="Criar local"
-          ctaHref={`/${slug}/painel/destinos/novo`}
+          icon={MapPinned}
+          title="Nenhum destino ainda"
+          description="Cadastre seu primeiro destino para aparecer no marketplace."
+          action={
+            <Button href={`/${slug}/painel/destinos/novo`} iconLeft={Plus}>
+              Novo destino
+            </Button>
+          }
         />
       ) : (
         <div className="destinos-grid">
@@ -234,52 +181,26 @@ export default function DestinosPage() {
         </div>
       )}
 
-      {deleteConfirm && (
-        <div className="destinos-overlay" onClick={() => setDeleteConfirm(null)}>
-          <div className="destinos-dialog" onClick={(e) => e.stopPropagation()}>
-            <h2>Excluir local</h2>
-            <p>Tem certeza que deseja excluir este local? Esta ação não pode ser desfeita.</p>
-            <div className="destinos-dialog-actions">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirm(null)}
-                style={{
-                  padding: '8px 20px',
-                  border: '1px solid var(--stone-300)',
-                  borderRadius: '4px',
-                  background: 'transparent',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: 'var(--stone-700)',
-                  cursor: 'pointer',
-                  minHeight: '44px',
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleting}
-                style={{
-                  padding: '8px 20px',
-                  border: 'none',
-                  borderRadius: '4px',
-                  background: '#DC2626',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: deleting ? 'not-allowed' : 'pointer',
-                  opacity: deleting ? 0.6 : 1,
-                  minHeight: '44px',
-                }}
-              >
-                {deleting ? 'Excluindo...' : 'Excluir'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={!!deleteConfirm}
+        onClose={closeDelete}
+        title="Excluir destino?"
+        description={
+          deleteTarget
+            ? `“${deleteTarget.name}” será removido da sua lista. Esta ação não pode ser desfeita.`
+            : 'Este destino será removido da sua lista. Esta ação não pode ser desfeita.'
+        }
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeDelete} disabled={deleting}>
+              Manter destino
+            </Button>
+            <Button variant="danger" iconLeft={Trash2} onClick={handleDelete} loading={deleting}>
+              {deleting ? 'Excluindo…' : 'Sim, excluir'}
+            </Button>
+          </>
+        }
+      />
     </>
   )
 }

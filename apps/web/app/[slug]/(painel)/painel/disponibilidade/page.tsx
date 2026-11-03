@@ -2,9 +2,23 @@
 import { use, useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import Calendar from "react-calendar"
-import { Modal } from "@/components/ui/Modal"
-import BackButton from "@/src/components/ui/BackButton"
 import { toast } from "sonner"
+import { CalendarDays, CalendarPlus, Clock, Lock, Plus } from "lucide-react"
+import {
+  Alert,
+  Badge,
+  Button,
+  EmptyState,
+  Input,
+  ListGroup,
+  ListRow,
+  Modal,
+  PageHeader,
+  Select,
+  Skeleton,
+  Tabs,
+  type Tone,
+} from "@/src/components/ui/capi"
 
 interface Slot {
   id: string
@@ -71,6 +85,8 @@ export default function DisponibilidadePage({
   const [guidesLoading, setGuidesLoading] = useState(false)
   const [formGuideId, setFormGuideId] = useState<string>("")
   const [formIsConflict, setFormIsConflict] = useState(false)
+  // Só apresentação: no celular alterna entre lista por dia e calendário (no desktop os dois aparecem)
+  const [view, setView] = useState<"list" | "calendar">("list")
 
   // Load packages for dropdown (filtered to current conductor)
   useEffect(() => {
@@ -142,22 +158,11 @@ export default function DisponibilidadePage({
       !hasOpen &&
       slotsForDay.some((s) => s.status === "FULL")
 
-    let bg = "rgba(196,133,42,0.8)" // ochre = disponível
-    if (isFullyBooked) bg = "rgba(220,38,38,0.7)" // vermelho = lotado
-    else if (!hasOpen) bg = "rgba(156,163,175,0.7)" // cinza = fechado/sem slots ativos
+    let bg = "var(--primary)" // disponível
+    if (isFullyBooked) bg = "var(--danger)" // lotado
+    else if (!hasOpen) bg = "var(--text-tertiary)" // fechado/sem slots ativos
 
-    return (
-      <div
-        aria-hidden="true"
-        style={{
-          width: "6px",
-          height: "6px",
-          borderRadius: "50%",
-          background: bg,
-          margin: "2px auto 0",
-        }}
-      />
-    )
+    return <span className="agenda-dot" aria-hidden="true" style={{ background: bg }} />
   }
 
   async function handleCloseSlot(slot: Slot) {
@@ -268,525 +273,388 @@ export default function DisponibilidadePage({
     setFormIsConflict(false)
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "8px 12px",
-    border: "1px solid var(--stone-300)",
-    borderRadius: "4px",
-    fontSize: "16px",
-    color: "var(--stone-800)",
-    background: "white",
-    boxSizing: "border-box",
+  // ── Apresentação ───────────────────────────────────────────────────────────
+
+  const SLOT_STATUS: Record<Slot["status"], [string, Tone]> = {
+    OPEN: ["Aberto", "success"],
+    FULL: ["Lotado", "warning"],
+    CANCELLED: ["Cancelado", "neutral"],
+    COMPLETED: ["Concluído", "neutral"],
   }
 
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    fontSize: "14px",
-    color: "var(--stone-700)",
-    marginBottom: "4px",
-    fontWeight: 600,
+  const packageName = (id: string) => packages.find((p) => p.id === id)?.name
+
+  function dayLabel(date: Date) {
+    return date.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })
   }
 
-  const errorStyle: React.CSSProperties = {
-    fontSize: "14px",
-    color: "#DC2626",
-    marginTop: "4px",
+  function openNewSlot(date: Date) {
+    setSelectedDate(date)
+    setModalOpen(true)
   }
+
+  // Lista por dia (celular): próximos dias com horários, na ordem
+  const todayKey = toLocalDateStr(new Date())
+  const upcomingDays: Array<{ key: string; slots: Slot[] }> = []
+  ;[...allSlots]
+    .filter((s) => s.startsAt.slice(0, 10) >= todayKey)
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+    .forEach((s) => {
+      const key = s.startsAt.slice(0, 10)
+      const last = upcomingDays[upcomingDays.length - 1]
+      if (last && last.key === key) last.slots.push(s)
+      else upcomingDays.push({ key, slots: [s] })
+    })
+
+  function renderSlotRow(slot: Slot) {
+    const [label, tone] = SLOT_STATUS[slot.status] ?? [slot.status, "neutral" as Tone]
+    const name = packageName(slot.packageId)
+    return (
+      <ListRow
+        key={slot.id}
+        leading={
+          <span className="agenda-time" aria-hidden="true">
+            <Clock size={18} strokeWidth={1.75} />
+          </span>
+        }
+        title={formatTime(slot.startsAt)}
+        subtitle={`${slot.booked}/${slot.capacity} vagas${name ? ` · ${name}` : ""}`}
+        trailing={
+          <div className="flex items-center gap-2">
+            <Badge tone={tone} dot>{label}</Badge>
+            {slot.status === "OPEN" && (
+              <Button
+                variant="secondary"
+                size="sm"
+                iconLeft={Lock}
+                loading={closingSlot === slot.id}
+                onClick={() => handleCloseSlot(slot)}
+                aria-label={`Fechar slot das ${formatTime(slot.startsAt)}`}
+              >
+                Fechar
+              </Button>
+            )}
+          </div>
+        }
+      />
+    )
+  }
+
+  const legend = (
+    <ul className="agenda-legend" aria-label="Legenda do calendário">
+      <li><span className="agenda-dot" style={{ background: "var(--primary)" }} aria-hidden="true" />Com vagas</li>
+      <li><span className="agenda-dot" style={{ background: "var(--danger)" }} aria-hidden="true" />Lotado</li>
+      <li><span className="agenda-dot" style={{ background: "var(--text-tertiary)" }} aria-hidden="true" />Fechado</li>
+    </ul>
+  )
+
+  const listSkeleton = (
+    <ListGroup>
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="capi-row" aria-hidden="true">
+          <Skeleton width={40} height={40} radius={12} />
+          <div className="flex flex-1 flex-col gap-2">
+            <Skeleton width="30%" height={14} />
+            <Skeleton width="60%" height={12} />
+          </div>
+        </div>
+      ))}
+    </ListGroup>
+  )
 
   return (
     <>
-      <BackButton />
-      {/* Page header */}
-      <div style={{ marginBottom: "24px" }}>
-        <p
-          style={{
-            fontSize: "11px",
-            color: "var(--ochre)",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            marginBottom: "8px",
-          }}
-        >
-          Painel do Guia
-        </p>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "24px",
-            color: "var(--stone-900)",
-            lineHeight: 1.2,
-          }}
-        >
-          Disponibilidade
-        </h1>
-      </div>
-
-      {slotsError && (
-        <p
-          role="alert"
-          aria-live="assertive"
-          style={{
-            fontSize: "14px",
-            color: "#DC2626",
-            marginBottom: "16px",
-            padding: "8px 12px",
-            background: "#FEF2F2",
-            borderRadius: "4px",
-          }}
-        >
-          {slotsError}
-        </p>
-      )}
-
-      {closeError && (
-        <p
-          role="alert"
-          aria-live="assertive"
-          style={{
-            fontSize: "14px",
-            color: "#DC2626",
-            marginBottom: "16px",
-            padding: "8px 12px",
-            background: "#FEF2F2",
-            borderRadius: "4px",
-          }}
-        >
-          {closeError}
-        </p>
-      )}
-
-      {/* Two-column layout: calendar + slots panel */}
       <style>{`
-        @media (max-width: 639px) {
-          .disponibilidade-grid { grid-template-columns: 1fr !important; }
+        /* react-calendar com tokens CAPI */
+        .agenda-cal .react-calendar { width: 100%; max-width: 100%; border: 0; background: transparent; font-family: var(--font-sans); color: var(--text); }
+        .agenda-cal .react-calendar button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+        .agenda-cal .react-calendar button:disabled { cursor: default; color: var(--text-tertiary); }
+        .agenda-cal .react-calendar button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+        .agenda-cal .react-calendar__navigation { display: flex; align-items: center; gap: var(--space-1); margin-bottom: var(--space-3); }
+        .agenda-cal .react-calendar__navigation button { min-width: var(--touch-target); height: var(--touch-target); border-radius: var(--radius-md); font-size: 18px; color: var(--text-secondary); }
+        .agenda-cal .react-calendar__navigation button:enabled:hover { background: var(--bg-subtle); color: var(--text); }
+        .agenda-cal .react-calendar__navigation__label { font-size: 16px !important; font-weight: 700; color: var(--text) !important; text-transform: capitalize; }
+        .agenda-cal .react-calendar__month-view__weekdays { margin-bottom: var(--space-1); }
+        .agenda-cal .react-calendar__month-view__weekdays__weekday { padding: var(--space-2) 0; text-align: center; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-tertiary); }
+        .agenda-cal .react-calendar__month-view__weekdays__weekday abbr { text-decoration: none; }
+        .agenda-cal .react-calendar__tile {
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+          min-height: var(--touch-target); padding: var(--space-1) 0; border-radius: var(--radius-md);
+          font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums;
+          transition: background-color .15s ease;
+        }
+        .agenda-cal .react-calendar__tile:enabled:hover { background: var(--bg-subtle); }
+        .agenda-cal .react-calendar__month-view__days__day--neighboringMonth { color: var(--text-tertiary); }
+        .agenda-cal .react-calendar__tile--now { background: var(--primary-subtle); color: var(--text-primary); font-weight: 700; }
+        .agenda-cal .react-calendar__tile--active,
+        .agenda-cal .react-calendar__tile--active:enabled:hover { background: var(--text); color: var(--bg-page); font-weight: 700; }
+        .agenda-cal .react-calendar__tile--hasActive { background: var(--primary-subtle); color: var(--text-primary); }
+        .agenda-cal .react-calendar__year-view .react-calendar__tile,
+        .agenda-cal .react-calendar__decade-view .react-calendar__tile,
+        .agenda-cal .react-calendar__century-view .react-calendar__tile { min-height: 56px; text-transform: capitalize; }
+        @media (min-width: 1024px) { .agenda-cal .react-calendar__tile { min-height: 56px; } }
+
+        .agenda-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; flex: none; }
+        .agenda-legend { display: flex; flex-wrap: wrap; gap: var(--space-4); margin: var(--space-4) 0 0; padding: var(--space-3) 0 0; list-style: none; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); }
+        .agenda-legend li { display: inline-flex; align-items: center; gap: var(--space-2); }
+        .agenda-time { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--primary-subtle); color: var(--text-primary); }
+        .agenda-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-4); }
+        .agenda-day-title { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); text-transform: capitalize; }
+
+        /* Celular primeiro: só a visão escolhida aparece */
+        .agenda[data-view="list"] .agenda-calendar-layout { display: none; }
+        .agenda[data-view="calendar"] .agenda-list { display: none; }
+        .agenda-calendar-layout { display: grid; gap: var(--space-4); align-items: start; }
+        @media (min-width: 1024px) {
+          .agenda-switch { display: none; }
+          .agenda .agenda-list { display: none !important; }
+          .agenda .agenda-calendar-layout { display: grid !important; grid-template-columns: minmax(0, 3fr) minmax(320px, 2fr); gap: var(--space-6); }
+          .agenda-card { padding: var(--space-6); }
+          .agenda-side { position: sticky; top: var(--space-8); }
         }
       `}</style>
-      <div
-        className="disponibilidade-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "3fr 2fr",
-          gap: "24px",
-          alignItems: "start",
-        }}
-      >
-        {/* Calendar */}
-        <div
-          style={{
-            background: "white",
-            border: "1px solid var(--stone-200)",
-            borderRadius: "8px",
-            padding: "24px",
-          }}
-        >
-          <Calendar
-            value={selectedDate}
-            onChange={(date) => setSelectedDate(date as Date)}
-            tileContent={getTileContent}
-          />
+
+      <PageHeader
+        eyebrow="Painel do guia"
+        title="Agenda"
+        description="Abra horários para seus roteiros e acompanhe as vagas de cada dia."
+        actions={
+          selectedDate ? (
+            <Button iconLeft={Plus} onClick={() => setModalOpen(true)}>
+              Adicionar horário
+            </Button>
+          ) : undefined
+        }
+      />
+
+      {(slotsError || closeError) && (
+        <div className="mb-4 flex flex-col gap-3" aria-live="assertive">
+          {slotsError && <Alert tone="danger" title={slotsError} />}
+          {closeError && <Alert tone="danger" title={closeError} />}
+        </div>
+      )}
+
+      <div className="agenda" data-view={view}>
+        <Tabs
+          variant="segmented"
+          className="agenda-switch mb-4"
+          label="Modo de visualização"
+          value={view}
+          onChange={(v) => setView(v as "list" | "calendar")}
+          items={[
+            { value: "list", label: "Lista" },
+            { value: "calendar", label: "Calendário" },
+          ]}
+        />
+
+        {/* ── Lista por dia (celular) ─────────────────────────────────── */}
+        <div className="agenda-list">
+          {loading ? (
+            listSkeleton
+          ) : upcomingDays.length === 0 ? (
+            <ListGroup>
+              <EmptyState
+                compact
+                icon={CalendarDays}
+                title="Nenhum horário nos próximos dias"
+                description="Escolha um dia no calendário para abrir o primeiro horário."
+                action={
+                  <Button iconLeft={CalendarPlus} onClick={() => setView("calendar")}>
+                    Escolher dia
+                  </Button>
+                }
+              />
+            </ListGroup>
+          ) : (
+            <div className="flex flex-col gap-6">
+              {upcomingDays.map((d) => {
+                const date = new Date(`${d.key}T00:00:00`)
+                return (
+                  <section key={d.key} aria-label={dayLabel(date)}>
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <h2 className="agenda-day-title">{dayLabel(date)}</h2>
+                      <Button variant="ghost" size="sm" iconLeft={Plus} onClick={() => openNewSlot(date)}>
+                        Horário
+                      </Button>
+                    </div>
+                    <ListGroup>{d.slots.map(renderSlotRow)}</ListGroup>
+                  </section>
+                )
+              })}
+              <Button variant="secondary" iconLeft={CalendarPlus} onClick={() => setView("calendar")} fullWidth>
+                Abrir horário em outro dia
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Slots panel */}
-        <div
-          style={{
-            background: "white",
-            border: "1px solid var(--stone-200)",
-            borderRadius: "8px",
-            padding: "24px",
-            minHeight: "200px",
-          }}
-        >
-          {!selectedDate ? (
-            <p
-              style={{
-                fontSize: "16px",
-                color: "var(--stone-500)",
-                textAlign: "center",
-                padding: "32px 0",
-              }}
-            >
-              Selecione um dia no calendário para ver os slots.
-            </p>
-          ) : (
-            <>
-              <h2
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "16px",
-                  color: "var(--stone-800)",
-                  marginBottom: "16px",
-                }}
-              >
-                {selectedDate.toLocaleDateString("pt-BR", {
-                  weekday: "long",
-                  day: "2-digit",
-                  month: "long",
-                })}
-              </h2>
+        {/* ── Calendário + painel do dia ───────────────────────────────── */}
+        <div className="agenda-calendar-layout">
+          <div className="agenda-card agenda-cal">
+            <Calendar
+              value={selectedDate}
+              onChange={(date) => setSelectedDate(date as Date)}
+              tileContent={getTileContent}
+            />
+            {legend}
+          </div>
 
-              {loading ? (
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "var(--stone-400)",
-                    textAlign: "center",
-                    padding: "16px 0",
-                  }}
-                >
-                  Carregando slots...
-                </p>
-              ) : daySlots.length === 0 ? (
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "var(--stone-500)",
-                    marginBottom: "16px",
-                  }}
-                >
-                  Nenhum slot neste dia.
-                </p>
-              ) : (
-                <ul
-                  style={{
-                    listStyle: "none",
-                    padding: 0,
-                    margin: "0 0 16px 0",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                  }}
-                >
-                  {daySlots.map((slot) => (
-                    <li
-                      key={slot.id}
-                      style={{
-                        padding: "12px",
-                        border: "1px solid var(--stone-200)",
-                        borderRadius: "4px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "8px",
-                      }}
-                    >
-                      <div>
-                        <p
-                          style={{
-                            fontSize: "14px",
-                            color: "var(--stone-800)",
-                            margin: 0,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {formatTime(slot.startsAt)}
-                        </p>
-                        <p
-                          style={{
-                            fontSize: "11px",
-                            color: "var(--stone-500)",
-                            margin: "2px 0 0",
-                          }}
-                        >
-                          {slot.booked}/{slot.capacity} vagas
-                          {slot.status === "CANCELLED" && " — Cancelado"}
-                          {slot.status === "COMPLETED" && " — Concluído"}
-                        </p>
-                      </div>
-                      {slot.status === "OPEN" && (
-                        <button
-                          onClick={() => handleCloseSlot(slot)}
-                          disabled={closingSlot === slot.id}
-                          aria-label={`Fechar slot das ${formatTime(slot.startsAt)}`}
-                          style={{
-                            background: "#DC2626",
-                            color: "white",
-                            padding: "6px 12px",
-                            borderRadius: "4px",
-                            fontSize: "14px",
-                            fontWeight: 600,
-                            border: "none",
-                            cursor: closingSlot === slot.id ? "not-allowed" : "pointer",
-                            opacity: closingSlot === slot.id ? 0.7 : 1,
-                            minHeight: "44px",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {closingSlot === slot.id ? "..." : "Fechar Slot"}
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
+          <div className="agenda-card agenda-side" aria-live="polite">
+            {!selectedDate ? (
+              <EmptyState
+                compact
+                icon={CalendarDays}
+                title="Selecione um dia"
+                description="Toque em um dia no calendário para ver e abrir horários."
+              />
+            ) : (
+              <>
+                <h2 className="agenda-day-title mb-4">{dayLabel(selectedDate)}</h2>
 
-              <button
-                onClick={() => setModalOpen(true)}
-                style={{
-                  width: "100%",
-                  background: "var(--ochre)",
-                  color: "white",
-                  padding: "8px 20px",
-                  borderRadius: "4px",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                  border: "none",
-                  cursor: "pointer",
-                  minHeight: "44px",
-                }}
-              >
-                Adicionar Slot
-              </button>
-            </>
-          )}
+                {loading ? (
+                  <div className="mb-4">{listSkeleton}</div>
+                ) : daySlots.length === 0 ? (
+                  <p className="mb-4 text-fg-secondary" style={{ fontSize: 15 }}>
+                    Nenhum horário neste dia.
+                  </p>
+                ) : (
+                  <div className="mb-4">
+                    <ListGroup>{daySlots.map(renderSlotRow)}</ListGroup>
+                  </div>
+                )}
+
+                <Button iconLeft={Plus} onClick={() => setModalOpen(true)} fullWidth>
+                  Adicionar horário
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Slot creation modal */}
+      {/* Criação de horário — sheet no celular */}
       <Modal
         open={modalOpen}
         onClose={closeModal}
-        title={`Novo Slot — ${selectedDate?.toLocaleDateString("pt-BR") ?? ""}`}
-        titleId="slot-modal-title"
+        title={`Novo horário — ${selectedDate?.toLocaleDateString("pt-BR") ?? ""}`}
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeModal}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="slot-form" loading={formSubmitting}>
+              {formSubmitting ? "Criando..." : "Criar horário"}
+            </Button>
+          </>
+        }
       >
         <form
+          id="slot-form"
           onSubmit={handleCreateSlot}
-          style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          className="flex flex-col gap-4"
           noValidate
         >
-          {/* Roteiro select */}
-          <div>
-            <label htmlFor="slot-package" style={labelStyle}>
-              Roteiro
-            </label>
-            <select
-              id="slot-package"
-              value={formPackageId}
-              onChange={(e) => setFormPackageId(e.target.value)}
-              required
-              aria-describedby={formErrors.packageId ? "slot-package-error" : undefined}
-              style={{ ...inputStyle, cursor: "pointer" }}
-            >
-              {packages.map((pkg) => (
-                <option key={pkg.id} value={pkg.id}>
-                  {pkg.name}
-                </option>
-              ))}
-            </select>
-            {formErrors.packageId && (
-              <p id="slot-package-error" style={errorStyle}>
-                {formErrors.packageId}
-              </p>
-            )}
-          </div>
-
-          {/* Guia */}
-          <div>
-            <label style={{ display: "block", marginBottom: "4px", fontSize: "14px", fontWeight: 500 }}>
-              Guia
-            </label>
-            <select
-              value={formGuideId}
-              onChange={e => setFormGuideId(e.target.value)}
-              disabled={guidesLoading || guides.length === 0}
-              style={{ ...inputStyle, minHeight: "44px" }}
-            >
-              <option value="">
-                {guidesLoading
-                  ? "Carregando guias..."
-                  : guides.length === 0
-                  ? "Nenhum guia qualificado para este roteiro"
-                  : "Selecione um guia"}
-              </option>
-              {guides.map(g => (
-                <option key={g.guideId} value={g.guideId}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-            {formErrors.guideId && (
-              <span style={{ color: "#dc2626", fontSize: "12px", marginTop: "2px", display: "block" }}>
-                {formErrors.guideId}
-              </span>
-            )}
-          </div>
-
-          {/* Time inputs */}
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}
+          <Select
+            id="slot-package"
+            label="Roteiro"
+            value={formPackageId}
+            onChange={(e) => setFormPackageId(e.target.value)}
+            required
+            error={formErrors.packageId}
           >
-            <div>
-              <label htmlFor="slot-start" style={labelStyle}>
-                Horário início
-              </label>
-              <input
-                id="slot-start"
-                type="time"
-                value={formStartTime}
-                onChange={(e) => setFormStartTime(e.target.value)}
-                onBlur={() => {
-                  if (formStartTime && isStartsAtInPast()) {
-                    setFormErrors((prev) => ({
-                      ...prev,
-                      startTime: "A data do slot deve ser no futuro",
-                    }))
-                  } else {
-                    setFormErrors((prev) => {
-                      const next = { ...prev }
-                      delete next.startTime
-                      return next
-                    })
-                  }
-                }}
-                required
-                aria-describedby={
-                  formErrors.startTime ? "slot-start-error" : undefined
+            {packages.map((pkg) => (
+              <option key={pkg.id} value={pkg.id}>
+                {pkg.name}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            id="slot-guide"
+            label="Guia"
+            value={formGuideId}
+            onChange={(e) => setFormGuideId(e.target.value)}
+            disabled={guidesLoading || guides.length === 0}
+            error={formErrors.guideId}
+          >
+            <option value="">
+              {guidesLoading
+                ? "Carregando guias..."
+                : guides.length === 0
+                ? "Nenhum guia qualificado para este roteiro"
+                : "Selecione um guia"}
+            </option>
+            {guides.map((g) => (
+              <option key={g.guideId} value={g.guideId}>
+                {g.name}
+              </option>
+            ))}
+          </Select>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              id="slot-start"
+              type="time"
+              label="Início"
+              value={formStartTime}
+              onChange={(e) => setFormStartTime(e.target.value)}
+              onBlur={() => {
+                if (formStartTime && isStartsAtInPast()) {
+                  setFormErrors((prev) => ({
+                    ...prev,
+                    startTime: "A data do slot deve ser no futuro",
+                  }))
+                } else {
+                  setFormErrors((prev) => {
+                    const next = { ...prev }
+                    delete next.startTime
+                    return next
+                  })
                 }
-                style={{
-                  ...inputStyle,
-                  borderColor: formErrors.startTime ? "#DC2626" : undefined,
-                }}
-              />
-              {formErrors.startTime && (
-                <p id="slot-start-error" style={errorStyle}>
-                  {formErrors.startTime}
-                </p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="slot-end" style={labelStyle}>
-                Horário fim
-              </label>
-              <input
-                id="slot-end"
-                type="time"
-                value={formEndTime}
-                onChange={(e) => setFormEndTime(e.target.value)}
-                required
-                aria-describedby={formErrors.endTime ? "slot-end-error" : undefined}
-                style={{
-                  ...inputStyle,
-                  borderColor: formErrors.endTime ? "#DC2626" : undefined,
-                }}
-              />
-              {formErrors.endTime && (
-                <p id="slot-end-error" style={errorStyle}>
-                  {formErrors.endTime}
-                </p>
-              )}
-            </div>
+              }}
+              required
+              error={formErrors.startTime}
+            />
+            <Input
+              id="slot-end"
+              type="time"
+              label="Fim"
+              value={formEndTime}
+              onChange={(e) => setFormEndTime(e.target.value)}
+              required
+              error={formErrors.endTime}
+            />
           </div>
 
-          {/* Vagas */}
-          <div>
-            <label htmlFor="slot-vagas" style={labelStyle}>
-              Vagas (capacidade máxima)
-            </label>
-            <input
-              id="slot-vagas"
-              type="number"
-              min={1}
-              value={formVagas}
-              onChange={(e) => setFormVagas(parseInt(e.target.value) || 1)}
-              required
-              aria-describedby={formErrors.vagas ? "slot-vagas-error" : undefined}
-              style={{
-                ...inputStyle,
-                borderColor: formErrors.vagas ? "#DC2626" : undefined,
-              }}
-            />
-            {formErrors.vagas && (
-              <p id="slot-vagas-error" style={errorStyle}>
-                {formErrors.vagas}
-              </p>
-            )}
-          </div>
+          <Input
+            id="slot-vagas"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            label="Vagas (capacidade máxima)"
+            value={formVagas}
+            onChange={(e) => setFormVagas(parseInt(e.target.value) || 1)}
+            required
+            error={formErrors.vagas}
+          />
 
-          {/* Mínimo de participantes */}
-          <div>
-            <label htmlFor="slot-min-capacity" style={labelStyle}>
-              Mínimo de participantes
-            </label>
-            <input
-              id="slot-min-capacity"
-              type="number"
-              min={1}
-              value={formMinCapacity}
-              onChange={(e) => setFormMinCapacity(parseInt(e.target.value) || 1)}
-              required
-              aria-describedby={formErrors.minCapacity ? "slot-min-capacity-error" : undefined}
-              style={{
-                ...inputStyle,
-                borderColor: formErrors.minCapacity ? "#DC2626" : undefined,
-              }}
-            />
-            {formErrors.minCapacity && (
-              <p id="slot-min-capacity-error" style={errorStyle}>
-                {formErrors.minCapacity}
-              </p>
-            )}
-          </div>
+          <Input
+            id="slot-min-capacity"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            label="Mínimo de participantes"
+            value={formMinCapacity}
+            onChange={(e) => setFormMinCapacity(parseInt(e.target.value) || 1)}
+            required
+            error={formErrors.minCapacity}
+          />
 
           {formApiError && (
-            <p
-              role="alert"
-              style={{
-                ...errorStyle,
-                padding: "8px 12px",
-                background: "#FEF2F2",
-                borderRadius: "4px",
-              }}
-            >
-              {formIsConflict && <span aria-hidden="true">⚠ </span>}
+            <Alert tone={formIsConflict ? "warning" : "danger"} title={formIsConflict ? "Conflito de agenda" : undefined}>
               {formApiError}
-            </p>
+            </Alert>
           )}
-
-          {/* Actions */}
-          <div
-            style={{
-              display: "flex",
-              gap: "12px",
-              justifyContent: "flex-end",
-              marginTop: "8px",
-            }}
-          >
-            <button
-              type="button"
-              onClick={closeModal}
-              style={{
-                padding: "8px 20px",
-                borderRadius: "4px",
-                fontSize: "14px",
-                fontWeight: 600,
-                background: "transparent",
-                color: "var(--stone-700)",
-                border: "1px solid var(--stone-300)",
-                cursor: "pointer",
-              }}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={formSubmitting}
-              style={{
-                background: formSubmitting ? "var(--stone-400)" : "var(--ochre)",
-                color: "white",
-                padding: "8px 20px",
-                borderRadius: "4px",
-                fontSize: "14px",
-                fontWeight: 600,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-                border: "none",
-                cursor: formSubmitting ? "not-allowed" : "pointer",
-              }}
-            >
-              {formSubmitting ? "Criando..." : "Criar Slot"}
-            </button>
-          </div>
         </form>
       </Modal>
     </>

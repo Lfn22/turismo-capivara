@@ -1,7 +1,20 @@
 "use client"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, type ReactNode } from "react"
 import { toast } from "sonner"
-import { Modal } from "@/components/ui/Modal"
+import { Check, Eye, Map as MapIcon, RotateCw, X } from "lucide-react"
+import {
+  Alert,
+  Button,
+  EmptyState,
+  ListGroup,
+  Media,
+  Modal,
+  PageHeader,
+  Skeleton,
+  StatusBadge,
+  Tabs,
+  Textarea,
+} from "@/src/components/ui/capi"
 
 type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED"
 
@@ -19,25 +32,79 @@ interface Destination {
 
 type Tab = "TODOS" | ApprovalStatus
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: "TODOS", label: "Todos" },
-  { key: "PENDING", label: "Pendentes" },
-  { key: "APPROVED", label: "Aprovados" },
-  { key: "REJECTED", label: "Rejeitados" },
+const TABS: { value: Tab; label: string }[] = [
+  { value: "TODOS", label: "Todos" },
+  { value: "PENDING", label: "Em análise" },
+  { value: "APPROVED", label: "Aprovados" },
+  { value: "REJECTED", label: "Rejeitados" },
 ]
 
-const STATUS_BADGE: Record<ApprovalStatus, { label: string; bg: string; color: string }> = {
-  PENDING: { label: "PENDENTE", bg: "#FEF9EC", color: "#B45309" },
-  APPROVED: { label: "APROVADO", bg: "#F0FDF4", color: "#15803D" },
-  REJECTED: { label: "REJEITADO", bg: "#FEF2F2", color: "#DC2626" },
+function formatDate(iso: string) {
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("pt-BR")
 }
 
-const shimmerKeyframes = `
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-`
+function operatorName(dest: Destination) {
+  return dest.createdBy?.tenant?.name || dest.createdBy?.tenant?.slug || "—"
+}
+
+/** Linha da fila de moderação: thumbnail, dados e ações; ações descem para a linha de baixo no mobile. */
+function QueueRow({
+  thumb,
+  title,
+  subtitle,
+  meta,
+  note,
+  status,
+  actions,
+  busy,
+}: {
+  thumb: ReactNode
+  title: ReactNode
+  subtitle?: ReactNode
+  meta?: ReactNode
+  note?: ReactNode
+  status: ReactNode
+  actions?: ReactNode
+  busy?: boolean
+}) {
+  return (
+    <div
+      className="capi-row flex-wrap lg:flex-nowrap"
+      style={{ opacity: busy ? 0.6 : 1, transition: "opacity .15s ease" }}
+      aria-busy={busy || undefined}
+    >
+      <div className="capi-row__lead">{thumb}</div>
+      <div className="capi-row__main">
+        <p className="capi-row__title">{title}</p>
+        {subtitle ? <p className="capi-row__sub">{subtitle}</p> : null}
+        {meta ? <p className="capi-row__sub">{meta}</p> : null}
+        {note ? <p className="mt-1 text-[13px] text-danger">{note}</p> : null}
+      </div>
+      <div className="flex w-full flex-wrap items-center justify-between gap-2 lg:w-auto lg:flex-nowrap lg:justify-end">
+        {status}
+        {actions ? <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div> : null}
+      </div>
+    </div>
+  )
+}
+
+function Thumb({ src, alt }: { src: string | null; alt: string }) {
+  return (
+    <div style={{ width: 72, flex: "none" }}>
+      <Media src={src} alt={alt} ratio="1 / 1" sizes="72px" placeholder="mountain" />
+    </div>
+  )
+}
+
+function DetailItem({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <dt className="text-[13px] text-fg-secondary">{label}</dt>
+      <dd className="m-0 text-[15px] font-medium text-fg break-words">{children}</dd>
+    </div>
+  )
+}
 
 export default function SuperAdminDestinosPage() {
   const [destinations, setDestinations] = useState<Destination[]>([])
@@ -53,6 +120,11 @@ export default function SuperAdminDestinosPage() {
   const [rejectReason, setRejectReason] = useState("")
   const [rejectError, setRejectError] = useState<string | null>(null)
   const [rejectSubmitting, setRejectSubmitting] = useState(false)
+  // Só apresentação: destino aberto no painel "Revisar" (usa os dados já carregados)
+  const [reviewTarget, setReviewTarget] = useState<Destination | null>(null)
+  // onClose estável: o Modal capi refoca o painel quando onClose muda
+  const closeReview = useCallback(() => setReviewTarget(null), [])
+  const closeReject = useCallback(() => setRejectTarget(null), [])
 
   const buildUrl = useCallback(
     (currentOffset: number) => {
@@ -187,334 +259,230 @@ export default function SuperAdminDestinosPage() {
           ? "Nenhum destino aprovado ainda."
           : "Nenhum destino rejeitado."
 
+  const emptyDescription =
+    activeTab === "PENDING"
+      ? "Quando uma operadora enviar um destino, ele aparece aqui para revisão."
+      : "Os destinos enviados pelas operadoras aparecem aqui."
+
   return (
     <>
-      <style>{shimmerKeyframes}</style>
+      <PageHeader
+        eyebrow="Moderação"
+        title="Destinos"
+        description="Revise os destinos enviados pelas operadoras antes de publicá-los no marketplace."
+      />
 
-      <p
-        style={{
-          fontSize: "11px",
-          fontWeight: 600,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          color: "var(--ochre)",
-          marginBottom: "8px",
-        }}
-      >
-        SUPER ADMIN
-      </p>
-      <h1
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: "24px",
-          fontWeight: 400,
-          color: "var(--stone-900)",
-          marginBottom: "24px",
-        }}
-      >
-        Destinos
-      </h1>
+      <Tabs
+        items={TABS}
+        value={activeTab}
+        onChange={(v) => setActiveTab(v as Tab)}
+        label="Filtrar destinos por status"
+        className="mb-6"
+      />
 
-      {/* Tabs */}
-      <div
-        style={{
-          display: "flex",
-          gap: "4px",
-          marginBottom: "24px",
-          borderBottom: "1px solid var(--stone-200)",
-          paddingBottom: "0",
-        }}
-      >
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            style={{
-              background: "none",
-              border: "none",
-              padding: "8px 16px",
-              fontSize: "14px",
-              fontWeight: activeTab === tab.key ? 600 : 400,
-              color: activeTab === tab.key ? "var(--stone-900)" : "var(--stone-500)",
-              cursor: "pointer",
-              borderBottom: activeTab === tab.key ? "2px solid var(--stone-900)" : "2px solid transparent",
-              marginBottom: "-1px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {actionError && (
-        <div
-          role="alert"
-          style={{
-            background: "#FEF2F2",
-            border: "1px solid #FCA5A5",
-            borderRadius: "4px",
-            padding: "8px 12px",
-            marginBottom: "16px",
-            fontSize: "14px",
-            color: "#DC2626",
-          }}
-        >
+      {actionError ? (
+        <Alert tone="danger" className="mb-4">
           {actionError}
-        </div>
-      )}
+        </Alert>
+      ) : null}
 
       {loading ? (
-        <div>
+        <ListGroup>
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                height: "72px",
-                marginBottom: "8px",
-                borderRadius: "6px",
-                background: "linear-gradient(90deg, var(--stone-100), var(--stone-50), var(--stone-100))",
-                backgroundSize: "200% 100%",
-                animation: "shimmer 1.5s infinite",
-              }}
-            />
+            <div key={i} className="capi-row" aria-hidden="true">
+              <Skeleton width={72} height={72} radius={12} />
+              <div className="capi-row__main flex flex-col gap-2">
+                <Skeleton width="50%" height={14} />
+                <Skeleton width="35%" height={12} />
+              </div>
+            </div>
           ))}
-        </div>
+        </ListGroup>
       ) : loadError ? (
-        <div
-          role="alert"
-          style={{
-            background: "#FEF2F2",
-            border: "1px solid #FCA5A5",
-            borderRadius: "4px",
-            padding: "16px",
-            fontSize: "14px",
-            color: "#DC2626",
-          }}
+        <Alert
+          tone="danger"
+          title="Erro ao carregar destinos."
+          action={
+            <Button variant="secondary" size="sm" iconLeft={RotateCw} onClick={loadDestinations}>
+              Tentar novamente
+            </Button>
+          }
         >
-          Erro ao carregar destinos.{" "}
-          <button
-            onClick={loadDestinations}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#DC2626",
-              cursor: "pointer",
-              textDecoration: "underline",
-              fontSize: "14px",
-            }}
-          >
-            Tentar novamente
-          </button>
-        </div>
+          Verifique sua conexão e tente de novo.
+        </Alert>
       ) : destinations.length === 0 ? (
-        <p
-          style={{
-            textAlign: "center",
-            padding: "64px 24px",
-            fontSize: "16px",
-            color: "var(--stone-500)",
-          }}
-        >
-          {emptyMessage}
-        </p>
+        <ListGroup>
+          <EmptyState icon={MapIcon} title={emptyMessage} description={emptyDescription} />
+        </ListGroup>
       ) : (
         <div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <ListGroup>
             {destinations.map((dest) => {
               const busy = actionLoading === dest.id
-              const badge = STATUS_BADGE[dest.approvalStatus]
               return (
-                <div
+                <QueueRow
                   key={dest.id}
-                  style={{
-                    background: "white",
-                    border: "1px solid var(--stone-200)",
-                    borderRadius: "6px",
-                    padding: "12px 16px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "16px",
-                    flexWrap: "wrap",
-                    opacity: busy ? 0.6 : 1,
-                    transition: "opacity 0.15s",
-                  }}
-                >
-                  {dest.heroImageUrl ? (
-                    <img
-                      src={dest.heroImageUrl}
-                      alt={dest.title}
-                      style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "4px", flexShrink: 0 }}
-                    />
-                  ) : (
-                    <div
-                      aria-hidden
-                      style={{ width: "60px", height: "60px", borderRadius: "4px", background: "var(--stone-100)", flexShrink: 0 }}
-                    />
-                  )}
-
-                  <div style={{ flex: 1, minWidth: "160px" }}>
-                    <p style={{ fontSize: "15px", fontWeight: 600, color: "var(--stone-900)", margin: 0 }}>
-                      {dest.title}
-                    </p>
-                    <p style={{ fontSize: "13px", color: "var(--stone-500)", margin: "2px 0 0" }}>
-                      {dest.createdBy?.tenant?.slug ?? "—"} &middot; {dest.state}
-                    </p>
-                    {dest.approvalStatus === "REJECTED" && dest.rejectionReason && (
-                      <p style={{ fontSize: "12px", color: "#DC2626", margin: "4px 0 0", fontStyle: "italic" }}>
-                        Motivo: {dest.rejectionReason}
-                      </p>
-                    )}
-                  </div>
-
-                  <span
-                    style={{
-                      display: "inline-block",
-                      padding: "4px 8px",
-                      borderRadius: "4px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      background: badge.bg,
-                      color: badge.color,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {badge.label}
-                  </span>
-
-                  {dest.approvalStatus === "PENDING" && (
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      <button
-                        onClick={() => handleApprove(dest)}
-                        disabled={busy}
-                        aria-label={`Aprovar destino ${dest.title}`}
-                        style={{
-                          background: "#15803D",
-                          color: "white",
-                          border: "none",
-                          padding: "8px 16px",
-                          borderRadius: "4px",
-                          fontSize: "14px",
-                          fontWeight: 600,
-                          cursor: busy ? "not-allowed" : "pointer",
-                          minHeight: "44px",
-                          minWidth: "80px",
-                          opacity: busy ? 0.6 : 1,
-                          whiteSpace: "nowrap",
-                        }}
+                  busy={busy}
+                  thumb={<Thumb src={dest.heroImageUrl} alt={dest.title} />}
+                  title={dest.title}
+                  subtitle={`${dest.state} · ${operatorName(dest)}`}
+                  meta={`Enviado em ${formatDate(dest.createdAt)}`}
+                  note={
+                    dest.approvalStatus === "REJECTED" && dest.rejectionReason
+                      ? `Motivo: ${dest.rejectionReason}`
+                      : null
+                  }
+                  status={<StatusBadge kind="approval" status={dest.approvalStatus} />}
+                  actions={
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        iconLeft={Eye}
+                        onClick={() => setReviewTarget(dest)}
+                        aria-label={`Revisar destino ${dest.title}`}
                       >
-                        Aprovar
-                      </button>
-                      <button
-                        onClick={() => handleReject(dest)}
-                        disabled={busy}
-                        aria-label={`Rejeitar destino ${dest.title}`}
-                        style={{
-                          background: "#DC2626",
-                          color: "white",
-                          border: "none",
-                          padding: "8px 16px",
-                          borderRadius: "4px",
-                          fontSize: "14px",
-                          fontWeight: 600,
-                          cursor: busy ? "not-allowed" : "pointer",
-                          minHeight: "44px",
-                          minWidth: "80px",
-                          opacity: busy ? 0.6 : 1,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        Rejeitar
-                      </button>
-                    </div>
-                  )}
-                </div>
+                        Revisar
+                      </Button>
+                      {dest.approvalStatus === "PENDING" ? (
+                        <>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleReject(dest)}
+                            disabled={busy}
+                            aria-label={`Rejeitar destino ${dest.title}`}
+                          >
+                            Rejeitar
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            iconLeft={Check}
+                            onClick={() => handleApprove(dest)}
+                            loading={busy}
+                            aria-label={`Aprovar destino ${dest.title}`}
+                          >
+                            Aprovar
+                          </Button>
+                        </>
+                      ) : null}
+                    </>
+                  }
+                />
               )
             })}
-          </div>
+          </ListGroup>
           {hasMore && !loading && !loadError && (
-            <div style={{ textAlign: "center", padding: "24px 0" }}>
-              <button
-                onClick={loadMore}
-                disabled={loadingMore}
-                style={{
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: loadingMore ? "#a8a29e" : "#c8961c",
-                  background: "transparent",
-                  border: "1px solid",
-                  borderColor: loadingMore ? "#d6d3d1" : "#c8961c",
-                  borderRadius: "2px",
-                  padding: "10px 24px",
-                  cursor: loadingMore ? "not-allowed" : "pointer",
-                }}
-              >
+            <div className="flex justify-center py-6">
+              <Button variant="secondary" onClick={loadMore} loading={loadingMore}>
                 {loadingMore ? "Carregando..." : "Carregar mais"}
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
 
-      <Modal open={!!rejectTarget} onClose={() => setRejectTarget(null)} title="Rejeitar Destino">
-        <p style={{ fontSize: "14px", color: "var(--stone-600)", marginBottom: "16px" }}>
-          Informe o motivo da rejeição.
-        </p>
-        <textarea
+      {/* Revisar: detalhes do destino já carregado */}
+      <Modal
+        open={!!reviewTarget}
+        onClose={closeReview}
+        title={reviewTarget?.title ?? "Destino"}
+        description={reviewTarget ? `${reviewTarget.state} · ${operatorName(reviewTarget)}` : undefined}
+        size="lg"
+        footer={
+          reviewTarget?.approvalStatus === "PENDING" ? (
+            <>
+              <Button
+                variant="secondary"
+                iconLeft={X}
+                onClick={() => {
+                  const target = reviewTarget
+                  setReviewTarget(null)
+                  if (target) handleReject(target)
+                }}
+              >
+                Rejeitar
+              </Button>
+              <Button
+                variant="primary"
+                iconLeft={Check}
+                onClick={() => {
+                  const target = reviewTarget
+                  setReviewTarget(null)
+                  if (target) handleApprove(target)
+                }}
+              >
+                Aprovar destino
+              </Button>
+            </>
+          ) : (
+            <Button variant="secondary" onClick={() => setReviewTarget(null)}>
+              Fechar
+            </Button>
+          )
+        }
+      >
+        {reviewTarget ? (
+          <div className="flex flex-col gap-5">
+            <Media
+              src={reviewTarget.heroImageUrl}
+              alt={reviewTarget.title}
+              ratio="16 / 9"
+              placeholder="mountain"
+              sizes="(max-width: 640px) 100vw, 720px"
+            />
+            <dl className="m-0 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <DetailItem label="Status">
+                <StatusBadge kind="approval" status={reviewTarget.approvalStatus} />
+              </DetailItem>
+              <DetailItem label="Enviado em">{formatDate(reviewTarget.createdAt)}</DetailItem>
+              <DetailItem label="Local">{reviewTarget.state || "—"}</DetailItem>
+              <DetailItem label="Operadora">{operatorName(reviewTarget)}</DetailItem>
+              <DetailItem label="Enviado por">
+                {reviewTarget.createdBy ? `${reviewTarget.createdBy.name} · ${reviewTarget.createdBy.email}` : "—"}
+              </DetailItem>
+              <DetailItem label="Endereço (slug)">{reviewTarget.slug}</DetailItem>
+            </dl>
+            {reviewTarget.approvalStatus === "REJECTED" && reviewTarget.rejectionReason ? (
+              <Alert tone="danger" title="Motivo da rejeição">
+                {reviewTarget.rejectionReason}
+              </Alert>
+            ) : null}
+          </div>
+        ) : null}
+      </Modal>
+
+      {/* Rejeição com motivo obrigatório */}
+      <Modal
+        open={!!rejectTarget}
+        onClose={closeReject}
+        title="Rejeitar destino"
+        description={
+          rejectTarget
+            ? `Explique o que precisa mudar em "${rejectTarget.title}". A operadora verá este motivo.`
+            : undefined
+        }
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setRejectTarget(null)}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleRejectSubmit} loading={rejectSubmitting}>
+              {rejectSubmitting ? "Rejeitando..." : "Rejeitar destino"}
+            </Button>
+          </>
+        }
+      >
+        <Textarea
+          label="Motivo da rejeição"
           rows={4}
-          placeholder="Descreva o motivo..."
+          placeholder="Ex.: as fotos estão em baixa resolução e a descrição não informa o acesso."
           value={rejectReason}
           onChange={(e) => setRejectReason(e.target.value)}
+          error={rejectError}
           autoFocus
-          style={{
-            width: "100%",
-            minHeight: "96px",
-            padding: "8px 12px",
-            border: "1px solid var(--stone-200)",
-            borderRadius: "4px",
-            fontSize: "16px",
-            fontFamily: "var(--font-body)",
-            resize: "vertical",
-            boxSizing: "border-box",
-          }}
         />
-        {rejectError && (
-          <p role="alert" style={{ fontSize: "14px", color: "#DC2626", marginTop: "8px" }}>
-            {rejectError}
-          </p>
-        )}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "16px" }}>
-          <button
-            onClick={() => setRejectTarget(null)}
-            style={{
-              background: "white",
-              color: "var(--stone-700)",
-              border: "1px solid var(--stone-300)",
-              padding: "8px 16px",
-              borderRadius: "4px",
-              fontSize: "14px",
-              cursor: "pointer",
-            }}
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleRejectSubmit}
-            disabled={rejectSubmitting}
-            style={{
-              background: rejectSubmitting ? "var(--stone-400)" : "#DC2626",
-              color: "white",
-              border: "none",
-              padding: "8px 16px",
-              borderRadius: "4px",
-              fontSize: "14px",
-              fontWeight: 600,
-              cursor: rejectSubmitting ? "not-allowed" : "pointer",
-            }}
-          >
-            {rejectSubmitting ? "Rejeitando..." : "Confirmar Rejeição"}
-          </button>
-        </div>
       </Modal>
     </>
   )

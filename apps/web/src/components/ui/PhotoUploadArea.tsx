@@ -1,7 +1,9 @@
 'use client'
 
 import React, { useCallback, useRef, useState } from 'react'
+import { ImagePlus, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { IconButton } from '@/src/components/ui/capi'
 
 interface PhotoUploadAreaProps {
   photos: string[]
@@ -49,116 +51,122 @@ export function PhotoUploadArea({
   )
 
   return (
-    <div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
-          gap: '8px',
-          marginBottom: '8px',
-        }}
-      >
+    <div className="pua">
+      <style precedence="default">{`
+        .pua__grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+          gap: var(--space-2);
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+        .pua__tile {
+          position: relative;
+          aspect-ratio: 1 / 1;
+          border-radius: var(--radius-sm);
+          overflow: hidden;
+          background: var(--bg-muted);
+        }
+        .pua__tile img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .pua__remove {
+          position: absolute;
+          top: var(--space-1);
+          right: var(--space-1);
+        }
+        .pua__add {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: var(--space-1);
+          width: 100%;
+          aspect-ratio: 1 / 1;
+          min-height: var(--touch-target, 44px);
+          padding: var(--space-2);
+          border: 2px dashed var(--border-strong);
+          border-radius: var(--radius-sm);
+          background: var(--bg-subtle);
+          color: var(--text-secondary);
+          font: 600 13px/1.3 var(--font-sans);
+          text-align: center;
+          cursor: pointer;
+          transition: border-color .15s ease, color .15s ease, background-color .15s ease;
+        }
+        .pua__add:hover {
+          border-color: var(--primary);
+          color: var(--text-primary);
+          background: var(--primary-subtle);
+        }
+        .pua__add:focus-visible {
+          outline: 2px solid var(--focus-ring);
+          outline-offset: 2px;
+        }
+        .pua__uploading {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: var(--space-2);
+          aspect-ratio: 1 / 1;
+          border-radius: var(--radius-sm);
+          background: var(--bg-subtle);
+          border: 1px solid var(--border);
+          color: var(--text-secondary);
+          font: 500 12px/1.3 var(--font-sans);
+        }
+        .pua__count {
+          margin: var(--space-2) 0 0;
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+      `}</style>
+
+      <ul className="pua__grid">
         {photos.map((url, idx) => (
-          <div
-            key={url + idx}
-            style={{
-              position: 'relative',
-              width: '80px',
-              height: '80px',
-              borderRadius: '4px',
-              overflow: 'hidden',
-              flexShrink: 0,
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={url}
-              alt={`Foto ${idx + 1}`}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-            <button
-              type="button"
+          <li key={url + idx} className="pua__tile">
+            {/* eslint-disable-next-line @next/next/no-img-element -- URLs de upload de hosts variados */}
+            <img src={url} alt={`Foto ${idx + 1}`} />
+            <IconButton
+              icon={X}
+              label={`Remover foto ${idx + 1}`}
+              variant="glass"
+              size="sm"
+              className="pua__remove"
               onClick={() => onRemove(url)}
-              style={{
-                position: 'absolute',
-                top: '2px',
-                right: '2px',
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                background: 'rgba(0,0,0,0.65)',
-                color: 'white',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '14px',
-                lineHeight: 1,
-                padding: 0,
-                /* expand touch target without affecting layout */
-                minHeight: '44px',
-                minWidth: '44px',
-                margin: '-12px -12px 0 0',
-              }}
-              aria-label="Remover foto"
-            >
-              ×
-            </button>
-          </div>
+            />
+          </li>
         ))}
 
         {photos.length < maxPhotos && !isUploading && (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              width: '80px',
-              height: '80px',
-              border: '2px dashed var(--stone-300, #d6d3d1)',
-              background: 'var(--stone-50, #fafaf9)',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '24px',
-              color: 'var(--stone-400, #a8a29e)',
-              padding: 0,
-              flexShrink: 0,
-            }}
-            aria-label="Adicionar foto"
-          >
-            +
-          </button>
+          <li>
+            <button
+              type="button"
+              className="pua__add"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <ImagePlus size={22} strokeWidth={1.75} aria-hidden="true" />
+              Adicionar foto
+            </button>
+          </li>
         )}
 
         {isUploading && (
-          <div
-            style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '4px',
-              background: 'var(--stone-100, #f5f5f4)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '11px',
-              color: 'var(--stone-500, #78716c)',
-              flexShrink: 0,
-            }}
-          >
-            Enviando...
-          </div>
+          <li className="pua__uploading" role="status" aria-live="polite">
+            <span className="capi-spinner" aria-hidden="true" />
+            Enviando…
+          </li>
         )}
-      </div>
+      </ul>
 
-      {photos.length >= maxPhotos && (
-        <p style={{ fontSize: '12px', color: 'var(--stone-500, #78716c)', margin: '4px 0 0' }}>
-          {photos.length}/{maxPhotos} fotos adicionadas
-        </p>
-      )}
+      <p className="pua__count">
+        {photos.length}/{maxPhotos} fotos · JPEG, PNG ou WebP até 5MB
+      </p>
 
       <input
         ref={fileInputRef}

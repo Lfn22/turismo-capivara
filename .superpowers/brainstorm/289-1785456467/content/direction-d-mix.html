@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAPI — Direction D: Mix (Motion + Rupestre)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  :root{
+    --ochre:#C4852A;
+    --ochre-light:#D4A54A;
+    --ochre-dark:#8B6914;
+    --stone-50:#fafaf9;
+    --stone-100:#f5f5f4;
+    --stone-200:#e7e5e4;
+    --stone-300:#d6d3d0;
+    --stone-400:#a8a29e;
+    --stone-500:#78716c;
+    --stone-600:#57534e;
+    --stone-700:#44403c;
+    --stone-800:#292524;
+    --stone-900:#1c1917;
+    --radius:10px;
+    --font-display:'Playfair Display',Georgia,serif;
+    --font-body:'Source Sans 3','Source Sans Pro',system-ui,sans-serif;
+  }
+
+  body{
+    font-family:var(--font-body);
+    background:var(--stone-200);
+    color:var(--stone-800);
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    min-height:100vh;
+    padding:24px 0;
+  }
+
+  /* Phone frame */
+  .phone-frame{
+    width:375px;
+    min-height:812px;
+    background:var(--stone-900);
+    border-radius:40px;
+    overflow:hidden;
+    position:relative;
+    box-shadow:0 25px 80px rgba(0,0,0,.35), 0 0 0 2px var(--stone-700);
+  }
+  .phone-screen{
+    width:100%;
+    height:812px;
+    overflow-y:auto;
+    overflow-x:hidden;
+    scroll-behavior:smooth;
+    position:relative;
+  }
+  .phone-screen::-webkit-scrollbar{width:0}
+
+  /* SVG filters for stone texture */
+  .texture-filter{position:absolute;width:0;height:0}
+
+  /* ============ HERO ============ */
+  .hero{
+    position:relative;
+    min-height:380px;
+    background:linear-gradient(175deg, var(--stone-900) 0%, #2a2118 55%, var(--stone-800) 100%);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    padding:60px 24px 48px;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    opacity:.5;
+    pointer-events:none;
+    animation:grainShift 8s steps(3) infinite;
+  }
+  @keyframes grainShift{
+    0%{transform:translate(0,0)}
+    33%{transform:translate(-2px,1px)}
+    66%{transform:translate(1px,-1px)}
+    100%{transform:translate(0,0)}
+  }
+
+  /* Stone dust particles */
+  .particle{
+    position:absolute;
+    width:3px;height:3px;
+    background:var(--ochre-light);
+    border-radius:50%;
+    opacity:0;
+    animation:floatParticle 6s ease-in-out infinite;
+  }
+  .particle:nth-child(1){left:15%;top:20%;animation-delay:0s;width:2px;height:2px}
+  .particle:nth-child(2){left:75%;top:30%;animation-delay:1.2s;width:4px;height:4px;background:var(--ochre)}
+  .particle:nth-child(3){left:45%;top:60%;animation-delay:2.4s}
+  .particle:nth-child(4){right:20%;top:15%;animation-delay:3.6s;width:2px;height:2px;background:var(--ochre-dark)}
+  .particle:nth-child(5){left:30%;top:75%;animation-delay:0.8s;width:4px;height:4px}
+  .particle:nth-child(6){right:30%;top:50%;animation-delay:2s;width:2px;height:2px}
+  .particle:nth-child(7){left:60%;top:10%;animation-delay:4s;background:var(--ochre)}
+  .particle:nth-child(8){left:10%;top:45%;animation-delay:1.5s;width:3px;height:3px}
+
+  @keyframes floatParticle{
+    0%{opacity:0;transform:translateY(0) scale(0.5)}
+    20%{opacity:.6}
+    50%{opacity:.8;transform:translateY(-30px) scale(1)}
+    80%{opacity:.4}
+    100%{opacity:0;transform:translateY(-60px) scale(0.3)}
+  }
+
+  /* Petroglyph logo */
+  .hero-logo{
+    margin-bottom:16px;
+    opacity:0;
+    animation:drawIn 1.5s ease-out .3s forwards;
+  }
+  .hero-logo svg{filter:drop-shadow(0 0 12px rgba(196,133,42,.3))}
+  .hero-logo svg path{
+    stroke-dasharray:200;
+    stroke-dashoffset:200;
+    animation:petroDraw 2s ease-out .5s forwards;
+  }
+  @keyframes petroDraw{
+    to{stroke-dashoffset:0}
+  }
+
+  .hero-brand{
+    font-family:var(--font-display);
+    font-weight:900;
+    font-size:56px;
+    letter-spacing:6px;
+    color:var(--stone-50);
+    text-shadow:0 2px 20px rgba(196,133,42,.25);
+    opacity:0;
+    animation:drawIn 1s ease-out .6s forwards;
+  }
+  .hero-tagline{
+    font-family:var(--font-body);
+    font-size:13px;
+    font-weight:400;
+    color:var(--stone-400);
+    letter-spacing:1.5px;
+    text-transform:lowercase;
+    text-align:center;
+    margin-top:8px;
+    opacity:0;
+    animation:drawIn 1s ease-out 1s forwards;
+  }
+
+  @keyframes drawIn{
+    from{opacity:0;transform:translateY(12px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+
+  /* Petroglyph decoration near hero */
+  .petro-deco{
+    position:absolute;
+    opacity:.12;
+  }
+  .petro-deco.left{left:12px;bottom:40px}
+  .petro-deco.right{right:12px;top:60px;transform:scaleX(-1)}
+
+  /* ============ ORGANIC DIVIDER ============ */
+  .rock-divider{
+    display:block;
+    width:100%;
+    margin-top:-1px;
+    position:relative;
+    z-index:2;
+  }
+  .rock-divider svg{display:block;width:100%}
+
+  /* ============ STATS BAR ============ */
+  .stats-section{
+    background:var(--stone-800);
+    position:relative;
+    padding:20px 16px;
+    display:flex;
+    justify-content:space-around;
+    gap:8px;
+  }
+  .stats-section::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+    opacity:.4;
+    pointer-events:none;
+  }
+  .stat-item{
+    text-align:center;
+    position:relative;
+    z-index:1;
+  }
+  .stat-number{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:22px;
+    color:var(--ochre);
+  }
+  .stat-label{
+    font-size:11px;
+    color:var(--stone-400);
+    margin-top:2px;
+    letter-spacing:.5px;
+  }
+
+  /* ============ SECTION SHARED ============ */
+  .section{
+    padding:32px 20px;
+    position:relative;
+  }
+  .section-title{
+    font-family:var(--font-display);
+    font-weight:900;
+    font-size:24px;
+    color:var(--stone-800);
+    margin-bottom:6px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .section-title .petro-icon{
+    flex-shrink:0;
+    opacity:.7;
+  }
+  .section-subtitle{
+    font-size:13px;
+    color:var(--stone-500);
+    margin-bottom:20px;
+  }
+
+  /* Scroll reveal */
+  .reveal{
+    opacity:0;
+    transform:translateY(24px);
+    transition:opacity .7s ease-out, transform .7s ease-out;
+  }
+  .reveal.visible{
+    opacity:1;
+    transform:translateY(0);
+  }
+  .reveal-delay-1{transition-delay:.1s}
+  .reveal-delay-2{transition-delay:.2s}
+  .reveal-delay-3{transition-delay:.3s}
+  .reveal-delay-4{transition-delay:.4s}
+
+  /* ============ DESTINATIONS ============ */
+  .destinations{
+    background:var(--stone-100);
+  }
+  .destinations::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity:.3;
+    pointer-events:none;
+  }
+
+  .cards-grid{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    position:relative;
+    z-index:1;
+  }
+  .dest-card{
+    background:var(--stone-50);
+    border-radius:var(--radius);
+    overflow:hidden;
+    position:relative;
+    transition:transform .3s ease, box-shadow .3s ease;
+    cursor:pointer;
+    display:flex;
+    height:100px;
+    border:1px solid var(--stone-200);
+  }
+  .dest-card::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:var(--radius);
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity:.6;
+    pointer-events:none;
+  }
+  .dest-card:hover{
+    transform:scale(1.03);
+    box-shadow:0 8px 24px rgba(196,133,42,.15), 0 0 0 1px var(--ochre-light);
+  }
+  .dest-card:active{transform:scale(0.98)}
+
+  .dest-img{
+    width:100px;
+    min-height:100%;
+    object-fit:cover;
+    flex-shrink:0;
+    position:relative;
+  }
+  /* Placeholder colored blocks for images */
+  .dest-img-placeholder{
+    width:100px;
+    min-height:100%;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+  }
+  .dest-img-placeholder.serra{background:linear-gradient(135deg,#8B6914,#C4852A)}
+  .dest-img-placeholder.chapada{background:linear-gradient(135deg,#6B7B3A,#A8B060)}
+  .dest-img-placeholder.jalapao{background:linear-gradient(135deg,#C4852A,#D4A54A)}
+  .dest-img-placeholder.lencois{background:linear-gradient(135deg,#4A7B9B,#7BB5D0)}
+
+  .dest-info{
+    padding:12px 14px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    flex:1;
+    position:relative;
+    z-index:1;
+  }
+  .dest-name{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:15px;
+    color:var(--stone-800);
+    margin-bottom:3px;
+  }
+  .dest-region{
+    font-size:11px;
+    color:var(--stone-500);
+    margin-bottom:6px;
+  }
+  .dest-price{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:14px;
+    color:var(--ochre);
+  }
+  .dest-price span{
+    font-family:var(--font-body);
+    font-weight:400;
+    font-size:11px;
+    color:var(--stone-500);
+  }
+
+  /* Heart/favorite */
+  .fav-btn{
+    position:absolute;
+    top:10px;right:10px;
+    width:28px;height:28px;
+    border:none;
+    background:rgba(255,255,255,.85);
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:transform .2s;
+    z-index:2;
+  }
+  .fav-btn:active{transform:scale(1.3)}
+  .fav-btn.liked svg{fill:var(--ochre);stroke:var(--ochre)}
+  .fav-btn svg{
+    width:14px;height:14px;
+    stroke:var(--stone-600);
+    fill:none;
+    stroke-width:2;
+    transition:fill .3s, stroke .3s;
+  }
+
+  /* ============ COMO FUNCIONA ============ */
+  .como-funciona{
+    background:var(--stone-800);
+    color:var(--stone-100);
+  }
+  .como-funciona .section-title{color:var(--stone-50)}
+  .como-funciona .section-subtitle{color:var(--stone-400)}
+
+  .steps{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    position:relative;
+    z-index:1;
+  }
+  /* Connecting line */
+  .steps::before{
+    content:'';
+    position:absolute;
+    left:24px;
+    top:24px;
+    bottom:24px;
+    width:2px;
+    background:linear-gradient(to bottom, var(--ochre), var(--ochre-dark));
+    opacity:.3;
+    border-radius:1px;
+  }
+  .step{
+    display:flex;
+    align-items:flex-start;
+    gap:16px;
+    position:relative;
+  }
+  .step-icon{
+    width:48px;height:48px;
+    border-radius:50%;
+    background:rgba(196,133,42,.15);
+    border:2px solid var(--ochre);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    position:relative;
+    z-index:1;
+    transition:transform .3s;
+  }
+  .step-icon:hover{transform:scale(1.1) rotate(5deg)}
+  .step-icon svg{
+    width:22px;height:22px;
+    stroke:var(--ochre);
+    fill:none;
+    stroke-width:1.8;
+    stroke-dasharray:100;
+    stroke-dashoffset:100;
+    transition:stroke-dashoffset 1s ease-out;
+  }
+  .step.visible .step-icon svg{
+    stroke-dashoffset:0;
+  }
+  .step-content{padding-top:4px}
+  .step-num{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:11px;
+    color:var(--ochre);
+    letter-spacing:1px;
+    text-transform:uppercase;
+    margin-bottom:2px;
+  }
+  .step-title{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:16px;
+    color:var(--stone-50);
+    margin-bottom:3px;
+  }
+  .step-desc{
+    font-size:12.5px;
+    color:var(--stone-400);
+    line-height:1.5;
+  }
+
+  /* ============ ORGANIC DIVIDER (inverted) ============ */
+  .rock-divider-up{
+    display:block;
+    width:100%;
+    margin-bottom:-1px;
+    position:relative;
+    z-index:2;
+  }
+  .rock-divider-up svg{display:block;width:100%}
+
+  /* ============ CTA ============ */
+  .cta-section{
+    background:linear-gradient(170deg, #2a2118 0%, var(--stone-900) 100%);
+    padding:40px 24px 100px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .cta-section::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+    opacity:.5;
+    pointer-events:none;
+  }
+  .cta-petro{
+    margin-bottom:16px;
+    opacity:.25;
+  }
+  .cta-title{
+    font-family:var(--font-display);
+    font-weight:900;
+    font-size:26px;
+    color:var(--stone-50);
+    line-height:1.3;
+    margin-bottom:8px;
+    position:relative;
+    z-index:1;
+  }
+  .cta-title em{
+    color:var(--ochre);
+    font-style:normal;
+  }
+  .cta-sub{
+    font-size:13px;
+    color:var(--stone-400);
+    margin-bottom:24px;
+    position:relative;
+    z-index:1;
+  }
+  .cta-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--ochre);
+    color:var(--stone-50);
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:15px;
+    padding:14px 28px;
+    border:none;
+    border-radius:var(--radius);
+    cursor:pointer;
+    position:relative;
+    z-index:1;
+    transition:transform .15s, box-shadow .3s, background .3s;
+    box-shadow:0 4px 16px rgba(196,133,42,.3);
+  }
+  .cta-btn:hover{
+    background:var(--ochre-light);
+    box-shadow:0 6px 24px rgba(196,133,42,.45);
+  }
+  .cta-btn:active{transform:scale(0.96)}
+  .cta-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+
+  /* ============ BOTTOM NAV ============ */
+  .bottom-nav{
+    position:sticky;
+    bottom:0;
+    left:0;right:0;
+    background:var(--stone-900);
+    border-top:1px solid var(--stone-700);
+    display:flex;
+    justify-content:space-around;
+    padding:8px 0 12px;
+    z-index:100;
+  }
+  .nav-item{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    cursor:pointer;
+    border:none;
+    background:none;
+    padding:4px 8px;
+    position:relative;
+    transition:transform .2s;
+  }
+  .nav-item:active{transform:scale(0.9)}
+  .nav-item svg{
+    width:20px;height:20px;
+    stroke:var(--stone-500);
+    fill:none;
+    stroke-width:1.8;
+    transition:stroke .2s, transform .2s;
+  }
+  .nav-item:hover svg{
+    stroke:var(--ochre);
+    transform:translateY(-2px);
+  }
+  .nav-item span{
+    font-size:9px;
+    color:var(--stone-500);
+    letter-spacing:.3px;
+    transition:color .2s;
+  }
+  .nav-item:hover span{color:var(--ochre)}
+  .nav-item.active svg{stroke:var(--ochre)}
+  .nav-item.active span{color:var(--ochre)}
+  .nav-item.active::after{
+    content:'';
+    position:absolute;
+    top:2px;right:calc(50% - 12px);
+    width:5px;height:5px;
+    background:var(--ochre);
+    border-radius:50%;
+    animation:pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:.5;transform:scale(1.4)}
+  }
+
+  /* ============ LABEL ============ */
+  .direction-label{
+    position:fixed;
+    top:16px;left:50%;
+    transform:translateX(-50%);
+    background:var(--stone-800);
+    color:var(--stone-400);
+    font-family:var(--font-body);
+    font-size:11px;
+    padding:6px 16px;
+    border-radius:20px;
+    letter-spacing:1px;
+    z-index:999;
+    border:1px solid var(--stone-700);
+  }
+  .direction-label strong{color:var(--ochre)}
+</style>
+</head>
+<body>
+
+<div class="direction-label">Direction <strong>D</strong> — Mix: Motion + Rupestre</div>
+
+<div class="phone-frame">
+<div class="phone-screen" id="screen">
+
+  <!-- ===== HERO ===== -->
+  <section class="hero">
+    <!-- Stone dust particles -->
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+
+    <!-- Petroglyph decorations -->
+    <div class="petro-deco left">
+      <svg width="40" height="60" viewBox="0 0 40 60" fill="none" stroke="rgba(196,133,42,.6)" stroke-width="1.5">
+        <circle cx="20" cy="8" r="5"/>
+        <line x1="20" y1="13" x2="20" y2="35"/>
+        <line x1="20" y1="20" x2="10" y2="28"/>
+        <line x1="20" y1="20" x2="30" y2="28"/>
+        <line x1="20" y1="35" x2="12" y2="50"/>
+        <line x1="20" y1="35" x2="28" y2="50"/>
+      </svg>
+    </div>
+    <div class="petro-deco right">
+      <svg width="40" height="60" viewBox="0 0 40 60" fill="none" stroke="rgba(196,133,42,.6)" stroke-width="1.5">
+        <circle cx="20" cy="8" r="5"/>
+        <line x1="20" y1="13" x2="20" y2="35"/>
+        <line x1="20" y1="20" x2="10" y2="28"/>
+        <line x1="20" y1="20" x2="30" y2="28"/>
+        <line x1="20" y1="35" x2="12" y2="50"/>
+        <line x1="20" y1="35" x2="28" y2="50"/>
+      </svg>
+    </div>
+
+    <!-- Logo (petroglyph arch + figures) -->
+    <div class="hero-logo">
+      <svg width="64" height="52" viewBox="0 0 64 52" fill="none">
+        <!-- Arch -->
+        <path d="M8 48 Q32 2 56 48" stroke="#C4852A" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Left figure -->
+        <circle cx="24" cy="24" r="3" stroke="#D4A54A" stroke-width="1.5"/>
+        <line x1="24" y1="27" x2="24" y2="38" stroke="#D4A54A" stroke-width="1.5"/>
+        <line x1="24" y1="31" x2="19" y2="35" stroke="#D4A54A" stroke-width="1.5"/>
+        <line x1="24" y1="31" x2="29" y2="35" stroke="#D4A54A" stroke-width="1.5"/>
+        <line x1="24" y1="38" x2="20" y2="45" stroke="#D4A54A" stroke-width="1.5"/>
+        <line x1="24" y1="38" x2="28" y2="45" stroke="#D4A54A" stroke-width="1.5"/>
+        <!-- Right figure -->
+        <circle cx="40" cy="24" r="3" stroke="#D4A54A" stroke-width="1.5"/>
+        <line x1="40" y1="27" x2="40" y2="38" stroke="#D4A54A" stroke-width="1.5"/>
+        <line x1="40" y1="31" x2="35" y2="35" stroke="#D4A54A" stroke-width="1.5"/>
+        <line x1="40" y1="31" x2="45" y2="35" stroke="#D4A54A" stroke-width="1.5"/>
+        <line x1="40" y1="38" x2="36" y2="45" stroke="#D4A54A" stroke-width="1.5"/>
+        <line x1="40" y1="38" x2="44" y2="45" stroke="#D4A54A" stroke-width="1.5"/>
+        <!-- Dot -->
+        <circle cx="32" cy="14" r="2.5" fill="#C4852A"/>
+      </svg>
+    </div>
+
+    <h1 class="hero-brand">CAPI</h1>
+    <p class="hero-tagline">caminho entre quem explora e quem opera</p>
+  </section>
+
+  <!-- Organic rock divider: hero -> stats -->
+  <div class="rock-divider">
+    <svg viewBox="0 0 375 32" preserveAspectRatio="none" style="height:32px">
+      <path d="M0,0 L0,12 Q30,28 75,18 Q120,8 160,22 Q200,32 240,20 Q280,8 320,16 Q355,24 375,14 L375,0 Z" fill="#1c1917"/>
+    </svg>
+  </div>
+
+  <!-- ===== STATS ===== -->
+  <section class="stats-section reveal">
+    <div class="stat-item">
+      <div class="stat-number" data-target="120" data-suffix="+">0</div>
+      <div class="stat-label">Roteiros</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number" data-target="45" data-suffix="">0</div>
+      <div class="stat-label">Guias Locais</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number" data-target="2800" data-suffix="+">0</div>
+      <div class="stat-label">Aventureiros</div>
+    </div>
+  </section>
+
+  <!-- Organic divider: stats -> destinations -->
+  <div class="rock-divider">
+    <svg viewBox="0 0 375 24" preserveAspectRatio="none" style="height:24px">
+      <path d="M0,0 L0,6 Q50,20 100,10 Q150,0 200,14 Q250,24 300,12 Q340,4 375,10 L375,0 Z" fill="#292524"/>
+    </svg>
+  </div>
+
+  <!-- ===== DESTINATIONS ===== -->
+  <section class="section destinations">
+    <div class="section-title reveal">
+      <!-- Petroglyph icon: sun/spiral -->
+      <svg class="petro-icon" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="var(--ochre)" stroke-width="1.5">
+        <circle cx="11" cy="11" r="4"/>
+        <path d="M11 2v3M11 17v3M2 11h3M17 11h3M4.5 4.5l2 2M15.5 15.5l2 2M4.5 17.5l2-2M15.5 6.5l2-2"/>
+      </svg>
+      Destinos
+    </div>
+    <p class="section-subtitle reveal reveal-delay-1">Explore o Brasil profundo</p>
+
+    <div class="cards-grid">
+      <!-- Card 1 -->
+      <div class="dest-card reveal reveal-delay-1">
+        <div class="dest-img-placeholder serra">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="1.5">
+            <path d="M4 28 L14 8 L20 18 L24 12 L28 28Z"/>
+          </svg>
+        </div>
+        <div class="dest-info">
+          <div class="dest-name">Serra da Capivara</div>
+          <div class="dest-region">Piau&iacute;</div>
+          <div class="dest-price">R$ 180 <span>/pessoa</span></div>
+        </div>
+        <button class="fav-btn" onclick="this.classList.toggle('liked')">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="dest-card reveal reveal-delay-2">
+        <div class="dest-img-placeholder chapada">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="1.5">
+            <path d="M6 26 Q10 10 16 14 Q22 18 26 6"/>
+            <path d="M8 28 L24 28"/>
+          </svg>
+        </div>
+        <div class="dest-info">
+          <div class="dest-name">Chapada Diamantina</div>
+          <div class="dest-region">Bahia</div>
+          <div class="dest-price">R$ 220 <span>/pessoa</span></div>
+        </div>
+        <button class="fav-btn" onclick="this.classList.toggle('liked')">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="dest-card reveal reveal-delay-3">
+        <div class="dest-img-placeholder jalapao">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="1.5">
+            <path d="M16 4 L16 20"/>
+            <path d="M10 10 Q16 16 22 10"/>
+            <circle cx="16" cy="26" r="4"/>
+          </svg>
+        </div>
+        <div class="dest-info">
+          <div class="dest-name">Jalap&atilde;o</div>
+          <div class="dest-region">Tocantins</div>
+          <div class="dest-price">R$ 350 <span>/pessoa</span></div>
+        </div>
+        <button class="fav-btn liked" onclick="this.classList.toggle('liked')">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="dest-card reveal reveal-delay-4">
+        <div class="dest-img-placeholder lencois">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="1.5">
+            <path d="M4 20 Q10 12 16 20 Q22 28 28 20"/>
+            <path d="M4 14 Q10 6 16 14 Q22 22 28 14"/>
+          </svg>
+        </div>
+        <div class="dest-info">
+          <div class="dest-name">Len&ccedil;&oacute;is Maranhenses</div>
+          <div class="dest-region">Maranh&atilde;o</div>
+          <div class="dest-price">R$ 280 <span>/pessoa</span></div>
+        </div>
+        <button class="fav-btn" onclick="this.classList.toggle('liked')">
+          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Organic divider: destinations -> como funciona -->
+  <div class="rock-divider-up">
+    <svg viewBox="0 0 375 28" preserveAspectRatio="none" style="height:28px">
+      <path d="M0,28 L0,18 Q40,4 90,16 Q140,28 190,12 Q230,0 280,14 Q330,26 375,10 L375,28 Z" fill="#292524"/>
+    </svg>
+  </div>
+
+  <!-- ===== COMO FUNCIONA ===== -->
+  <section class="section como-funciona">
+    <div class="section-title reveal">
+      <!-- Petroglyph icon: hand print -->
+      <svg class="petro-icon" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="var(--ochre)" stroke-width="1.3">
+        <path d="M11 20 L11 10"/>
+        <path d="M11 10 Q8 4 6 6"/>
+        <path d="M11 10 Q9 3 7 5"/>
+        <path d="M11 10 Q11 2 11 5"/>
+        <path d="M11 10 Q13 3 15 5"/>
+        <path d="M11 10 Q14 4 16 6"/>
+      </svg>
+      Como funciona
+    </div>
+    <p class="section-subtitle reveal reveal-delay-1">Simples como deve ser</p>
+
+    <div class="steps">
+      <!-- Step 1 -->
+      <div class="step reveal reveal-delay-1">
+        <div class="step-icon">
+          <!-- Petroglyph: compass/map -->
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>
+            <circle cx="12" cy="12" r="2" fill="none"/>
+          </svg>
+        </div>
+        <div class="step-content">
+          <div class="step-num">Passo 1</div>
+          <div class="step-title">Escolha seu destino</div>
+          <div class="step-desc">Explore roteiros incr&iacute;veis pelo sert&atilde;o e al&eacute;m</div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step reveal reveal-delay-2">
+        <div class="step-icon">
+          <!-- Petroglyph: person/guide -->
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="6" r="3"/>
+            <path d="M12 9v8"/>
+            <path d="M12 13 L7 17"/>
+            <path d="M12 13 L17 17"/>
+            <path d="M12 17 L8 22"/>
+            <path d="M12 17 L16 22"/>
+          </svg>
+        </div>
+        <div class="step-content">
+          <div class="step-num">Passo 2</div>
+          <div class="step-title">Encontre um guia local</div>
+          <div class="step-desc">Guias certificados que conhecem cada trilha</div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step reveal reveal-delay-3">
+        <div class="step-icon">
+          <!-- Petroglyph: lightning/PIX -->
+          <svg viewBox="0 0 24 24">
+            <path d="M13 2 L6 13 L11 13 L10 22 L18 10 L13 10 Z"/>
+          </svg>
+        </div>
+        <div class="step-content">
+          <div class="step-num">Passo 3</div>
+          <div class="step-title">Reserve com PIX</div>
+          <div class="step-desc">Pagamento instant&acirc;neo, confirma&ccedil;&atilde;o imediata</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Organic divider: como funciona -> CTA -->
+  <div class="rock-divider">
+    <svg viewBox="0 0 375 24" preserveAspectRatio="none" style="height:24px">
+      <path d="M0,0 L0,8 Q60,22 120,12 Q180,2 240,16 Q300,24 375,8 L375,0 Z" fill="#292524"/>
+    </svg>
+  </div>
+
+  <!-- ===== CTA ===== -->
+  <section class="cta-section">
+    <!-- Petroglyph background deco -->
+    <div class="cta-petro reveal">
+      <svg width="80" height="40" viewBox="0 0 80 40" fill="none" stroke="rgba(196,133,42,.5)" stroke-width="1">
+        <!-- Running figures -->
+        <circle cx="15" cy="8" r="3"/><line x1="15" y1="11" x2="15" y2="24"/><line x1="15" y1="16" x2="8" y2="20"/><line x1="15" y1="16" x2="22" y2="14"/><line x1="15" y1="24" x2="10" y2="34"/><line x1="15" y1="24" x2="20" y2="34"/>
+        <circle cx="40" cy="8" r="3"/><line x1="40" y1="11" x2="40" y2="24"/><line x1="40" y1="16" x2="33" y2="20"/><line x1="40" y1="16" x2="47" y2="14"/><line x1="40" y1="24" x2="35" y2="34"/><line x1="40" y1="24" x2="45" y2="34"/>
+        <circle cx="65" cy="8" r="3"/><line x1="65" y1="11" x2="65" y2="24"/><line x1="65" y1="16" x2="58" y2="20"/><line x1="65" y1="16" x2="72" y2="14"/><line x1="65" y1="24" x2="60" y2="34"/><line x1="65" y1="24" x2="70" y2="34"/>
+      </svg>
+    </div>
+
+    <h2 class="cta-title reveal">
+      Sua pr&oacute;xima aventura come&ccedil;a com um <em>guia local</em>
+    </h2>
+    <p class="cta-sub reveal reveal-delay-1">Descubra roteiros aut&ecirc;nticos pelo Brasil</p>
+    <button class="cta-btn reveal reveal-delay-2">
+      Explorar destinos
+      <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+  </section>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <nav class="bottom-nav">
+    <button class="nav-item active">
+      <!-- Petroglyph: home/arch -->
+      <svg viewBox="0 0 24 24">
+        <path d="M3 12 L12 3 L21 12"/>
+        <path d="M5 12v8h4v-5h6v5h4v-8"/>
+      </svg>
+      <span>In&iacute;cio</span>
+    </button>
+    <button class="nav-item">
+      <!-- Petroglyph: search -->
+      <svg viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7"/>
+        <path d="M16 16 L21 21"/>
+      </svg>
+      <span>Buscar</span>
+    </button>
+    <button class="nav-item">
+      <!-- Petroglyph: calendar -->
+      <svg viewBox="0 0 24 24">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+      </svg>
+      <span>Reservas</span>
+    </button>
+    <button class="nav-item">
+      <!-- Petroglyph: person -->
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="7" r="4"/>
+        <path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>
+      </svg>
+      <span>Perfil</span>
+    </button>
+  </nav>
+
+</div>
+</div>
+
+<script>
+// ===== INTERSECTION OBSERVER — Scroll Reveal =====
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      // For steps, also trigger the SVG draw
+      if (entry.target.classList.contains('step')) {
+        entry.target.classList.add('visible');
+      }
+    }
+  });
+}, {
+  root: document.getElementById('screen'),
+  threshold: 0.15
+});
+
+document.querySelectorAll('.reveal, .step').forEach(el => observer.observe(el));
+
+// ===== STATS COUNTER ANIMATION =====
+const statsObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const numbers = entry.target.querySelectorAll('.stat-number');
+      numbers.forEach(num => {
+        const target = parseInt(num.dataset.target);
+        const suffix = num.dataset.suffix || '';
+        const duration = 1800;
+        const start = performance.now();
+
+        function animate(now) {
+          const elapsed = now - start;
+          const progress = Math.min(elapsed / duration, 1);
+          // Ease out cubic
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const current = Math.round(target * eased);
+
+          if (target >= 1000) {
+            num.textContent = (current / 1000).toFixed(1).replace('.0', '') + (current >= 1000 ? '.' + String(current).slice(-3, -2) : '') ;
+            // Simpler approach for 2800
+            num.textContent = new Intl.NumberFormat('pt-BR').format(current) + suffix;
+          } else {
+            num.textContent = current + suffix;
+          }
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          }
+        }
+        requestAnimationFrame(animate);
+      });
+      statsObserver.unobserve(entry.target);
+    }
+  });
+}, {
+  root: document.getElementById('screen'),
+  threshold: 0.5
+});
+
+document.querySelectorAll('.stats-section').forEach(el => statsObserver.observe(el));
+</script>
+
+</body>
+</html>

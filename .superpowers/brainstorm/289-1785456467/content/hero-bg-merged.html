@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAPI Hero Background — Merged Gradient Tuner</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111;
+    color: #e0d8d0;
+    font-family: 'Source Sans 3', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: #C4852A;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #888;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  /* Presets */
+  .presets-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 20px;
+    max-width: 800px;
+  }
+  .preset-btn {
+    border: 2px solid #333;
+    background: #1a1a1a;
+    color: #ccc;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: 'Source Sans 3', sans-serif;
+    transition: all 0.2s;
+  }
+  .preset-btn:hover { border-color: #C4852A; color: #fff; }
+  .preset-btn.active { border-color: #C4852A; background: #2a1a0e; color: #C4852A; }
+
+  /* Sliders */
+  .controls {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 20px;
+    max-width: 700px;
+  }
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 180px;
+  }
+  .control-group label {
+    font-size: 13px;
+    color: #aaa;
+    margin-bottom: 4px;
+  }
+  .control-group input[type=range] {
+    width: 180px;
+    accent-color: #C4852A;
+  }
+  .control-group .val {
+    font-size: 12px;
+    color: #C4852A;
+    margin-top: 2px;
+    font-weight: 600;
+  }
+
+  /* Contrast display */
+  .contrast-box {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 18px;
+    text-align: center;
+    min-width: 200px;
+  }
+  .contrast-box .ratio { font-size: 22px; font-weight: 600; }
+  .contrast-box .wcag { font-size: 12px; margin-top: 2px; }
+
+  /* Phone + reference layout */
+  .phones-row {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  /* Phone mockup */
+  .phone-frame {
+    width: 375px;
+    height: 720px;
+    border: 3px solid #333;
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .phone-frame.small {
+    width: 180px;
+    height: 346px;
+    border-radius: 20px;
+  }
+  .phone-label {
+    text-align: center;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 6px;
+  }
+
+  .hero {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* Noise overlay */
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+    opacity: 0.35;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    z-index: 1;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Petroglyph SVG */
+  .petroglyph {
+    width: 120px;
+    height: auto;
+    margin-bottom: 4px;
+  }
+  .phone-frame.small .petroglyph { width: 58px; }
+
+  .logo-text {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: 56px;
+    letter-spacing: 8px;
+    color: #3D2415;
+  }
+  .phone-frame.small .logo-text { font-size: 27px; letter-spacing: 4px; }
+
+  .tagline {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 13px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    color: #3D2415;
+    text-transform: lowercase;
+    opacity: 0.85;
+  }
+  .phone-frame.small .tagline { font-size: 7px; letter-spacing: 1px; }
+
+  /* Scroll indicator */
+  .scroll-indicator {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    opacity: 0.5;
+  }
+  .scroll-indicator .chevron {
+    width: 12px;
+    height: 12px;
+    border-right: 2px solid #3D2415;
+    border-bottom: 2px solid #3D2415;
+    transform: rotate(45deg);
+    animation: bounce 2s infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: rotate(45deg) translateY(0); opacity: 0.5; }
+    50% { transform: rotate(45deg) translateY(4px); opacity: 1; }
+  }
+
+  /* CSS output */
+  .css-output {
+    max-width: 700px;
+    width: 100%;
+    margin-top: 12px;
+  }
+  .css-output label {
+    font-size: 12px;
+    color: #888;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .css-output code {
+    display: block;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12px;
+    color: #C4852A;
+    word-break: break-all;
+    cursor: pointer;
+    position: relative;
+  }
+  .css-output code:hover::after {
+    content: 'Clique para copiar';
+    position: absolute;
+    top: -22px;
+    right: 8px;
+    font-size: 11px;
+    color: #888;
+  }
+
+  /* Stops display */
+  .stops-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .stop-chip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: monospace;
+  }
+  .stop-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid #555;
+  }
+</style>
+</head>
+<body>
+
+<h1>Hero Background — Merged Gradient Tuner</h1>
+<p class="subtitle">Near-black base + Skip stone-800 zone. Texto CAPI: #3D2415</p>
+
+<!-- Presets -->
+<div class="presets-row" id="presetsRow"></div>
+
+<!-- Sliders -->
+<div class="controls">
+  <div class="control-group">
+    <label>Escuridão</label>
+    <input type="range" id="darkness" min="0" max="100" value="0">
+    <span class="val" id="darknessVal">0%</span>
+  </div>
+  <div class="control-group">
+    <label>Calor</label>
+    <input type="range" id="warmth" min="0" max="100" value="50">
+    <span class="val" id="warmthVal">50%</span>
+  </div>
+  <div class="contrast-box">
+    <label style="font-size:12px;color:#888;">Contraste do texto</label>
+    <div class="ratio" id="contrastRatio">—</div>
+    <div class="wcag" id="wcagRating">—</div>
+  </div>
+</div>
+
+<!-- Phones -->
+<div class="phones-row">
+  <!-- Reference (broken) -->
+  <div>
+    <div class="phone-label">Antes (invisível)</div>
+    <div class="phone-frame small" id="refPhone">
+      <div class="hero" style="background: linear-gradient(175deg, #1a100a 0%, #2a1a10 30%, #3D2415 55%, #2a1a10 80%, #1a100a 100%);">
+        <div class="hero-content">
+          <svg class="petroglyph" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 70 Q60 5 100 70" stroke="#C4852A" stroke-width="3" fill="none"/>
+            <circle cx="40" cy="50" r="4" fill="#C4852A"/>
+            <circle cx="60" cy="40" r="4" fill="#C4852A"/>
+            <circle cx="80" cy="50" r="4" fill="#C4852A"/>
+            <line x1="40" y1="54" x2="40" y2="68" stroke="#C4852A" stroke-width="2"/>
+            <line x1="60" y1="44" x2="60" y2="62" stroke="#C4852A" stroke-width="2"/>
+            <line x1="80" y1="54" x2="80" y2="68" stroke="#C4852A" stroke-width="2"/>
+            <line x1="36" y1="58" x2="44" y2="56" stroke="#C4852A" stroke-width="1.5"/>
+            <line x1="56" y1="50" x2="64" y2="48" stroke="#C4852A" stroke-width="1.5"/>
+            <line x1="76" y1="58" x2="84" y2="56" stroke="#C4852A" stroke-width="1.5"/>
+            <circle cx="95" cy="20" r="5" fill="#C4852A" opacity="0.6"/>
+          </svg>
+          <div class="logo-text">CAPI</div>
+          <div class="tagline">caminho entre quem explora e quem opera</div>
+        </div>
+        <div class="scroll-indicator"><div class="chevron"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main phone -->
+  <div>
+    <div class="phone-label">Gradiente ajustado</div>
+    <div class="phone-frame" id="mainPhone">
+      <div class="hero" id="heroEl">
+        <div class="hero-content">
+          <svg class="petroglyph" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 70 Q60 5 100 70" stroke="#C4852A" stroke-width="3" fill="none"/>
+            <circle cx="40" cy="50" r="4" fill="#C4852A"/>
+            <circle cx="60" cy="40" r="4" fill="#C4852A"/>
+            <circle cx="80" cy="50" r="4" fill="#C4852A"/>
+            <line x1="40" y1="54" x2="40" y2="68" stroke="#C4852A" stroke-width="2"/>
+            <line x1="60" y1="44" x2="60" y2="62" stroke="#C4852A" stroke-width="2"/>
+            <line x1="80" y1="54" x2="80" y2="68" stroke="#C4852A" stroke-width="2"/>
+            <line x1="36" y1="58" x2="44" y2="56" stroke="#C4852A" stroke-width="1.5"/>
+            <line x1="56" y1="50" x2="64" y2="48" stroke="#C4852A" stroke-width="1.5"/>
+            <line x1="76" y1="58" x2="84" y2="56" stroke="#C4852A" stroke-width="1.5"/>
+            <circle cx="95" cy="20" r="5" fill="#C4852A" opacity="0.6"/>
+          </svg>
+          <div class="logo-text">CAPI</div>
+          <div class="tagline">caminho entre quem explora e quem opera</div>
+        </div>
+        <div class="scroll-indicator"><div class="chevron"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CSS output -->
+<div class="css-output">
+  <label>CSS gradient (clique para copiar):</label>
+  <code id="cssCode">—</code>
+</div>
+
+<!-- Live stops -->
+<div class="stops-row" id="stopsRow"></div>
+
+<script>
+const PRESETS = [
+  {
+    name: 'Ultra Dark',
+    stops: [
+      { color: [8,5,3], pos: 0 },
+      { color: [13,8,5], pos: 30 },
+      { color: [26,16,10], pos: 60 },
+      { color: [18,11,7], pos: 90 },
+      { color: [8,5,3], pos: 100 }
+    ]
+  },
+  {
+    name: 'Deep Skip',
+    stops: [
+      { color: [10,6,4], pos: 0 },
+      { color: [16,9,4], pos: 30 },
+      { color: [31,14,8], pos: 55 },
+      { color: [42,26,16], pos: 75 },
+      { color: [31,14,8], pos: 100 }
+    ]
+  },
+  {
+    name: 'Warm Abyss',
+    stops: [
+      { color: [10,7,5], pos: 0 },
+      { color: [18,12,7], pos: 25 },
+      { color: [26,16,8], pos: 50 },
+      { color: [37,24,16], pos: 70 },
+      { color: [21,12,6], pos: 100 }
+    ]
+  },
+  {
+    name: 'Coal Ember',
+    stops: [
+      { color: [6,4,4], pos: 0 },
+      { color: [14,9,6], pos: 30 },
+      { color: [28,16,8], pos: 55 },
+      { color: [40,26,14], pos: 70 },
+      { color: [16,8,5], pos: 100 }
+    ]
+  },
+  {
+    name: 'Dark Canyon',
+    stops: [
+      { color: [11,7,6], pos: 0 },
+      { color: [20,13,8], pos: 20 },
+      { color: [31,14,8], pos: 45 },
+      { color: [44,28,18], pos: 65 },
+      { color: [24,14,8], pos: 85 },
+      { color: [13,8,6], pos: 100 }
+    ]
+  },
+  {
+    name: 'Midnight Stone',
+    stops: [
+      { color: [5,3,3], pos: 0 },
+      { color: [10,6,4], pos: 20 },
+      { color: [21,12,7], pos: 45 },
+      { color: [34,21,9], pos: 65 },
+      { color: [18,10,5], pos: 85 },
+      { color: [7,4,4], pos: 100 }
+    ]
+  }
+];
+
+const ANGLE = 175;
+let activePreset = 0;
+let currentStops = [];
+
+const heroEl = document.getElementById('heroEl');
+const cssCode = document.getElementById('cssCode');
+const stopsRow = document.getElementById('stopsRow');
+const darknessSlider = document.getElementById('darkness');
+const warmthSlider = document.getElementById('warmth');
+const darknessVal = document.getElementById('darknessVal');
+const warmthVal = document.getElementById('warmthVal');
+const contrastRatio = document.getElementById('contrastRatio');
+const wcagRating = document.getElementById('wcagRating');
+
+// Build preset buttons
+const presetsRow = document.getElementById('presetsRow');
+PRESETS.forEach((p, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'preset-btn' + (i === 0 ? ' active' : '');
+  btn.textContent = p.name;
+  btn.onclick = () => selectPreset(i);
+  presetsRow.appendChild(btn);
+});
+
+function selectPreset(i) {
+  activePreset = i;
+  document.querySelectorAll('.preset-btn').forEach((b, j) => b.classList.toggle('active', j === i));
+  darknessSlider.value = 0;
+  warmthSlider.value = 50;
+  darknessVal.textContent = '0%';
+  warmthVal.textContent = '50%';
+  applyGradient();
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function adjustStops(stops, darkness, warmth) {
+  const dFactor = darkness / 100;
+  const wShift = (warmth - 50) / 50; // -1 to 1
+  return stops.map(s => {
+    let [r, g, b] = s.color;
+    // Darkness: lerp toward 0
+    r = Math.round(r * (1 - dFactor));
+    g = Math.round(g * (1 - dFactor));
+    b = Math.round(b * (1 - dFactor));
+    // Warmth: shift r up and b down (or vice versa)
+    if (wShift > 0) {
+      r = clamp(r + Math.round(wShift * 8), 0, 255);
+      b = clamp(b - Math.round(wShift * 4), 0, 255);
+    } else {
+      r = clamp(r + Math.round(wShift * 4), 0, 255);
+      b = clamp(b - Math.round(wShift * 6), 0, 255);
+    }
+    return { color: [r, g, b], pos: s.pos };
+  });
+}
+
+function toHex(rgb) {
+  return '#' + rgb.map(c => c.toString(16).padStart(2, '0')).join('');
+}
+
+function buildGradientCSS(stops) {
+  const parts = stops.map(s => `${toHex(s.color)} ${s.pos}%`);
+  return `linear-gradient(${ANGLE}deg, ${parts.join(', ')})`;
+}
+
+// Relative luminance (sRGB)
+function luminance(r, g, b) {
+  const [rs, gs, bs] = [r, g, b].map(c => {
+    c = c / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+function contrastRatioCalc(rgb1, rgb2) {
+  const l1 = luminance(...rgb1);
+  const l2 = luminance(...rgb2);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function getDominantMidColor(stops) {
+  // Find the stop closest to 50%
+  let best = stops[0];
+  let bestDist = 999;
+  stops.forEach(s => {
+    const d = Math.abs(s.pos - 50);
+    if (d < bestDist) { bestDist = d; best = s; }
+  });
+  return best.color;
+}
+
+function applyGradient() {
+  const darkness = parseInt(darknessSlider.value);
+  const warmth = parseInt(warmthSlider.value);
+  const base = PRESETS[activePreset].stops;
+  currentStops = adjustStops(base, darkness, warmth);
+
+  const css = buildGradientCSS(currentStops);
+  heroEl.style.background = css;
+  cssCode.textContent = css;
+
+  // Update stops chips
+  stopsRow.innerHTML = '';
+  currentStops.forEach(s => {
+    const hex = toHex(s.color);
+    const chip = document.createElement('div');
+    chip.className = 'stop-chip';
+    chip.innerHTML = `<div class="stop-swatch" style="background:${hex}"></div>${hex} @ ${s.pos}%`;
+    stopsRow.appendChild(chip);
+  });
+
+  // Contrast
+  const textColor = [0x3D, 0x24, 0x15];
+  const midBg = getDominantMidColor(currentStops);
+  const ratio = contrastRatioCalc(textColor, midBg);
+  contrastRatio.textContent = ratio.toFixed(2) + ':1';
+
+  let rating = '';
+  let color = '#f44';
+  if (ratio >= 7) { rating = 'AAA ✓'; color = '#4f4'; }
+  else if (ratio >= 4.5) { rating = 'AA ✓'; color = '#8f8'; }
+  else if (ratio >= 3) { rating = 'AA Large ✓'; color = '#ff8'; }
+  else { rating = 'Falha WCAG'; color = '#f66'; }
+
+  contrastRatio.style.color = color;
+  wcagRating.textContent = rating;
+  wcagRating.style.color = color;
+}
+
+// Slider listeners
+darknessSlider.addEventListener('input', () => {
+  darknessVal.textContent = darknessSlider.value + '%';
+  applyGradient();
+});
+warmthSlider.addEventListener('input', () => {
+  warmthVal.textContent = warmthSlider.value + '%';
+  applyGradient();
+});
+
+// Copy CSS on click
+cssCode.addEventListener('click', () => {
+  navigator.clipboard.writeText(cssCode.textContent).then(() => {
+    const orig = cssCode.style.borderColor;
+    cssCode.style.borderColor = '#C4852A';
+    setTimeout(() => cssCode.style.borderColor = orig, 800);
+  });
+});
+
+// Init
+applyGradient();
+</script>
+</body>
+</html>

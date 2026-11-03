@@ -1,4 +1,7 @@
 import 'dotenv/config'
+import { initTelemetry } from './shared/telemetry'
+initTelemetry()
+
 import { validateEnv } from './shared/env'
 import { initSentry, Sentry } from './shared/sentry'
 
@@ -34,14 +37,37 @@ import { packageMembershipRoutes } from './modules/memberships/package-membershi
 import { myMembershipsRoutes } from './modules/memberships/my-memberships.routes'
 import { uploadsRoutes } from './modules/uploads/uploads.routes'
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes'
+import { reportsRoutes } from './modules/reports/reports.routes'
+import { reviewsRoutes } from './modules/reviews/reviews.routes'
+import { auditRoutes } from './modules/audit/audit.routes'
 import { platformAdminsRoutes } from './modules/platform-admins/platform-admins.routes'
 import { notificationsRoutes } from './modules/notifications/notifications.routes'
 import { createBookingExpiryJob } from './modules/bookings/expiry.job'
+import { createTokenCleanupJob } from './modules/auth/token.service'
 import { createNotificationDigestJob } from './modules/notifications/digest.job'
 import { AppError } from './shared/errors/AppError'
 
+const isProd = process.env.NODE_ENV === 'production'
+
 const app = Fastify({
-  logger: true,
+  logger: {
+    level: process.env.LOG_LEVEL ?? (isProd ? 'info' : 'debug'),
+    ...(isProd
+      ? {}
+      : { transport: { target: 'pino-pretty' } }),
+    serializers: {
+      req(request) {
+        const params = request.params as Record<string, string> | undefined
+        const user = (request as any).user as { sub?: string } | undefined
+        return {
+          method: request.method,
+          url: request.url,
+          tenantSlug: params?.slug,
+          userId: user?.sub,
+        }
+      },
+    },
+  },
   trustProxy: true,
   genReqId: () => crypto.randomUUID(),
   connectionTimeout: 30000,
@@ -90,18 +116,28 @@ app.register(jwt, {
 })
 
 app.register(fastifyCron, {
-  jobs: [createBookingExpiryJob(app), createNotificationDigestJob(app)],
+  jobs: [createBookingExpiryJob(app), createTokenCleanupJob(app), createNotificationDigestJob(app)],
 })
 
 app.get('/health', { config: { rateLimit: false } }, async (request, reply) => {
+  const checks: Record<string, 'ok' | 'error'> = {}
+
   try {
     const prisma = (await import('./database')).default
     await prisma.$queryRaw`SELECT 1`
-    return reply.status(200).send({ db: 'ok' })
+    checks.database = 'ok'
   } catch (err) {
     app.log.error(err, 'Health check DB probe failed')
-    return reply.status(503).send({ db: 'error' })
+    checks.database = 'error'
   }
+
+  const allOk = Object.values(checks).every((v) => v === 'ok')
+
+  return reply.status(allOk ? 200 : 503).send({
+    status: allOk ? 'healthy' : 'degraded',
+    checks,
+    timestamp: new Date().toISOString(),
+  })
 })
 
 app.register(authRoutes)
@@ -120,6 +156,9 @@ app.register(packageMembershipRoutes)
 app.register(myMembershipsRoutes)
 app.register(uploadsRoutes)
 app.register(dashboardRoutes)
+app.register(reviewsRoutes)
+app.register(reportsRoutes)
+app.register(auditRoutes)
 app.register(platformAdminsRoutes)
 app.register(notificationsRoutes)
 

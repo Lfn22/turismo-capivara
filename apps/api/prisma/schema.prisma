@@ -27,9 +27,11 @@ model Destination {
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
 
-  tenants   Tenant[]
-  createdBy User?              @relation("DestinationCreator", fields: [createdById], references: [id])
-  guides    GuideDestination[]
+  tenants            Tenant[]
+  tenantDestinations TenantDestination[]
+  tourPackages       TourPackage[]
+  createdBy          User?               @relation("DestinationCreator", fields: [createdById], references: [id])
+  guides             GuideDestination[]
 }
 
 enum TenantType {
@@ -84,23 +86,30 @@ model GuideAffiliation {
 }
 
 model Tenant {
-  id              String               @id @default(cuid())
-  name            String
-  slug            String               @unique
-  cnpj            String?
-  destinationId   String?
-  approvalStatus  TenantApprovalStatus @default(PENDING)
-  rejectionReason String?
-  whatsapp        String?
-  type            TenantType           @default(AGENCIA)
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  id                        String               @id @default(cuid())
+  name                      String
+  slug                      String               @unique
+  cnpj                      String?
+  destinationId             String?
+  approvalStatus            TenantApprovalStatus @default(PENDING)
+  rejectionReason           String?
+  whatsapp                  String?
+  confirmationCode          String?
+  confirmationCodeExpiresAt DateTime?
+  confirmationAttempts      Int                  @default(0)
+  confirmedAt               DateTime?
+  type                      TenantType           @default(AGENCIA)
+  createdAt                 DateTime             @default(now())
+  updatedAt                 DateTime             @updatedAt
 
-  destination  Destination?       @relation(fields: [destinationId], references: [id])
-  users        User[]
-  tourPackages TourPackage[]
-  bookings     Booking[]
-  affiliations GuideAffiliation[]
+  destination        Destination?        @relation(fields: [destinationId], references: [id])
+  users              User[]
+  tourPackages       TourPackage[]
+  bookings           Booking[]
+  reviews            Review[]
+  tenantDestinations TenantDestination[]
+  refreshTokens      RefreshToken[]
+  affiliations       GuideAffiliation[]
 
   @@index([destinationId])
 }
@@ -118,13 +127,15 @@ model User {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  tenant              Tenant               @relation(fields: [tenantId], references: [id])
-  guideProfile        GuideProfile?
-  tourPackages        TourPackage[]        @relation("ConductorPackages")
-  passwordResetTokens PasswordResetToken[]
-  destinations        Destination[]        @relation("DestinationCreator")
-  notifications       Notification[]
-  bookings            Booking[]
+  tenant                    Tenant               @relation(fields: [tenantId], references: [id])
+  guideProfile              GuideProfile?
+  tourPackages              TourPackage[]        @relation("ConductorPackages")
+  passwordResetTokens       PasswordResetToken[]
+  destinations              Destination[]        @relation("DestinationCreator")
+  tenantDestinationsCreated TenantDestination[]  @relation("TenantDestinationCreator")
+  refreshTokens             RefreshToken[]
+  notifications             Notification[]
+  bookings                  Booking[]
 }
 
 model GuideProfile {
@@ -148,6 +159,7 @@ model GuideProfile {
   testimonials   Testimonial[]
   destinations   GuideDestination[]
   affiliation    GuideAffiliation?
+  reviews        Review[]
 }
 
 model TourPackage {
@@ -166,13 +178,17 @@ model TourPackage {
   durationMinHours Int?
   durationMaxHours Int?
   bufferMinutes    Int        @default(60)
+  destinationId    String?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
   tenant         Tenant          @relation(fields: [tenantId], references: [id])
   conductor      User?           @relation("ConductorPackages", fields: [conductorId], references: [id])
+  destination    Destination?    @relation(fields: [destinationId], references: [id])
   departureSlots DepartureSlot[]
   packageGuides  PackageGuide[]
+
+  @@index([destinationId])
 }
 
 model DepartureSlot {
@@ -195,28 +211,30 @@ model DepartureSlot {
 }
 
 model Booking {
-  id              String        @id @default(cuid())
-  cancelToken     String        @unique
-  tenantId        String
-  slotId          String
-  customerName    String
-  customerEmail   String
-  customerPhone   String
-  pax             Int
-  customerCpfHash String?
-  paymentId       String?
-  paymentUrl      String?
-  qrCode          String?
-  expiresAt       DateTime?
-  status          BookingStatus @default(PENDING)
-  idempotencyKey  String?
-  userId          String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                   String        @id @default(cuid())
+  cancelToken          String        @unique
+  cancelTokenExpiresAt DateTime?
+  tenantId             String
+  slotId               String
+  customerName         String
+  customerEmail        String
+  customerPhone        String
+  pax                  Int
+  customerCpfHash      String?
+  paymentId            String?
+  paymentUrl           String?
+  qrCode               String?
+  expiresAt            DateTime?
+  status               BookingStatus @default(PENDING)
+  idempotencyKey       String?
+  userId               String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   tenant      Tenant        @relation(fields: [tenantId], references: [id])
   slot        DepartureSlot @relation(fields: [slotId], references: [id])
   voucher     Voucher?
+  review      Review?
   testimonial Testimonial?
   user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -352,4 +370,106 @@ model Testimonial {
 model ProcessedWebhookEvent {
   id          String   @id
   processedAt DateTime @default(now())
+}
+
+enum TenantDestinationStatus {
+  PENDING
+  ACTIVE
+  REMOVED
+}
+
+enum AuditActorType {
+  USER
+  SYSTEM
+  API_KEY
+}
+
+enum AuditTargetType {
+  TENANT
+  BOOKING
+  API_KEY
+  DESTINATION
+}
+
+model TenantDestination {
+  id            String                  @id @default(cuid())
+  tenantId      String
+  destinationId String
+  status        TenantDestinationStatus @default(ACTIVE)
+  createdById   String?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  destination Destination @relation(fields: [destinationId], references: [id])
+  createdBy   User?       @relation("TenantDestinationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, destinationId])
+  @@index([tenantId])
+  @@index([destinationId])
+  @@index([status])
+}
+
+model ApiKey {
+  id         String         @id @default(cuid())
+  prefix     String         @unique
+  keyHash    String         @unique
+  actorType  AuditActorType
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime       @default(now())
+
+  @@index([prefix])
+  @@index([actorType])
+}
+
+model AuditLog {
+  id         String          @id @default(cuid())
+  actorType  AuditActorType
+  action     String
+  targetType AuditTargetType
+  targetId   String
+  ipAddress  String?
+  metadata   Json?
+  createdAt  DateTime        @default(now())
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@index([actorType])
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  tenantId      String
+  bookingId     String   @unique
+  guideId       String
+  rating        Int
+  comment       String?
+  customerName  String
+  customerEmail String
+  createdAt     DateTime @default(now())
+
+  tenant  Tenant       @relation(fields: [tenantId], references: [id])
+  booking Booking      @relation(fields: [bookingId], references: [id])
+  guide   GuideProfile @relation(fields: [guideId], references: [id])
+
+  @@index([guideId])
+  @@index([tenantId])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  tenantId  String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([userId])
+  @@index([token])
 }

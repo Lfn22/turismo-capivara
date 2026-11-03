@@ -1,6 +1,9 @@
 'use client'
 
 import React from 'react'
+import * as Sentry from '@sentry/nextjs'
+import { RotateCcw, TriangleAlert } from 'lucide-react'
+import { Button, EmptyState } from '@/src/components/ui/capi'
 
 interface ErrorBoundaryProps {
   children: React.ReactNode
@@ -27,6 +30,7 @@ export default class ErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
     console.error('[ErrorBoundary]', error, info.componentStack)
+    Sentry.captureException(error, { contexts: { react: { componentStack: info?.componentStack } } })
   }
 
   handleReset = () => {
@@ -40,63 +44,17 @@ export default class ErrorBoundary extends React.Component<
       }
 
       return (
-        <div
-          role="alert"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            padding: 'clamp(2rem, 8vw, 4rem) 1rem',
-            gap: '1rem',
-            minHeight: '200px',
-          }}
-        >
-          <p
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
-              fontWeight: 600,
-              color: 'var(--stone-800)',
-              margin: 0,
-            }}
-          >
-            Algo deu errado
-          </p>
-          <p
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-              color: 'var(--stone-500)',
-              margin: 0,
-              maxWidth: '360px',
-              lineHeight: 1.5,
-            }}
-          >
-            Ocorreu um erro inesperado. Tente novamente.
-          </p>
-          <button
-            onClick={this.handleReset}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0.75rem 1.5rem',
-              minHeight: '44px',
-              background: 'var(--brand)',
-              color: '#fff',
-              fontFamily: 'var(--font-body)',
-              fontSize: '0.9375rem',
-              fontWeight: 600,
-              borderRadius: '0.5rem',
-              border: 'none',
-              cursor: 'pointer',
-              marginTop: '0.5rem',
-            }}
-          >
-            Tentar novamente
-          </button>
+        <div role="alert">
+          <EmptyState
+            icon={TriangleAlert}
+            title="Algo deu errado"
+            description="Ocorreu um erro inesperado nesta parte da página. Tente novamente; se continuar, recarregue a página."
+            action={
+              <Button variant="secondary" iconLeft={RotateCcw} onClick={this.handleReset}>
+                Tentar novamente
+              </Button>
+            }
+          />
         </div>
       )
     }

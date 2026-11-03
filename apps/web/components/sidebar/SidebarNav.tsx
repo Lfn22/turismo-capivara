@@ -1,259 +1,236 @@
 "use client"
 
+import { useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
+import {
+  CalendarDays,
+  LayoutDashboard,
+  LogOut,
+  MapPin,
+  Menu,
+  Route,
+  Ticket,
+  User,
+  type LucideIcon,
+} from "lucide-react"
+import {
+  Avatar,
+  Button,
+  IconButton,
+  ListGroup,
+  ListRow,
+  Modal,
+  SidebarLinks,
+  cx,
+  type NavItem,
+} from "@/src/components/ui/capi"
 
-// ── SVG Icons ────────────────────────────────────────────────────────────────
+// ── Itens do painel (rotas reais) ─────────────────────────────────────────────
+// `primary` = aparece na bottom nav do celular; o resto vai para "Mais".
 
-function IconBookings() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-      <rect x="9" y="3" width="6" height="4" rx="1" />
-      <path d="M9 12h6M9 16h4" />
-    </svg>
-  )
-}
+type PainelItem = NavItem & { labelShort: string; title: string; primary: boolean }
 
-function IconCalendar() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
-    </svg>
-  )
-}
-
-function IconMap() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z" />
-      <path d="M9 4v13M15 7v13" />
-    </svg>
-  )
-}
-
-function IconGrid() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <rect x="14" y="14" width="7" height="7" rx="1" />
-    </svg>
-  )
-}
-
-function IconUser() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-    </svg>
-  )
-}
-
-function IconLogout() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
-    </svg>
-  )
-}
-
-function IconDestination() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-      <circle cx="12" cy="9" r="2.5" />
-    </svg>
-  )
-}
-
-// ── Nav items — ordered by usage: Reservas > Disponibilidade > Roteiros > Dashboard > Perfil
-
-function navItems(slug: string) {
+function navItems(slug: string): PainelItem[] {
   return [
-    { label: "Reservas",        labelShort: "Reservas",  href: `/${slug}/painel/reservas`,        icon: <IconBookings /> },
-    { label: "Disponibilidade", labelShort: "Agenda",    href: `/${slug}/painel/disponibilidade`, icon: <IconCalendar /> },
-    { label: "Roteiros",        labelShort: "Roteiros",  href: `/${slug}/painel/roteiros`,        icon: <IconMap />         },
-    { label: "Locais",           labelShort: "Locais",    href: `/${slug}/painel/destinos`,        icon: <IconDestination /> },
-    { label: "Dashboard",       labelShort: "Início",    href: `/${slug}/painel/dashboard`,       icon: <IconGrid />        },
-    { label: "Perfil",          labelShort: "Perfil",    href: `/${slug}/painel/perfil`,          icon: <IconUser />     },
+    { label: "Visão geral", labelShort: "Início",   title: "Visão geral", href: `/${slug}/painel/dashboard`,       icon: LayoutDashboard, primary: true  },
+    { label: "Reservas",    labelShort: "Reservas", title: "Reservas",    href: `/${slug}/painel/reservas`,        icon: Ticket,          primary: true  },
+    { label: "Agenda",      labelShort: "Agenda",   title: "Agenda",      href: `/${slug}/painel/disponibilidade`, icon: CalendarDays,    primary: true  },
+    { label: "Roteiros",    labelShort: "Roteiros", title: "Roteiros",    href: `/${slug}/painel/roteiros`,        icon: Route,           primary: true  },
+    { label: "Destinos",    labelShort: "Destinos", title: "Destinos",      href: `/${slug}/painel/destinos`,        icon: MapPin,          primary: false },
+    { label: "Perfil",      labelShort: "Perfil",   title: "Perfil",      href: `/${slug}/painel/perfil`,          icon: User,            primary: false },
   ]
+}
+
+const ROLE_LABEL: Record<string, string> = {
+  CONDUTOR: "Condutor",
+  ADMIN: "Administrador",
+  ATENDENTE: "Atendente",
+}
+
+function isActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(href + "/")
+}
+
+function Logo({ slug }: { slug: string }) {
+  return (
+    <Link href="/" className="capi-logo" aria-label="CAPI — página inicial" style={{ minHeight: "var(--touch-target)" }}>
+      <Image src="/images/logo.png" alt="CAPI" width={40} height={36} priority style={{ width: "auto" }} />
+      <span className="sr-only-capi">Painel de {slug}</span>
+    </Link>
+  )
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function SidebarNav({ slug, tenantName }: { slug: string; tenantName?: string }) {
-  const pathname = usePathname()
+export function SidebarNav({
+  slug,
+  tenantName,
+  userName,
+  userEmail,
+  userImage,
+  role,
+}: {
+  slug: string
+  tenantName?: string
+  userName?: string | null
+  userEmail?: string | null
+  userImage?: string | null
+  role?: string | null
+}) {
+  const pathname = usePathname() ?? ""
   const items = navItems(slug)
+  const primary = items.filter((i) => i.primary)
+  const more = items.filter((i) => !i.primary)
+  const [moreOpen, setMoreOpen] = useState(false)
+
+  const current = items.find((i) => isActive(pathname, i.href))
+  const moreActive = more.some((i) => isActive(pathname, i.href))
+  const who = userName || userEmail || "Minha conta"
+  const whoSub = (role && ROLE_LABEL[role]) || userEmail || ""
+
+  function handleSignOut() {
+    signOut({ callbackUrl: `/${slug}/login` })
+  }
 
   return (
     <>
       <style>{`
-        /* ── Desktop sidebar ── */
-        .pnav-sidebar {
-          width: 240px;
-          min-width: 240px;
-          background: var(--stone-900);
-          position: sticky;
-          top: 0;
-          height: 100vh;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
+        /* Sidebar: some no celular, recolhida (72px) de 768 a 1023px, expandida (264px) a partir de 1024px */
+        .painel-sidebar { display: none; flex: none; overflow-y: auto; }
+        .painel-sidebar .capi-sidebar__brand { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
+        .painel-sidebar__eyebrow { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-primary); }
+        @media (min-width: 768px) {
+          .painel-sidebar { display: flex; }
         }
-
-        /* ── Mobile bottom tab bar — hidden on desktop ── */
-        .pnav-bottom {
-          display: none;
-        }
-
-        @media (max-width: 767px) {
-          .pnav-sidebar {
-            display: none;
+        @media (min-width: 768px) and (max-width: 1023px) {
+          .painel-sidebar { width: var(--sidebar-collapsed); padding: var(--space-4) var(--space-2); align-items: center; }
+          .painel-sidebar .capi-sidebar__brand { align-items: center; padding: 0 0 var(--space-3); }
+          .painel-sidebar .capi-logo img { height: 22px !important; }
+          .painel-sidebar .capi-sidebar__tenant,
+          .painel-sidebar .painel-sidebar__eyebrow,
+          .painel-sidebar .capi-sidebar__who,
+          .painel-sidebar .capi-sidebar__count { display: none; }
+          /* rótulo some visualmente mas continua dando nome acessível ao link */
+          .painel-sidebar .capi-sidebar__label {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
           }
-
-          .pnav-bottom {
-            display: flex;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 50;
-            background: var(--stone-900);
-            border-top: 1px solid rgba(255,255,255,0.08);
-            /* iPhone safe area */
-            padding-bottom: env(safe-area-inset-bottom, 0px);
-          }
+          .painel-sidebar .capi-sidebar__item { justify-content: center; padding: 0; width: var(--touch-target); }
+          .painel-sidebar .capi-sidebar__user { flex-direction: column; padding: var(--space-3) 0 0; }
         }
 
-        /* ── Bottom tab item ── */
-        .pnav-tab {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 3px;
-          text-decoration: none;
-          color: var(--stone-500);
-          font-size: 10px;
-          font-weight: 500;
-          letter-spacing: 0.02em;
-          padding: 10px 4px;
-          min-height: 56px;
-          -webkit-tap-highlight-color: transparent;
-          transition: color 0.15s;
+        /* Top bar do celular (56px) */
+        .painel-topbar {
+          position: sticky; top: 0; z-index: var(--z-sticky);
+          display: flex; align-items: center; gap: var(--space-3);
+          height: 56px; padding: 0 var(--space-2) 0 var(--gutter-mobile);
+          background: var(--glass); -webkit-backdrop-filter: saturate(1.6) blur(16px); backdrop-filter: saturate(1.6) blur(16px);
+          border-bottom: 1px solid var(--border); font-family: var(--font-sans);
         }
+        .painel-topbar .capi-logo img { height: 28px !important; }
+        .painel-topbar__title {
+          flex: 1; min-width: 0; margin: 0; font-size: 17px; font-weight: 700; color: var(--text);
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .painel-topbar__avatar { display: inline-flex; align-items: center; justify-content: center; width: var(--touch-target); height: var(--touch-target); border-radius: 50%; }
+        @media (min-width: 768px) { .painel-topbar { display: none; } }
 
-        .pnav-tab--active {
-          color: var(--ochre);
-        }
-
-        .pnav-tab__dot {
-          width: 3px;
-          height: 3px;
-          border-radius: 50%;
-          background: var(--ochre);
-        }
+        /* "Mais" é um botão dentro da bottom nav */
+        .painel-bottomnav__more { appearance: none; border: 0; background: none; font: inherit; cursor: pointer; }
       `}</style>
 
-      {/* ── Desktop sidebar ─────────────────────────────────────────────── */}
-      <nav className="pnav-sidebar" aria-label="Navegação do painel">
-
-        {/* Brand */}
-        <div style={{ padding: "24px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <Link href="/" style={{ fontFamily: "var(--font-display)", fontSize: "13px", color: "var(--ochre)", fontWeight: 600, textDecoration: "none", display: "block", marginBottom: "8px", letterSpacing: "0.04em" }}>
-            ← CAPI
-          </Link>
-          <p style={{ fontFamily: "var(--font-display)", fontSize: "16px", color: "var(--stone-100)", fontWeight: 600, margin: 0 }}>
-            {tenantName ?? slug}
-          </p>
-          <p style={{ fontSize: "11px", color: "var(--stone-500)", marginTop: "4px", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-            Painel do Guia
-          </p>
+      {/* ── Sidebar (≥768px) ─────────────────────────────────────────────── */}
+      <aside className="capi-sidebar painel-sidebar" aria-label="Menu do painel">
+        <div className="capi-sidebar__brand">
+          <Logo slug={slug} />
+          <p className="painel-sidebar__eyebrow">Painel do guia</p>
+          <span className="capi-sidebar__tenant">{tenantName ?? slug}</span>
         </div>
 
-        {/* Links */}
-        <ul style={{ listStyle: "none", padding: 0, margin: 0, flex: 1 }}>
-          {items.map((item) => {
-            const isActive = pathname.startsWith(item.href)
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={isActive ? "page" : undefined}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    padding: "12px 16px",
-                    fontSize: "14px",
-                    fontWeight: isActive ? 600 : 400,
-                    color: isActive ? "var(--stone-100)" : "var(--stone-400)",
-                    background: isActive ? "rgba(196,133,42,0.08)" : "transparent",
-                    borderLeft: isActive ? "3px solid var(--ochre)" : "3px solid transparent",
-                    textDecoration: "none",
-                    transition: "background 0.15s, color 0.15s",
-                    minHeight: "44px",
-                  }}
-                >
-                  {item.icon}
-                  {item.label}
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
+        <SidebarLinks items={items} />
 
-        {/* Logout */}
-        <div style={{ padding: "16px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <button
-            onClick={() => signOut({ callbackUrl: `/${slug}/login` })}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "10px 16px",
-              background: "transparent",
-              color: "var(--stone-400)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: "4px",
-              fontSize: "14px",
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-          >
-            <IconLogout />
-            Sair
-          </button>
+        <div className="capi-sidebar__user">
+          <Avatar name={who} src={userImage} size={36} />
+          <div className="capi-sidebar__who">
+            <p>{who}</p>
+            {whoSub ? <p>{whoSub}</p> : null}
+          </div>
+          <IconButton icon={LogOut} label="Sair" size="sm" onClick={handleSignOut} />
         </div>
-      </nav>
+      </aside>
 
-      {/* ── Mobile bottom tab bar ───────────────────────────────────────── */}
-      <nav className="pnav-bottom" aria-label="Navegação do painel">
-        {items.map((item) => {
-          const isActive = pathname.startsWith(item.href)
+      {/* ── Top bar (<768px) ─────────────────────────────────────────────── */}
+      <header className="painel-topbar">
+        <Logo slug={slug} />
+        <p className="painel-topbar__title">{current?.title ?? "Painel"}</p>
+        <Link href={`/${slug}/painel/perfil`} className="painel-topbar__avatar" aria-label="Meu perfil">
+          <Avatar name={who} src={userImage} size={32} />
+        </Link>
+      </header>
+
+      {/* ── Bottom nav (<768px): 4 itens principais + Mais ───────────────── */}
+      <nav className="capi-bottomnav" aria-label="Navegação do painel">
+        {primary.map((it) => {
+          const act = isActive(pathname, it.href)
+          const Icon: LucideIcon = it.icon
           return (
             <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isActive ? "page" : undefined}
-              className={`pnav-tab${isActive ? " pnav-tab--active" : ""}`}
+              key={it.href}
+              href={it.href}
+              className={cx("capi-bottomnav__item", act && "is-active")}
+              aria-current={act ? "page" : undefined}
             >
-              {item.icon}
-              <span>{item.labelShort}</span>
-              {isActive && <span className="pnav-tab__dot" aria-hidden="true" />}
+              <span className="capi-bottomnav__pill">
+                <Icon size={22} strokeWidth={act ? 2 : 1.75} aria-hidden="true" />
+              </span>
+              <span className="capi-bottomnav__label">{it.labelShort}</span>
             </Link>
           )
         })}
+        <button
+          type="button"
+          className={cx("capi-bottomnav__item painel-bottomnav__more", moreActive && "is-active")}
+          aria-haspopup="dialog"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen(true)}
+        >
+          <span className="capi-bottomnav__pill">
+            <Menu size={22} strokeWidth={moreActive ? 2 : 1.75} aria-hidden="true" />
+          </span>
+          <span className="capi-bottomnav__label">Mais</span>
+        </button>
       </nav>
+
+      <Modal
+        open={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        title="Mais opções"
+        description={tenantName ?? slug}
+        footer={
+          <Button variant="secondary" iconLeft={LogOut} onClick={handleSignOut} fullWidth>
+            Sair
+          </Button>
+        }
+      >
+        <div onClick={() => setMoreOpen(false)}>
+          <ListGroup>
+            {more.map((it) => {
+              const Icon = it.icon
+              return (
+                <ListRow
+                  key={it.href}
+                  href={it.href}
+                  leading={<Icon size={20} strokeWidth={1.75} aria-hidden="true" />}
+                  title={it.label}
+                />
+              )
+            })}
+          </ListGroup>
+        </div>
+      </Modal>
     </>
   )
 }

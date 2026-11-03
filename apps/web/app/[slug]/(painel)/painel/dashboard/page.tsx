@@ -1,10 +1,30 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { getToken } from "next-auth/jwt"
 import { cookies } from "next/headers"
 import { apiFetch } from "@/lib/api/client"
-import { StatusBadge } from "@/components/ui/StatusBadge"
-import BackButton from "@/src/components/ui/BackButton"
+import {
+  ArrowRight,
+  CalendarCheck,
+  CalendarDays,
+  CircleCheck,
+  Clock,
+  Plus,
+  Route,
+  Ticket,
+  Wallet,
+} from "lucide-react"
+import {
+  Alert,
+  Avatar,
+  Badge,
+  Button,
+  EmptyState,
+  ListGroup,
+  ListRow,
+  PageHeader,
+  StatCard,
+  StatusBadge,
+} from "@/src/components/ui/capi"
 
 interface Booking {
   id: string
@@ -40,6 +60,40 @@ function formatDate(iso: string) {
   })
 }
 
+function formatSlotDate(iso: string) {
+  return new Date(iso).toLocaleDateString("pt-BR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+function formatBRL(n: number) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+}
+
+function bookingValue(b: Booking) {
+  const price = Number(b.slot?.package?.price)
+  return Number.isFinite(price) ? formatBRL(price * b.pax) : null
+}
+
+function pessoas(n: number) {
+  return `${n} ${n === 1 ? "pessoa" : "pessoas"}`
+}
+
+const statGrid = "grid grid-cols-2 gap-3 sm:[grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] sm:gap-4"
+
+function SectionTitle({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <h2 className="text-fg" style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.35 }}>{children}</h2>
+      {action}
+    </div>
+  )
+}
+
 function isToday(iso: string) {
   const d = new Date(iso)
   const today = new Date()
@@ -47,15 +101,6 @@ function isToday(iso: string) {
     d.getDate() === today.getDate() &&
     d.getMonth() === today.getMonth() &&
     d.getFullYear() === today.getFullYear()
-  )
-}
-
-function MetricCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div style={{ background: "var(--stone-50)", border: "1px solid var(--stone-200)", borderRadius: "8px", padding: "16px 20px" }}>
-      <p style={{ fontSize: "11px", color: "var(--stone-500)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "8px" }}>{label}</p>
-      <p style={{ fontSize: "24px", fontWeight: 600, color: "var(--stone-900)" }}>{value}</p>
-    </div>
   )
 }
 
@@ -113,224 +158,187 @@ export default async function DashboardPage({
   const recentBookings = bookings.slice(0, 5)
 
   const stats = [
-    { label: "Reservas hoje", value: todayBookings.length, accent: false },
-    { label: "Pendentes de confirmação", value: pending.length, accent: pending.length > 0 },
-    { label: "Roteiros ativos", value: activePackages.length, accent: false },
-    { label: "Total de reservas", value: bookings.length, accent: false },
+    { label: "Reservas hoje", value: todayBookings.length, icon: CalendarCheck },
+    { label: "Pendentes de confirmação", value: pending.length, icon: Clock },
+    { label: "Roteiros ativos", value: activePackages.length, icon: Route },
+    { label: "Total de reservas", value: bookings.length, icon: Ticket },
   ]
+
+  const firstName = typeof jwt?.name === "string" ? jwt.name.split(" ")[0] : ""
+  const header = (
+    <PageHeader
+      eyebrow={firstName ? `Olá, ${firstName}` : "Painel do guia"}
+      title="Visão geral"
+      description="Suas reservas, saídas e roteiros em um só lugar."
+      actions={
+        <Button href={`/${slug}/painel/reservas`} variant="secondary" iconRight={ArrowRight}>
+          Ver reservas
+        </Button>
+      }
+    />
+  )
 
   if (loadError) {
     return (
-      <div style={{ textAlign: "center", padding: "64px 24px" }}>
-        <p style={{ fontSize: "16px", color: "var(--stone-500)" }}>
-          Erro ao carregar dados. Tente novamente.
-        </p>
-      </div>
+      <>
+        {header}
+        <Alert
+          tone="danger"
+          title="Erro ao carregar dados. Tente novamente."
+          action={
+            <Button href={`/${slug}/painel/dashboard`} variant="secondary" size="sm">
+              Recarregar
+            </Button>
+          }
+        >
+          Verifique sua conexão e recarregue a página.
+        </Alert>
+      </>
     )
   }
 
   return (
     <>
-      <BackButton />
-      {/* Page header */}
-      <div style={{ marginBottom: "32px" }}>
-        <p
-          style={{
-            fontSize: "11px",
-            color: "var(--ochre)",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            marginBottom: "8px",
-          }}
-        >
-          Painel do Guia
-        </p>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "24px",
-            color: "var(--stone-900)",
-            lineHeight: 1.2,
-          }}
-        >
-          Dashboard
-        </h1>
+      {header}
+
+      <div className="mb-8 flex flex-col gap-3">
+        {pending.length > 0 && (
+          <Alert
+            tone="warning"
+            title={`${pending.length} ${pending.length === 1 ? "reserva aguarda" : "reservas aguardam"} sua confirmação`}
+            action={
+              <Button href={`/${slug}/painel/reservas`} size="sm">
+                Revisar pendentes
+              </Button>
+            }
+          >
+            Confirme ou cancele para o turista receber a resposta.
+          </Alert>
+        )}
+
+        {/* Onboarding — só exibe quando não há roteiros cadastrados */}
+        {activePackages.length === 0 && (
+          <Alert
+            tone="brand"
+            title="Você ainda não tem roteiros cadastrados"
+            action={
+              <Button href={`/${slug}/painel/roteiros`} size="sm" iconLeft={Plus}>
+                Criar roteiro
+              </Button>
+            }
+          >
+            Crie o primeiro para começar a receber reservas.
+          </Alert>
+        )}
       </div>
+
+      <section className="mb-8" aria-labelledby="dash-hoje">
+        <SectionTitle><span id="dash-hoje">Resumo</span></SectionTitle>
+        <div className={statGrid}>
+          {stats.map((stat) => (
+            <StatCard key={stat.label} label={stat.label} value={stat.value} icon={stat.icon} />
+          ))}
+        </div>
+      </section>
 
       {dashboardMetrics && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "32px" }}>
-          <MetricCard label="Pendentes" value={dashboardMetrics.bookings.pending} />
-          <MetricCard label="Confirmadas" value={dashboardMetrics.bookings.confirmed} />
-          <MetricCard label="Faturamento" value={`R$ ${dashboardMetrics.revenue.confirmed.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
-        </div>
+        <section className="mb-8" aria-labelledby="dash-geral">
+          <SectionTitle><span id="dash-geral">Desempenho</span></SectionTitle>
+          <div className={statGrid}>
+            <StatCard label="Pendentes" value={dashboardMetrics.bookings.pending} icon={Clock} />
+            <StatCard label="Confirmadas" value={dashboardMetrics.bookings.confirmed} icon={CircleCheck} />
+            <StatCard
+              label="Faturamento"
+              value={`R$ ${dashboardMetrics.revenue.confirmed.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              icon={Wallet}
+            />
+          </div>
+        </section>
       )}
 
-      {/* Onboarding banner — só exibe quando não há roteiros cadastrados */}
-      {activePackages.length === 0 && (
-        <div
-          style={{
-            background: "var(--ochre)",
-            borderRadius: "8px",
-            padding: "20px 24px",
-            marginBottom: "24px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "16px",
-            flexWrap: "wrap",
-          }}
-        >
-          <p style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: "#1c1917" }}>
-            Você ainda não tem roteiros cadastrados. Crie o primeiro para começar a receber reservas.
-          </p>
-          <Link
-            href={`/${slug}/painel/roteiros`}
-            style={{
-              fontSize: "13px",
-              fontWeight: 700,
-              color: "#1c1917",
-              background: "rgba(0,0,0,0.12)",
-              padding: "8px 16px",
-              borderRadius: "4px",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Criar roteiro →
-          </Link>
-        </div>
-      )}
-
-      {/* Stat cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "16px",
-          marginBottom: "32px",
-        }}
-      >
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            style={{
-              background: "white",
-              border: `1px solid ${stat.accent ? "var(--ochre)" : "var(--stone-200)"}`,
-              borderRadius: "8px",
-              padding: "24px",
-            }}
-          >
-            <p
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "24px",
-                color: stat.accent ? "var(--ochre)" : "var(--stone-800)",
-                margin: 0,
-                lineHeight: 1,
-              }}
+      <div className="grid gap-8 lg:grid-cols-2">
+        {dashboardMetrics && dashboardMetrics.upcomingSlots?.length > 0 && (
+          <section aria-labelledby="dash-saidas">
+            <SectionTitle
+              action={
+                <Button href={`/${slug}/painel/disponibilidade`} variant="link" size="sm">
+                  Ver agenda
+                </Button>
+              }
             >
-              {stat.value}
-            </p>
-            <p
-              style={{
-                fontSize: "14px",
-                color: "var(--stone-500)",
-                marginTop: "4px",
-                marginBottom: 0,
-              }}
-            >
-              {stat.label}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Recent bookings */}
-      <div
-        style={{
-          background: "white",
-          border: "1px solid var(--stone-200)",
-          borderRadius: "8px",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--stone-200)" }}>
-          <h2
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "16px",
-              color: "var(--stone-800)",
-              margin: 0,
-            }}
-          >
-            Últimas reservas
-          </h2>
-        </div>
-
-        {recentBookings.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "48px 24px" }}>
-            <p style={{ fontSize: "16px", color: "var(--stone-500)", margin: "0 0 16px" }}>
-              Nenhuma reserva ainda.
-            </p>
-            <Link
-              href={`/${slug}/painel/roteiros`}
-              style={{
-                display: "inline-block",
-                fontSize: "14px",
-                fontWeight: 600,
-                color: "var(--stone-900)",
-                background: "var(--ochre)",
-                padding: "10px 20px",
-                borderRadius: "4px",
-                textDecoration: "none",
-              }}
-            >
-              Criar primeiro roteiro →
-            </Link>
-          </div>
-        ) : (
-          <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", minWidth: "500px", borderCollapse: "collapse", fontSize: "14px" }}>
-            <thead>
-              <tr style={{ background: "var(--stone-100)" }}>
-                {["Data/hora", "Turista", "Roteiro", "Pax", "Status"].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "12px 16px",
-                      textAlign: "left",
-                      fontWeight: 600,
-                      color: "var(--stone-700)",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {recentBookings.map((b, i) => (
-                <tr
-                  key={b.id}
-                  style={{
-                    background: i % 2 === 0 ? "white" : "var(--stone-50)",
-                    borderBottom: "1px solid var(--stone-200)",
-                  }}
-                >
-                  <td style={{ padding: "12px 16px" }}>{formatDate(b.slot?.startsAt)}</td>
-                  <td style={{ padding: "12px 16px" }}>{b.customerName}</td>
-                  <td style={{ padding: "12px 16px" }}>{b.slot?.package?.name}</td>
-                  <td style={{ padding: "12px 16px" }}>{b.pax}</td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <StatusBadge status={b.status} />
-                  </td>
-                </tr>
+              <span id="dash-saidas">Próximas saídas</span>
+            </SectionTitle>
+            <ListGroup>
+              {dashboardMetrics.upcomingSlots.map((s) => (
+                <ListRow
+                  key={s.id}
+                  href={`/${slug}/painel/disponibilidade`}
+                  leading={
+                    <span
+                      className="inline-flex items-center justify-center bg-primary-subtle text-fg-primary"
+                      style={{ width: 40, height: 40, borderRadius: "var(--radius-md)" }}
+                    >
+                      <CalendarDays size={20} strokeWidth={1.75} aria-hidden="true" />
+                    </span>
+                  }
+                  title={s.package?.name}
+                  subtitle={formatSlotDate(s.startsAt)}
+                  trailing={
+                    <Badge tone={s.booked >= s.capacity ? "danger" : "neutral"}>
+                      {s.booked}/{s.capacity} vagas
+                    </Badge>
+                  }
+                />
               ))}
-            </tbody>
-          </table>
-          </div>
+            </ListGroup>
+          </section>
         )}
+
+        <section aria-labelledby="dash-reservas">
+          <SectionTitle
+            action={
+              recentBookings.length > 0 ? (
+                <Button href={`/${slug}/painel/reservas`} variant="link" size="sm">
+                  Ver todas
+                </Button>
+              ) : undefined
+            }
+          >
+            <span id="dash-reservas">Últimas reservas</span>
+          </SectionTitle>
+
+          {recentBookings.length === 0 ? (
+            <ListGroup>
+              <EmptyState
+                compact
+                icon={Ticket}
+                title="Nenhuma reserva ainda."
+                description="Quando um turista reservar um roteiro, ela aparece aqui."
+                action={
+                  <Button href={`/${slug}/painel/roteiros`} iconLeft={Plus}>
+                    Criar primeiro roteiro
+                  </Button>
+                }
+              />
+            </ListGroup>
+          ) : (
+            <ListGroup>
+              {recentBookings.map((b) => (
+                <ListRow
+                  key={b.id}
+                  leading={<Avatar name={b.customerName} size={40} />}
+                  title={`${b.customerName} · ${pessoas(b.pax)}`}
+                  subtitle={`${b.slot?.package?.name ?? ""} · ${formatDate(b.slot?.startsAt)}`}
+                  trailing={<StatusBadge status={b.status} />}
+                  meta={bookingValue(b)}
+                />
+              ))}
+            </ListGroup>
+          )}
+        </section>
       </div>
     </>
   )
 }
+
+

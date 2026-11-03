@@ -1,0 +1,304 @@
+[     432ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[     564ms] [LOG] [HMR] connected @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[     666ms] [ERROR] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <InnerScrollAndFocusHandlerOld focusAndScrollRef={{scrollRef:null, ...}} cacheNode={{rsc:{...}, ...}}>
+      <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+        <LoadingBoundary name="/" loading={null}>
+          <HTTPAccessFallbackBoundary notFound={{...}} forbidden={undefined} unauthorized={undefined}>
+            <HTTPAccessFallbackErrorBoundary pathname="/" notFound={{...}} forbidden={undefined} unauthorized={undefined} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+                    <SegmentViewNode type="page" pagePath="page.tsx">
+                      <SegmentTrieNode>
+                      <HomePage>
+                        <ScrollRevealProvider>
+                          <nav>
+                          <HeroSection>
+                            <section className="relative f..." style={{...}}>
+                              <div>
+                              <DustParticles>
+                                <div className="absolute i..." aria-hidden="true">
+                                  <div
+                                    className="dust-particle"
+                                    style={{
++                                     left: "76.6198043709294%"
+-                                     left: "16.382%"
++                                     top: "19.879518529016302%"
+-                                     top: "73.3194%"
++                                     --dust-size: "4.330142429428407px"
+-                                     --dust-size: "4.277823829969288px"
++                                     --dust-duration: "4.959476803722385s"
+-                                     --dust-duration: "5.9954284270464715s"
++                                     --dust-delay: "1.249990944528871s"
+-                                     --dust-delay: "0.6896837769195641s"
++                                     --dx: "3.735046698046034px"
+-                                     --dx: "22.478923287398715px"
++                                     --dy: "-40.19299237117316px"
+-                                     --dy: "-43.97737215882914px"
++                                     --dust-opacity: 0.5277540719201039
+-                                     --dust-opacity: "0.6447580624789853"
+                                    }}
+                                  >
+                                  <div
+                                    className="dust-particle"
+                                    style={{
++                                     left: "59.67865936284151%"
+-                                     left: "9.09271%"
++                                     top: "26.46640513198376%"
+-                                     top: "40.1187%"
++                                     --dust-size: "4.658121228549237px"
+-                                     --dust-size: "4.575276752404356px"
++                                     --dust-duration: "3.049065056913258s"
+-                                     --dust-duration: "3.6630146835119257s"
++                                     --dust-delay: "2.103330122315164s"
+-                                     --dust-delay: "4.572633569341872s"
++                                     --dx: "-7.757524106164539px"
+-                                     --dx: "-2.969608070044771px"
++                                     --dy: "-32.80784776627926px"
+-                                     --dy: "-30.762657479775815px"
++                                     --dust-opacity: 0.47818115724174215
+-                                     --dust-opacity: "0.6705380370032931"
+                                    }}
+                                  >
+                                  <div
+                                    className="dust-particle"
+                                    style={{
++                                     left: "72.62568848871258%"
+-                                     left: "46.0626%"
++                                     top: "22.14566141649099%"
+-                                     top: "78.6456%"
++                                     --dust-size: "4.294494803483515px"
+-                                     --dust-size: "3.692601650633306px"
++                                     --dust-duration: "5.828306464253108s"
+-                                     --dust-duration: "3.5407621439006762s"
++                                     --dust-delay: "2.4657803705459393s"
+-                                     --dust-delay: "2.7149845519049496s"
++                                     --dx: "-9.347893491248819px"
+-                                     --dx: "29.78523973076031px"
++                                     --dy: "-54.52038965682439px"
+-                                     --dy: "-20.3805802479485px"
++                                     --dust-opacity: 0.4134241595396784
+-                                     --dust-opacity: "0.6379358837831737"
+                                    }}
+                                  >
+                                  <div
+                                    className="dust-particle"
+                                    style={{
++                                     left: "76.2364786674751%"
+-                                     left: "49.7936%"
++                                     top: "49.88068828721117%"
+-                                     top: "75.8221%"
++                                     --dust-size: "4.96470189334293px"
+-                                     --dust-size: "4.510484868342649px"
++                                     --dust-duration: "3.979837177793619s"
+-                                     --dust-duration: "4.31515613326777s"
++                                     --dust-delay: "2.0420280895902962s"
+-                                     --dust-delay: "3.275957195246697s"
++                                     --dx: "9.865997346027662px"
+-                                     --dx: "29.650798209308277px"
++                                     --dy: "-55.25387068626629px"
+-                                     --dy: "-27.93348990367182px"
++                                     --dust-opacity: 0.5249951716932327
+-                                     --dust-opacity: "0.667589480992378"
+                                    }}
+                                  >
+                                  <div
+                                    className="dust-particle"
+                                    style={{
++                                     left: "30.20888846585413%"
+-                                     left: "46.5154%"
++                                     top: "45.4563992845539%"
+-                                     top: "86.2288%"
++                                     --dust-size: "2.1371654598979695px"
+-                                     --dust-size: "2.436394562522275px"
++                                     --dust-duration: "6.144295875862552s"
+-                                     --dust-duration: "4.565672606694906s"
++                                     --dust-delay: "1.9192846500604632s"
+-                                     --dust-delay: "1.3411919623647028s"
++                                     --dx: "29.062082541426257px"
+-                                     --dx: "24.948926873000097px"
++                                     --dy: "-31.463792955807737px"
+-                                     --dy: "-35.24762539748001px"
++                                     --dust-opacity: 0.36064793538708373
+-                                     --dust-opacity: "0.3196309818822752"
+                                    }}
+                                  >
+                                  <div
+                                    className="dust-particle"
+                                    style={{
++                                     left: "90.49126400473597%"
+-                                     left: "29.6952%"
++                                     top: "47.27262043194215%"
+-                                     top: "35.4009%"
++                                     --dust-size: "3.387489572631769px"
+-                                     --dust-size: "3.816271258986748px"
++                                     --dust-duration: "4.654917945214718s"
+-                                     --dust-duration: "3.3276447640755977s"
++                                     --dust-delay: "0.08823082385830738s"
+-                                     --dust-delay: "4.255338515749578s"
++                                     --dx: "-24.577563539867263px"
+-                                     --dx: "7.04848283549228px"
++                                     --dy: "-35.36278230334317px"
+-                                     --dy: "-44.86234115109894px"
++                                     --dust-opacity: 0.591709880054464
+-                                     --dust-opacity: "0.6999776361400629"
+                                    }}
+                                  >
+                                  <div
+                                    className="dust-particle"
+                                    style={{
++                                     left: "41.228416810384246%"
+-                                     left: "45.0852%"
++                                     top: "30.34231858933568%"
+-                                     top: "79.3133%"
++                                     --dust-size: "2.229119918195455px"
+-                                     --dust-size: "2.1647694000666653px"
++                                     --dust-duration: "6.922688760332074s"
+-                                     --dust-duration: "3.6391267686057045s"
++                                     --dust-delay: "1.356150963227352s"
+-                                     --dust-delay: "2.2640987229891385s"
++                                     --dx: "-15.203271206889436px"
+-                                     --dx: "-13.530255929874656px"
++                                     --dy: "-29.398388495838816px"
+-                                     --dy: "-49.3184402222628px"
++                                     --dust-opacity: 0.5455463498624035
+-                                     --dust-opacity: "0.6524426513280723"
+                                    }}
+                                  >
+                                  <div
+                                    className="dust-particle"
+                                    style={{
++                                     left: "46.49165886695215%"
+-                                     left: "89.8568%"
++                                     top: "62.11318647636509%"
+-                                     top: "84.9112%"
++                                     --dust-size: "4.63322527652317px"
+-                                     --dust-size: "2.900057560844088px"
++                                     --dust-duration: "5.179115569012516s"
+-                                     --dust-duration: "4.497352593909484s"
++                                     --dust-delay: "0.45975755621115943s"
+-                                     --dust-delay: "1.8258186019536382s"
++                                     --dx: "24.660620361946165px"
+-                                     --dx: "29.657728564405026px"
++                                     --dy: "-45.07867374348039px"
+-                                     --dy: "-22.725308882077044px"
++                                     --dust-opacity: 0.4380167580232076
+-                                     --dust-opacity: "0.5305763476374283"
+                                    }}
+                                  >
+                                  <div
+                                    className="dust-particle"
+                                    style={{
++                                     left: "67.17876630939057%"
+-                                     left: "86.3614%"
++                                     top: "30.02310519585346%"
+-                                     top: "29.9374%"
++                                     --dust-size: "2.5467419694535653px"
+-                                     --dust-size: "4.079988137422378px"
++                                     --dust-duration: "5.745342911780105s"
+-                                     --dust-duration: "5.324662257842277s"
++                                     --dust-delay: "3.889738970117767s"
+-                                     --dust-delay: "1.7618575681658988s"
++                                     --dx: "-17.059054237012194px"
+-                                     --dx: "-21.150713547990378px"
++                                     --dy: "-30.911369703181755px"
+-                                     --dy: "-35.2873426328156px"
++                                     --dust-opacity: 0.6638742979032335
+-                                     --dust-opacity: "0.41435618645569966"
+                                    }}
+                                  >
+                                  <div
+                                    className="dust-particle"
+                                    style={{
++                                     left: "44.559480314846944%"
+-                                     left: "54.2363%"
++                                     top: "42.29835477888792%"
+-                                     top: "65.6693%"
++                                     --dust-size: "3.052249777260891px"
+-                                     --dust-size: "2.771046577522698px"
++                                     --dust-duration: "6.6269783517277805s"
+-                                     --dust-duration: "3.8776148776897337s"
++                                     --dust-delay: "1.1717056490532607s"
+-                                     --dust-delay: "0.3375788979756056s"
++                                     --dx: "-0.8543759028542439px"
+-                                     --dx: "-9.311010060238914px"
++                                     --dy: "-35.04073798650205px"
+-                                     --dy: "-21.864267641439064px"
++                                     --dust-opacity: 0.5234220372547828
+-                                     --dust-opacity: "0.5692080497513765"
+                                    }}
+                                  >
+                                  <div
+                                    className="dust-particle"
+                                    style={{
++                                     left: "75.82909698044185%"
+-                                     left: "17.3657%"
++                                     top: "23.345663344637615%"
+-                                     top: "89.7749%"
++                                     --dust-size: "3.9400243602841085px"
+-                                     --dust-size: "2.9185566944294994px"
++                                     --dust-duration: "3.896839005041272s"
+-                                     --dust-duration: "6.694441015514598s"
++                                     --dust-delay: "4.564567678020534s"
+-                                     --dust-delay: "2.095305196310777s"
++                                     --dx: "-12.721415776739121px"
+-                                     --dx: "24.641636109444008px"
++                                     --dy: "-26.52677228865447px"
+-                                     --dy: "-25.168221657474135px"
++                                     --dust-opacity: 0.5157021702623308
+-                                     --dust-opacity: "0.39949159465938455"
+                                    }}
+                                  >
+                                  <div
+                                    className="dust-particle"
+                                    style={{
++                                     left: "14.928270412713458%"
+-                                     left: "38.1539%"
++                                     top: "83.24366988520265%"
+-                                     top: "16.9824%"
++                                     --dust-size: "2.806699130324998px"
+-                                     --dust-size: "3.7843112357993167px"
++                                     --dust-duration: "6.154744266529381s"
+-                                     --dust-duration: "4.9955200881521336s"
++                                     --dust-delay: "3.724494008229443s"
+-                                     --dust-delay: "1.4389799124254998s"
++                                     --dx: "-16.806653540690952px"
+-                                     --dx: "14.79147101820957px"
++                                     --dy: "-42.114242792148325px"
+-                                     --dy: "-54.699846071054424px"
++                                     --dust-opacity: 0.6455892828666667
+-                                     --dust-opacity: "0.6158159574664541"
+                                    }}
+                                  >
+                              ...
+                          ...
+                    ...
+                  ...
+      ...
+ @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:3272
+[     679ms] [WARNING] Image with src "/images/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[     790ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[     792ms] [LOG] [Fast Refresh] done in 108ms @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[   14646ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[   14665ms] [LOG] [Fast Refresh] done in 132ms @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[   65218ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[   66981ms] [LOG] [Fast Refresh] done in 1547ms @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[   67104ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[   67970ms] [LOG] [Fast Refresh] done in 981ms @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[   78350ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[   78599ms] [LOG] [Fast Refresh] done in 293ms @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[   78704ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431
+[   78935ms] [LOG] [Fast Refresh] done in 334ms @ http://localhost:3001/_next/static/chunks/0sv4_next_dist_05d~yje._.js:2431

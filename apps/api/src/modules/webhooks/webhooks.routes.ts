@@ -6,7 +6,8 @@ import { Sentry } from '../../shared/sentry'
 import { getResend, getEmailFrom } from '../../shared/email'
 import { notifyBookingEvent } from '../notifications/booking-events'
 import { bookingConfirmedEmailText, bookingConfirmedSubject } from '../bookings/emails/booking-confirmed-email'
-
+import { auditLog } from '../../shared/audit.js'
+import { bookingsConfirmedCounter } from '../../shared/metrics.js'
 
 function validateMpSignature(
   signatureHeader: string,
@@ -62,6 +63,9 @@ export async function webhooksRoutes(app: FastifyInstance) {
       config: { rawBody: true, rateLimit: false }, // rawBody: fastify-raw-body; rateLimit: exempt webhook from global limit
     },
     async (request, reply) => {
+      Sentry.setTag('module', 'webhooks')
+      Sentry.setTag('action', 'payment-notification')
+
       // 1. Validate x-signature header present.
       // Return 200 (not 400) regardless of why validation fails — a 400 here
       // would leak that the endpoint inspects headers, enabling enumeration.
@@ -140,6 +144,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
       const booking = await prisma.booking.findFirst({
         where: { id: externalReference },
         include: {
+          tenant: { select: { slug: true } },
           slot: {
             include: {
               package: {
@@ -167,13 +172,16 @@ export async function webhooksRoutes(app: FastifyInstance) {
       // 8. Transition based on authoritative payment status from MP API
       if (status === 'approved') {
         // PENDING → CONFIRMED (idempotent: only transitions if still PENDING)
-        const confirmed = await prisma.booking.updateMany({
+        const confirmResult = await prisma.booking.updateMany({
           where: { id: booking.id, status: 'PENDING' },
           data: { status: 'CONFIRMED' },
         })
-        if (confirmed.count > 0) {
+        if (confirmResult.count > 0) {
           void notifyBookingEvent(app.log, booking.id, 'confirmed').catch(() => {})
+          bookingsConfirmedCounter.add(1, { tenant: booking.tenant?.slug ?? 'unknown' })
         }
+
+        auditLog(prisma, { actorType: 'SYSTEM', action: 'booking.confirmed', targetType: 'BOOKING', targetId: booking.id, metadata: { paymentId } })
 
         // NOTIF-02: Notify customer of confirmed booking (fire-and-forget, D-12)
         const resend = getResend()
@@ -204,19 +212,24 @@ export async function webhooksRoutes(app: FastifyInstance) {
             data: { status: 'EXPIRED' },
           })
 
-          const currentSlot = await tx.departureSlot.findUnique({ where: { id: booking.slotId } })
-          const newBooked = Math.max(0, (currentSlot?.booked ?? booking.pax) - booking.pax)
-          // Atomic decrement with where guard: never decrement below 0
-          await tx.departureSlot.updateMany({
-            where: { id: booking.slotId, booked: { gt: 0 } },
+          // Atomic decrement — avoids snapshot-read race condition
+          await tx.departureSlot.update({
+            where: { id: booking.slotId },
             data: {
               booked: { decrement: booking.pax },
-              // Only recalculate status for OPEN/FULL slots — preserve CANCELLED/COMPLETED
-              ...(currentSlot?.status !== 'CANCELLED' && currentSlot?.status !== 'COMPLETED'
-                ? { status: newBooked < (currentSlot?.capacity ?? 1) ? 'OPEN' : 'FULL' }
-                : {}),
             },
           })
+
+          // Re-read slot to recalculate status after atomic decrement
+          const updatedSlot = await tx.departureSlot.findUnique({ where: { id: booking.slotId } })
+          if (updatedSlot && updatedSlot.status !== 'CANCELLED' && updatedSlot.status !== 'COMPLETED') {
+            const correctedBooked = Math.max(0, updatedSlot.booked)
+            const newStatus = correctedBooked < updatedSlot.capacity ? 'OPEN' : 'FULL'
+            await tx.departureSlot.update({
+              where: { id: booking.slotId },
+              data: { booked: correctedBooked, status: newStatus },
+            })
+          }
         })
 
         void notifyBookingEvent(app.log, booking.id, 'expired').catch(() => {})

@@ -31,7 +31,7 @@ vi.mock('../../shared/email', () => ({
 }))
 
 vi.mock('../../shared/sentry', () => ({
-  Sentry: { captureException: vi.fn(), withScope: vi.fn(), setupFastifyErrorHandler: vi.fn() },
+  Sentry: { captureException: vi.fn(), withScope: vi.fn(), setupFastifyErrorHandler: vi.fn(), setTag: vi.fn() },
 }))
 
 const paymentGet = vi.fn()

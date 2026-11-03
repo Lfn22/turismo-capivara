@@ -2,6 +2,20 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import QRCode from 'react-qr-code';
+import {
+  ArrowLeft,
+  CalendarDays,
+  Check,
+  Clock,
+  Copy,
+  ExternalLink,
+  ShieldCheck,
+  Ticket,
+  TicketX,
+  Users,
+} from 'lucide-react';
+import { Alert, Badge, BookingSummary, Button, EmptyState, Skeleton } from '@/src/components/ui/capi';
 
 interface Booking {
   id: string
@@ -29,6 +43,7 @@ const STATUS_LABELS: Record<string, string> = {
   CONFIRMED: 'Pagamento confirmado!',
   COMPLETED: 'Reserva concluída',
   CANCELLED: 'Reserva cancelada',
+  EXPIRED: 'PIX expirado',
 }
 
 function formatDateBR(dateStr: string) {
@@ -145,51 +160,55 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
 
   if (!bookingId || !email) {
     return (
-      <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--stone-500)' }}>
-        <p>Parâmetros inválidos. Volte ao roteiro e tente novamente.</p>
-        <a href={`/${slug}/roteiros`} style={{ color: 'var(--ochre)', textDecoration: 'none', fontWeight: 600 }}>
-          Ver roteiros
-        </a>
+      <div className="capi-container capi-container--form py-8">
+        <EmptyState
+          icon={TicketX}
+          title="Link de pagamento incompleto"
+          description="Parâmetros inválidos. Volte ao roteiro e tente novamente."
+          action={
+            <Button href={`/${slug}/roteiros`} variant="secondary">
+              Ver roteiros
+            </Button>
+          }
+        />
       </div>
     )
   }
 
   if (loading) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '50dvh',
-          gap: '1rem',
-          color: 'var(--stone-500)',
-        }}
-      >
-        <div
-          style={{
-            width: '32px',
-            height: '32px',
-            border: '3px solid var(--stone-200)',
-            borderTopColor: 'var(--ochre)',
-            borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite',
-          }}
-        />
-        <p style={{ margin: 0, fontSize: '0.95rem' }}>Carregando reserva…</p>
-  {/* spin defined in global styles block below */}
+      <div className="capi-container capi-container--content py-6" aria-busy="true">
+        <p className="sr-only-capi" role="status">Carregando reserva…</p>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-line bg-surface p-6">
+            <Skeleton width={140} height={24} radius={999} />
+            <Skeleton width={200} height={200} radius={12} />
+            <Skeleton height={64} radius={12} />
+            <Skeleton height={52} radius={12} />
+          </div>
+          <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5">
+            <Skeleton width="70%" height={18} />
+            <Skeleton lines={4} />
+          </div>
+        </div>
       </div>
     )
   }
 
   if (error || !booking) {
     return (
-      <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-        <p style={{ color: '#991b1b', marginBottom: '1rem' }}>{error ?? 'Reserva não encontrada.'}</p>
-        <a href={`/${slug}/roteiros`} style={{ color: 'var(--ochre)', textDecoration: 'none', fontWeight: 600 }}>
-          ← Ver roteiros
-        </a>
+      <div className="capi-container capi-container--form py-8">
+        <Alert
+          tone="danger"
+          title="Não foi possível carregar a reserva"
+          action={
+            <Button href={`/${slug}/roteiros`} variant="secondary" size="sm" iconLeft={ArrowLeft}>
+              Ver roteiros
+            </Button>
+          }
+        >
+          {error ?? 'Reserva não encontrada.'}
+        </Alert>
       </div>
     )
   }
@@ -201,256 +220,132 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
 
   const packageName = booking.slot?.package?.name ?? 'Roteiro'
   const slotDate = booking.slot?.startsAt
+  const showPix = isPending && !isExpired && booking.qrCode
 
   return (
-    <>
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-      `}</style>
-
-      <div
-        style={{
-          maxWidth: '480px',
-          margin: '0 auto',
-          padding: 'clamp(1.5rem, 5vw, 3rem) clamp(1rem, 4vw, 1.5rem)',
-          animation: 'fadeIn 0.4s ease',
-        }}
-      >
-        {/* Status banner */}
-        <div
-          style={{
-            borderRadius: '12px',
-            padding: '1.25rem',
-            marginBottom: '1.5rem',
-            textAlign: 'center',
-            backgroundColor: isSuccess ? '#f0fdf4' : isCancelled || isExpired ? '#fef2f2' : '#fffbeb',
-            border: `1px solid ${isSuccess ? '#bbf7d0' : isCancelled || isExpired ? '#fecaca' : '#fde68a'}`,
-          }}
-        >
-          {/* Icon */}
-          <div style={{ marginBottom: '0.5rem', fontSize: '1.75rem' }}>
-            {isSuccess ? '✓' : isCancelled || isExpired ? '✕' : (
-              <div
-                style={{
-                  display: 'inline-block',
-                  width: '28px',
-                  height: '28px',
-                  border: '3px solid #fde68a',
-                  borderTopColor: '#d97706',
-                  borderRadius: '50%',
-                  animation: 'spin 0.8s linear infinite',
-                }}
-              />
-            )}
-          </div>
-
-          <p
-            style={{
-              margin: 0,
-              fontSize: '1rem',
-              fontWeight: 700,
-              color: isSuccess ? '#166534' : isCancelled || isExpired ? '#991b1b' : '#92400e',
-            }}
-          >
-            {isExpired ? 'PIX expirado' : STATUS_LABELS[booking.status] ?? booking.status}
-          </p>
-
-          {isPending && !isExpired && countdown !== null && (
-            <p style={{ margin: '0.375rem 0 0', fontSize: '0.8rem', color: '#92400e' }}>
-              Expira em {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}
-            </p>
-          )}
-
+    <div className="capi-container capi-container--content py-6 md:py-8">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+        <div className="mx-auto flex w-full flex-col gap-4" style={{ maxWidth: 'var(--container-form)' }}>
+          {/* Estado do pagamento */}
           {isSuccess && (
-            <p style={{ margin: '0.375rem 0 0', fontSize: '0.8rem', color: '#166534' }}>
+            <Alert tone="success" title={STATUS_LABELS[booking.status] ?? booking.status}>
               Redirecionando para confirmação…
-            </p>
+            </Alert>
           )}
-        </div>
+          {(isCancelled || isExpired) && (
+            <Alert
+              tone="danger"
+              title={isExpired ? 'PIX expirado' : STATUS_LABELS[booking.status] ?? booking.status}
+            >
+              {isExpired
+                ? 'O prazo para pagamento terminou. Escolha a data de novo para gerar outro código.'
+                : 'Esta reserva não está mais ativa.'}
+            </Alert>
+          )}
+          {isPending && !isExpired && !booking.qrCode && (
+            <Alert tone="warning" title={STATUS_LABELS[booking.status] ?? booking.status}>
+              Aguardando confirmação do pagamento…
+            </Alert>
+          )}
+          {!isSuccess && !isCancelled && !isPending && (
+            <Alert tone="info" title={STATUS_LABELS[booking.status] ?? booking.status} />
+          )}
 
-        {/* Booking summary */}
-        <div
-          style={{
-            backgroundColor: 'var(--stone-50)',
-            border: '1px solid var(--stone-200)',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            marginBottom: '1.5rem',
-          }}
-        >
-          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--stone-100)' }}>
-            <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--stone-500)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
-              Resumo da reserva
-            </p>
-          </div>
-          <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-            <Row label="Roteiro" value={packageName} />
-            {slotDate && <Row label="Data" value={formatDateBR(slotDate)} />}
-            <Row label="Pessoas" value={`${booking.pax} pessoa${booking.pax !== 1 ? 's' : ''}`} />
-            <Row
-              label="N° reserva"
-              value={booking.id.slice(0, 8).toUpperCase()}
-              valueStyle={{ fontFamily: 'monospace', fontSize: '0.8rem' }}
-            />
-          </div>
-        </div>
-
-        {/* PIX section — only if pending and not expired */}
-        {isPending && !isExpired && booking.qrCode && (
-          <div
-            style={{
-              backgroundColor: 'var(--stone-50)',
-              border: '1px solid var(--stone-200)',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              marginBottom: '1.5rem',
-            }}
-          >
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--stone-100)' }}>
-              <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--stone-900)' }}>
-                Pague via PIX
-              </p>
-              <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--stone-500)' }}>
-                Copie o código abaixo e cole no app do seu banco
-              </p>
-            </div>
-            <div style={{ padding: '1rem 1.25rem' }}>
-              {/* PIX code display */}
-              <div
-                style={{
-                  backgroundColor: 'var(--stone-50)',
-                  border: '1px solid var(--stone-200)',
-                  borderRadius: '8px',
-                  padding: '0.75rem',
-                  fontSize: '0.7rem',
-                  fontFamily: 'monospace',
-                  color: 'var(--stone-700)',
-                  wordBreak: 'break-all',
-                  lineHeight: 1.6,
-                  marginBottom: '0.75rem',
-                  maxHeight: '80px',
-                  overflowY: 'auto',
-                }}
-              >
-                {booking.qrCode}
+          {/* PIX — só se pendente e não expirado */}
+          {showPix && (
+            <section
+              aria-labelledby="pix-title"
+              className="flex flex-col items-center gap-5 rounded-2xl border border-line bg-surface p-5 text-center sm:p-6"
+              style={{ boxShadow: 'var(--shadow-sm)' }}
+            >
+              <div className="flex flex-col items-center gap-2">
+                {countdown !== null && (
+                  <Badge tone="warning" icon={Clock}>
+                    Expira em {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}
+                  </Badge>
+                )}
+                <h2 id="pix-title" className="m-0 text-xl">Pague via PIX</h2>
+                <p className="m-0 text-sm text-fg-secondary">
+                  Escaneie o QR code ou copie o código e cole no app do seu banco.
+                </p>
               </div>
 
-              <button
-                onClick={handleCopy}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  backgroundColor: copied ? '#166534' : 'var(--ochre)',
-                  color: 'var(--stone-50)',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
+              <div
+                className="rounded-xl p-3"
+                style={{ background: 'var(--sand-0)', color: 'var(--sand-900)', border: '1px solid var(--border)' }}
               >
-                {copied ? (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    Código copiado!
-                  </>
-                ) : (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-                    Copiar código PIX
-                  </>
-                )}
-              </button>
+                <QRCode
+                  value={booking.qrCode as string}
+                  size={192}
+                  level="M"
+                  bgColor="transparent"
+                  fgColor="currentColor"
+                  style={{ display: 'block', height: 'auto', maxWidth: '100%', width: 'min(192px, 60vw)' }}
+                  aria-label="QR code PIX para pagamento da reserva"
+                />
+              </div>
 
-              {/* External payment link */}
+              <div className="w-full text-left">
+                <p className="m-0 mb-1.5 text-sm font-semibold text-fg">Código copia e cola</p>
+                <div
+                  className="max-h-20 overflow-y-auto break-all rounded-lg border border-line bg-subtle p-3 font-mono text-xs leading-relaxed text-fg-secondary"
+                >
+                  {booking.qrCode}
+                </div>
+              </div>
+
+              <Button size="lg" fullWidth iconLeft={copied ? Check : Copy} onClick={handleCopy}>
+                {copied ? 'Código copiado!' : 'Copiar código PIX'}
+              </Button>
+
               {booking.paymentUrl && (
-                <a
+                <Button
                   href={booking.paymentUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{
-                    display: 'block',
-                    marginTop: '0.75rem',
-                    textAlign: 'center',
-                    fontSize: '0.85rem',
-                    color: 'var(--stone-500)',
-                    textDecoration: 'none',
-                    padding: '0.5rem',
-                    border: '1px solid var(--stone-200)',
-                    borderRadius: '8px',
-                  }}
+                  variant="secondary"
+                  fullWidth
+                  iconRight={ExternalLink}
                 >
-                  Abrir página de pagamento →
-                </a>
+                  Abrir página de pagamento
+                </Button>
               )}
 
-              <p
-                style={{
-                  margin: '0.75rem 0 0',
-                  fontSize: '0.75rem',
-                  color: 'var(--stone-400)',
-                  textAlign: 'center',
-                  animation: 'pulse 2s ease-in-out infinite',
-                }}
-              >
+              <p className="m-0 inline-flex items-center gap-2 text-sm text-fg-secondary" role="status">
+                <span className="capi-spinner" aria-hidden="true" />
                 Aguardando confirmação do pagamento…
               </p>
-            </div>
-          </div>
-        )}
+              <p className="m-0 inline-flex items-center gap-1.5 text-xs text-fg-tertiary">
+                <ShieldCheck size={14} strokeWidth={1.75} aria-hidden="true" />
+                Pagamento processado pelo Mercado Pago
+              </p>
+            </section>
+          )}
 
-        {/* Expired state */}
-        {isExpired && (
-          <div style={{ textAlign: 'center', padding: '0.5rem 0 1.5rem' }}>
-            <a
-              href={`/${slug}/roteiros`}
-              style={{
-                display: 'inline-block',
-                padding: '0.75rem 1.5rem',
-                backgroundColor: 'var(--ochre)',
-                color: 'var(--stone-50)',
-                textDecoration: 'none',
-                borderRadius: '10px',
-                fontWeight: 600,
-                fontSize: '0.95rem',
-              }}
-            >
+          {/* Expirado */}
+          {isExpired && (
+            <Button href={`/${slug}/roteiros`} size="lg" fullWidth>
               Tentar novamente
-            </a>
-          </div>
-        )}
-      </div>
-    </>
-  )
-}
+            </Button>
+          )}
+        </div>
 
-function Row({
-  label,
-  value,
-  valueStyle,
-}: {
-  label: string
-  value: string
-  valueStyle?: React.CSSProperties
-}) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-      <span style={{ fontSize: '0.8rem', color: 'var(--stone-500)', flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: '0.875rem', color: 'var(--stone-900)', textAlign: 'right', ...valueStyle }}>
-        {value}
-      </span>
+        {/* Resumo — abaixo no mobile, coluna lateral sticky no desktop */}
+        <BookingSummary
+          className="lg:sticky lg:top-24"
+          title="Resumo da reserva"
+          subtitle={packageName}
+          details={[
+            ...(slotDate ? [{ icon: CalendarDays, label: 'Data', value: formatDateBR(slotDate) }] : []),
+            { icon: Users, label: 'Pessoas', value: `${booking.pax} pessoa${booking.pax !== 1 ? 's' : ''}` },
+            {
+              icon: Ticket,
+              label: 'N° reserva',
+              value: <span className="font-mono text-sm">{booking.id.slice(0, 8).toUpperCase()}</span>,
+            },
+          ]}
+        />
+      </div>
     </div>
   )
 }

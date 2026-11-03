@@ -125,7 +125,15 @@
       "Bash(ls C:/projetos/turismo-capivara/apps/web/app/[slug]/)",
       "Bash(ls:*)",
       "Bash(bash:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "mcp__claude_ai_Claude_Docs__guide",
+      "mcp__claude_ai_Claude_Docs__batch",
+      "mcp__claude_ai_Claude_Docs__update",
+      "Bash(curl -s https://turismoapi-production.up.railway.app/health)",
+      "Bash(printf \"}\\\\n\")",
+      "Bash(cp /tmp/bookings_clean.ts C:/projetos/turismo-capivara/apps/api/src/modules/bookings/bookings.routes.ts)",
+      "Bash(cp /tmp/dest_clean.ts C:/projetos/turismo-capivara/apps/api/src/modules/destinations/destinations.routes.ts)",
+      "Bash(echo \"EXIT: $?\")"
     ]
   }
 }

@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import { Check } from 'lucide-react'
+import { Badge, Button, Input, Select, Textarea } from '@/src/components/ui/capi'
 import { PhotoUploadArea } from './PhotoUploadArea'
 
 const BRAZIL_STATES = [
@@ -73,32 +75,6 @@ function validate(values: DestinationFormValues): DestinationFormErrors {
     errors.state = 'Selecione um estado.'
   }
   return errors
-}
-
-const INPUT_STYLE: React.CSSProperties = {
-  width: '100%',
-  fontSize: '16px',
-  padding: '12px',
-  borderRadius: '4px',
-  border: '1px solid var(--stone-300, #d6d3d1)',
-  background: '#fff',
-  color: 'var(--stone-900, #1c1917)',
-  boxSizing: 'border-box',
-  fontFamily: 'inherit',
-}
-
-const LABEL_STYLE: React.CSSProperties = {
-  display: 'block',
-  fontSize: '14px',
-  fontWeight: 600,
-  color: 'var(--stone-700, #44403c)',
-  marginBottom: '6px',
-}
-
-const ERROR_STYLE: React.CSSProperties = {
-  fontSize: '12px',
-  color: '#DC2626',
-  marginTop: '4px',
 }
 
 export function DestinationForm({
@@ -183,203 +159,248 @@ export function DestinationForm({
   )
 
   const hasErrors = Object.keys(validate(values)).length > 0
+  const fieldError = (field: keyof DestinationFormErrors) =>
+    touched[field] ? errors[field] : undefined
 
   return (
-    <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Name */}
-      <div>
-        <label htmlFor="dest-name" style={LABEL_STYLE}>
-          Nome do destino <span style={{ color: '#DC2626' }}>*</span>
-        </label>
-        <input
+    <form onSubmit={handleSubmit} noValidate className="dform">
+      <style precedence="default">{`
+        .dform {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-8);
+          padding-bottom: calc(var(--space-20) + var(--space-4));
+          font-family: var(--font-sans);
+        }
+        @media (min-width: 768px) {
+          .dform { padding-bottom: 0; }
+        }
+        .dform__section {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-5);
+          min-width: 0;
+        }
+        .dform__section + .dform__section {
+          padding-top: var(--space-8);
+          border-top: 1px solid var(--border);
+        }
+        .dform__head { display: flex; flex-direction: column; gap: var(--space-1); padding: 0; }
+        .dform__title {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          line-height: 1.35;
+          color: var(--text);
+        }
+        .dform__desc {
+          margin: 0;
+          font-size: 14px;
+          line-height: 1.5;
+          color: var(--text-secondary);
+        }
+        .dform__label {
+          margin: 0 0 var(--space-2);
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text);
+        }
+        .dform__covers {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+          gap: var(--space-2);
+        }
+        .dform__cover {
+          position: relative;
+          aspect-ratio: 1 / 1;
+          padding: 0;
+          border: 2px solid var(--border);
+          border-radius: var(--radius-sm);
+          overflow: hidden;
+          background: var(--bg-muted);
+          cursor: pointer;
+        }
+        .dform__cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .dform__cover:hover { border-color: var(--border-strong); }
+        .dform__cover.is-selected {
+          border-color: var(--primary);
+          box-shadow: 0 0 0 1px var(--primary);
+        }
+        .dform__cover:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+        .dform__cover-badge {
+          position: absolute;
+          left: var(--space-1);
+          bottom: var(--space-1);
+        }
+        .dform__highlights { display: grid; gap: var(--space-3); }
+        @media (min-width: 640px) {
+          .dform__highlights { grid-template-columns: 1fr 1fr; }
+        }
+        .dform__bar {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: calc(var(--bottombar-height) + env(safe-area-inset-bottom, 0px));
+          z-index: var(--z-sticky);
+          display: flex;
+          gap: var(--space-2);
+          padding: var(--space-3) var(--space-4);
+          background: var(--surface);
+          border-top: 1px solid var(--border);
+          box-shadow: var(--shadow-md);
+        }
+        .dform__bar .dform__submit { flex: 1; }
+        @media (min-width: 768px) {
+          .dform__bar {
+            position: static;
+            justify-content: flex-end;
+            padding: var(--space-6) 0 0;
+            background: transparent;
+            border-top: 1px solid var(--border);
+            box-shadow: none;
+          }
+          .dform__bar .dform__submit { flex: 0 0 auto; }
+        }
+      `}</style>
+
+      <section className="dform__section">
+        <div className="dform__head">
+          <h2 className="dform__title">Informações do destino</h2>
+          <p className="dform__desc">
+          Nome, estado e uma descrição que ajude o turista a decidir pela visita.
+        </p>
+        </div>
+
+        <Input
           id="dest-name"
+          label="Nome do destino"
           type="text"
           value={values.name}
           onChange={handleChange('name')}
           onBlur={handleBlur('name')}
-          placeholder="Ex: Serra da Capivara"
+          placeholder="Ex.: Serra da Capivara"
           maxLength={100}
-          style={INPUT_STYLE}
-          aria-invalid={!!errors.name}
+          required
+          error={fieldError('name')}
+          hint="Entre 3 e 100 caracteres."
         />
-        {touched.name && errors.name && <p style={ERROR_STYLE}>{errors.name}</p>}
-      </div>
 
-      {/* Description */}
-      <div>
-        <label htmlFor="dest-description" style={LABEL_STYLE}>
-          Descrição <span style={{ color: '#DC2626' }}>*</span>
-        </label>
-        <textarea
-          id="dest-description"
-          value={values.description}
-          onChange={handleChange('description')}
-          onBlur={handleBlur('description')}
-          placeholder="Descreva o destino para os turistas..."
-          maxLength={1000}
-          rows={5}
-          style={{ ...INPUT_STYLE, resize: 'vertical', minHeight: '120px' }}
-          aria-invalid={!!errors.description}
-        />
-        <p style={{ fontSize: '11px', color: 'var(--stone-400)', marginTop: '4px', textAlign: 'right' }}>
-          {values.description.length}/1000
-        </p>
-        {touched.description && errors.description && (
-          <p style={ERROR_STYLE}>{errors.description}</p>
-        )}
-      </div>
-
-      {/* State */}
-      <div>
-        <label htmlFor="dest-state" style={LABEL_STYLE}>
-          Estado <span style={{ color: '#DC2626' }}>*</span>
-        </label>
-        <select
+        <Select
           id="dest-state"
+          label="Estado (UF)"
           value={values.state}
           onChange={handleChange('state')}
           onBlur={handleBlur('state')}
-          style={{ ...INPUT_STYLE, appearance: 'auto' }}
-          aria-invalid={!!errors.state}
-        >
-          <option value="">Selecione um estado</option>
-          {BRAZIL_STATES.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.value} — {s.label}
-            </option>
-          ))}
-        </select>
-        {touched.state && errors.state && <p style={ERROR_STYLE}>{errors.state}</p>}
-      </div>
+          required
+          error={fieldError('state')}
+          options={[
+            { value: '', label: 'Selecione um estado' },
+            ...BRAZIL_STATES.map((s) => ({ value: s.value, label: `${s.value} — ${s.label}` })),
+          ]}
+        />
 
-      {/* Photos */}
-      <div>
-        <label style={LABEL_STYLE}>Fotos (máximo 5)</label>
+        <Textarea
+          id="dest-description"
+          label="Descrição"
+          value={values.description}
+          onChange={handleChange('description')}
+          onBlur={handleBlur('description')}
+          placeholder="Conte o que o turista vai encontrar: paisagens, história, melhor época…"
+          maxLength={1000}
+          rows={5}
+          required
+          error={fieldError('description')}
+          hint={`${values.description.length}/1000 caracteres · mínimo de 10`}
+        />
+      </section>
+
+      <section className="dform__section">
+        <div className="dform__head">
+          <h2 className="dform__title">Fotos</h2>
+          <p className="dform__desc">
+          Até 5 fotos. A primeira impressão do destino vem delas: prefira imagens horizontais e bem iluminadas.
+        </p>
+        </div>
+
         <PhotoUploadArea
           photos={values.photos}
           onAdd={handleAddPhoto}
           onRemove={handleRemovePhoto}
           maxPhotos={5}
         />
-      </div>
 
-      {/* Hero image picker */}
-      {values.photos.length > 0 && (
-        <div>
-          <label style={LABEL_STYLE}>Foto de capa</label>
-          <p style={{ fontSize: '13px', color: 'var(--stone-500, #78716c)', marginBottom: '12px', marginTop: 0 }}>
-            Escolha qual foto aparece no topo da página do destino.
-          </p>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {values.photos.map((url, i) => (
-              <button
-                key={url}
-                type="button"
-                onClick={() =>
-                  setValues((v) => ({ ...v, heroImageUrl: v.heroImageUrl === url ? null : url }))
-                }
-                aria-label={`Definir foto ${i + 1} como capa`}
-                style={{
-                  position: 'relative',
-                  width: '80px',
-                  height: '80px',
-                  padding: 0,
-                  border: values.heroImageUrl === url
-                    ? '3px solid var(--ochre, #c2783c)'
-                    : '2px solid var(--stone-200, #e7e5e4)',
-                  borderRadius: '6px',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  background: 'none',
-                  flexShrink: 0,
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                {values.heroImageUrl === url && (
-                  <span style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    background: 'var(--ochre, #c2783c)',
-                    color: '#fff',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    textAlign: 'center',
-                    padding: '2px 0',
-                    letterSpacing: '0.05em',
-                  }}>CAPA</span>
-                )}
-              </button>
-            ))}
+        {values.photos.length > 0 && (
+          <div>
+            <p className="dform__label">Foto de capa</p>
+            <p className="dform__desc" style={{ marginBottom: 'var(--space-3)' }}>
+              Escolha qual foto aparece no topo da página do destino.
+            </p>
+            <div className="dform__covers">
+              {values.photos.map((url, i) => {
+                const selected = values.heroImageUrl === url
+                return (
+                  <button
+                    key={url}
+                    type="button"
+                    className={`dform__cover${selected ? ' is-selected' : ''}`}
+                    aria-pressed={selected}
+                    onClick={() =>
+                      setValues((v) => ({ ...v, heroImageUrl: v.heroImageUrl === url ? null : url }))
+                    }
+                    aria-label={`Definir foto ${i + 1} como capa`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- URLs de upload de hosts variados */}
+                    <img src={url} alt="" />
+                    {selected && (
+                      <span className="dform__cover-badge">
+                        <Badge tone="brand" icon={Check}>Capa</Badge>
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </section>
 
-      {/* Highlights */}
-      <div>
-        <label style={LABEL_STYLE}>Pontos de interesse (máximo 4)</label>
-        <p style={{ fontSize: '13px', color: 'var(--stone-500, #78716c)', marginBottom: '12px', marginTop: 0 }}>
-          Nomes dos pontos exibidos sobre as fotos. Ex: "Cachoeira do Salto"
+      <section className="dform__section">
+        <div className="dform__head">
+          <h2 className="dform__title">Pontos de interesse</h2>
+          <p className="dform__desc">
+          Até 4 nomes exibidos sobre as fotos. Ex.: &ldquo;Cachoeira do Salto&rdquo;.
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        </div>
+        <div className="dform__highlights">
           {[0, 1, 2, 3].map((i) => (
-            <input
+            <Input
               key={i}
+              label={`Ponto ${i + 1}`}
+              optional
               type="text"
-              placeholder={`Ponto ${i + 1}`}
+              placeholder={i === 0 ? 'Ex.: Cachoeira do Salto' : undefined}
               value={values.highlights[i] ?? ''}
               onChange={(e) => handleHighlightChange(i, e.target.value)}
               maxLength={80}
-              style={INPUT_STYLE}
             />
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Actions */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
-        <button
-          type="submit"
-          disabled={submitting || hasErrors}
-          style={{
-            width: '100%',
-            minHeight: '44px',
-            padding: '12px',
-            background: 'var(--ochre, #c2783c)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '16px',
-            fontWeight: 600,
-            cursor: submitting || hasErrors ? 'not-allowed' : 'pointer',
-            opacity: submitting || hasErrors ? 0.65 : 1,
-            letterSpacing: '0.04em',
-          }}
-        >
-          {submitting ? 'Salvando...' : submitLabel}
-        </button>
-
+      <div className="dform__bar">
         {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            style={{
-              width: '100%',
-              minHeight: '44px',
-              padding: '12px',
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--stone-500, #78716c)',
-              fontSize: '14px',
-              cursor: 'pointer',
-              textDecoration: 'underline',
-            }}
-          >
+          <Button variant="ghost" onClick={onCancel}>
             Cancelar
-          </button>
+          </Button>
         )}
+        <Button
+          type="submit"
+          className="dform__submit"
+          disabled={hasErrors}
+          loading={submitting}
+        >
+          {submitting ? 'Salvando…' : submitLabel}
+        </Button>
       </div>
     </form>
   )
