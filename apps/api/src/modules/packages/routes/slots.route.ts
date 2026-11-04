@@ -6,6 +6,7 @@ import { authenticate } from '../../../shared/middlewares/authenticate'
 import { authorize } from '../../../shared/middlewares/authorize'
 import { Role } from '@prisma/client'
 import { parseBody, parseParams, parseQuery } from '../../../shared/utils/zod-error'
+import { canEditPackage, isUnverifiedGuide, type EditUser } from '../../../shared/auth/edit-permissions'
 
 const slugAndIdParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -110,7 +111,7 @@ export async function slotsRoute(app: FastifyInstance) {
   })
 
   app.post('/tenants/:slug/packages/:id/slots', {
-    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
+    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN, Role.SUPER_ADMIN])],
   }, async (request, reply) => {
     const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
     if (error) return
@@ -143,12 +144,9 @@ export async function slotsRoute(app: FastifyInstance) {
     })
     if (!pkg) throw new AppError('Roteiro não encontrado', 404)
 
-    const user = request.user as { sub: string; role: string }
-    if (user.role === 'CONDUTOR' && pkg.conductorId !== user.sub) throw new AppError('Acesso negado', 403)
-    if (user.role === 'CONDUTOR') {
-      const conductor = await prisma.user.findUnique({ where: { id: user.sub }, select: { approvalStatus: true } })
-      if (conductor?.approvalStatus !== 'APPROVED') throw new AppError('Guia não aprovado para criar slots', 403)
-    }
+    const user = request.user as EditUser
+    if (!canEditPackage(user, pkg)) throw new AppError('Acesso negado', 403)
+    if (await isUnverifiedGuide(user)) throw new AppError('Guia não aprovado para criar slots', 403)
 
     // CR-004: Validate guideId belongs to the same tenant (cross-tenant isolation)
     const guideOwner = await prisma.guideProfile.findUnique({
@@ -227,7 +225,7 @@ export async function slotsRoute(app: FastifyInstance) {
   })
 
   app.patch('/tenants/:slug/packages/:id/slots/:slotId', {
-    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
+    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN, Role.SUPER_ADMIN])],
   }, async (request, reply) => {
     const { data: params, error } = parseParams(slugIdAndSlotIdParamsSchema, request.params, reply)
     if (error) return
@@ -240,13 +238,13 @@ export async function slotsRoute(app: FastifyInstance) {
 
     const slot = await prisma.departureSlot.findFirst({
       where: { id: params!.slotId, package: { tenantId: tenant.id } },
-      include: { package: { select: { conductorId: true, id: true } } },
+      include: { package: { select: { conductorId: true, tenantId: true, id: true } } },
     })
     if (!slot) throw new AppError('Slot não encontrado', 404)
     if (slot.package.id !== params!.id) throw new AppError('Slot não encontrado', 404)
 
-    const user = request.user as { sub: string; role: string }
-    if (user.role === 'CONDUTOR' && slot.package.conductorId !== user.sub) throw new AppError('Acesso negado', 403)
+    const user = request.user as EditUser
+    if (!canEditPackage(user, slot.package)) throw new AppError('Acesso negado', 403)
 
     const updateData: Record<string, unknown> = {}
     if (body!.startsAt !== undefined) updateData.startsAt = new Date(body!.startsAt)
@@ -263,7 +261,7 @@ export async function slotsRoute(app: FastifyInstance) {
 
   // POST /tenants/:slug/packages/:id/slots/batch — batch slot creation
   app.post('/tenants/:slug/packages/:id/slots/batch', {
-    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
+    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN, Role.SUPER_ADMIN])],
   }, async (request, reply) => {
     const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
     if (error) return
@@ -279,8 +277,9 @@ export async function slotsRoute(app: FastifyInstance) {
     })
     if (!pkg) throw new AppError('Roteiro não encontrado', 404)
 
-    const user = request.user as { sub: string; role: string }
-    if (user.role === 'CONDUTOR' && pkg.conductorId !== user.sub) throw new AppError('Acesso negado', 403)
+    const user = request.user as EditUser
+    if (!canEditPackage(user, pkg)) throw new AppError('Acesso negado', 403)
+    if (await isUnverifiedGuide(user)) throw new AppError('Guia não aprovado para criar slots', 403)
 
     const start = new Date(body!.startDate)
     const end = new Date(body!.endDate)
@@ -323,7 +322,7 @@ export async function slotsRoute(app: FastifyInstance) {
 
   // PATCH /tenants/:slug/packages/:id/slots/block — block/cancel slots by date
   app.patch('/tenants/:slug/packages/:id/slots/block', {
-    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
+    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN, Role.SUPER_ADMIN])],
   }, async (request, reply) => {
     const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
     if (error) return
@@ -339,8 +338,8 @@ export async function slotsRoute(app: FastifyInstance) {
     })
     if (!pkg) throw new AppError('Roteiro não encontrado', 404)
 
-    const user = request.user as { sub: string; role: string }
-    if (user.role === 'CONDUTOR' && pkg.conductorId !== user.sub) throw new AppError('Acesso negado', 403)
+    const user = request.user as EditUser
+    if (!canEditPackage(user, pkg)) throw new AppError('Acesso negado', 403)
 
     // Build date ranges for each date
     const dateRanges = body!.dates.map((dateStr) => {
@@ -395,7 +394,7 @@ export async function slotsRoute(app: FastifyInstance) {
 
   // GET /tenants/:slug/packages/:id/slots/calendar?month=YYYY-MM
   app.get('/tenants/:slug/packages/:id/slots/calendar', {
-    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
+    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN, Role.SUPER_ADMIN])],
   }, async (request, reply) => {
     const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
     if (error) return
@@ -447,7 +446,7 @@ export async function slotsRoute(app: FastifyInstance) {
   })
 
   app.delete('/tenants/:slug/packages/:id/slots/:slotId', {
-    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN])],
+    preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN, Role.SUPER_ADMIN])],
   }, async (request, reply) => {
     const { data: params, error } = parseParams(slugIdAndSlotIdParamsSchema, request.params, reply)
     if (error) return
@@ -455,17 +454,23 @@ export async function slotsRoute(app: FastifyInstance) {
     const tenant = await prisma.tenant.findUnique({ where: { slug: params!.slug } })
     if (!tenant) throw new AppError('Tenant não encontrado', 404)
 
-    const user = request.user as { sub: string; role: string }
+    const user = request.user as EditUser
 
     const result = await prisma.$transaction(async (tx) => {
       const slot = await tx.departureSlot.findFirst({
         where: { id: params!.slotId, package: { tenantId: tenant.id } },
-        include: { package: { select: { conductorId: true, id: true } } },
+        include: { package: { select: { conductorId: true, tenantId: true, id: true } } },
       })
       if (!slot) throw new AppError('Slot não encontrado', 404)
       if (slot.package.id !== params!.id) throw new AppError('Slot não encontrado', 404)
-      if (user.role === 'CONDUTOR' && slot.package.conductorId !== user.sub) throw new AppError('Acesso negado', 403)
+      if (!canEditPackage(user, slot.package)) throw new AppError('Acesso negado', 403)
       if (slot.status === 'CANCELLED') throw new AppError('Slot já cancelado', 400)
+
+      // Reserva paga não pode ficar presa num slot cancelado: o estorno é feito antes, reserva a reserva
+      const confirmed = await tx.booking.count({ where: { slotId: params!.slotId, status: 'CONFIRMED' } })
+      if (confirmed > 0) {
+        throw new AppError('Esta data tem reservas confirmadas. Cancele-as antes de fechar.', 409)
+      }
 
       await tx.departureSlot.update({
         where: { id: params!.slotId },

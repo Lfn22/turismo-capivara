@@ -259,7 +259,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
       select: { id: true },
     })
 
-    auditLog(prisma, { actorType: 'USER', actorId: (request.user as { sub: string }).sub, action: 'tenant.approved', targetType: 'TENANT', targetId: params.id, ipAddress: request.ip, metadata: { tenantName: tenant.slug } })
+    auditLog(prisma, { actorType: 'USER', action: 'tenant.approved', targetType: 'TENANT', targetId: params.id, ipAddress: request.ip, metadata: { actorUserId: request.user.sub, tenantName: tenant.slug } })
 
     const resend = getResend()
     if (resend && tenant.users[0]) {

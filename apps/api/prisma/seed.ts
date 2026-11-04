@@ -103,6 +103,7 @@ async function createTenantData(
         price: pacote.price,
         capacity: pacote.capacity,
         difficulty: pacote.difficulty as 'EASY' | 'MODERATE' | 'HARD',
+        publishedAt: new Date(),
       },
     })
 

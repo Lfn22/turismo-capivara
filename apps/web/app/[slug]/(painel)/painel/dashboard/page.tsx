@@ -42,6 +42,7 @@ interface Package {
   id: string
   name: string
   active: boolean
+  status: "PUBLISHED" | "DRAFT" | "HIDDEN"
 }
 
 type DashboardMetrics = {
@@ -142,7 +143,7 @@ export default async function DashboardPage({
   try {
     const [bookingsData, packagesData] = await Promise.all([
       apiFetch<{ bookings: Booking[] }>(bookingsPath, token),
-      apiFetch<{ packages: Package[] } | Package[]>(`/tenants/${slug}/packages?conductorId=${jwt?.sub}`, token),
+      apiFetch<{ packages: Package[] } | Package[]>(`/tenants/${slug}/manage/packages`, token),
     ])
     bookings = bookingsData.bookings ?? []
     packages = Array.isArray(packagesData)
@@ -154,7 +155,7 @@ export default async function DashboardPage({
 
   const todayBookings = bookings.filter((b) => isToday(b.slot?.startsAt))
   const pending = bookings.filter((b) => b.status === "PENDING")
-  const activePackages = packages.filter((p) => p.active)
+  const activePackages = packages.filter((p) => p.status === "PUBLISHED")
   const recentBookings = bookings.slice(0, 5)
 
   const stats = [

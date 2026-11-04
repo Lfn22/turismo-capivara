@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getToken } from "next-auth/jwt"
+import { revalidatePath } from "next/cache"
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
+
+function revalidateDestinations() {
+  revalidatePath("/destinos")
+  revalidatePath("/destinos/[destination-slug]", "layout")
+}
 
 async function getAuthToken(req: NextRequest): Promise<string | null> {
   const jwt = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
@@ -48,6 +54,7 @@ export async function PATCH(
     body,
   })
   const data = await res.text()
+  if (res.ok) revalidateDestinations()
   return new NextResponse(data, {
     status: res.status,
     headers: { "Content-Type": "application/json" },
@@ -66,7 +73,8 @@ export async function DELETE(
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   })
-  const data = await res.text()
+  if (res.ok) revalidateDestinations()
+  const data = res.status === 204 ? null : await res.text()
   return new NextResponse(data, {
     status: res.status,
     headers: { "Content-Type": "application/json" },

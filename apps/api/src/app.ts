@@ -42,6 +42,7 @@ import { reviewsRoutes } from './modules/reviews/reviews.routes'
 import { auditRoutes } from './modules/audit/audit.routes'
 import { platformAdminsRoutes } from './modules/platform-admins/platform-admins.routes'
 import { notificationsRoutes } from './modules/notifications/notifications.routes'
+import { editRoutes } from './modules/edit/edit.routes'
 import { createBookingExpiryJob } from './modules/bookings/expiry.job'
 import { createTokenCleanupJob } from './modules/auth/token.service'
 import { createNotificationDigestJob } from './modules/notifications/digest.job'
@@ -161,6 +162,7 @@ app.register(reportsRoutes)
 app.register(auditRoutes)
 app.register(platformAdminsRoutes)
 app.register(notificationsRoutes)
+app.register(editRoutes)
 
 app.addHook('onSend', async (request, reply) => {
   reply.header('X-Request-Id', request.id)

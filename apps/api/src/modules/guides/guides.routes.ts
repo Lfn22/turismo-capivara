@@ -280,6 +280,7 @@ export async function guidesRoutes(app: FastifyInstance) {
       where: {
         guideId: params.id,
         status: 'ACCEPTED',
+        package: { active: true, publishedAt: { not: null } },
       },
       include: {
         package: {

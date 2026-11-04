@@ -1,10 +1,11 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import BackButton from "@/src/components/ui/BackButton"
 import { PhotoUploadArea } from "@/src/components/ui/PhotoUploadArea"
 import { MapPin, ShieldCheck } from "lucide-react"
 import { Alert, Avatar, Badge, Button, Input, ListGroup, ListRow, PageHeader, Skeleton, Textarea } from "@/src/components/ui/capi"
+import { callProxy } from "@/src/components/membership/membership-shared"
 
 interface GuideProfileData {
   id: string
@@ -53,6 +54,8 @@ export default function PerfilPage({
   const [loadError, setLoadError] = useState(false)
 
   const [memberships, setMemberships] = useState<Memberships | null>(null)
+  const [leavingId, setLeavingId] = useState<string | null>(null)
+  const [leaveError, setLeaveError] = useState<string | null>(null)
 
   // Form fields
   const [bio, setBio] = useState("")
@@ -104,12 +107,38 @@ export default function PerfilPage({
       .finally(() => setLoading(false))
   }, [slug, sessionUserId])
 
+  const loadMemberships = useCallback(
+    () =>
+      fetch("/api/proxy?path=/guides/me/memberships")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => data && setMemberships(data))
+        .catch(() => {}),
+    [],
+  )
+
   useEffect(() => {
-    fetch("/api/proxy?path=/guides/me/memberships")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => data && setMemberships(data))
-      .catch(() => {})
-  }, [])
+    void loadMemberships()
+  }, [loadMemberships])
+
+  // Sair (ou cancelar o pedido) de um roteiro — funciona também para rascunho/arquivado, que não têm página pública
+  async function leavePackage(p: Memberships["packages"][number]) {
+    const text = p.state === "PENDING" ? "Deseja cancelar o pedido?" : "Deseja mesmo deixar de atuar neste roteiro?"
+    if (!window.confirm(text)) return
+    setLeavingId(p.id)
+    setLeaveError(null)
+    try {
+      const { res, data } = await callProxy(`/packages/${p.id}/guides/me`, "DELETE")
+      if (!res.ok) {
+        setLeaveError(data?.message ?? "Não foi possível concluir a ação.")
+        return
+      }
+      await loadMemberships()
+    } catch {
+      setLeaveError("Não foi possível concluir a ação.")
+    } finally {
+      setLeavingId(null)
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -428,18 +457,32 @@ export default function PerfilPage({
               />
             ))}
             {memberships.packages.map((p) => (
-              <ListRow
-                key={p.id}
-                href={p.destinationSlug ? `/destinos/${p.destinationSlug}/roteiros/${p.id}` : `/${slug}/roteiros/${p.id}`}
-                title={p.name}
-                trailing={
-                  <Badge tone={p.state === "REJECTED" ? "danger" : p.state === "IN" ? "success" : "warning"}>
-                    {membershipBadge(p.state, p.rejectionReason)}
-                  </Badge>
-                }
-              />
+              <div key={p.id} style={{ display: "flex", alignItems: "center" }}>
+                <ListRow
+                  className="flex-1"
+                  href={p.destinationSlug ? `/destinos/${p.destinationSlug}/roteiros/${p.id}` : `/${slug}/roteiros/${p.id}`}
+                  title={p.name}
+                  trailing={
+                    <Badge tone={p.state === "REJECTED" ? "danger" : p.state === "IN" ? "success" : "warning"}>
+                      {membershipBadge(p.state, p.rejectionReason)}
+                    </Badge>
+                  }
+                />
+                {p.state !== "REJECTED" ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    loading={leavingId === p.id}
+                    disabled={leavingId !== null}
+                    onClick={() => leavePackage(p)}
+                  >
+                    {p.state === "PENDING" ? "Cancelar pedido" : "Sair"}
+                  </Button>
+                ) : null}
+              </div>
             ))}
           </ListGroup>
+          {leaveError && <Alert tone="danger">{leaveError}</Alert>}
         </section>
       )}
     </div>

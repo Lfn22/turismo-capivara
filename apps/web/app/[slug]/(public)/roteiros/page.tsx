@@ -59,7 +59,8 @@ export default async function RoteirosPage({
   let packages: TourPackage[] = []
   try {
     const res = await fetch(`${API_URL}/tenants/${slug}/packages`, { next: { revalidate: 3600 } })
-    if (res.ok) packages = await res.json()
+    // Resposta paginada: { data, nextCursor, hasMore }
+    if (res.ok) packages = (await res.json()).data ?? []
   } catch {
     // fallback: empty list
   }

@@ -95,9 +95,9 @@ export type PackageCardData = {
 }
 
 /** Card de roteiro: foto 4:3, dificuldade, nome, nota, duração, grupo e preço por pessoa. */
-export function PackageCard({ package: p, href }: { package: PackageCardData; href: string }) {
-  return (
-    <Link href={href} className="capi-pkg">
+export function PackageCard({ package: p, href }: { package: PackageCardData; href?: string }) {
+  const content = (
+    <>
       <Media src={p.coverImageUrl} alt={p.name} blurDataURL={p.coverImageBlurDataUrl} className="capi-pkg__media">
         {p.difficulty ? (
           <span className="capi-pkg__chip">
@@ -124,8 +124,9 @@ export function PackageCard({ package: p, href }: { package: PackageCardData; hr
           <span className="capi-pkg__unit"> /pessoa</span>
         </p>
       </div>
-    </Link>
+    </>
   )
+  return href ? <Link href={href} className="capi-pkg">{content}</Link> : <div className="capi-pkg">{content}</div>
 }
 
 export type GuideCardData = {

@@ -81,8 +81,10 @@ export async function createBooking(
       status: string
       packageId: string
       tenantId: string
+      active: boolean
+      publishedAt: Date | null
     }>>`
-      SELECT ds.id, ds.booked, ds.capacity, ds.status, ds."packageId", tp."tenantId"
+      SELECT ds.id, ds.booked, ds.capacity, ds.status, ds."packageId", tp."tenantId", tp.active, tp."publishedAt"
       FROM "DepartureSlot" ds
       JOIN "TourPackage" tp ON tp.id = ds."packageId"
       WHERE ds.id = ${slotId}
@@ -97,7 +99,8 @@ export async function createBooking(
       throw new AppError('Slot não encontrado', 404)
     }
 
-    if (slot.status !== 'OPEN') {
+    // Roteiro em rascunho (publishedAt null) ou arquivado não aceita reserva
+    if (slot.status !== 'OPEN' || !slot.active || slot.publishedAt === null) {
       throw new AppError('Slot indisponível', 400)
     }
 

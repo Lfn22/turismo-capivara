@@ -172,6 +172,9 @@ describe('ApprovalUpdateInput', () => {
 
 // ---- Service unit tests (mocked Prisma) ----
 
+// Geocodificação (Nominatim) nunca vai à rede nos testes
+vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+
 vi.mock('../../database', () => ({
   default: {
     destination: {
@@ -319,10 +322,7 @@ describe('updateDestination', () => {
     ).rejects.toMatchObject({ statusCode: 403, message: 'Não autorizado' })
   })
 
-  it('rebaixa destino APPROVED para PENDING quando o criador o edita', async () => {
-    // Comportamento decidido: a edição passa e o destino volta para a fila de curadoria.
-    // Consequência aceita: ele sai do ar no marketplace até ser reaprovado.
-    // (O teste antigo esperava 400 — refletia uma intenção anterior, não o código.)
+  it('não rebaixa destino APPROVED quando o criador o edita (edição publica direto)', async () => {
     mockPrisma.destination.findUnique.mockResolvedValue({
       id: 'dest-1',
       createdById: 'user-1',
@@ -331,17 +331,13 @@ describe('updateDestination', () => {
     mockPrisma.destination.update.mockResolvedValue({
       id: 'dest-1',
       title: 'Nome Ajustado',
-      approvalStatus: 'PENDING',
+      approvalStatus: 'APPROVED',
     })
 
-    const result = await updateDestination('dest-1', 'user-1', { name: 'Nome Ajustado' })
+    await updateDestination('dest-1', 'user-1', { name: 'Nome Ajustado' })
 
-    expect(result.approvalStatus).toBe('PENDING')
-    expect(mockPrisma.destination.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ approvalStatus: 'PENDING' }),
-      })
-    )
+    const data = mockPrisma.destination.update.mock.calls[0][0].data
+    expect(data).not.toHaveProperty('approvalStatus')
   })
 
   it('ADMIN edita destino APPROVED sem rebaixá-lo', async () => {
@@ -363,6 +359,14 @@ describe('updateDestination', () => {
         data: expect.not.objectContaining({ approvalStatus: 'PENDING' }),
       })
     )
+  })
+
+  it('equipe (PLATFORM_ADMIN) edita destino de outro criador', async () => {
+    mockPrisma.destination.findUnique.mockResolvedValue({ id: 'dest-1', createdById: 'outro-user' })
+    mockPrisma.destination.update.mockResolvedValue({ id: 'dest-1', title: 'Ajuste da equipe' })
+
+    const result = await updateDestination('dest-1', 'staff-user', { name: 'Ajuste da equipe' }, 'PLATFORM_ADMIN')
+    expect(result.title).toBe('Ajuste da equipe')
   })
 
   it('throws 400 when owner tries to edit APPROVED destination (REJECTED allowed)', async () => {

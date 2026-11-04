@@ -5,7 +5,6 @@ const logger = pino({ name: 'audit' })
 
 interface AuditEntry {
   actorType: AuditActorType
-  actorId?: string
   action: string
   targetType: AuditTargetType
   targetId: string

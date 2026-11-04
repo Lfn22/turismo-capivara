@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { Toaster } from "sonner"
 import SuperAdminNav from "./SuperAdminNav"
 import { isPlatformStaff } from "@/lib/roles"
 
@@ -24,7 +23,6 @@ export default async function SuperAdminLayout({ children }: { children: React.R
           {children}
         </div>
       </main>
-      <Toaster position="top-right" richColors />
     </div>
   )
 }

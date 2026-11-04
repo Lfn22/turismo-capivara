@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, RotateCw } from 'lucide-react';
 import DestinationCard from '@/src/components/ui/DestinationCard';
+import { NewDestinationButton } from '@/src/components/edit-mode/NewDestinationButton';
 import PublicLayout from '@/src/components/layout/PublicLayout';
 import { Alert, Button, EmptyState, TopNav } from '@/src/components/ui/capi';
 
@@ -144,9 +145,11 @@ export default async function DestinosPage() {
                     priority={i < 2}
                   />
                 ))}
+                <NewDestinationButton publicSlugs={destinations.map((d) => d.slug)} />
               </div>
             </>
           ) : (
+            <>
             <EmptyState
               icon={MapPin}
               title="Nenhum destino cadastrado"
@@ -157,6 +160,8 @@ export default async function DestinosPage() {
                 </Button>
               }
             />
+            <NewDestinationButton publicSlugs={[]} standalone />
+            </>
           )}
         </main>
       </div>

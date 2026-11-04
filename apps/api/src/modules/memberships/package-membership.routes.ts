@@ -64,6 +64,7 @@ async function findPackage(id: string) {
       tenantId: true,
       conductorId: true,
       active: true,
+      publishedAt: true,
       tenant: { select: { slug: true, name: true } },
       conductor: { select: { name: true } },
     },
@@ -130,7 +131,7 @@ export async function packageMembershipRoutes(app: FastifyInstance) {
     const guideId = guide.guideProfile.id
 
     const pkg = await findPackage(id)
-    if (!pkg.active) throw new AppError('Roteiro não encontrado', 404)
+    if (!pkg.active || !pkg.publishedAt) throw new AppError('Roteiro não encontrado', 404)
     if (pkg.conductorId === user.sub) {
       throw new AppError('Você é o guia responsável por este roteiro', 409)
     }

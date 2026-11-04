@@ -179,6 +179,7 @@ model TourPackage {
   durationMaxHours Int?
   bufferMinutes    Int        @default(60)
   destinationId    String?
+  publishedAt      DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 

@@ -3,7 +3,7 @@ import { AppError } from '../../shared/errors/AppError'
 import { isPlatformStaff } from '../../shared/auth/roles'
 import { CreateDestinationInputType, UpdateDestinationInputType } from './destinations.schemas'
 
-async function geocode(name: string, state?: string): Promise<{ lat: number; lng: number } | null> {
+export async function geocode(name: string, state?: string): Promise<{ lat: number; lng: number } | null> {
   try {
     const q = state ? `${name}, ${state}, Brasil` : `${name}, Brasil`
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`
@@ -20,7 +20,7 @@ async function geocode(name: string, state?: string): Promise<{ lat: number; lng
   }
 }
 
-function slugify(text: string): string {
+export function slugify(text: string): string {
   return text
     .toLowerCase()
     .normalize('NFD')
@@ -31,7 +31,7 @@ function slugify(text: string): string {
     .replace(/^-|-$/g, '')
 }
 
-async function uniqueSlug(base: string): Promise<string> {
+export async function uniqueSlug(base: string): Promise<string> {
   const existing = await prisma.destination.findMany({
     where: { OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }] },
     select: { slug: true },
@@ -88,13 +88,13 @@ export async function updateDestination(
 ) {
   const destination = await prisma.destination.findUnique({
     where: { id: destinationId },
-    select: { id: true, approvalStatus: true, createdById: true },
+    select: { id: true, createdById: true },
   })
 
   if (!destination) throw new AppError('Destino não encontrado', 404)
 
-  // ADMIN pode editar qualquer destino do tenant (sem restrição de criador)
-  if (userRole !== 'ADMIN') {
+  // A rota já autorizou equipe e ADMIN (edit-permissions); aqui só o criador comum passa
+  if (userRole !== 'ADMIN' && !isPlatformStaff(userRole ?? '')) {
     // createdById pode ser null em destinos criados antes da Phase 14 — tratar como não autorizado
     if (!destination.createdById || destination.createdById !== userId) {
       throw new AppError('Não autorizado', 403)
@@ -116,8 +116,6 @@ export async function updateDestination(
       ...(input.highlights !== undefined && { highlights: input.highlights }),
       ...(input.heroImageUrl !== undefined && { heroImageUrl: input.heroImageUrl }),
       ...(coords && { lat: coords.lat, lng: coords.lng }),
-      // CONDUTOR editando destino aprovado: volta para revisão
-      ...(userRole !== 'ADMIN' && destination.approvalStatus === 'APPROVED' && { approvalStatus: 'PENDING' }),
     },
     select: { id: true, slug: true, title: true, state: true, description: true, highlights: true, photos: true, approvalStatus: true, createdAt: true, createdById: true, lat: true, lng: true },
   })
@@ -174,11 +172,12 @@ export async function deleteDestination(destinationId: string, userId: string, u
 
   if (!destination) throw new AppError('Destino não encontrado', 404)
 
-  if (userRole !== 'ADMIN' && destination.createdById !== userId) {
+  const privileged = userRole === 'ADMIN' || isPlatformStaff(userRole ?? '')
+  if (!privileged && destination.createdById !== userId) {
     throw new AppError('Não autorizado', 403)
   }
 
-  if (userRole !== 'ADMIN' && destination.approvalStatus === 'APPROVED') {
+  if (!privileged && destination.approvalStatus === 'APPROVED') {
     throw new AppError('Não é possível excluir destino aprovado. Entre em contato com o suporte.', 400)
   }
 

@@ -8,6 +8,7 @@ import DestinationMembershipButton from '@/src/components/membership/Destination
 import PublicLayout from '@/src/components/layout/PublicLayout';
 import { Button } from '@/src/components/ui/capi';
 import { TrackView } from '@/src/components/tracking/TrackView';
+import { DestinationEditControls, DestinationEditSection } from '@/src/components/edit-mode/DestinationEditControls';
 import MapWidgetClient, { type PartnerData } from '@/src/components/ui/MapWidgetClient';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -205,7 +206,9 @@ export default async function DestinationPage({ params }: Props) {
       />
 
       <main className="dest">
+        <DestinationEditControls slug={slug}>
         {/* ── 1. Hero ──────────────────────────────────────────── */}
+        <DestinationEditSection>
         <DestinationHero
           title={destination.title}
           subtitle={destination.subtitle}
@@ -213,11 +216,13 @@ export default async function DestinationPage({ params }: Props) {
           heroImageUrl={destination.heroImageUrl}
           heroImageBlurDataUrl={destination.heroImageBlurDataUrl}
         />
+        </DestinationEditSection>
 
         {/* ── 2. Abas sticky ───────────────────────────────────── */}
         <DestinationTabs slug={slug} active="sobre" showMap={hasMap} />
 
         {/* ── 3. Sobre ─────────────────────────────────────────── */}
+        <DestinationEditSection>
         <section id="sobre" className="dest__section" aria-labelledby="sobre-heading">
           <div className="capi-container">
             <div className="dest__about">
@@ -250,9 +255,11 @@ export default async function DestinationPage({ params }: Props) {
             </div>
           </div>
         </section>
+        </DestinationEditSection>
 
         {/* ── 4. Pontos de interesse (fotos) ───────────────────── */}
         {highlights.length > 0 && (
+          <DestinationEditSection>
           <section className="dest__section" aria-labelledby="poi-heading">
             <div className="capi-container">
               <p className="dest__overline">O que explorar</p>
@@ -278,6 +285,7 @@ export default async function DestinationPage({ params }: Props) {
               </div>
             </div>
           </section>
+          </DestinationEditSection>
         )}
 
         {/* ── 5. Mapa ──────────────────────────────────────────── */}
@@ -320,6 +328,7 @@ export default async function DestinationPage({ params }: Props) {
             </div>
           </div>
         </section>
+        </DestinationEditControls>
       </main>
     </PublicLayout>
   );

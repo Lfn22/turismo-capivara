@@ -169,7 +169,7 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
             name: true,
             tenant: { select: { slug: true } },
             tourPackages: {
-              where: { active: true },
+              where: { active: true, publishedAt: { not: null } },
               select: {
                 id: true,
                 name: true,
@@ -244,6 +244,7 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
     const packages = await prisma.tourPackage.findMany({
       where: {
         active: true,
+        publishedAt: { not: null },
         tenant: {
           destinationId: destination.id,
         },

@@ -68,6 +68,8 @@ const OPEN_SLOT = {
   status: 'OPEN',
   packageId: 'pkg-1',
   tenantId: TENANT.id,
+  active: true,
+  publishedAt: new Date('2026-01-01'),
 }
 
 const BOOKING_PENDING = {
@@ -307,6 +309,34 @@ describe('POST /tenants/:slug/bookings', () => {
       })
 
       expect(res.statusCode).toBe(400)
+    })
+
+    it.each([
+      ['rascunho', { publishedAt: null }],
+      ['arquivado', { active: false }],
+    ])('retorna 400 sem reservar quando o roteiro está %s', async (_label, pkgState) => {
+      const slotUpdate = vi.fn()
+      const bookingCreate = vi.fn()
+      db.$transaction.mockImplementation(async (fn: Function) => {
+        const tx = {
+          $queryRaw: vi.fn().mockResolvedValue([{ ...OPEN_SLOT, ...pkgState }]),
+          departureSlot: { update: slotUpdate },
+          booking: { create: bookingCreate },
+        }
+        return fn(tx)
+      })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/tenants/${TENANT.slug}/bookings`,
+        payload: VALID_BODY,
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toBe('Slot indisponível')
+      expect(slotUpdate).not.toHaveBeenCalled()
+      expect(bookingCreate).not.toHaveBeenCalled()
+      expect(mockCreatePixPayment).not.toHaveBeenCalled()
     })
 
     it('retorna 400 quando capacidade é insuficiente', async () => {

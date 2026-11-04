@@ -212,10 +212,12 @@ describe('POST /tenants/:slug/bookings/cancel-self', () => {
 // POST /repay
 // ---------------------------------------------------------------------------
 describe('POST /tenants/:slug/bookings/repay', () => {
+  const PUBLISHED_OPEN_SLOT = { status: 'OPEN', package: { active: true, publishedAt: new Date() } }
+
   it('creates new PIX payment and resets EXPIRED booking to PENDING', async () => {
     const expiredBooking = { ...BASE_BOOKING, status: 'EXPIRED', qrCode: null, paymentUrl: null }
     db.booking.findFirst.mockResolvedValue(expiredBooking)
-    db.departureSlot.findUnique.mockResolvedValue({ status: 'OPEN' })
+    db.departureSlot.findUnique.mockResolvedValue(PUBLISHED_OPEN_SLOT)
     mockCreatePixPayment.mockResolvedValue({
       paymentId: 'mp-999',
       paymentUrl: 'https://mp.com/pay/999',
@@ -242,6 +244,23 @@ describe('POST /tenants/:slug/bookings/repay', () => {
     const body = res.json()
     expect(body.qrCode).toBe('new-qr-data')
     expect(body.paymentUrl).toBe('https://mp.com/pay/999')
+  })
+
+  it.each([
+    ['rascunho', { active: true, publishedAt: null }],
+    ['arquivado', { active: false, publishedAt: new Date() }],
+  ])('returns 422 without charging when the roteiro is %s', async (_label, pkg) => {
+    db.booking.findFirst.mockResolvedValue({ ...BASE_BOOKING, status: 'EXPIRED' })
+    db.departureSlot.findUnique.mockResolvedValue({ status: 'OPEN', package: pkg })
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/capivara/bookings/repay',
+      payload: { email: 'joao@example.com', code: 'ab1234' },
+    })
+
+    expect(res.statusCode).toBe(422)
+    expect(mockCreatePixPayment).not.toHaveBeenCalled()
   })
 
   it('returns 422 for non-EXPIRED booking', async () => {

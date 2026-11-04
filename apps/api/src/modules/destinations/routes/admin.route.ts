@@ -5,22 +5,18 @@ import prisma from '../../../database'
 import { AppError } from '../../../shared/errors/AppError'
 import { authenticate } from '../../../shared/middlewares/authenticate'
 import { authorize } from '../../../shared/middlewares/authorize'
-import { isPlatformStaff } from '../../../shared/auth/roles'
-import { ApprovalUpdateInput } from '../destinations.schemas'
-import { approveDestination, rejectDestination } from '../destinations.service'
+import { canEditDestination } from '../../../shared/auth/edit-permissions'
+import { ApprovalUpdateInput, BR_STATES } from '../destinations.schemas'
+import { approveDestination, geocode, rejectDestination } from '../destinations.service'
 import { auditLog } from '../../../shared/audit.js'
 import { Sentry } from '../../../shared/sentry'
 
 export async function adminDestinationsRoute(app: FastifyInstance) {
-  // PATCH /destinations/:destinationSlug — atualiza fotos (ADMIN/SUPER_ADMIN/CONDUTOR)
-  // CONDUTOR só pode editar o destino vinculado ao seu próprio tenant
-  // NOTE: Esta rota chama prisma.destination.update() diretamente, sem passar por updateDestination().
-  // Isso é intencional: o serviço updateDestination() bloqueia edições em destinos APPROVED para
-  // usuários não-admin. Admins precisam editar destinos aprovados via esta rota. Qualquer refatoração
-  // que redirecione esta rota pelo serviço deve preservar essa distinção explicitamente.
+  // PATCH /destinations/:destinationSlug — edita o destino (equipe, ou ADMIN do tenant ligado a ele)
+  // Edição de quem tem permissão publica direto: não volta para PENDING.
   app.patch(
     '/destinations/:destinationSlug',
-    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN', 'CONDUTOR'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       const destinationParamsSchema = z.object({
         destinationSlug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -28,17 +24,6 @@ export async function adminDestinationsRoute(app: FastifyInstance) {
       const { data: rawParams, error: paramsError } = parseParams(destinationParamsSchema, request.params, reply)
       if (paramsError) return
       const params = { slug: rawParams.destinationSlug }
-
-      // Escopo de tenant: fora a equipe da plataforma, só edita o destino do seu próprio tenant
-      if (!isPlatformStaff(request.user.role)) {
-        const tenant = await prisma.tenant.findUnique({
-          where: { id: request.user.tenantId },
-          select: { destination: { select: { slug: true } } },
-        })
-        if (tenant?.destination?.slug !== params.slug) {
-          throw new AppError('Acesso negado a este destino', 403)
-        }
-      }
 
       const bodySchema = z.object({
         heroImageUrl: z.string().url().nullable().optional(),
@@ -48,6 +33,7 @@ export async function adminDestinationsRoute(app: FastifyInstance) {
         description: z.string().optional(),
         highlights: z.array(z.string().min(1)).optional(),
         tagline: z.string().nullable().optional(),
+        state: z.enum(BR_STATES, { error: 'Estado inválido' }).optional(),
       })
 
       const { data: body, error: bodyError } = parseBody(bodySchema, request.body, reply)
@@ -55,10 +41,22 @@ export async function adminDestinationsRoute(app: FastifyInstance) {
 
       const destination = await prisma.destination.findUnique({
         where: { slug: params.slug },
-        select: { id: true },
+        select: { id: true, title: true, state: true },
       })
 
       if (!destination) throw new AppError('Destino não encontrado', 404)
+
+      if (!(await canEditDestination(request.user, destination.id))) {
+        throw new AppError('Acesso negado', 403)
+      }
+
+      // Nome ou estado mudou: recalcula o ponto do mapa (melhor esforço — sem resultado, mantém o atual)
+      const placeChanged =
+        (body.title !== undefined && body.title !== destination.title) ||
+        (body.state !== undefined && body.state !== destination.state)
+      const coords = placeChanged
+        ? await geocode(body.title ?? destination.title, body.state ?? destination.state)
+        : null
 
       const updated = await prisma.destination.update({
         where: { slug: params.slug },
@@ -70,11 +68,25 @@ export async function adminDestinationsRoute(app: FastifyInstance) {
           ...(body.description !== undefined && { description: body.description }),
           ...(body.highlights !== undefined && { highlights: body.highlights }),
           ...(body.tagline !== undefined && { tagline: body.tagline }),
+          ...(body.state !== undefined && { state: body.state }),
+          ...(coords && { lat: coords.lat, lng: coords.lng }),
         },
         select: {
+          id: true,
           slug: true,
+          title: true,
+          subtitle: true,
+          description: true,
+          state: true,
+          highlights: true,
           heroImageUrl: true,
+          heroImageBlurDataUrl: true,
           photos: true,
+          tagline: true,
+          lat: true,
+          lng: true,
+          approvalStatus: true,
+          active: true,
         },
       })
 
@@ -101,7 +113,7 @@ export async function adminDestinationsRoute(app: FastifyInstance) {
           : await rejectDestination(id, input.rejectionReason)
 
       if (input.approvalStatus === 'APPROVED') {
-        auditLog(prisma, { actorType: 'USER', actorId: (request.user as { sub: string }).sub, action: 'destination.approved', targetType: 'DESTINATION', targetId: destination.id, ipAddress: request.ip, metadata: { destinationName: destination.title } })
+        auditLog(prisma, { actorType: 'USER', action: 'destination.approved', targetType: 'DESTINATION', targetId: destination.id, ipAddress: request.ip, metadata: { actorUserId: request.user.sub, destinationName: destination.title } })
       }
 
       return reply.status(200).send(destination)

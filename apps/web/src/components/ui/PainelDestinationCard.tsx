@@ -6,6 +6,7 @@ import { DestinationStatusBadge } from './DestinationStatusBadge'
 
 export interface PainelDestination {
   id: string
+  slug?: string
   name: string
   state: string
   approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED'

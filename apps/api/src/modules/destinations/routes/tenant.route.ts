@@ -1,15 +1,23 @@
 import { FastifyInstance } from 'fastify'
-import { parseBody } from '../../../shared/utils/zod-error'
+import { z } from 'zod'
+import { parseBody, parseParams } from '../../../shared/utils/zod-error'
 import prisma from '../../../database'
 import { AppError } from '../../../shared/errors/AppError'
 import { authenticate } from '../../../shared/middlewares/authenticate'
 import { authorize } from '../../../shared/middlewares/authorize'
+import { canEditDestination, canManageDestinations } from '../../../shared/auth/edit-permissions'
+import { assertNoDestinationLinks } from '../destinations.links'
 import { CreateDestinationInput, UpdateDestinationInput } from '../destinations.schemas'
 import {
   createDestination,
   deleteDestination,
   updateDestination,
 } from '../destinations.service'
+
+const slugAndIdParamsSchema = z.object({
+  slug: z.string().min(1, { message: 'Slug obrigatório' }),
+  id: z.string().min(1, { message: 'ID obrigatório' }),
+})
 
 export async function tenantDestinationsRoute(app: FastifyInstance) {
   // GET /tenants/:slug/destinations — lista destinos do tenant (ADMIN/CONDUTOR/PLATFORM_ADMIN)
@@ -79,7 +87,7 @@ export async function tenantDestinationsRoute(app: FastifyInstance) {
   // POST /tenants/:slug/destinations — guia cria destino (ADMIN/CONDUTOR)
   app.post(
     '/tenants/:slug/destinations',
-    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
     async (request, reply) => {
       const { data: input, error: inputError } = parseBody(CreateDestinationInput, request.body, reply)
       if (inputError) return
@@ -91,48 +99,64 @@ export async function tenantDestinationsRoute(app: FastifyInstance) {
     },
   )
 
-  // PATCH /tenants/:slug/destinations/:id — guia edita destino próprio
+  // PATCH /tenants/:slug/destinations/:id — quem pode editar (edit-permissions) ou o tenant
+  // criador enquanto a proposta ainda não foi aprovada (fluxo de moderação)
   app.patch(
     '/tenants/:slug/destinations/:id',
-    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
     async (request, reply) => {
-      const { slug, id } = request.params as { slug: string; id: string }
+      const { data: params, error: paramsError } = parseParams(slugAndIdParamsSchema, request.params, reply)
+      if (paramsError) return
+      const { id } = params
 
-      // Verificar que o destino pertence ao tenant indicado pelo slug
-      const tenant = await prisma.tenant.findUnique({ where: { slug } })
-      if (!tenant) throw new AppError('Tenant não encontrado', 404)
-      // Escopo de tenant: só destinos criados por alguém do tenant indicado pelo slug
-      const userRole = request.user.role
-      const linked = await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } }, select: { id: true } })
-      if (!linked) throw new AppError('Destino não encontrado', 404)
+      const destination = await findDestination(id)
+      if (!destination) throw new AppError('Destino não encontrado', 404)
+      if (!(await canEditDestination(request.user, id)) && !isOwnProposal(destination, request.user.tenantId)) {
+        throw new AppError('Não autorizado', 403)
+      }
 
       const { data: input, error: inputError } = parseBody(UpdateDestinationInput, request.body, reply)
       if (inputError) return
 
-      const userId = request.user.sub
-      const destination = await updateDestination(id, userId, input, userRole)
-      return reply.status(200).send(destination)
+      const updated = await updateDestination(id, request.user.sub, input, request.user.role)
+      return reply.status(200).send(updated)
     },
   )
 
-  // DELETE /tenants/:slug/destinations/:id — guia deleta destino próprio
+  // DELETE /tenants/:slug/destinations/:id — equipe (sem vínculos) ou o tenant criador
+  // enquanto a proposta não foi aprovada e não tem vínculos
   app.delete(
     '/tenants/:slug/destinations/:id',
-    { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR'])] },
+    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
     async (request, reply) => {
-      const { slug, id } = request.params as { slug: string; id: string }
+      const { data: params, error: paramsError } = parseParams(slugAndIdParamsSchema, request.params, reply)
+      if (paramsError) return
+      const { id } = params
 
-      // Verificar que o destino pertence ao tenant indicado pelo slug
-      const tenant = await prisma.tenant.findUnique({ where: { slug } })
-      if (!tenant) throw new AppError('Tenant não encontrado', 404)
-      // Escopo de tenant: só destinos criados por alguém do tenant indicado pelo slug
-      const userRole = request.user.role
-      const linked = await prisma.destination.findFirst({ where: { id, createdBy: { tenant: { slug } } }, select: { id: true } })
-      if (!linked) throw new AppError('Destino não encontrado', 404)
+      const destination = await findDestination(id)
+      if (!destination) throw new AppError('Destino não encontrado', 404)
+      if (!canManageDestinations(request.user) && !isOwnProposal(destination, request.user.tenantId)) {
+        throw new AppError('Não autorizado', 403)
+      }
 
-      const userId = request.user.sub
-      await deleteDestination(id, userId, userRole)
+      await assertNoDestinationLinks(id)
+      await deleteDestination(id, request.user.sub, request.user.role)
       return reply.status(204).send()
     },
   )
+}
+
+async function findDestination(id: string) {
+  return prisma.destination.findUnique({
+    where: { id },
+    select: { id: true, approvalStatus: true, createdBy: { select: { tenantId: true } } },
+  })
+}
+
+// Proposta de destino ainda não aprovada, criada por alguém do tenant de quem pede
+function isOwnProposal(
+  d: { approvalStatus: string; createdBy: { tenantId: string } | null },
+  tenantId: string,
+) {
+  return d.approvalStatus !== 'APPROVED' && d.createdBy?.tenantId === tenantId
 }

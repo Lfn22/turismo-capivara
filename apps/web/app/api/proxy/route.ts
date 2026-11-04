@@ -1,5 +1,6 @@
 import { getToken } from "next-auth/jwt"
 import { NextRequest, NextResponse } from "next/server"
+import { revalidatePath } from "next/cache"
 
 const API_URL =
   process.env.API_URL ??
@@ -38,7 +39,7 @@ async function handler(req: NextRequest) {
   }
 
   const ALLOWED_PATH =
-    /^\/(tenants\/[^/\s]+\/|notifications(\/|$)|guides\/me(\/|$)|platform\/guides$|platform\/guides\/[^/]+\/(approve|reject)$|affiliations\/[^/]+\/(accept|reject)$|packages\/[^/]+\/(membership|guides\/me|guide-requests\/[^/]+\/(accept|reject))$|destinations\/[^/]+\/(membership|guides\/me)$)/
+    /^\/(tenants\/[^/\s]+\/|notifications(\/|$)|guides\/me(\/|$)|platform\/guides$|platform\/guides\/[^/]+\/(approve|reject)$|affiliations\/[^/]+\/(accept|reject)$|packages\/[^/]+\/(membership|guides\/me|guide-requests\/[^/]+\/(accept|reject))$|destinations\/[^/]+\/(membership|guides\/me)$|edit\/(scope|destinations(\/[^/]+(\/packages)?)?)$)/
   if (!rawPath || !ALLOWED_PATH.test(path)) {
     return NextResponse.json({ message: "Parâmetro 'path' inválido" }, { status: 400 })
   }
@@ -71,7 +72,13 @@ async function handler(req: NextRequest) {
     return NextResponse.json({ message: "Serviço indisponível" }, { status: 502 })
   }
 
-  const data = await res.text()
+  // Entrar/sair de roteiro ou destino, slots etc. mudam as páginas públicas do destino
+  if (req.method !== "GET" && res.ok && /\/(packages|destinations)(\/|$)/.test(path)) {
+    revalidatePath("/destinos/[destination-slug]", "layout")
+  }
+
+  // 204/205/304 não podem ter corpo: o construtor de Response rejeita até string vazia
+  const data = [204, 205, 304].includes(res.status) ? null : await res.text()
   return new NextResponse(data, {
     status: res.status,
     headers: { "Content-Type": res.headers.get("Content-Type") ?? "application/json" },

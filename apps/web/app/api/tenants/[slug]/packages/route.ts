@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getToken } from "next-auth/jwt"
+import { revalidatePath } from "next/cache"
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
 
@@ -24,6 +25,10 @@ export async function POST(
     cache: "no-store",
   })
   const data = await res.text()
+  if (res.ok) {
+    revalidatePath(`/${slug}/roteiros`)
+    revalidatePath("/destinos/[destination-slug]", "layout")
+  }
   return new NextResponse(data, {
     status: res.status,
     headers: { "Content-Type": res.headers.get("Content-Type") ?? "application/json" },

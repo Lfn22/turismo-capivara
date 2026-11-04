@@ -5,6 +5,7 @@ import { packagesRoutes } from '../packages.routes'
 
 vi.mock('../../../database', () => ({
   default: {
+    tourPackage: { findFirst: vi.fn() },
     packageGuide: { findMany: vi.fn() },
   },
 }))
@@ -14,7 +15,7 @@ vi.mock('../../notifications/guide-events', () => ({
 }))
 
 import prisma from '../../../database'
-const prismaMock = prisma as unknown as { packageGuide: { findMany: Mock } }
+const prismaMock = prisma as unknown as { packageGuide: { findMany: Mock }; tourPackage: { findFirst: Mock } }
 
 const app = buildApp(packagesRoutes)
 
@@ -32,6 +33,7 @@ beforeEach(() => {
 
 describe('GET /packages/:id/guides', () => {
   it('lista só guias aceitos no roteiro e com cadastro aprovado', async () => {
+    prismaMock.tourPackage.findFirst.mockResolvedValue({ id: 'pkg-1' })
     prismaMock.packageGuide.findMany.mockResolvedValue([])
 
     const res = await app.inject({ method: 'GET', url: '/packages/pkg-1/guides' })

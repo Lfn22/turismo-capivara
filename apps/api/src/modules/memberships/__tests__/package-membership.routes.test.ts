@@ -41,7 +41,7 @@ const auth = (role: string, over: Record<string, string> = {}) => ({
 })
 
 const agencyPkg = {
-  id: 'p1', name: 'Trilha', tenantId: 't1', conductorId: 'c1', active: true,
+  id: 'p1', name: 'Trilha', tenantId: 't1', conductorId: 'c1', active: true, publishedAt: new Date('2026-01-01'),
   tenant: { slug: 'capivara', name: 'Capivara Tur' }, conductor: { name: 'Cond' },
 }
 

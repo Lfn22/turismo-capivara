@@ -81,7 +81,8 @@ export function SidebarNav({
   role?: string | null
 }) {
   const pathname = usePathname() ?? ""
-  const items = navItems(slug)
+  // Guia (CONDUTOR) não gerencia destinos.
+  const items = navItems(slug).filter((i) => !(role === "CONDUTOR" && i.label === "Destinos"))
   const primary = items.filter((i) => i.primary)
   const more = items.filter((i) => !i.primary)
   const [moreOpen, setMoreOpen] = useState(false)

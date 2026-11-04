@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback, type ReactNode } from "react"
 import { toast } from "sonner"
-import { Check, Eye, Map as MapIcon, RotateCw, X } from "lucide-react"
+import { Check, ExternalLink, Eye, Map as MapIcon, RotateCw, X } from "lucide-react"
 import {
   Alert,
   Button,
@@ -343,6 +343,14 @@ export default function SuperAdminDestinosPage() {
                         aria-label={`Revisar destino ${dest.title}`}
                       >
                         Revisar
+                      </Button>
+                      <Button
+                        href={`/destinos/${dest.slug}?editar=1`}
+                        variant="ghost"
+                        size="sm"
+                        iconLeft={ExternalLink}
+                      >
+                        Ver e editar no site
                       </Button>
                       {dest.approvalStatus === "PENDING" ? (
                         <>

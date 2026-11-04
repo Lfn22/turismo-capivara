@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button, TopNav } from '@/src/components/ui/capi';
+import PublicNavLogin from './PublicNavLogin';
 
 interface PublicNavProps {
   tenantName: string;
@@ -10,7 +11,7 @@ interface PublicNavProps {
 }
 
 /** Barra superior das páginas públicas da operadora: vidro claro, logo compacta e nome da operadora. */
-export default function PublicNav({ tenantName, slug, backHref }: PublicNavProps) {
+export default function PublicNav({ tenantName, backHref }: PublicNavProps) {
   return (
     <TopNav
       tenantName={tenantName}
@@ -38,9 +39,7 @@ export default function PublicNav({ tenantName, slug, backHref }: PublicNavProps
               Voltar
             </Button>
           ) : null}
-          <Button href={`/${slug}/login`} variant="secondary" size="sm" iconLeft={LayoutDashboard}>
-            Painel
-          </Button>
+          <PublicNavLogin />
         </>
       }
     />
