@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google"
+import localFont from "next/font/local"
 import "./globals.css"
 import { Suspense } from "react"
 import { Providers } from "./providers"
@@ -8,15 +8,17 @@ import { ConsentBanner } from "@/src/components/providers/ConsentBanner"
 import { ToastProvider } from "@/src/components/providers/ToastProvider"
 
 // Interface: Plus Jakarta Sans. Momentos de marca (hero, nome de destino): Playfair Display.
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+// Arquivos locais (subset latin, fontes variáveis do Google Fonts): o build não depende de baixar do Google.
+const jakarta = localFont({
+  src: "./fonts/plus-jakarta-sans-latin.woff2",
+  weight: "200 800",
   variable: "--font-jakarta",
   display: "swap",
 })
 
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["600", "700"],
+const playfair = localFont({
+  src: "./fonts/playfair-display-latin.woff2",
+  weight: "600 700",
   variable: "--font-playfair",
   display: "swap",
 })
