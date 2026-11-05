@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
-import { LogOut, Users } from "lucide-react"
+import { Building2, LogOut, Users } from "lucide-react"
 import { Avatar, cx } from "@/src/components/ui/capi"
 
 function Logo({ height }: { height?: number }) {
@@ -58,6 +58,10 @@ function AdminSidebar({
           <Users size={20} strokeWidth={1.75} aria-hidden="true" />
           <span className="capi-sidebar__label">Guias</span>
         </Link>
+        <Link href={`/${slug}/painel/agencia`} className="capi-sidebar__item" title={itemTitle("Agência")}>
+          <Building2 size={20} strokeWidth={1.75} aria-hidden="true" />
+          <span className="capi-sidebar__label">Agência</span>
+        </Link>
       </nav>
       <Link href={`/${slug}/login`} className="capi-sidebar__item" title={itemTitle("Sair")}>
         <LogOut size={20} strokeWidth={1.75} aria-hidden="true" />
@@ -109,6 +113,14 @@ export default async function AdminLayout({
           <p className="truncate text-[15px] font-semibold text-fg">Guias</p>
           <p className="truncate text-xs text-fg-secondary">{slug} · Administração</p>
         </div>
+        <Link
+          href={`/${slug}/painel/agencia`}
+          className="capi-iconbtn capi-iconbtn--ghost capi-iconbtn--md"
+          aria-label="Dados da agência"
+          title="Agência"
+        >
+          <Building2 size={20} strokeWidth={1.75} aria-hidden="true" />
+        </Link>
         <Link
           href={`/${slug}/login`}
           className="capi-iconbtn capi-iconbtn--ghost capi-iconbtn--md"

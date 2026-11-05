@@ -6,6 +6,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import {
+  Building2,
   CalendarDays,
   LayoutDashboard,
   LogOut,
@@ -41,6 +42,7 @@ function navItems(slug: string): PainelItem[] {
     { label: "Roteiros",    labelShort: "Roteiros", title: "Roteiros",    href: `/${slug}/painel/roteiros`,        icon: Route,           primary: true  },
     { label: "Destinos",    labelShort: "Destinos", title: "Destinos",      href: `/${slug}/painel/destinos`,        icon: MapPin,          primary: false },
     { label: "Perfil",      labelShort: "Perfil",   title: "Perfil",      href: `/${slug}/painel/perfil`,          icon: User,            primary: false },
+    { label: "Agência",     labelShort: "Agência",  title: "Agência",     href: `/${slug}/painel/agencia`,         icon: Building2,       primary: false },
   ]
 }
 
@@ -81,8 +83,10 @@ export function SidebarNav({
   role?: string | null
 }) {
   const pathname = usePathname() ?? ""
-  // Guia (CONDUTOR) não gerencia destinos.
-  const items = navItems(slug).filter((i) => !(role === "CONDUTOR" && i.label === "Destinos"))
+  // Guia (CONDUTOR) não gerencia destinos; dados da agência são só do ADMIN.
+  const items = navItems(slug).filter(
+    (i) => !(role === "CONDUTOR" && i.label === "Destinos") && !(role !== "ADMIN" && i.label === "Agência"),
+  )
   const primary = items.filter((i) => i.primary)
   const more = items.filter((i) => !i.primary)
   const [moreOpen, setMoreOpen] = useState(false)

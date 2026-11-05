@@ -10,6 +10,7 @@ declare module "next-auth" {
       role: string
       tenantId: string
       tenantSlug: string | null
+      photoUrl?: string | null
       // token intentionally omitted — apiToken stays server-side in encrypted JWT
     }
   }
@@ -21,5 +22,10 @@ declare module "next-auth/jwt" {
     tenantId: string
     tenantSlug: string | null
     apiToken: string
+    /** Refresh token rotativo da API (nunca exposto na session). */
+    refreshToken?: string
+    /** Expiração do apiToken, epoch em ms. */
+    apiTokenExpires?: number
+    photoUrl?: string | null
   }
 }

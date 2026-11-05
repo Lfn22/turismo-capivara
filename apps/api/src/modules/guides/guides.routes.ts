@@ -7,6 +7,7 @@ import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
+import { imageUrlSchema } from '../../shared/utils/image-url'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -23,7 +24,7 @@ const adminGuidesQuerySchema = z.object({
 
 const updateProfileBodySchema = z.object({
   bio: z.string().optional(),
-  photoUrl: z.string().url({ message: 'URL inválida' }).optional().nullable(),
+  photoUrl: imageUrlSchema.optional().nullable(),
   especialidades: z.array(z.string()).optional(),
   regioes: z.array(z.string()).optional(),
   portfolioPhotos: z.array(z.string().url({ message: 'URL inválida' })).optional(),

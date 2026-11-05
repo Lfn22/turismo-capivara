@@ -88,7 +88,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
 
     const tenant = await prisma.tenant.findUnique({
       where: { slug },
-      select: { id: true, name: true, slug: true, approvalStatus: true },
+      select: { id: true, name: true, slug: true, approvalStatus: true, logoUrl: true },
     })
 
     if (!tenant) {
@@ -100,6 +100,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
       name: tenant.name,
       slug: tenant.slug,
       approvalStatus: tenant.approvalStatus,
+      logoUrl: tenant.logoUrl,
     })
   })
 
@@ -180,6 +181,8 @@ export async function tenantsRoutes(app: FastifyInstance) {
           name: true,
           slug: true,
           cnpj: true,
+          whatsapp: true,
+          logoUrl: true,
           approvalStatus: true,
           createdAt: true,
           users: {
@@ -215,6 +218,8 @@ export async function tenantsRoutes(app: FastifyInstance) {
           name: true,
           slug: true,
           cnpj: true,
+          whatsapp: true,
+          logoUrl: true,
           approvalStatus: true,
           createdAt: true,
           users: {

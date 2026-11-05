@@ -2,6 +2,9 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { RejectReasonDialog } from "@/src/components/notifications/RejectReasonDialog"
 import { AlreadyDecidedError, patchViaProxy, type RejectInput } from "@/lib/notification-actions"
+import { toast } from "sonner"
+import { Button, Input, Modal, Textarea } from "@/src/components/ui/capi"
+import { AvatarPicker } from "@/src/components/ui/AvatarPicker"
 
 type Status = "PENDING" | "APPROVED" | "REJECTED"
 
@@ -16,7 +19,11 @@ interface GuideRow {
   credentialSubmittedAt: string | null
   hasDocument: boolean
   affiliation: { tenantName: string; status: string } | null
+  photoUrl: string | null
+  bio: string | null
 }
+
+type EditForm = { name: string; photoUrl: string | null; bio: string }
 
 const TABS: { status: Status; label: string }[] = [
   { status: "PENDING", label: "Pendentes" },
@@ -56,6 +63,12 @@ export default function GuiasClient() {
   const [notice, setNotice] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [rejecting, setRejecting] = useState<GuideRow | null>(null)
+  const [editing, setEditing] = useState<GuideRow | null>(null)
+  const [editForm, setEditForm] = useState<EditForm>({ name: "", photoUrl: null, bio: "" })
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
+  // onClose estável: o Modal capi refoca o painel quando onClose muda
+  const closeEdit = useCallback(() => setEditing(null), [])
 
   const reqId = useRef(0)
 
@@ -109,6 +122,37 @@ export default function GuiasClient() {
   async function reject(g: GuideRow, input: RejectInput) {
     await decide(() => patchViaProxy(`/platform/guides/${g.userId}/reject`, input))
     setRejecting(null)
+  }
+
+  function openEdit(g: GuideRow) {
+    setEditing(g)
+    setEditForm({ name: g.name, photoUrl: g.photoUrl, bio: g.bio ?? "" })
+    setEditError(null)
+  }
+
+  async function saveEdit() {
+    if (!editing) return
+    const name = editForm.name.trim()
+    if (name.length < 2 || name.length > 100) {
+      setEditError("O nome deve ter entre 2 e 100 caracteres.")
+      return
+    }
+    setEditSaving(true)
+    setEditError(null)
+    try {
+      await patchViaProxy(`/platform/guides/${editing.userId}`, {
+        name,
+        photoUrl: editForm.photoUrl,
+        bio: editForm.bio.trim() || null,
+      })
+      setEditing(null)
+      toast.success("Guia atualizado.")
+      await load(tab)
+    } catch (e) {
+      setEditError(e instanceof Error ? e.message : "Não foi possível salvar.")
+    } finally {
+      setEditSaving(false)
+    }
   }
 
   return (
@@ -172,6 +216,9 @@ export default function GuiasClient() {
                 <p style={{ margin: "0 0 8px", fontSize: "14px", color: "#DC2626" }}>Motivo: {g.rejectionReason}</p>
               )}
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <button onClick={() => openEdit(g)} style={btn("var(--stone-700)")} aria-label={`Editar guia ${g.name}`}>
+                  Editar
+                </button>
                 {g.hasDocument && (
                   <a
                     href={`/api/platform/guides/${g.userId}/credential`}
@@ -197,6 +244,47 @@ export default function GuiasClient() {
           ))}
         </ul>
       )}
+      <Modal
+        open={!!editing}
+        onClose={closeEdit}
+        title="Editar guia"
+        description={editing?.email}
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeEdit}>
+              Cancelar
+            </Button>
+            <Button onClick={saveEdit} loading={editSaving}>
+              {editSaving ? "Salvando…" : "Salvar"}
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <AvatarPicker
+            name={editForm.name}
+            src={editForm.photoUrl}
+            folder="guides"
+            size={64}
+            onChange={(url) => setEditForm((f) => ({ ...f, photoUrl: url }))}
+          />
+          <Input
+            label="Nome"
+            value={editForm.name}
+            maxLength={100}
+            onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+          />
+          <Textarea
+            label="Bio"
+            optional
+            rows={5}
+            maxLength={2000}
+            value={editForm.bio}
+            onChange={(e) => setEditForm((f) => ({ ...f, bio: e.target.value }))}
+            error={editError}
+          />
+        </div>
+      </Modal>
       {rejecting && (
         <RejectReasonDialog
           kind="guide-codes"

@@ -3,8 +3,12 @@ import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import BackButton from "@/src/components/ui/BackButton"
 import { PhotoUploadArea } from "@/src/components/ui/PhotoUploadArea"
+import { AvatarPicker } from "@/src/components/ui/AvatarPicker"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { toast } from "sonner"
 import { MapPin, ShieldCheck } from "lucide-react"
-import { Alert, Avatar, Badge, Button, Input, ListGroup, ListRow, PageHeader, Skeleton, Textarea } from "@/src/components/ui/capi"
+import { Alert, Badge, Button, Input, ListGroup, ListRow, PageHeader, Skeleton, Textarea } from "@/src/components/ui/capi"
 import { callProxy } from "@/src/components/membership/membership-shared"
 
 interface GuideProfileData {
@@ -45,7 +49,8 @@ export default function PerfilPage({
 }: {
   params: Promise<{ slug: string }>
 }) {
-  const { data: session } = useSession()
+  const { data: session, update: updateSession } = useSession()
+  const router = useRouter()
   const sessionUserId = (session?.user as any)?.id ?? ""
 
   const [slug, setSlug] = useState("")
@@ -186,9 +191,24 @@ export default function PerfilPage({
     const res = await fetch("/api/uploads/photos?folder=guides", { method: "POST", body: form })
     if (!res.ok) throw new Error("Falha ao enviar foto")
     const data = await res.json()
-    const url = data.url ?? data.secure_url ?? data.path
+    const url = data.url
     if (!url) throw new Error("URL não retornada")
     setPortfolioPhotos((prev) => [...prev, url])
+  }
+
+  // Foto do guia = GuideProfile.photoUrl; /account/me grava nela e a sessão reflete no UserBar/sidebar
+  async function handleAvatarChange(photoUrl: string | null) {
+    const res = await fetch(`/api/proxy?path=${encodeURIComponent("/account/me")}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photoUrl }),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok) throw new Error(data?.message ?? "Não foi possível salvar a foto.")
+    setProfile((prev) => (prev ? { ...prev, photoUrl: data?.photoUrl ?? null } : prev))
+    await updateSession()
+    router.refresh()
+    toast.success(photoUrl ? "Foto atualizada." : "Foto removida.")
   }
 
   function handleRemovePhoto(url: string) {
@@ -303,19 +323,27 @@ export default function PerfilPage({
       ) : (
         <>
           <div className="perfil-id">
-            <Avatar name={profile?.user?.name} src={profile?.photoUrl} size={80} verified={isApproved} />
-            <div style={{ minWidth: 0 }}>
-              <p className="perfil-id__name">{profile?.user?.name || "Guia"}</p>
-              {profile?.user?.email ? <p className="perfil-id__email">{profile.user.email}</p> : null}
-              {/* GUIDE-02: Badge de guia verificado */}
-              {isApproved && (
-                <div className="perfil-id__badge">
-                  <Badge tone="brand" icon={ShieldCheck} title="Guia verificado pela plataforma">
-                    Guia verificado
-                  </Badge>
-                </div>
-              )}
-            </div>
+            <AvatarPicker
+              name={profile?.user?.name}
+              src={profile?.photoUrl}
+              size={80}
+              verified={isApproved}
+              folder={session?.user?.role === "CONDUTOR" ? "guides" : "avatars"}
+              onChange={handleAvatarChange}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p className="perfil-id__name">{profile?.user?.name || "Guia"}</p>
+                {profile?.user?.email ? <p className="perfil-id__email">{profile.user.email}</p> : null}
+                {/* GUIDE-02: Badge de guia verificado */}
+                {isApproved && (
+                  <div className="perfil-id__badge">
+                    <Badge tone="brand" icon={ShieldCheck} title="Guia verificado pela plataforma">
+                      Guia verificado
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            </AvatarPicker>
           </div>
 
           {approvalAlert && (
@@ -328,7 +356,7 @@ export default function PerfilPage({
             <section className="perfil-section">
               <div className="perfil-head">
                 <h2 className="perfil-title">Dados pessoais</h2>
-                <p className="perfil-desc">Para alterar estes dados, fale com o suporte.</p>
+                <p className="perfil-desc">Para alterar o nome, acesse <Link href="/conta">Minha conta</Link>.</p>
               </div>
 
               <Input

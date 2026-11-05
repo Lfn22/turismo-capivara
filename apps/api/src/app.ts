@@ -43,6 +43,8 @@ import { auditRoutes } from './modules/audit/audit.routes'
 import { platformAdminsRoutes } from './modules/platform-admins/platform-admins.routes'
 import { notificationsRoutes } from './modules/notifications/notifications.routes'
 import { editRoutes } from './modules/edit/edit.routes'
+import { accountRoutes } from './modules/account/account.routes'
+import { tenantSettingsRoutes } from './modules/tenants/tenant-settings.routes'
 import { createBookingExpiryJob } from './modules/bookings/expiry.job'
 import { createTokenCleanupJob } from './modules/auth/token.service'
 import { createNotificationDigestJob } from './modules/notifications/digest.job'
@@ -163,6 +165,8 @@ app.register(auditRoutes)
 app.register(platformAdminsRoutes)
 app.register(notificationsRoutes)
 app.register(editRoutes)
+app.register(accountRoutes)
+app.register(tenantSettingsRoutes)
 
 app.addHook('onSend', async (request, reply) => {
   reply.header('X-Request-Id', request.id)

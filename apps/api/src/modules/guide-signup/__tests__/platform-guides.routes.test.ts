@@ -5,8 +5,9 @@ import { buildApp } from '../../../__tests__/helpers/build-app'
 vi.mock('../../../database', () => {
   const db: any = {
     tenant: { findUnique: vi.fn() },
-    user: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
-    guideProfile: { findMany: vi.fn(), findUnique: vi.fn() },
+    user: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    guideProfile: { findMany: vi.fn(), findUnique: vi.fn(), upsert: vi.fn() },
+    auditLog: { create: vi.fn().mockResolvedValue({}) },
     tourPackage: { findFirst: vi.fn() },
     guideAffiliation: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn(), findMany: vi.fn() },
   }
@@ -14,6 +15,7 @@ vi.mock('../../../database', () => {
   return { default: db }
 })
 vi.mock('../credential.storage', () => ({ getCredential: vi.fn() }))
+vi.mock('../../uploads/replaced-photo', () => ({ deleteReplacedPhoto: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('../../notifications/guide-events', () => ({
   notifyGuideDecision: vi.fn().mockResolvedValue(undefined),
   notifyAffiliationDecision: vi.fn().mockResolvedValue(undefined),
@@ -25,6 +27,7 @@ import { notifyGuideDecision, notifyAffiliationDecision } from '../../notificati
 import { platformGuidesRoutes } from '../platform-guides.routes'
 import { affiliationsRoutes } from '../affiliations.routes'
 import { guidesRoutes } from '../../guides/guides.routes'
+import { deleteReplacedPhoto } from '../../uploads/replaced-photo'
 
 const db = prisma as unknown as Record<string, Record<string, Mock>> & { $transaction: Mock }
 
@@ -202,6 +205,84 @@ describe('PATCH /platform/guides/:userId/approve|reject', () => {
   })
 })
 
+describe('PATCH /platform/guides/:userId', () => {
+  beforeEach(() => {
+    db.auditLog.create.mockResolvedValue({})
+    db.user.findUniqueOrThrow.mockResolvedValue({
+      id: 'u1', name: 'Rui Novo', email: 'r@x.com', guideProfile: { photoUrl: 'https://cdn.x/guides/r.jpg', bio: 'Bio nova' },
+    })
+  })
+
+  it('ADMIN -> 403', async () => {
+    const res = await app.inject({ method: 'PATCH', url: '/platform/guides/u1', headers: auth('ADMIN'), payload: { name: 'Rui Novo' } })
+    expect(res.statusCode).toBe(403)
+    expect(db.user.update).not.toHaveBeenCalled()
+  })
+
+  it('usuário que não é CONDUTOR -> 404 sem update', async () => {
+    db.user.findUnique.mockImplementation(async ({ where }: any) =>
+      where.id === 'staff1' ? { role: 'PLATFORM_ADMIN' } : { name: 'Ana', email: 'a@x.com', role: 'ADMIN', tenant: { slug: 'ag' } },
+    )
+    const res = await app.inject({ method: 'PATCH', url: '/platform/guides/u1', headers: auth('PLATFORM_ADMIN', 'staff1'), payload: { name: 'Ana B' } })
+    expect(res.statusCode).toBe(404)
+    expect(db.user.update).not.toHaveBeenCalled()
+    expect(db.guideProfile.upsert).not.toHaveBeenCalled()
+  })
+
+  it('usuário inexistente -> 404', async () => {
+    const res = await app.inject({ method: 'PATCH', url: '/platform/guides/zz', headers: auth('PLATFORM_ADMIN', 'staff1'), payload: { name: 'Ana B' } })
+    expect(res.statusCode).toBe(404)
+  })
+
+  it('photoUrl inválida -> 400', async () => {
+    const res = await app.inject({ method: 'PATCH', url: '/platform/guides/u1', headers: auth('PLATFORM_ADMIN', 'staff1'), payload: { photoUrl: 'x' } })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('PLATFORM_ADMIN -> 200: nome no User, foto/bio no GuideProfile, auditLog', async () => {
+    const res = await app.inject({
+      method: 'PATCH', url: '/platform/guides/u1', headers: auth('PLATFORM_ADMIN', 'staff1'),
+      payload: { name: 'Rui Novo', photoUrl: 'https://cdn.x/guides/r.jpg', bio: 'Bio nova' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({ userId: 'u1', name: 'Rui Novo', email: 'r@x.com', photoUrl: 'https://cdn.x/guides/r.jpg', bio: 'Bio nova' })
+    expect(db.user.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'u1' }, data: { name: 'Rui Novo' } }))
+    expect(db.guideProfile.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: 'u1' },
+      update: { photoUrl: 'https://cdn.x/guides/r.jpg', bio: 'Bio nova' },
+    }))
+    expect(db.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'guide.updated', targetType: 'USER', targetId: 'u1',
+        metadata: { actorUserId: 'staff1', fields: 'name,photoUrl,bio' },
+      }),
+    })
+  })
+
+  it('só nome -> não mexe no GuideProfile', async () => {
+    await app.inject({ method: 'PATCH', url: '/platform/guides/u1', headers: auth('PLATFORM_ADMIN', 'staff1'), payload: { name: 'Rui Novo' } })
+    expect(db.guideProfile.upsert).not.toHaveBeenCalled()
+    expect(deleteReplacedPhoto).not.toHaveBeenCalled()
+  })
+
+  it('photoUrl http -> 400', async () => {
+    const res = await app.inject({
+      method: 'PATCH', url: '/platform/guides/u1', headers: auth('PLATFORM_ADMIN', 'staff1'),
+      payload: { photoUrl: 'http://cdn.x/guides/r.jpg' },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('troca de foto -> tenta apagar a anterior', async () => {
+    db.guideProfile.findUnique.mockResolvedValue({ photoUrl: 'https://cdn.x/guides/antiga.jpg' })
+    await app.inject({
+      method: 'PATCH', url: '/platform/guides/u1', headers: auth('PLATFORM_ADMIN', 'staff1'),
+      payload: { photoUrl: null },
+    })
+    expect(deleteReplacedPhoto).toHaveBeenCalledWith('https://cdn.x/guides/antiga.jpg', null, expect.anything())
+  })
+})
+
 describe('afiliações', () => {
   const pending = { id: 'aff1', tenantId: 't1', status: 'PENDING', guide: { userId: 'u1' } }
   beforeEach(() => {
@@ -340,5 +421,17 @@ describe('rotas antigas de verificação por agência', () => {
     db.tenant.findUnique.mockResolvedValue({ id: 't1', slug: 'capivara' })
     const res = await app.inject({ method: 'PATCH', url: '/tenants/capivara/admin/guides/g1/approve', headers: auth('ADMIN', 'adm1', 't1') })
     expect(res.statusCode).toBe(404)
+  })
+})
+
+describe('PATCH /tenants/:slug/guides/me/profile — photoUrl', () => {
+  it('photoUrl http -> 400 sem update', async () => {
+    db.tenant.findUnique.mockResolvedValue({ id: 't1', slug: 'independente' })
+    const res = await app.inject({
+      method: 'PATCH', url: '/tenants/independente/guides/me/profile', headers: auth('CONDUTOR', 'u1', 't1'),
+      payload: { photoUrl: 'http://cdn.x/guides/r.jpg' },
+    })
+    expect(res.statusCode).toBe(400)
+    expect(db.guideProfile.upsert).not.toHaveBeenCalled()
   })
 })

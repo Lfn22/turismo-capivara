@@ -9,6 +9,9 @@ import { notifyGuideDecision } from '../notifications/guide-events'
 import { guideApprovedEmailText, guideApprovedSubject } from '../bookings/emails/guide-approved-email'
 import { guideRejectedEmailText, guideRejectedSubject } from '../bookings/emails/guide-rejected-email'
 import { getCredential } from './credential.storage'
+import { auditLog } from '../../shared/audit'
+import { imageUrlSchema } from '../../shared/utils/image-url'
+import { deleteReplacedPhoto } from '../uploads/replaced-photo'
 
 const REASON_LABELS = {
   ILEGIVEL: 'Documento ilegível',
@@ -46,6 +49,17 @@ const rejectBodySchema = z
     message: 'Descreva o motivo',
   })
 
+const updateGuideBodySchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, { message: 'Nome deve ter no mínimo 2 caracteres' })
+    .max(100, { message: 'Nome deve ter no máximo 100 caracteres' })
+    .optional(),
+  photoUrl: imageUrlSchema.nullable().optional(),
+  bio: z.string().trim().max(2000, { message: 'Bio deve ter no máximo 2000 caracteres' }).nullable().optional(),
+})
+
 function zodError(err: ZodError) {
   return {
     message: 'Dados inválidos',
@@ -73,6 +87,8 @@ export async function platformGuidesRoutes(app: FastifyInstance) {
       where: { user: { role: 'CONDUTOR', approvalStatus: query.status } },
       orderBy: { credentialSubmittedAt: 'asc' },
       select: {
+        photoUrl: true,
+        bio: true,
         credentialType: true,
         credentialNumber: true,
         credentialSubmittedAt: true,
@@ -87,6 +103,8 @@ export async function platformGuidesRoutes(app: FastifyInstance) {
         userId: p.user.id,
         name: p.user.name,
         email: p.user.email,
+        photoUrl: p.photoUrl,
+        bio: p.bio,
         approvalStatus: p.user.approvalStatus,
         rejectionReason: p.user.rejectionReason,
         credentialType: p.credentialType,
@@ -194,5 +212,63 @@ export async function platformGuidesRoutes(app: FastifyInstance) {
     void notifyGuideDecision(app.log, userId, { approved: false, reason }, decider.sub).catch(() => {})
 
     return reply.status(200).send({ message: 'Guia rejeitado' })
+  })
+
+  // PATCH /platform/guides/:userId — equipe edita nome, foto e bio do guia
+  app.patch('/platform/guides/:userId', { preHandler: staff }, async (request, reply) => {
+    const { userId } = parse(userIdParamsSchema, request.params)
+    const body = parse(updateGuideBodySchema, request.body)
+    const actor = request.user as { sub: string }
+
+    await loadGuide(userId)
+    const previousPhotoUrl =
+      body.photoUrl !== undefined
+        ? (await prisma.guideProfile.findUnique({ where: { userId }, select: { photoUrl: true } }))?.photoUrl
+        : undefined
+
+    const profileData = {
+      ...(body.photoUrl !== undefined && { photoUrl: body.photoUrl }),
+      ...(body.bio !== undefined && { bio: body.bio }),
+    }
+
+    const guide = await prisma.$transaction(async (tx) => {
+      if (body.name !== undefined) {
+        await tx.user.update({ where: { id: userId }, data: { name: body.name }, select: { id: true } })
+      }
+      if (Object.keys(profileData).length > 0) {
+        await tx.guideProfile.upsert({
+          where: { userId },
+          create: { userId, especialidades: [], regioes: [], portfolioPhotos: [], ...profileData },
+          update: profileData,
+          select: { id: true },
+        })
+      }
+      return tx.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { id: true, name: true, email: true, guideProfile: { select: { photoUrl: true, bio: true } } },
+      })
+    })
+
+    if (body.photoUrl !== undefined) {
+      await deleteReplacedPhoto(previousPhotoUrl, body.photoUrl, request.log)
+    }
+
+    const fields = [...(body.name !== undefined ? ['name'] : []), ...Object.keys(profileData)]
+    auditLog(prisma, {
+      actorType: 'USER',
+      action: 'guide.updated',
+      targetType: 'USER',
+      targetId: userId,
+      ipAddress: request.ip,
+      metadata: { actorUserId: actor.sub, fields: fields.join(',') },
+    })
+
+    return reply.status(200).send({
+      userId: guide.id,
+      name: guide.name,
+      email: guide.email,
+      photoUrl: guide.guideProfile?.photoUrl ?? null,
+      bio: guide.guideProfile?.bio ?? null,
+    })
   })
 }

@@ -44,7 +44,7 @@ export async function uploadPhotoToR2(
   buffer: Buffer,
   fileName: string,
   mimeType: string,
-  folder: 'destinations' | 'packages' | 'guides',
+  folder: 'destinations' | 'packages' | 'guides' | 'avatars' | 'logos',
 ): Promise<UploadResult> {
   const client = getR2Client()
   const bucket = getR2Bucket()

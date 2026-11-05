@@ -94,6 +94,7 @@ model Tenant {
   approvalStatus            TenantApprovalStatus @default(PENDING)
   rejectionReason           String?
   whatsapp                  String?
+  logoUrl                   String?
   confirmationCode          String?
   confirmationCodeExpiresAt DateTime?
   confirmationAttempts      Int                  @default(0)
@@ -115,17 +116,23 @@ model Tenant {
 }
 
 model User {
-  id              String         @id @default(cuid())
-  tenantId        String
-  name            String
-  email           String         @unique
-  password        String
-  role            Role
-  cpf             String?        @unique
-  approvalStatus  ApprovalStatus @default(PENDING)
-  rejectionReason String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id                   String         @id @default(cuid())
+  tenantId             String
+  name                 String
+  email                String         @unique
+  password             String
+  role                 Role
+  cpf                  String?        @unique
+  approvalStatus       ApprovalStatus @default(PENDING)
+  rejectionReason      String?
+  photoUrl             String?
+  // Troca de e-mail pendente: código de 6 dígitos (hash) enviado ao novo endereço
+  pendingEmail         String?
+  emailChangeCodeHash  String?
+  emailChangeExpiresAt DateTime?
+  emailChangeAttempts  Int            @default(0)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   tenant                    Tenant               @relation(fields: [tenantId], references: [id])
   guideProfile              GuideProfile?
@@ -390,6 +397,7 @@ enum AuditTargetType {
   BOOKING
   API_KEY
   DESTINATION
+  USER
 }
 
 model TenantDestination {
@@ -460,13 +468,16 @@ model Review {
 }
 
 model RefreshToken {
-  id        String    @id @default(cuid())
-  token     String    @unique
-  userId    String
-  tenantId  String
-  expiresAt DateTime
-  revokedAt DateTime?
-  createdAt DateTime  @default(now())
+  id         String    @id @default(cuid())
+  token      String    @unique
+  userId     String
+  tenantId   String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  // Preenchido só quando revogado por rotação — habilita a janela de tolerância
+  // para requisições concorrentes. Logout/troca de senha/e-mail limpam este campo.
+  replacedAt DateTime?
+  createdAt  DateTime  @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   tenant Tenant @relation(fields: [tenantId], references: [id])

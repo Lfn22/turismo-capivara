@@ -39,7 +39,7 @@ async function handler(req: NextRequest) {
   }
 
   const ALLOWED_PATH =
-    /^\/(tenants\/[^/\s]+\/|notifications(\/|$)|guides\/me(\/|$)|platform\/guides$|platform\/guides\/[^/]+\/(approve|reject)$|affiliations\/[^/]+\/(accept|reject)$|packages\/[^/]+\/(membership|guides\/me|guide-requests\/[^/]+\/(accept|reject))$|destinations\/[^/]+\/(membership|guides\/me)$|edit\/(scope|destinations(\/[^/]+(\/packages)?)?)$)/
+    /^\/(tenants\/[^/\s]+\/|notifications(\/|$)|guides\/me(\/|$)|platform\/guides$|platform\/guides\/[^/]+(\/(approve|reject))?$|account\/(me|password|email|email\/confirm)$|affiliations\/[^/]+\/(accept|reject)$|packages\/[^/]+\/(membership|guides\/me|guide-requests\/[^/]+\/(accept|reject))$|destinations\/[^/]+\/(membership|guides\/me)$|edit\/(scope|destinations(\/[^/]+(\/packages)?)?)$)/
   if (!rawPath || !ALLOWED_PATH.test(path)) {
     return NextResponse.json({ message: "Parâmetro 'path' inválido" }, { status: 400 })
   }
@@ -75,6 +75,19 @@ async function handler(req: NextRequest) {
   // Entrar/sair de roteiro ou destino, slots etc. mudam as páginas públicas do destino
   if (req.method !== "GET" && res.ok && /\/(packages|destinations)(\/|$)/.test(path)) {
     revalidatePath("/destinos/[destination-slug]", "layout")
+  }
+
+  if (req.method !== "GET" && res.ok) {
+    // Nome/foto/bio do guia aparecem nas páginas públicas em cache (destinos/*/guias, roteiros da operadora)
+    if (/^\/account\/me$|^\/platform\/guides\/[^/]+$|^\/tenants\/[^/]+\/guides\/me\/profile$/.test(path)) {
+      revalidatePath("/destinos/[destination-slug]", "layout")
+      revalidatePath("/[slug]", "layout")
+    }
+    // Nome/logo da operadora: roteiros públicos da operadora e cards nos destinos
+    if (/^\/tenants\/[^/]+\/(settings|admin-settings)$/.test(path)) {
+      revalidatePath("/[slug]", "layout")
+      revalidatePath("/destinos/[destination-slug]", "layout")
+    }
   }
 
   // 204/205/304 não podem ter corpo: o construtor de Response rejeita até string vazia

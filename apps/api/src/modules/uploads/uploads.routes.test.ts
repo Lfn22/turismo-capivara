@@ -26,6 +26,11 @@ vi.mock('./uploads.service', () => ({
   deletePhotoFromR2: vi.fn(),
 }))
 
+// authenticate revalida o papel da equipe no banco
+vi.mock('../../database', () => ({
+  default: { user: { findUnique: vi.fn().mockResolvedValue({ role: 'PLATFORM_ADMIN' }) } },
+}))
+
 import { buildApp } from '../../__tests__/helpers/build-app'
 import { uploadsRoutes } from './uploads.routes'
 import { validatePhotoFile, uploadPhotoToR2 } from './uploads.service'
@@ -183,6 +188,26 @@ describe('POST /uploads/photos — success', () => {
 
     expect(res.statusCode).toBe(200)
   })
+
+  it.each([
+    ['avatars', 'CLIENTE'],
+    ['avatars', 'ADMIN'],
+    ['logos', 'ADMIN'],
+    ['logos', 'PLATFORM_ADMIN'],
+  ])('folder=%s aceito para %s e repassado ao serviço', async (folder, role) => {
+    const token = app.jwt.sign({ sub: 'u-x', role, tenantId: 'tenant-1', name: 'X' })
+    const { body, contentType } = buildMultipart('photo.png', 'image/png')
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/uploads/photos?folder=${folder}`,
+      headers: { authorization: `Bearer ${token}`, 'content-type': contentType },
+      payload: body,
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(mockUpload).toHaveBeenLastCalledWith(expect.any(Buffer), 'photo.png', 'image/png', folder)
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -291,5 +316,82 @@ describe('POST /uploads/photos — R2 misconfiguration', () => {
 
     expect(res.statusCode).toBe(500)
     expect(res.json().message).toBe('Falha ao fazer upload. Tente novamente.')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Pastas por papel
+// ---------------------------------------------------------------------------
+
+describe('POST /uploads/photos — pasta por papel', () => {
+  it.each([
+    ['logos', 'CONDUTOR'],
+    ['logos', 'CLIENTE'],
+    ['guides', 'ADMIN'],
+    ['guides', 'CLIENTE'],
+  ])('folder=%s negado para %s → 403 sem upload', async (folder, role) => {
+    const token = app.jwt.sign({ sub: 'u-x', role, tenantId: 'tenant-1', name: 'X' })
+    const { body, contentType } = buildMultipart('photo.png', 'image/png')
+    mockUpload.mockClear()
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/uploads/photos?folder=${folder}`,
+      headers: { authorization: `Bearer ${token}`, 'content-type': contentType },
+      payload: body,
+    })
+
+    expect(res.statusCode).toBe(403)
+    expect(mockUpload).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['guides', 'CONDUTOR'],
+    ['guides', 'PLATFORM_ADMIN'],
+    ['avatars', 'CONDUTOR'],
+    ['avatars', 'ADMIN'],
+    ['destinations', 'CLIENTE'],
+  ])('folder=%s permitido para %s', async (folder, role) => {
+    const token = app.jwt.sign({ sub: 'u-x', role, tenantId: 'tenant-1', name: 'X' })
+    const { body, contentType } = buildMultipart('photo.png', 'image/png')
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/uploads/photos?folder=${folder}`,
+      headers: { authorization: `Bearer ${token}`, 'content-type': contentType },
+      payload: body,
+    })
+
+    expect(res.statusCode).toBe(200)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Rate limit por usuário
+// ---------------------------------------------------------------------------
+
+describe('POST /uploads/photos — rate limit por usuário', () => {
+  it('21º upload no minuto do mesmo usuário → 429; outro usuário segue liberado', async () => {
+    const Fastify = (await import('fastify')).default
+    const jwt = (await import('@fastify/jwt')).default
+    const rateLimit = (await import('@fastify/rate-limit')).default
+    const rlApp = Fastify({ logger: false })
+    await rlApp.register(jwt, { secret: 'test-secret-minimum-32-characters-xx' })
+    await rlApp.register(rateLimit, { global: true, max: 1000, timeWindow: '1 minute' })
+    await rlApp.register(uploadsRoutes)
+    await rlApp.ready()
+
+    const userA = rlApp.jwt.sign({ sub: 'user-a', role: 'CLIENTE', tenantId: 't', name: 'A' })
+    const userB = rlApp.jwt.sign({ sub: 'user-b', role: 'CLIENTE', tenantId: 't', name: 'B' })
+    const send = (t: string) =>
+      rlApp.inject({ method: 'POST', url: '/uploads/photos?folder=avatars', headers: { authorization: `Bearer ${t}` } })
+
+    for (let i = 0; i < 20; i++) {
+      expect((await send(userA)).statusCode).toBe(400) // sem arquivo, mas conta no limite
+    }
+    expect((await send(userA)).statusCode).toBe(429)
+    expect((await send(userB)).statusCode).toBe(400)
+
+    await rlApp.close()
   })
 })

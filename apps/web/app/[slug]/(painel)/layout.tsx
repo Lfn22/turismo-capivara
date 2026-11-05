@@ -49,6 +49,7 @@ export default async function PainelLayout({
             slug={slug}
             userName={session.user?.name}
             userEmail={session.user?.email}
+            userImage={session.user?.photoUrl}
             role={role}
           />
           <main className="painel-main">
