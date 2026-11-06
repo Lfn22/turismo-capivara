@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
+import { painelEyebrow } from "@/lib/painel"
 import BackButton from "@/src/components/ui/BackButton"
 import { PhotoUploadArea } from "@/src/components/ui/PhotoUploadArea"
 import { AvatarPicker } from "@/src/components/ui/AvatarPicker"
@@ -293,7 +294,7 @@ export default function PerfilPage({
       <BackButton fallbackHref={slug ? `/${slug}/painel` : "/"} />
 
       <PageHeader
-        eyebrow="Painel do guia"
+        eyebrow={painelEyebrow(session?.user?.role)}
         title="Meu perfil"
         description="Como os turistas veem você na sua página de guia."
       />

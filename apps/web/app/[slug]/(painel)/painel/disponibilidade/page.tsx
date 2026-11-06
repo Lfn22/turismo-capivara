@@ -1,6 +1,7 @@
 "use client"
 import { use, useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { painelEyebrow } from "@/lib/painel"
 import Calendar from "react-calendar"
 import { toast } from "sonner"
 import { CalendarDays, CalendarPlus, Clock, Lock, Plus } from "lucide-react"
@@ -415,7 +416,7 @@ export default function DisponibilidadePage({
       `}</style>
 
       <PageHeader
-        eyebrow="Painel do guia"
+        eyebrow={painelEyebrow(session?.user?.role)}
         title="Agenda"
         description="Abra horários para seus roteiros e acompanhe as vagas de cada dia."
         actions={

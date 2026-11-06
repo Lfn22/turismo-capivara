@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { getToken } from "next-auth/jwt"
+import { painelEyebrow } from "@/lib/painel"
 import { cookies } from "next/headers"
 import { apiFetch } from "@/lib/api/client"
 import {
@@ -168,7 +169,7 @@ export default async function DashboardPage({
   const firstName = typeof jwt?.name === "string" ? jwt.name.split(" ")[0] : ""
   const header = (
     <PageHeader
-      eyebrow={firstName ? `Olá, ${firstName}` : "Painel do guia"}
+      eyebrow={firstName ? `Olá, ${firstName}` : painelEyebrow(jwtRole)}
       title="Visão geral"
       description="Suas reservas, saídas e roteiros em um só lugar."
       actions={

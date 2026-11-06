@@ -1,6 +1,7 @@
 "use client"
 import { use, useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { painelEyebrow } from "@/lib/painel"
 import { toast } from "sonner"
 import { CalendarDays, Check, Mail, Users, X } from "lucide-react"
 import {
@@ -185,7 +186,7 @@ export default function ReservasPage({
   return (
     <>
       <PageHeader
-        eyebrow="Painel do guia"
+        eyebrow={painelEyebrow(session?.user?.role)}
         title="Reservas"
         description="Confirme, acompanhe e cancele as reservas dos seus roteiros."
       />

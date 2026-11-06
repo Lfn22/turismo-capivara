@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
+import { painelEyebrow } from "@/lib/painel"
 import BackButton from "@/src/components/ui/BackButton"
 import { ExternalLink } from "lucide-react"
 import { Alert, Button, PageHeader, Skeleton } from "@/src/components/ui/capi"
@@ -47,7 +48,7 @@ export default function DestinoPage({
       <BackButton fallbackHref={slug ? `/${slug}/painel` : "/"} />
 
       <PageHeader
-        eyebrow="Painel do guia"
+        eyebrow={painelEyebrow(session?.user?.role)}
         title="Meu destino"
         description="Textos e imagens da página pública do seu destino."
         actions={

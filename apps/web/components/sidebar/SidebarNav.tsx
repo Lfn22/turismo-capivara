@@ -15,6 +15,7 @@ import {
   Route,
   Ticket,
   User,
+  Users,
   type LucideIcon,
 } from "lucide-react"
 import {
@@ -28,6 +29,7 @@ import {
   cx,
   type NavItem,
 } from "@/src/components/ui/capi"
+import { painelEyebrow } from "@/lib/painel"
 
 // ── Itens do painel (rotas reais) ─────────────────────────────────────────────
 // `primary` = aparece na bottom nav do celular; o resto vai para "Mais".
@@ -42,6 +44,7 @@ function navItems(slug: string): PainelItem[] {
     { label: "Roteiros",    labelShort: "Roteiros", title: "Roteiros",    href: `/${slug}/painel/roteiros`,        icon: Route,           primary: true  },
     { label: "Destinos",    labelShort: "Destinos", title: "Destinos",      href: `/${slug}/painel/destinos`,        icon: MapPin,          primary: false },
     { label: "Perfil",      labelShort: "Perfil",   title: "Perfil",      href: `/${slug}/painel/perfil`,          icon: User,            primary: false },
+    { label: "Guias",       labelShort: "Guias",    title: "Guias",       href: `/${slug}/admin/guias`,            icon: Users,           primary: false },
     { label: "Agência",     labelShort: "Agência",  title: "Agência",     href: `/${slug}/painel/agencia`,         icon: Building2,       primary: false },
   ]
 }
@@ -83,9 +86,13 @@ export function SidebarNav({
   role?: string | null
 }) {
   const pathname = usePathname() ?? ""
-  // Guia (CONDUTOR) não gerencia destinos; dados da agência são só do ADMIN.
-  const items = navItems(slug).filter(
-    (i) => !(role === "CONDUTOR" && i.label === "Destinos") && !(role !== "ADMIN" && i.label === "Agência"),
+  // Guia (CONDUTOR) não gerencia destinos; guias e dados da agência são só do ADMIN,
+  // que não tem perfil de guia (os dados dele ficam em /conta).
+  const ADMIN_ONLY = ["Guias", "Agência"]
+  const items = navItems(slug).filter((i) =>
+    role === "ADMIN"
+      ? i.label !== "Perfil"
+      : !ADMIN_ONLY.includes(i.label) && !(role === "CONDUTOR" && i.label === "Destinos"),
   )
   const primary = items.filter((i) => i.primary)
   const more = items.filter((i) => !i.primary)
@@ -151,7 +158,7 @@ export function SidebarNav({
       <aside className="capi-sidebar painel-sidebar" aria-label="Menu do painel">
         <div className="capi-sidebar__brand">
           <Logo slug={slug} />
-          <p className="painel-sidebar__eyebrow">Painel do guia</p>
+          <p className="painel-sidebar__eyebrow">{painelEyebrow(role)}</p>
           <span className="capi-sidebar__tenant">{tenantName ?? slug}</span>
         </div>
 
@@ -171,7 +178,11 @@ export function SidebarNav({
       <header className="painel-topbar">
         <Logo slug={slug} />
         <p className="painel-topbar__title">{current?.title ?? "Painel"}</p>
-        <Link href={`/${slug}/painel/perfil`} className="painel-topbar__avatar" aria-label="Meu perfil">
+        <Link
+          href={role === "ADMIN" ? "/conta" : `/${slug}/painel/perfil`}
+          className="painel-topbar__avatar"
+          aria-label={role === "ADMIN" ? "Minha conta" : "Meu perfil"}
+        >
           <Avatar name={who} src={userImage} size={32} />
         </Link>
       </header>

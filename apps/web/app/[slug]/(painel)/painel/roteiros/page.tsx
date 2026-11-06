@@ -1,6 +1,7 @@
 import { getToken } from "next-auth/jwt"
 import { cookies } from "next/headers"
 import { apiFetch } from "@/lib/api/client"
+import { painelEyebrow } from "@/lib/painel"
 import { CalendarDays, ExternalLink, Images, Plus, Users } from "lucide-react"
 import EmptyState from "@/src/components/ui/EmptyState"
 import { Alert, Badge, Button, Media, PageHeader, StatusBadge } from "@/src/components/ui/capi"
@@ -75,7 +76,7 @@ export default async function RoteirosPage({
       `}</style>
 
       <PageHeader
-        eyebrow="Painel do guia"
+        eyebrow={painelEyebrow(jwt?.role)}
         title="Meus roteiros"
         description="Cadastre roteiros, adicione fotos e experiências e abra horários na agenda."
         actions={

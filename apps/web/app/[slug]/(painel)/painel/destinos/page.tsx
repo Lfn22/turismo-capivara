@@ -126,7 +126,7 @@ export default function DestinosPage() {
       <BackButton fallbackHref={`/${slug}/painel`} />
 
       <PageHeader
-        eyebrow="Painel do guia"
+        eyebrow="Painel da agência"
         title="Destinos"
         description="Locais que você cadastrou. Cada novo destino passa por aprovação antes de aparecer no marketplace."
         actions={
