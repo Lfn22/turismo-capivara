@@ -8,6 +8,7 @@ import { isPlatformStaff } from '../../shared/auth/roles'
 import { auditLog } from '../../shared/audit'
 import { parseBody, parseParams } from '../../shared/utils/zod-error'
 import { imageUrlSchema } from '../../shared/utils/image-url'
+import { whatsappSchema } from '../../shared/validation/whatsapp'
 import { deleteReplacedPhoto } from '../uploads/replaced-photo'
 
 const slugParamsSchema = z.object({
@@ -17,16 +18,6 @@ const slugParamsSchema = z.object({
 const tenantIdParamsSchema = z.object({
   id: z.string().min(1, { message: 'ID obrigatório' }),
 })
-
-// Telefone brasileiro com DDD (opcionalmente +55): só dígitos, espaços, parênteses, + e -
-const whatsappSchema = z
-  .string()
-  .trim()
-  .regex(/^[\d\s()+-]+$/, { message: 'WhatsApp inválido' })
-  .refine((v) => {
-    const digits = v.replace(/\D/g, '').length
-    return digits >= 10 && digits <= 13
-  }, { message: 'WhatsApp inválido' })
 
 const settingsBodySchema = z.object({
   name: z

@@ -485,3 +485,22 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
 }
+
+model Lead {
+  id              String   @id @default(cuid())
+  name            String
+  whatsapp        String
+  destinationSlug String
+  packageId       String?
+  travelMonth     String?
+  consent         Boolean
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  utmContent      String?
+  utmTerm         String?
+  createdAt       DateTime @default(now())
+
+  @@index([destinationSlug])
+  @@index([createdAt])
+}
