@@ -4,6 +4,8 @@ import "./globals.css"
 import { Suspense } from "react"
 import { Providers } from "./providers"
 import { PostHogProvider } from "@/src/components/providers/PostHogProvider"
+import { UtmCapture } from "@/src/components/tracking/UtmCapture"
+import { MetaPixel } from "@/src/components/tracking/MetaPixel"
 import { ConsentBanner } from "@/src/components/providers/ConsentBanner"
 import { ToastProvider } from "@/src/components/providers/ToastProvider"
 
@@ -74,6 +76,8 @@ export default function RootLayout({
         <Providers>
           <ToastProvider>
             <Suspense fallback={null}>
+              <UtmCapture />
+              <MetaPixel />
               <PostHogProvider>{children}</PostHogProvider>
             </Suspense>
           </ToastProvider>
