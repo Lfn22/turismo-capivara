@@ -7,6 +7,7 @@ import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
 import DestinationMembershipButton from '@/src/components/membership/DestinationMembershipButton';
 import PublicLayout from '@/src/components/layout/PublicLayout';
 import { Button } from '@/src/components/ui/capi';
+import { LeadForm } from '@/src/components/leads/LeadForm';
 import { TrackView } from '@/src/components/tracking/TrackView';
 import { DestinationEditControls, DestinationEditSection } from '@/src/components/edit-mode/DestinationEditControls';
 import MapWidgetClient, { type PartnerData } from '@/src/components/ui/MapWidgetClient';
@@ -303,6 +304,17 @@ export default async function DestinationPage({ params }: Props) {
             </div>
           </section>
         )}
+
+        {/* ── Quero ir — captura de lead ───────────────────────── */}
+        <section id="quero-ir" className="dest__section" aria-labelledby="quero-ir-heading">
+          <div className="capi-container">
+            <h2 id="quero-ir-heading" className="dest__h2">Quer conhecer {destination.title}?</h2>
+            <p className="dest__text" style={{ marginBottom: 'var(--space-5)', color: 'var(--text-secondary)' }}>
+              Deixe seu contato e a gente te ajuda a montar a viagem com um guia de lá.
+            </p>
+            <LeadForm destinationSlug={slug} />
+          </div>
+        </section>
 
         {/* ── 6. CTA — Roteiros ────────────────────────────────── */}
         <section className="dest__section" aria-labelledby="cta-heading">

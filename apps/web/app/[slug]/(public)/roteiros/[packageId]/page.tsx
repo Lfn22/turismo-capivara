@@ -4,6 +4,7 @@ import GuideCard, { type GuideCardGuide } from '@/src/components/ui/GuideCard'
 import { TrackView } from '@/src/components/tracking/TrackView'
 import { PackageEditSection } from '@/src/components/edit-mode/PackageEditControls'
 import SlotPicker from '@/src/components/ui/SlotPicker'
+import { LeadForm } from '@/src/components/leads/LeadForm'
 import {
   Avatar,
   Badge,
@@ -328,6 +329,8 @@ export default async function RoteirDetalhe({
               action={
                 hasSlots ? (
                   <SlotPicker slots={pkg.departureSlots ?? []} packageId={pkg.id} slug={slug} />
+                ) : destinationSlug ? (
+                  <LeadForm destinationSlug={destinationSlug} packageId={pkg.id} compact heading="Me avise quando abrir data" />
                 ) : (
                   <EmptyState
                     compact
