@@ -7,7 +7,7 @@ import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { requireSuperAdmin } from '../../shared/middlewares/authorize'
 
-const PLATFORM_TENANT_SLUG = 'capi-platform'
+export const PLATFORM_TENANT_SLUG = 'capi-platform'
 
 const createBodySchema = z.object({
   name: z.string().min(1, { message: 'Nome obrigatório' }),

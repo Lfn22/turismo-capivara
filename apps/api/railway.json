@@ -6,7 +6,7 @@
   },
   "deploy": {
     "startCommand": "node dist/app.js",
-    "releaseCommand": "npx prisma migrate deploy",
+    "preDeployCommand": ["npx prisma migrate deploy"],
     "healthcheckPath": "/health",
     "restartPolicyType": "ON_FAILURE"
   }

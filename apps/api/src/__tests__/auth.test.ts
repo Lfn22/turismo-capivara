@@ -32,19 +32,3 @@ describe('GET /auth/me', () => {
     expect(res.statusCode).toBe(401)
   })
 })
-
-describe('POST /auth/register-independent', () => {
-  it('retorna 400 quando email é inválido', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/auth/register-independent',
-      payload: {
-        name: 'João Silva',
-        email: 'email-invalido',
-        password: 'senha12345',
-        cpf: '12345678901',
-      },
-    })
-    expect(res.statusCode).toBe(400)
-  })
-})

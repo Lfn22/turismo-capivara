@@ -1,9 +1,12 @@
 import { randomBytes } from 'crypto'
 import { FastifyInstance } from 'fastify'
+import type { Prisma } from '@prisma/client'
 import prisma from '../../database'
 
 const REFRESH_TOKEN_EXPIRY_DAYS = 30
 export const ACCESS_TOKEN_EXPIRY = '15m'
+// Requisições concorrentes podem apresentar o mesmo refresh token logo após a rotação
+export const ROTATION_GRACE_MS = 60 * 1000
 
 export function generateRefreshToken(): string {
   return randomBytes(40).toString('hex')
@@ -26,38 +29,56 @@ export async function rotateRefreshToken(oldToken: string): Promise<{ newToken: 
       where: { token: oldToken },
     })
 
-    if (!existing || existing.revokedAt || existing.expiresAt < new Date()) {
-      // If token was already revoked, revoke ALL tokens for this user (potential theft)
-      if (existing?.revokedAt) {
-        await tx.refreshToken.updateMany({
-          where: { userId: existing.userId },
-          data: { revokedAt: new Date() },
-        })
+    const now = new Date()
+    if (!existing || existing.expiresAt < now) return null
+
+    if (existing.revokedAt) {
+      // Revogado por rotação há menos de ROTATION_GRACE_MS: corrida entre requisições
+      // concorrentes do mesmo cliente — emite um token novo em vez de tratar como roubo.
+      // Tokens revogados por logout/troca de senha/e-mail têm replacedAt nulo e nunca entram aqui.
+      if (existing.replacedAt && now.getTime() - existing.replacedAt.getTime() < ROTATION_GRACE_MS) {
+        const newToken = await insertRefreshToken(tx, existing.userId, existing.tenantId)
+        return { newToken, userId: existing.userId, tenantId: existing.tenantId }
       }
+      // Reuso fora da janela: possível roubo — revoga TODOS os tokens do usuário
+      await revokeAllUserTokens(existing.userId, tx)
       return null
     }
 
-    // Revoke old token
+    // Revoga o token antigo marcando que foi substituído (rotação)
     await tx.refreshToken.update({
       where: { id: existing.id },
-      data: { revokedAt: new Date() },
+      data: { revokedAt: now, replacedAt: now },
     })
 
-    // Create new token
-    const newTokenValue = generateRefreshToken()
-    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
-    await tx.refreshToken.create({
-      data: { token: newTokenValue, userId: existing.userId, tenantId: existing.tenantId, expiresAt },
-    })
-
-    return { newToken: newTokenValue, userId: existing.userId, tenantId: existing.tenantId }
+    const newToken = await insertRefreshToken(tx, existing.userId, existing.tenantId)
+    return { newToken, userId: existing.userId, tenantId: existing.tenantId }
   })
 }
 
-export async function revokeAllUserTokens(userId: string): Promise<void> {
-  await prisma.refreshToken.updateMany({
+async function insertRefreshToken(tx: Prisma.TransactionClient, userId: string, tenantId: string): Promise<string> {
+  const token = generateRefreshToken()
+  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
+  await tx.refreshToken.create({ data: { token, userId, tenantId, expiresAt } })
+  return token
+}
+
+/**
+ * Revoga todos os refresh tokens do usuário (logout, troca de senha/e-mail, roubo).
+ * Também zera replacedAt dos já rotacionados para que nenhum volte a ser aceito
+ * pela janela de tolerância de rotação.
+ */
+export async function revokeAllUserTokens(
+  userId: string,
+  db: Pick<Prisma.TransactionClient, 'refreshToken'> = prisma,
+): Promise<void> {
+  await db.refreshToken.updateMany({
     where: { userId, revokedAt: null },
     data: { revokedAt: new Date() },
+  })
+  await db.refreshToken.updateMany({
+    where: { userId, replacedAt: { not: null } },
+    data: { replacedAt: null },
   })
 }
 

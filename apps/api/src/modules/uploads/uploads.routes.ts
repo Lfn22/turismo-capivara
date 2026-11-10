@@ -5,10 +5,28 @@ import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { validatePhotoFile, uploadPhotoToR2 } from './uploads.service'
 import { AppError } from '../../shared/errors/AppError'
+import { isPlatformStaff } from '../../shared/auth/roles'
+import { userRateLimit } from '../../shared/utils/user-rate-limit'
 
-const folderSchema = z.enum(['destinations', 'packages', 'guides'], {
-  error: 'Folder inválido. Use "destinations", "packages" ou "guides".',
+const folderSchema = z.enum(['destinations', 'packages', 'guides', 'avatars', 'logos'], {
+  error: 'Folder inválido. Use "destinations", "packages", "guides", "avatars" ou "logos".',
 })
+
+type Folder = z.infer<typeof folderSchema>
+
+// Papéis (além da equipe da plataforma) que podem enviar para cada pasta
+const FOLDER_ROLES: Record<Folder, string[] | 'any'> = {
+  destinations: ['ADMIN', 'CONDUTOR', 'CLIENTE'],
+  packages: ['ADMIN', 'CONDUTOR', 'CLIENTE'],
+  guides: ['CONDUTOR'],
+  logos: ['ADMIN'],
+  avatars: 'any',
+}
+
+function canUploadTo(folder: Folder, role: string): boolean {
+  const allowed = FOLDER_ROLES[folder]
+  return allowed === 'any' || isPlatformStaff(role) || allowed.includes(role)
+}
 
 export async function uploadsRoutes(app: FastifyInstance) {
   // Register multipart support scoped to this plugin
@@ -20,13 +38,16 @@ export async function uploadsRoutes(app: FastifyInstance) {
   })
 
   // POST /uploads/photos — Upload de foto para R2
-  // Auth: qualquer usuário autenticado (ADMIN, CONDUTOR, CLIENTE)
+  // Auth: qualquer usuário autenticado; a pasta permitida depende do papel (FOLDER_ROLES)
   app.post(
     '/uploads/photos',
-    { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN', 'CONDUTOR', 'CLIENTE'])] },
+    {
+      preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN', 'CONDUTOR', 'CLIENTE'])],
+      config: userRateLimit('uploads-photos', 20),
+    },
     async (request, reply) => {
       // Validate query param: folder
-      let folder: 'destinations' | 'packages' | 'guides'
+      let folder: z.infer<typeof folderSchema>
       try {
         folder = folderSchema.parse((request.query as Record<string, string>).folder)
       } catch (err) {
@@ -36,6 +57,10 @@ export async function uploadsRoutes(app: FastifyInstance) {
           })
         }
         throw err
+      }
+
+      if (!canUploadTo(folder, request.user.role)) {
+        return reply.status(403).send({ message: 'Sem permissão para enviar arquivos para esta pasta' })
       }
 
       // Read uploaded file — request.file() throws if content-type is not multipart

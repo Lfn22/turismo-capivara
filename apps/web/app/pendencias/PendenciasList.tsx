@@ -1,27 +1,52 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
+import { NotificationActions } from "@/src/components/notifications/NotificationActions"
 import { fetchPending, type NotificationDTO } from "@/lib/notifications-client"
 
 export function PendenciasList() {
   const [items, setItems] = useState<NotificationDTO[] | null>(null)
   const [error, setError] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const reload = useCallback(async () => {
+    try {
+      const d = await fetchPending()
+      setItems(d.notifications)
+    } catch {
+      setError(true)
+    }
+  }, [])
 
   useEffect(() => {
-    fetchPending()
-      .then((d) => setItems(d.notifications))
-      .catch(() => setError(true))
-  }, [])
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga inicial
+    reload()
+  }, [reload])
 
   if (error) {
     return <p style={{ color: "#DC2626", fontSize: "14px" }}>Não foi possível carregar as pendências.</p>
   }
   if (!items) return <p style={{ color: "var(--stone-500)", fontSize: "14px" }}>Carregando…</p>
   if (items.length === 0) {
-    return <p style={{ color: "var(--stone-500)", fontSize: "14px" }}>Nenhuma pendência</p>
+    return (
+      <>
+    {notice && (
+      <p role="alert" style={{ fontSize: "14px", color: "#DC2626", background: "#FEF2F2", padding: "8px 12px", borderRadius: "4px", margin: "0 0 12px" }}>
+        {notice}
+      </p>
+    )}
+        <p style={{ color: "var(--stone-500)", fontSize: "14px" }}>Nenhuma pendência</p>
+      </>
+    )
   }
 
   return (
+    <>
+    {notice && (
+      <p role="alert" style={{ fontSize: "14px", color: "#DC2626", background: "#FEF2F2", padding: "8px 12px", borderRadius: "4px", margin: "0 0 12px" }}>
+        {notice}
+      </p>
+    )}
     <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "12px" }}>
       {items.map((n) => (
         <li
@@ -38,7 +63,8 @@ export function PendenciasList() {
           <p style={{ fontSize: "12px", color: "var(--stone-500)", margin: "0 0 8px" }}>
             {new Date(n.updatedAt).toLocaleString("pt-BR")}
           </p>
-          {n.link && n.link !== "/pendencias" && (
+          <NotificationActions n={n} onDone={reload} onNotice={setNotice} />
+          {n.link && n.link !== "/pendencias" && !n.link.startsWith("/pendencias?") && (
             <Link
               href={n.link}
               style={{
@@ -58,5 +84,6 @@ export function PendenciasList() {
         </li>
       ))}
     </ul>
+    </>
   )
 }

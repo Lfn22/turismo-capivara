@@ -1,6 +1,7 @@
 "use client"
 import { use, useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { painelEyebrow } from "@/lib/painel"
 import Calendar from "react-calendar"
 import { toast } from "sonner"
 import { CalendarDays, CalendarPlus, Clock, Lock, Plus } from "lucide-react"
@@ -88,13 +89,13 @@ export default function DisponibilidadePage({
   // Só apresentação: no celular alterna entre lista por dia e calendário (no desktop os dois aparecem)
   const [view, setView] = useState<"list" | "calendar">("list")
 
-  // Load packages for dropdown (filtered to current conductor)
+  // Roteiros que o usuário pode editar (inclui rascunhos e os criados pela equipe); ocultos ficam de fora
   useEffect(() => {
     if (!userId) return
-    fetch(`/api/proxy?path=/tenants/${slug}/packages?conductorId=${encodeURIComponent(userId)}`)
+    fetch(`/api/proxy?path=/tenants/${slug}/manage/packages`)
       .then((r) => r.json())
       .then((data) => {
-        const pkgs: Package[] = Array.isArray(data) ? data : (data.packages ?? [])
+        const pkgs: Package[] = ((data.packages ?? []) as Array<Package & { status?: string }>).filter((p) => p.status !== "HIDDEN")
         setPackages(pkgs)
         if (pkgs.length > 0) setFormPackageId(pkgs[0].id)
       })
@@ -415,7 +416,7 @@ export default function DisponibilidadePage({
       `}</style>
 
       <PageHeader
-        eyebrow="Painel do guia"
+        eyebrow={painelEyebrow(session?.user?.role)}
         title="Agenda"
         description="Abra horários para seus roteiros e acompanhe as vagas de cada dia."
         actions={

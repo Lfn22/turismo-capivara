@@ -149,6 +149,8 @@ describe('POST /bookings — capacity check', () => {
           status: 'OPEN',
           packageId: 'pkg-1',
           tenantId: TENANT.id,
+          active: true,
+          publishedAt: new Date('2026-01-01'),
         }]),
         departureSlot: { update: vi.fn().mockResolvedValue({}) },
         booking: { create: vi.fn().mockResolvedValue(CREATED_BOOKING) },
@@ -182,29 +184,27 @@ describe('POST /bookings — happy path', () => {
       cancelTokenExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
     }
 
-    db.$transaction
-      .mockImplementationOnce(async (fn: Function) => {
-        // Tx1: lock slot + increment booked
-        const tx = {
-          $queryRaw: vi.fn().mockResolvedValue([{
-            id: 'slot-1',
-            booked: 2,
-            capacity: 10,
-            status: 'OPEN',
-            packageId: 'pkg-1',
-            tenantId: TENANT.id,
-          }]),
-          departureSlot: { update: vi.fn().mockResolvedValue({}) },
-        }
-        return fn(tx)
-      })
-      .mockImplementationOnce(async (fn: Function) => {
-        // Tx2: create booking with payment data
-        const tx = {
-          booking: { create: vi.fn().mockResolvedValue(bookingWithPayment) },
-        }
-        return fn(tx)
-      })
+    // Single tx: lock slot + increment booked + persist booking (C-2)
+    db.$transaction.mockImplementation(async (fn: Function) => {
+      const tx = {
+        $queryRaw: vi.fn().mockResolvedValue([{
+          id: 'slot-1',
+          booked: 2,
+          capacity: 10,
+          status: 'OPEN',
+          packageId: 'pkg-1',
+          tenantId: TENANT.id,
+          active: true,
+          publishedAt: new Date('2026-01-01'),
+        }]),
+        departureSlot: { update: vi.fn().mockResolvedValue({}) },
+        booking: { create: vi.fn().mockResolvedValue({ ...CREATED_BOOKING, cancelToken: 'mock-cancel-token' }) },
+      }
+      return fn(tx)
+    })
+
+    // Payment data is written to the already-persisted booking after the MP call
+    db.booking.update.mockResolvedValue(bookingWithPayment)
 
     db.tourPackage.findFirst.mockResolvedValue({ price: '150.00', name: 'Trilha', conductor: null, departureSlots: [{ startsAt: new Date() }] })
 

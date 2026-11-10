@@ -56,6 +56,7 @@ export async function publicPackagesRoute(app: FastifyInstance) {
       where: {
         tenantId: tenant.id,
         active: true,
+        publishedAt: { not: null },
         ...(conductorId ? { conductorId } : {}),
         ...(minPrice !== undefined || maxPrice !== undefined
           ? { price: { ...(minPrice !== undefined ? { gte: minPrice } : {}), ...(maxPrice !== undefined ? { lte: maxPrice } : {}) } }
@@ -137,6 +138,8 @@ export async function publicPackagesRoute(app: FastifyInstance) {
       where: {
         id: params!.id,
         tenantId: tenant.id,
+        active: true,
+        publishedAt: { not: null },
       },
       include: {
         departureSlots: {
@@ -168,10 +171,17 @@ export async function publicPackagesRoute(app: FastifyInstance) {
     const { data: params, error } = parseParams(packageIdParamsSchema, request.params, reply)
     if (error) return
 
+    const published = await prisma.tourPackage.findFirst({
+      where: { id: params!.id, active: true, publishedAt: { not: null } },
+      select: { id: true },
+    })
+    if (!published) throw new AppError('Roteiro não encontrado', 404)
+
     const guides = await prisma.packageGuide.findMany({
       where: {
         packageId: params!.id,
-        active: true,
+        status: 'ACCEPTED',
+        guide: { user: { approvalStatus: 'APPROVED' } },
       },
       include: {
         guide: {

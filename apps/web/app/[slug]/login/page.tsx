@@ -7,6 +7,7 @@ import Link from "next/link"
 import { CalendarCheck, Compass, ShieldCheck } from "lucide-react"
 import { Alert, Button, Input } from "@/src/components/ui/capi"
 import { isPlatformStaff, safeCallbackUrl } from "@/lib/roles"
+import { isGuideUnverified } from "@/lib/guide-status"
 
 /* ── Layout de acesso (local; candidato a componente do DS) ── */
 const BENEFITS = [
@@ -79,6 +80,8 @@ export default function LoginPage() {
         router.push(callbackUrl)
       } else if (isPlatformStaff(role)) {
         router.push("/super-admin/operadoras")
+      } else if (role === "CONDUTOR" && (await isGuideUnverified())) {
+        router.push("/guia/status")
       } else if (!tenantSlug) {
         router.push("/login")
       } else if (role === "ADMIN") {

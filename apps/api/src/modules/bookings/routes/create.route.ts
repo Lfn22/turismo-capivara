@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { parseBody, parseParams } from '../../../shared/utils/zod-error'
 import prisma from '../../../database'
 import { AppError } from '../../../shared/errors/AppError'
@@ -10,6 +11,7 @@ import { createBooking } from '../booking.service'
 import { auditLog } from '../../../shared/audit.js'
 import { bookingsCreatedCounter } from '../../../shared/metrics.js'
 import { Sentry } from '../../../shared/sentry'
+import { notifyBookingEvent } from '../../notifications/booking-events'
 
 function isValidCPF(cpf: string): boolean {
   // Rejeitar sequências de dígitos iguais (00000000000, 11111111111, etc.)
@@ -53,6 +55,37 @@ const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
 })
 
+/** Public shape of a booking on create — omits customerPhone and customerCpfHash. */
+function bookingResponse(b: {
+  id: string
+  tenantId: string
+  slotId: string
+  customerName: string
+  customerEmail: string
+  pax: number
+  status: string
+  paymentId: string | null
+  paymentUrl: string | null
+  expiresAt: Date | null
+  createdAt: Date
+  qrCode: string | null
+}) {
+  return {
+    id: b.id,
+    tenantId: b.tenantId,
+    slotId: b.slotId,
+    customerName: b.customerName,
+    customerEmail: b.customerEmail,
+    pax: b.pax,
+    status: b.status,
+    paymentId: b.paymentId,
+    paymentUrl: b.paymentUrl,
+    expiresAt: b.expiresAt,
+    createdAt: b.createdAt,
+    qrCode: b.qrCode,
+  }
+}
+
 export async function createBookingRoute(app: FastifyInstance) {
   app.post('/tenants/:slug/bookings', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (request, reply) => {
     const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
@@ -70,6 +103,16 @@ export async function createBookingRoute(app: FastifyInstance) {
     const { slotId, customerName, customerEmail, customerPhone, customerCpf, pax } = body
 
     const expiryMinutes = Number(process.env.BOOKING_EXPIRY_MINUTES ?? '30')
+
+    // JWT opcional: só turista (CLIENTE) logado vincula a reserva; token ruim segue como guest
+    let userId: string | null = null
+    try {
+      await request.jwtVerify()
+      const user = request.user as { sub: string; role: string }
+      if (user.role === 'CLIENTE') userId = user.sub
+    } catch {
+      userId = null
+    }
 
     const tenant = await prisma.tenant.findUnique({
       where: { slug },
@@ -98,43 +141,50 @@ export async function createBookingRoute(app: FastifyInstance) {
       throw new AppError('Reservas indisponíveis no momento.', 403)
     }
 
-    // HARDENING-01: Idempotency check — deve vir ANTES do $transaction
     const idempotencyKey = (request.headers['idempotency-key'] as string | undefined)?.trim() || undefined
 
+    // Fast path: a retry that already succeeded returns the same booking without work.
+    // This is only an optimisation — the real guarantee is the unique constraint claimed
+    // inside the booking transaction (C-3), which is what makes concurrent retries safe.
     if (idempotencyKey) {
       const existing = await prisma.booking.findUnique({
         where: { tenantId_idempotencyKey: { tenantId: tenant.id, idempotencyKey } },
       })
       if (existing && existing.tenantId === tenant.id) {
-        return reply.status(200).send({
-          id: existing.id,
-          tenantId: existing.tenantId,
-          slotId: existing.slotId,
-          customerName: existing.customerName,
-          customerEmail: existing.customerEmail,
-          pax: existing.pax,
-          status: existing.status,
-          paymentId: existing.paymentId,
-          paymentUrl: existing.paymentUrl,
-          expiresAt: existing.expiresAt,
-          createdAt: existing.createdAt,
-          qrCode: existing.qrCode,
-        })
+        return reply.status(200).send(bookingResponse(existing))
       }
     }
 
-    const result = await createBooking({
-      tenantId: tenant.id,
-      tenantSlug: slug,
-      slotId,
-      customerName,
-      customerEmail,
-      customerPhone,
-      cpf: customerCpf,
-      pax,
-      expiryMinutes,
-      idempotencyKey,
-    }, app.log)
+    let result
+    try {
+      result = await createBooking({
+        tenantId: tenant.id,
+        tenantSlug: slug,
+        slotId,
+        customerName,
+        customerEmail,
+        customerPhone,
+        cpf: customerCpf,
+        pax,
+        expiryMinutes,
+        idempotencyKey,
+        userId,
+      })
+    } catch (err) {
+      // C-3: another request with the same Idempotency-Key won the race. Its transaction
+      // committed; ours rolled back entirely (seats included). Return its booking.
+      if (
+        idempotencyKey &&
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        const winner = await prisma.booking.findUnique({
+          where: { tenantId_idempotencyKey: { tenantId: tenant.id, idempotencyKey } },
+        })
+        if (winner) return reply.status(200).send(bookingResponse(winner))
+      }
+      throw err
+    }
 
     const { booking, qrCode, conductorEmail, departureStartsAt, packageName } = result
 
@@ -185,19 +235,8 @@ export async function createBookingRoute(app: FastifyInstance) {
 
     auditLog(prisma, { actorType: 'USER', action: 'booking.created', targetType: 'BOOKING', targetId: booking.id, ipAddress: request.ip, metadata: { tenantSlug: slug, pax: body.pax, slotId: body.slotId } })
 
-    return reply.status(201).send({
-      id: booking.id,
-      tenantId: booking.tenantId,
-      slotId: booking.slotId,
-      customerName: booking.customerName,
-      customerEmail: booking.customerEmail,
-      pax: booking.pax,
-      status: booking.status,
-      paymentId: booking.paymentId,
-      paymentUrl: booking.paymentUrl,
-      expiresAt: booking.expiresAt,
-      createdAt: booking.createdAt,
-      qrCode,
-    })
+    void notifyBookingEvent(app.log, booking.id, 'created').catch(() => {})
+
+    return reply.status(201).send(bookingResponse(booking))
   })
 }

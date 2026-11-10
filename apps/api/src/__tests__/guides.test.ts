@@ -77,11 +77,3 @@ describe('GET /tenants/:slug/admin/guides — ADMIN only', () => {
     expect(res.statusCode).toBe(401)
   })
 })
-
-describe('PATCH /tenants/:slug/admin/guides/:id/approve — ADMIN only', () => {
-  it('returns 401 when no Authorization header is provided', async () => {
-    const res = await app.inject({ method: 'PATCH', url: '/tenants/capivara/admin/guides/guide-1/approve' })
-
-    expect(res.statusCode).toBe(401)
-  })
-})

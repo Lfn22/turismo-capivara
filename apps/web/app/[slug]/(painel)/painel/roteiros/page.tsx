@@ -1,9 +1,8 @@
-import { getServerSession } from "next-auth"
 import { getToken } from "next-auth/jwt"
 import { cookies } from "next/headers"
-import { authOptions } from "@/lib/auth"
 import { apiFetch } from "@/lib/api/client"
-import { CalendarDays, Images, Plus, Users } from "lucide-react"
+import { painelEyebrow } from "@/lib/painel"
+import { CalendarDays, ExternalLink, Images, Plus, Users } from "lucide-react"
 import EmptyState from "@/src/components/ui/EmptyState"
 import { Alert, Badge, Button, Media, PageHeader, StatusBadge } from "@/src/components/ui/capi"
 
@@ -13,9 +12,8 @@ interface Package {
   description: string
   price: string | number
   difficulty: "EASY" | "MODERATE" | "HARD" | "EXTREME"
-  active: boolean
+  status: "PUBLISHED" | "DRAFT" | "HIDDEN"
   capacity: number
-  conductorId?: string
   photos?: string[]
 }
 
@@ -35,26 +33,31 @@ export default async function RoteirosPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const session = await getServerSession(authOptions)
   const cookieStore = await cookies()
   const jwt = await getToken({
     req: { cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])) } as any,
     secret: process.env.NEXTAUTH_SECRET,
   })
   const token = (jwt?.apiToken as string) ?? ""
-  const userId = (session?.user as any)?.id ?? ""
-  const role = (session?.user as any)?.role ?? ""
 
   let packages: Package[] = []
+  let destinationSlug: string | null = null
   let loadError = false
 
   try {
-    // Pass conductorId to the API so filtering happens server-side (avoids overfetch)
-    const qs = role === "CONDUTOR" && userId ? `?conductorId=${encodeURIComponent(userId)}` : ""
-    const data = await apiFetch<Package[]>(`/tenants/${slug}/packages${qs}`, token)
-    packages = Array.isArray(data) ? data : []
+    // Lista de gestão: inclui rascunho e oculto; o servidor já filtra pelo que o usuário pode editar.
+    const data = await apiFetch<{ packages: Package[] }>(`/tenants/${slug}/manage/packages`, token)
+    packages = Array.isArray(data?.packages) ? data.packages : []
   } catch {
     loadError = true
+  }
+
+  // Rascunho não aparece na página pública do roteiro; o modo edição o lista na página de roteiros do destino.
+  try {
+    const dest = await apiFetch<{ slug?: string }>(`/tenants/${slug}/destination`, token)
+    destinationSlug = dest?.slug ?? null
+  } catch {
+    destinationSlug = null
   }
 
   return (
@@ -73,7 +76,7 @@ export default async function RoteirosPage({
       `}</style>
 
       <PageHeader
-        eyebrow="Painel do guia"
+        eyebrow={painelEyebrow(jwt?.role)}
         title="Meus roteiros"
         description="Cadastre roteiros, adicione fotos e experiências e abra horários na agenda."
         actions={
@@ -112,8 +115,8 @@ export default async function RoteirosPage({
                   <h2 className="roteiro-card__title">{pkg.name}</h2>
                   <div className="flex flex-wrap items-center gap-2">
                     <DifficultyBadge difficulty={pkg.difficulty} />
-                    <Badge tone={pkg.active ? "success" : "neutral"} dot>
-                      {pkg.active ? "Ativo" : "Inativo"}
+                    <Badge tone={pkg.status === "PUBLISHED" ? "success" : pkg.status === "DRAFT" ? "warning" : "neutral"} dot>
+                      {pkg.status === "PUBLISHED" ? "Publicado" : pkg.status === "DRAFT" ? "Rascunho" : "Oculto"}
                     </Badge>
                   </div>
                 </div>
@@ -138,6 +141,12 @@ export default async function RoteirosPage({
                 <Button href={`/${slug}/painel/disponibilidade`} variant="secondary" size="sm" iconLeft={CalendarDays}>
                   Gerenciar horários
                 </Button>
+                {pkg.status === "PUBLISHED" || (pkg.status === "DRAFT" && destinationSlug) ? (
+                  <Button
+                    href={pkg.status === "PUBLISHED" ? `/${slug}/roteiros/${pkg.id}?editar=1` : `/destinos/${destinationSlug}/roteiros?editar=1`} variant="secondary" size="sm" iconLeft={ExternalLink}>
+                    Ver e editar no site
+                  </Button>
+                ) : null}
               </div>
             </article>
           ))}

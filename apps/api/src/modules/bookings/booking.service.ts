@@ -16,6 +16,7 @@ export interface CreateBookingInput {
   pax: number
   expiryMinutes: number
   idempotencyKey?: string | null
+  userId: string | null
 }
 
 export interface CreateBookingResult {
@@ -32,6 +33,7 @@ export interface CreateBookingResult {
     createdAt: Date
     paymentId: string | null
     paymentUrl: string | null
+    qrCode: string | null
     cancelToken: string
   }
   paymentUrl: string
@@ -44,7 +46,6 @@ export interface CreateBookingResult {
 
 export async function createBooking(
   input: CreateBookingInput,
-  logger: { error: Function; info: Function }
 ): Promise<CreateBookingResult> {
   const {
     tenantId,
@@ -54,10 +55,23 @@ export async function createBooking(
     customerPhone,
     cpf,
     pax,
+    expiryMinutes,
     idempotencyKey,
+    userId,
   } = input
 
-  // Tx 1: Lock slot, validate and increment — booking NOT created yet (PAY-02)
+  // C-2: expiry is decided from OUR clock, before any external call, so the booking row
+  // can be written durably up front. BOOKING_EXPIRY_MINUTES is actually honoured (A-4).
+  const expiresAt = new Date(Date.now() + expiryMinutes * 60_000)
+  const bookingId = createId()
+  const cancelToken = randomBytes(32).toString('hex')
+
+  // Single transaction: lock the slot, validate, increment seats AND persist the booking.
+  //
+  // C-2: seats are never held without a Booking row that the expiry job can find and reverse.
+  // C-3: the idempotency key is claimed by the unique constraint inside this same
+  // transaction, so a losing concurrent request rolls back the seat increment too.
+  // The caller handles the resulting P2002 by returning the winner's booking.
   await prisma.$transaction(async (tx) => {
     // Lock the slot row to prevent concurrent overbooking (WR-04)
     const [slot] = await tx.$queryRaw<Array<{
@@ -67,8 +81,10 @@ export async function createBooking(
       status: string
       packageId: string
       tenantId: string
+      active: boolean
+      publishedAt: Date | null
     }>>`
-      SELECT ds.id, ds.booked, ds.capacity, ds.status, ds."packageId", tp."tenantId"
+      SELECT ds.id, ds.booked, ds.capacity, ds.status, ds."packageId", tp."tenantId", tp.active, tp."publishedAt"
       FROM "DepartureSlot" ds
       JOIN "TourPackage" tp ON tp.id = ds."packageId"
       WHERE ds.id = ${slotId}
@@ -83,7 +99,8 @@ export async function createBooking(
       throw new AppError('Slot não encontrado', 404)
     }
 
-    if (slot.status !== 'OPEN') {
+    // Roteiro em rascunho (publishedAt null) ou arquivado não aceita reserva
+    if (slot.status !== 'OPEN' || !slot.active || slot.publishedAt === null) {
       throw new AppError('Slot indisponível', 400)
     }
 
@@ -98,9 +115,47 @@ export async function createBooking(
         status: slot.booked + pax >= slot.capacity ? 'FULL' : 'OPEN',
       },
     })
+
+    return tx.booking.create({
+      data: {
+        id: bookingId,
+        tenantId,
+        slotId,
+        customerName,
+        customerEmail,
+        customerPhone,
+        customerCpfHash: hashCpf(cpf),
+        pax,
+        status: 'PENDING',
+        expiresAt,
+        idempotencyKey: idempotencyKey ?? null,
+        cancelToken,
+        cancelTokenExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
+        userId,
+      },
+    })
   })
 
-  // Query package price OUTSIDE $transaction (keeps tx minimal)
+  // From here on the booking exists and holds its seats. Every failure path below is
+  // recoverable: worst case the row stays PENDING and the expiry job releases the seats.
+  const releaseBooking = async () => {
+    await prisma.$transaction(async (tx) => {
+      const released = await tx.booking.updateMany({
+        where: { id: bookingId, status: 'PENDING' },
+        data: { status: 'EXPIRED' },
+      })
+      if (released.count === 0) return
+      const slot = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
+      await tx.departureSlot.updateMany({
+        where: { id: slotId, booked: { gte: pax } },
+        data: {
+          booked: { decrement: pax },
+          ...(slot?.status === 'FULL' ? { status: 'OPEN' } : {}),
+        },
+      })
+    })
+  }
+
   const pkg = await prisma.tourPackage.findFirst({
     where: { departureSlots: { some: { id: slotId } } },
     select: {
@@ -111,22 +166,13 @@ export async function createBooking(
     },
   })
 
-  // Guard: package must exist to build a valid PIX amount — rollback slot if missing
   if (!pkg) {
-    await prisma.$transaction(async (tx) => {
-      const s1 = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
-      await tx.departureSlot.update({
-        where: { id: slotId },
-        data: { booked: { decrement: pax }, ...(s1?.status === 'FULL' ? { status: 'OPEN' } : {}) },
-      })
-    })
+    await releaseBooking()
     throw new AppError('Pacote não encontrado para este slot', 500)
   }
 
-  // MP call happens OUTSIDE $transaction — per D-02
-  // booking does NOT exist yet; paymentId will be set on create (PAY-02)
-  // CR-001 fix: pre-generate ID so external_reference matches the real booking.id
-  const bookingId = createId()
+  // MP call stays OUTSIDE the transaction (per D-02) — a network round-trip must never
+  // hold a row lock. external_reference matches the booking id already persisted.
   let paymentResult
   try {
     paymentResult = await paymentService.createPixPayment({
@@ -135,66 +181,23 @@ export async function createBooking(
       description: `Reserva — ${pkg.name}`,
       customerEmail,
       customerCpf: cpf,
+      expiresAt,
     })
   } catch (err) {
-    // Compensation: restore slot atomically (per D-02)
-    await prisma.$transaction(async (tx) => {
-      const s2 = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
-      await tx.departureSlot.update({
-        where: { id: slotId },
-        data: {
-          booked: { decrement: pax },
-          ...(s2?.status === 'FULL' ? { status: 'OPEN' } : {}),
-        },
-      })
-    })
+    await releaseBooking()
     throw err // AppError 502 propagates to error handler
   }
 
-  // Tx 2: Create booking with paymentId already in hand — never exists without PIX data (PAY-02)
-  // CR-05: wrap Tx2 in try/catch — if DB fails after PIX succeeds, cancel the MP payment + restore slot
-  let booking
-  try {
-    booking = await prisma.$transaction(async (tx) => {
-      const cancelToken = randomBytes(32).toString('hex')
-      return tx.booking.create({
-        data: {
-          id: bookingId,
-          tenantId,
-          slotId,
-          customerName,
-          customerEmail,
-          customerPhone,
-          customerCpfHash: hashCpf(cpf),
-          pax,
-          status: 'PENDING',
-          expiresAt: paymentResult.expiresAt,
-          idempotencyKey: idempotencyKey ?? null,
-          paymentId: paymentResult.paymentId,
-          paymentUrl: paymentResult.paymentUrl,
-          qrCode: paymentResult.qrCode,
-          cancelToken,
-          cancelTokenExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
-        },
-      })
-    })
-  } catch (tx2Err) {
-    // CR-05: compensate — cancel MP payment + restore slot
-    await paymentService.cancelPixPayment(paymentResult.paymentId).catch((e) => {
-      logger.error(e, '[booking-create] cancelPixPayment falhou após falha no Tx2')
-    })
-    await prisma.$transaction(async (tx) => {
-      const s3 = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
-      await tx.departureSlot.update({
-        where: { id: slotId },
-        data: {
-          booked: { decrement: pax },
-          ...(s3?.status === 'FULL' ? { status: 'OPEN' } : {}),
-        },
-      })
-    })
-    throw tx2Err
-  }
+  // If this write fails the booking stays PENDING: the webhook still finds it through
+  // external_reference, and the expiry job releases the seats if it is never paid.
+  const booking = await prisma.booking.update({
+    where: { id: bookingId },
+    data: {
+      paymentId: paymentResult.paymentId,
+      paymentUrl: paymentResult.paymentUrl,
+      qrCode: paymentResult.qrCode,
+    },
+  })
 
   return {
     booking,

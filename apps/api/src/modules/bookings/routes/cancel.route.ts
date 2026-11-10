@@ -7,6 +7,7 @@ import { cancelSelfBodySchema, type CancelSelfBody } from '../bookings.schemas'
 import { auditLog } from '../../../shared/audit.js'
 import { bookingsCancelledCounter } from '../../../shared/metrics.js'
 import { Sentry } from '../../../shared/sentry'
+import { notifyBookingEvent } from '../../notifications/booking-events'
 
 export async function cancelSelfRoute(app: FastifyInstance) {
   // POST /tenants/:slug/bookings/cancel-self — public, no JWT
@@ -103,6 +104,8 @@ export async function cancelSelfRoute(app: FastifyInstance) {
       }
 
       auditLog(prisma, { actorType: 'USER', action: 'booking.cancelled', targetType: 'BOOKING', targetId: booking.id, ipAddress: request.ip, metadata: { tenantSlug: slug, previousStatus: booking.status } })
+
+      void notifyBookingEvent(app.log, booking.id, 'cancelled').catch(() => {})
 
       return reply.status(200).send({ message: 'Reserva cancelada com sucesso' })
     }

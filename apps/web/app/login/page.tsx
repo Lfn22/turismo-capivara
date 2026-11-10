@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { isPlatformStaff, safeCallbackUrl } from "@/lib/roles"
+import { isGuideUnverified } from "@/lib/guide-status"
+import { Alert } from "@/src/components/ui/capi"
 
 const inputStyle: React.CSSProperties = {
   display: "block",
@@ -58,6 +60,13 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const urlError = searchParams.get("error")
+  const aviso = searchParams.get("aviso")
+  const avisoText =
+    aviso === "senha"
+      ? "Senha alterada. Entre novamente com a nova senha."
+      : aviso === "email"
+      ? "E-mail alterado. Entre novamente com o novo e-mail."
+      : null
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -86,6 +95,8 @@ function LoginForm() {
         router.push(callbackUrl)
       } else if (isPlatformStaff(role)) {
         router.push("/super-admin/operadoras")
+      } else if (role === "CONDUTOR" && (await isGuideUnverified())) {
+        router.push("/guia/status")
       } else if (!tenantSlug) {
         router.push("/login")
       } else if (role === "ADMIN") {
@@ -157,6 +168,12 @@ function LoginForm() {
         >
           Acessar o Painel
         </h1>
+
+        {avisoText && (
+          <Alert tone="success" className="mb-4">
+            {avisoText}
+          </Alert>
+        )}
 
         {(urlError === "forbidden") && (
           <div role="alert" aria-live="polite" style={alertStyle}>

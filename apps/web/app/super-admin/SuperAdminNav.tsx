@@ -3,12 +3,13 @@ import { useCallback, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Building2, Map as MapIcon, Menu, Users } from "lucide-react"
+import { BadgeCheck, Building2, Map as MapIcon, Menu, Users } from "lucide-react"
 import { Avatar, IconButton, Modal, SidebarLinks, cx, type NavItem } from "@/src/components/ui/capi"
 
 const baseNavItems: NavItem[] = [
   { label: "Operadoras", href: "/super-admin/operadoras", icon: Building2 },
   { label: "Destinos", href: "/super-admin/destinos", icon: MapIcon },
+  { label: "Guias", href: "/super-admin/guias", icon: BadgeCheck },
 ]
 
 function Logo({ height }: { height?: number }) {

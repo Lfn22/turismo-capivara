@@ -11,7 +11,7 @@ export default function PoliticaPrivacidade() {
         Política de Privacidade
       </h1>
       <p style={{ color: '#6B5D4F', marginBottom: 40, fontSize: 14 }}>
-        Última atualização: outubro de 2026
+        Última atualização: 10 de novembro de 2026
       </p>
 
       <section style={{ marginBottom: 36 }}>
@@ -22,6 +22,24 @@ export default function PoliticaPrivacidade() {
           Coletamos dados que você nos fornece diretamente (nome, e-mail, telefone) ao se cadastrar
           ou realizar uma reserva, além de dados gerados automaticamente durante o uso do site
           (endereço IP, navegador, páginas visitadas, eventos de clique).
+        </p>
+      </section>
+
+      <section style={{ marginBottom: 36 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 12, color: '#2a1f16' }}>
+          Contato para planejar sua viagem
+        </h2>
+        <p>
+          Ao enviar o formulário &quot;Quero ir&quot;, coletamos seu nome, WhatsApp, destino ou
+          roteiro de interesse, mês pretendido da viagem e a origem da visita (parâmetros UTM de
+          campanhas). Usamos esses dados para que a equipe CAPI entre em contato pelo WhatsApp sobre
+          aquela viagem e indique guias. A base legal é o seu consentimento, dado ao marcar a
+          autorização no formulário. Mantemos esses dados por até 12 meses após o último contato, ou
+          até você pedir a exclusão. Para pedir a exclusão, escreva para{' '}
+          <a href="mailto:privacidade@capi.turismo" style={{ color: '#C4852A' }}>
+            privacidade@capi.turismo
+          </a>
+          .
         </p>
       </section>
 
@@ -48,6 +66,11 @@ export default function PoliticaPrivacidade() {
           ativados após seu consentimento explícito via o banner de cookies. Você pode rejeitar
           a qualquer momento — sem impacto nas funcionalidades do site.
         </p>
+        <p style={{ marginTop: 12 }}>
+          Também utilizamos o <strong>Meta Pixel</strong> (Meta Platforms) em páginas públicas de
+          divulgação, para medir o desempenho de anúncios e formar públicos de remarketing no
+          Facebook e Instagram. Ele só é carregado após o seu aceite no banner de cookies.
+        </p>
       </section>
 
       <section style={{ marginBottom: 36 }}>
@@ -60,6 +83,10 @@ export default function PoliticaPrivacidade() {
           <li><strong>Resend</strong> — envio de e-mails transacionais</li>
           <li><strong>Cloudflare</strong> — armazenamento de arquivos (fotos de perfil, imagens de roteiros)</li>
           <li><strong>PostHog</strong> — analytics de uso (somente com consentimento)</li>
+          <li>
+            <strong>Meta (Facebook/Instagram)</strong> — medição de anúncios e público de remarketing
+            via Meta Pixel (somente com consentimento; envolve transferência internacional de dados)
+          </li>
           <li><strong>Sentry</strong> — monitoramento de erros (interesse legítimo, sem dados pessoais sensíveis)</li>
         </ul>
         <p style={{ marginTop: 12 }}>

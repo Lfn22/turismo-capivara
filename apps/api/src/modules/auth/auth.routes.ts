@@ -6,9 +6,7 @@ import { Prisma } from '@prisma/client'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
-import { hashCpf } from '../../shared/utils/hash'
 import { createRefreshToken, rotateRefreshToken, revokeAllUserTokens, ACCESS_TOKEN_EXPIRY } from './token.service'
-import { notifyGuideRegistered } from '../notifications/guide-events'
 import { requestPasswordResetRoute } from './routes/request-password-reset'
 import { resetPasswordRoute } from './routes/reset-password'
 
@@ -21,22 +19,12 @@ const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
 })
 
-const registerBodySchema = z.discriminatedUnion('role', [
-  z.object({
-    role: z.literal('CLIENTE'),
-    name: z.string().min(1, { message: 'Nome obrigatório' }),
-    email: z.string().email({ message: 'Email inválido' }),
-    password: z.string().min(8, { message: 'Senha deve ter no mínimo 8 caracteres' }),
-  }),
-  z.object({
-    role: z.literal('CONDUTOR'),
-    name: z.string().min(1, { message: 'Nome obrigatório' }),
-    email: z.string().email({ message: 'Email inválido' }),
-    password: z.string().min(8, { message: 'Senha deve ter no mínimo 8 caracteres' }),
-    cpf: z.string().regex(/^\d{11}$/, { message: 'CPF deve conter 11 dígitos numéricos' }),
-    cadastur: z.string().optional(),
-  }),
-])
+const registerBodySchema = z.object({
+  role: z.literal('CLIENTE'),
+  name: z.string().min(1, { message: 'Nome obrigatório' }),
+  email: z.string().email({ message: 'Email inválido' }),
+  password: z.string().min(8, { message: 'Senha deve ter no mínimo 8 caracteres' }),
+})
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/login', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
@@ -92,56 +80,23 @@ export async function authRoutes(app: FastifyInstance) {
 
     const hashedPassword = hashSync(body.password, 10)
 
-    let guideUserId: string | null = null
     try {
-      if (body.role === 'CLIENTE') {
-        await prisma.user.create({
-          data: {
-            tenantId: tenant.id,
-            name: body.name,
-            email: body.email.toLowerCase(),
-            password: hashedPassword,
-            role: 'CLIENTE',
-          },
-          select: { id: true },
-        })
-      } else {
-        guideUserId = await prisma.$transaction(async (tx) => {
-          const user = await tx.user.create({
-            data: {
-              tenantId: tenant.id,
-              name: body.name,
-              email: body.email.toLowerCase(),
-              password: hashedPassword,
-              role: 'CONDUTOR',
-              cpf: hashCpf(body.cpf),
-            },
-            select: { id: true },
-          })
-          await tx.guideProfile.create({
-            data: {
-              userId: user.id,
-              especialidades: [],
-              regioes: [],
-              portfolioPhotos: [],
-              cadastur: body.role === 'CONDUTOR' ? body.cadastur : undefined,
-            },
-          })
-          return user.id
-        })
-      }
+      await prisma.user.create({
+        data: {
+          tenantId: tenant.id,
+          name: body.name,
+          email: body.email.toLowerCase(),
+          password: hashedPassword,
+          role: 'CLIENTE',
+        },
+        select: { id: true },
+      })
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        const fields = err.meta?.target as string[] | undefined
-        if (fields?.includes('cpf')) {
-          throw new AppError('CPF já cadastrado', 409)
-        }
         throw new AppError('Não foi possível criar a conta', 409)
       }
       throw err
     }
-
-    if (guideUserId) void notifyGuideRegistered(app.log, guideUserId).catch(() => {})
 
     return reply.status(201).send({ message: 'Conta criada com sucesso' })
   })
@@ -162,68 +117,6 @@ export async function authRoutes(app: FastifyInstance) {
       tenantId: user.tenantId,
       tenantSlug: tenant?.slug ?? null,
     })
-  })
-
-  // POST /auth/register-independent — registro de guia sem operadora (aprovado pelo super-admin)
-  app.post('/auth/register-independent', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
-    const independentBodySchema = z.object({
-      name: z.string().min(1, { message: 'Nome obrigatório' }),
-      email: z.string().email({ message: 'Email inválido' }),
-      password: z.string().min(8, { message: 'Senha deve ter no mínimo 8 caracteres' }),
-      cpf: z.string().regex(/^\d{11}$/, { message: 'CPF deve conter 11 dígitos numéricos' }),
-      cadastur: z.string().min(1, { message: 'Número CADASTUR obrigatório' }),
-    })
-
-    const { data: body, error: bodyError } = parseBody(independentBodySchema, request.body, reply)
-    if (bodyError) return
-
-    // Garante que o tenant "independente" existe
-    let systemTenant = await prisma.tenant.findFirst({ where: { slug: 'independente' } })
-    if (!systemTenant) {
-      systemTenant = await prisma.tenant.create({
-        data: { slug: 'independente', name: 'Guias Independentes' },
-      })
-    }
-
-    const hashedPassword = hashSync(body.password, 10)
-
-    let guideUserId: string
-    try {
-      guideUserId = await prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({
-          data: {
-            tenantId: systemTenant!.id,
-            name: body.name,
-            email: body.email.toLowerCase(),
-            password: hashedPassword,
-            role: 'CONDUTOR',
-            cpf: hashCpf(body.cpf),
-          },
-          select: { id: true },
-        })
-        await tx.guideProfile.create({
-          data: {
-            userId: user.id,
-            especialidades: [],
-            regioes: [],
-            portfolioPhotos: [],
-            cadastur: body.cadastur,
-          },
-        })
-        return user.id
-      })
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        const fields = err.meta?.target as string[] | undefined
-        if (fields?.includes('cpf')) throw new AppError('CPF já cadastrado', 409)
-        throw new AppError('Não foi possível criar a conta', 409)
-      }
-      throw err
-    }
-
-    void notifyGuideRegistered(app.log, guideUserId).catch(() => {})
-
-    return reply.status(201).send({ message: 'Conta criada com sucesso. Aguarde aprovação.' })
   })
 
   app.post('/auth/refresh', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {

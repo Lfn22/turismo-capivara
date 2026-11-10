@@ -7,6 +7,7 @@ import { PainelDestinationCard, PainelDestination } from '@/src/components/ui/Pa
 import BackButton from '@/src/components/ui/BackButton'
 import { MapPinned, Plus, RotateCw, Trash2 } from 'lucide-react'
 import { Alert, Button, EmptyState, Modal, PageHeader, Skeleton } from '@/src/components/ui/capi'
+import { fetchEditScope, type EditScope } from '@/lib/edit-client'
 
 export default function DestinosPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -17,6 +18,7 @@ export default function DestinosPage() {
   const [loadError, setLoadError] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string>('')
   const [currentUserRole, setCurrentUserRole] = useState<string>('')
+  const [scope, setScope] = useState<EditScope | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -24,10 +26,12 @@ export default function DestinosPage() {
     setLoading(true)
     setLoadError(false)
     try {
-      const [sessionRes, destRes] = await Promise.all([
+      const [sessionRes, destRes, editScope] = await Promise.all([
         fetch('/api/auth/session'),
         fetch(`/api/tenants/${slug}/destinations`),
+        fetchEditScope().catch(() => null),
       ])
+      setScope(editScope)
       if (sessionRes.ok) {
         const session = await sessionRes.json()
         setCurrentUserId((session?.user as any)?.id ?? '')
@@ -67,7 +71,7 @@ export default function DestinosPage() {
         if (res.status === 400 && msg.includes('aprovado')) {
           toast.error('Não é possível excluir um destino já aprovado. Entre em contato com o suporte.')
         } else {
-          throw new Error(`HTTP ${res.status}`)
+          toast.error(msg || 'Não foi possível excluir o destino. Tente novamente.')
         }
         return
       }
@@ -84,6 +88,11 @@ export default function DestinosPage() {
   const closeDelete = useCallback(() => {
     if (!deleting) setDeleteConfirm(null)
   }, [deleting])
+
+  // ADMIN: a API só aceita destinos do escopo de edição ou propostas próprias ainda não aprovadas
+  const adminCanManage = (dest: PainelDestination) =>
+    (!!dest.slug && !!scope && (scope.destinations === 'ALL' || scope.destinations.includes(dest.slug))) ||
+    (dest.approvalStatus !== 'APPROVED' && !!currentUserId && dest.createdById === currentUserId)
 
   const deleteTarget = deleteConfirm ? destinations.find((d) => d.id === deleteConfirm) : undefined
 
@@ -117,7 +126,7 @@ export default function DestinosPage() {
       <BackButton fallbackHref={`/${slug}/painel`} />
 
       <PageHeader
-        eyebrow="Painel do guia"
+        eyebrow="Painel da agência"
         title="Destinos"
         description="Locais que você cadastrou. Cada novo destino passa por aprovação antes de aparecer no marketplace."
         actions={
@@ -172,7 +181,7 @@ export default function DestinosPage() {
             <PainelDestinationCard
               key={dest.id}
               destination={dest}
-              isOwner={currentUserRole === 'ADMIN' || (!!currentUserId && dest.createdById === currentUserId)}
+              isOwner={currentUserRole === 'ADMIN' ? adminCanManage(dest) : (!!currentUserId && dest.createdById === currentUserId)}
               showStatus
               onEdit={handleEdit}
               onDelete={(id) => setDeleteConfirm(id)}

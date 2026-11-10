@@ -1,5 +1,10 @@
-import { ArrowLeft, CalendarX, Check, Clock, SearchX } from 'lucide-react'
+import { ArrowLeft, CalendarX, Check, Clock, SearchX, Users } from 'lucide-react'
+import PackageMembershipButton from '@/src/components/membership/PackageMembershipButton'
+import GuideCard, { type GuideCardGuide } from '@/src/components/ui/GuideCard'
+import { TrackView } from '@/src/components/tracking/TrackView'
+import { PackageEditSection } from '@/src/components/edit-mode/PackageEditControls'
 import SlotPicker from '@/src/components/ui/SlotPicker'
+import { LeadForm } from '@/src/components/leads/LeadForm'
 import {
   Avatar,
   Badge,
@@ -30,9 +35,48 @@ interface TourPackage {
   duration: string
   difficulty: string
   conductorId: string
+  capacity: number
   departureSlots: Slot[]
   photos?: string[]
   highlights?: string[]
+}
+
+interface ApiGuide {
+  guideId: string
+  name: string
+  photoUrl: string | null
+  especialidades: string[]
+}
+
+async function fetchPackageGuides(id: string): Promise<GuideCardGuide[]> {
+  try {
+    const res = await fetch(`${API_URL}/packages/${id}/guides`, { next: { revalidate: 300 } })
+    if (!res.ok) return []
+    const raw: ApiGuide[] = await res.json()
+    if (!Array.isArray(raw)) return []
+    return raw.map((g) => ({
+      id: g.guideId,
+      name: g.name,
+      photoUrl: g.photoUrl ?? null,
+      specialties: g.especialidades ?? [],
+      packageCount: 0,
+      rating: null,
+      reviewCount: null,
+    }))
+  } catch {
+    return []
+  }
+}
+
+async function fetchDestinationSlug(slug: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${API_URL}/tenants/${slug}/destination`, { next: { revalidate: 300 } })
+    if (!res.ok) return null
+    const data = await res.json()
+    return typeof data?.slug === 'string' ? data.slug : null
+  } catch {
+    return null
+  }
 }
 
 interface Guide {
@@ -116,6 +160,11 @@ export default async function RoteirDetalhe({
 
   const difficulty = DIFFICULTY_KEY[pkg.difficulty]
 
+  const [guides, destinationSlug] = await Promise.all([
+    fetchPackageGuides(packageId),
+    fetchDestinationSlug(slug),
+  ])
+
   const openSlots = (pkg.departureSlots ?? []).filter(
     (s) => s.status === 'OPEN' && s.booked < s.capacity
   )
@@ -123,6 +172,7 @@ export default async function RoteirDetalhe({
 
   return (
     <div className={hasSlots ? 'capi-has-bottombar capi-has-bottombar--book' : undefined}>
+      <TrackView event="package_viewed" properties={{ packageId, destinationSlug }} />
       <div className="capi-container py-6 md:py-10">
         <Button href={`/${slug}/roteiros`} variant="ghost" size="sm" iconLeft={ArrowLeft} className="mb-4">
           Todos os roteiros
@@ -130,6 +180,24 @@ export default async function RoteirDetalhe({
 
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
           {/* Conteúdo */}
+          <div className="min-w-0">
+          <PackageEditSection
+            conductorId={pkg.conductorId ?? null}
+            destinationSlug={destinationSlug}
+            pkg={{
+              id: pkg.id,
+              tenantSlug: slug,
+              name: pkg.name,
+              description: pkg.description,
+              price: Number(pkg.price),
+              duration: parseInt(pkg.duration) || 1,
+              capacity: pkg.capacity,
+              difficulty: difficulty ?? 'EASY',
+              photos: pkg.photos ?? [],
+              highlights: pkg.highlights ?? [],
+              status: 'PUBLISHED',
+            }}
+          >
           <div className="min-w-0">
             {/* Galeria: carrossel no mobile, grade no desktop */}
             {pkg.photos && pkg.photos.length > 0 && (
@@ -164,6 +232,10 @@ export default async function RoteirDetalhe({
               </div>
 
               <h1 className="font-display m-0 mb-3 text-3xl md:text-4xl">{pkg.name}</h1>
+
+              <div className="mb-4">
+                <PackageMembershipButton packageId={pkg.id} />
+              </div>
 
               <p className="m-0 mb-4 lg:hidden">
                 <span className="text-sm text-fg-secondary">a partir de </span>
@@ -215,6 +287,31 @@ export default async function RoteirDetalhe({
               </section>
             )}
           </div>
+          </PackageEditSection>
+
+          {/* Guias do roteiro */}
+          <section id="guias" className="mb-8 scroll-mt-24" aria-labelledby="guias-heading">
+            <h2 id="guias-heading" className="m-0 mb-3 text-lg">Guias deste roteiro</h2>
+            {guides.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {guides.map((g) => (
+                  <GuideCard
+                    key={g.id}
+                    guide={g}
+                    href={destinationSlug ? `/destinos/${destinationSlug}/guias/${g.id}` : '#guias'}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                compact
+                icon={Users}
+                title="Nenhum guia vinculado a este roteiro ainda"
+                description="Em breve condutores estarão disponíveis para este roteiro."
+              />
+            )}
+          </section>
+          </div>
 
           {/* Reserva: abaixo do conteúdo no mobile, coluna sticky no desktop */}
           <section id="datas" aria-label="Datas e reserva" className="scroll-mt-24 lg:sticky lg:top-24">
@@ -232,6 +329,8 @@ export default async function RoteirDetalhe({
               action={
                 hasSlots ? (
                   <SlotPicker slots={pkg.departureSlots ?? []} packageId={pkg.id} slug={slug} />
+                ) : destinationSlug ? (
+                  <LeadForm destinationSlug={destinationSlug} packageId={pkg.id} compact heading="Me avise quando abrir data" />
                 ) : (
                   <EmptyState
                     compact

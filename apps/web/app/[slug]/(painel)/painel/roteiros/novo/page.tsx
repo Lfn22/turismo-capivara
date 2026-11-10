@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { useSession } from "next-auth/react"
+import { painelEyebrow } from "@/lib/painel"
 import { useRouter, useParams } from "next/navigation"
 import { Check } from "lucide-react"
 import { Alert, Button, Input, PageHeader, Select, Textarea } from "@/src/components/ui/capi"
@@ -13,6 +15,7 @@ const DIFFICULTIES = [
 ]
 
 export default function NovoRoteiroPage() {
+  const { data: session } = useSession()
   const router = useRouter()
   const params = useParams()
   const slug = params.slug as string
@@ -87,7 +90,7 @@ export default function NovoRoteiroPage() {
       <PageHeader
         backHref={`/${slug}/painel/roteiros`}
         backLabel="Roteiros"
-        eyebrow="Painel do guia"
+        eyebrow={painelEyebrow(session?.user?.role)}
         title="Novo roteiro"
         description="Preencha o básico agora. Fotos e experiências você adiciona depois."
       />

@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { SidebarNav } from "@/components/sidebar/SidebarNav"
-import { Toaster } from "sonner"
 import ErrorBoundary from "@/src/components/ui/ErrorBoundary"
 
 export default async function PainelLayout({
@@ -45,12 +44,12 @@ export default async function PainelLayout({
         }
       `}</style>
       <ErrorBoundary>
-        <Toaster position="top-right" richColors />
         <div className="painel-shell">
           <SidebarNav
             slug={slug}
             userName={session.user?.name}
             userEmail={session.user?.email}
+            userImage={session.user?.photoUrl}
             role={role}
           />
           <main className="painel-main">

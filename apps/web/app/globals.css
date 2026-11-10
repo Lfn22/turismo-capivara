@@ -215,6 +215,7 @@
   --z-nav: 40;
   --z-overlay: 50;
   --z-toast: 60;
+  --z-sheet: 80; /* acima da UserBar (60) e do menu de notificações (70) */
   --radius-pill: 9999px;
   --radius-round: 50%;
 

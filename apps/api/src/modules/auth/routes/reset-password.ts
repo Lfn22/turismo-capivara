@@ -4,6 +4,7 @@ import { createHash } from 'crypto'
 import { hashSync } from 'bcryptjs'
 import prisma from '../../../database'
 import { AppError } from '../../../shared/errors/AppError'
+import { revokeAllUserTokens } from '../token.service'
 
 const bodySchema = z.object({
   token: z.string().min(1, { message: 'Token obrigatório' }),
@@ -67,6 +68,8 @@ export async function resetPasswordRoute(app: FastifyInstance) {
           where: { id: resetToken.userId },
           data: { password: hashedPassword },
         })
+        // Senha redefinida encerra as sessões existentes
+        await revokeAllUserTokens(resetToken.userId, tx)
       })
 
       return reply.status(200).send({ message: 'Senha redefinida com sucesso' })

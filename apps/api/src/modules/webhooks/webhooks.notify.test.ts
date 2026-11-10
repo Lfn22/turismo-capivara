@@ -10,12 +10,13 @@ process.env.MP_ACCESS_TOKEN = 'test-mp-token'
 
 const tx = {
   booking: { update: vi.fn() },
-  departureSlot: { findUnique: vi.fn(), updateMany: vi.fn() },
+  departureSlot: { findUnique: vi.fn(), update: vi.fn() },
 }
 
 vi.mock('../../database', () => ({
   default: {
     processedWebhookEvent: { create: vi.fn() },
+    auditLog: { create: vi.fn(() => Promise.resolve({})) },
     booking: { findFirst: vi.fn(), updateMany: vi.fn() },
     $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   },
@@ -27,7 +28,7 @@ vi.mock('../../shared/email', () => ({
 }))
 
 vi.mock('../../shared/sentry', () => ({
-  Sentry: { captureException: vi.fn(), withScope: vi.fn(), setupFastifyErrorHandler: vi.fn() },
+  Sentry: { captureException: vi.fn(), withScope: vi.fn(), setupFastifyErrorHandler: vi.fn(), setTag: vi.fn() },
 }))
 
 vi.mock('../notifications/booking-events', () => ({

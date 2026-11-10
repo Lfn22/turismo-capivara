@@ -4,6 +4,8 @@ import Link from "next/link"
 import { signOut, useSession } from "next-auth/react"
 import { isPlatformStaff } from "@/lib/roles"
 import { NotificationBell } from "./NotificationBell"
+import { useEditMode } from "@/src/components/edit-mode/EditModeProvider"
+import { Avatar } from "@/src/components/ui/capi"
 
 function painelHref(role: string | undefined, tenantSlug: string | null | undefined): string | null {
   if (isPlatformStaff(role)) return "/super-admin/operadoras"
@@ -17,6 +19,7 @@ export function UserBar() {
   const active = status === "authenticated" && !!session?.user
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const { available, enabled, setEnabled } = useEditMode()
 
   useEffect(() => {
     if (!active) return
@@ -81,6 +84,28 @@ export function UserBar() {
       }}
     >
       <NotificationBell role={role} />
+      {available && (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          onClick={() => setEnabled(!enabled)}
+          style={{
+            background: enabled ? "var(--stone-50)" : "transparent",
+            color: enabled ? "var(--stone-900)" : "var(--stone-50)",
+            border: "1px solid var(--stone-50)",
+            borderRadius: "999px",
+            padding: "0 12px",
+            minHeight: "32px",
+            cursor: "pointer",
+            fontSize: "14px",
+            fontFamily: "var(--font-body)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          ✏️ Modo edição
+        </button>
+      )}
       <div ref={menuRef} style={{ position: "relative" }}>
         <button
           type="button"
@@ -94,14 +119,15 @@ export function UserBar() {
             cursor: "pointer",
             fontSize: "14px",
             fontFamily: "var(--font-body)",
-            maxWidth: "180px",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            maxWidth: "220px",
             minHeight: "40px",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
           }}
         >
-          {name} ▾
+          <Avatar name={name} src={session.user.photoUrl} size={28} />
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name} ▾</span>
         </button>
         {menuOpen && (
           <div
@@ -123,6 +149,9 @@ export function UserBar() {
                 Meu painel
               </Link>
             )}
+            <Link role="menuitem" href="/conta" style={itemStyle} onClick={() => setMenuOpen(false)}>
+              Minha conta
+            </Link>
             {showPendencias && (
               <Link role="menuitem" href="/pendencias" style={itemStyle} onClick={() => setMenuOpen(false)}>
                 Pendências

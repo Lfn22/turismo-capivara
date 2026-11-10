@@ -3,6 +3,7 @@ import { Route } from 'lucide-react';
 import PublicLayout from '@/src/components/layout/PublicLayout';
 import { DestinationSubheader, DestinationTabs } from '@/src/components/ui/DestinationHero';
 import { Button, EmptyState } from '@/src/components/ui/capi';
+import { PackageListEdit } from '@/src/components/edit-mode/PackageEditControls';
 import PackageCard, {
   PackageCardPackage,
 } from '@/src/components/ui/PackageCard';
@@ -25,7 +26,7 @@ interface ApiPackage {
 
 interface DestinationPackages {
   destinationTitle: string;
-  packages: PackageCardPackage[];
+  packages: Array<PackageCardPackage & { tenantSlug: string }>;
 }
 
 async function fetchDestinationPackages(slug: string): Promise<DestinationPackages> {
@@ -37,7 +38,8 @@ async function fetchDestinationPackages(slug: string): Promise<DestinationPackag
     const destination = destRes.ok ? await destRes.json() : null;
     const raw: ApiPackage[] = packagesRes.ok ? await packagesRes.json() : [];
     const packages = Array.isArray(raw)
-      ? raw.map((p): PackageCardPackage => ({
+      ? raw.map((p): PackageCardPackage & { tenantSlug: string } => ({
+          tenantSlug: p.tenantSlug,
           id: p.id,
           name: p.name,
           durationMinutes: (p.duration ?? 0) * 60, // horas → minutos
@@ -123,6 +125,7 @@ export default async function DestinationRoteirosPage({ params }: Props) {
         <DestinationTabs slug={slug} active="roteiros" />
 
         <main className="capi-container droteiros__body">
+          <PackageListEdit destinationSlug={slug}>
           {packages.length > 0 ? (
             <>
               <p className="droteiros__count">
@@ -134,7 +137,7 @@ export default async function DestinationRoteirosPage({ params }: Props) {
                   <PackageCard
                     key={pkg.id}
                     package={pkg}
-                    href={`/destinos/${slug}/roteiros/${pkg.id}`}
+                    href={`/${pkg.tenantSlug}/roteiros/${pkg.id}`}
                   />
                 ))}
               </div>
@@ -151,6 +154,7 @@ export default async function DestinationRoteirosPage({ params }: Props) {
               }
             />
           )}
+          </PackageListEdit>
         </main>
       </div>
     </PublicLayout>

@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { parseBody, parseParams, parseQuery } from '../../shared/utils/zod-error'
+import { parseBody, parseParams, parseQuery, zodError } from '../../shared/utils/zod-error'
 import { Prisma } from '@prisma/client'
 import { hashSync } from 'bcryptjs'
 import prisma from '../../database'
@@ -11,6 +11,7 @@ import { getResend, getEmailFrom } from '../../shared/email'
 import { Sentry } from '../../shared/sentry'
 import { approvalEmailText } from './emails/approval-email'
 import { rejectionEmailText } from './emails/rejection-email'
+import { PLATFORM_TENANT_SLUG } from '../platform-admins/platform-admins.routes'
 import { auditLog } from '../../shared/audit.js'
 
 const slugParamsSchema = z.object({
@@ -31,6 +32,7 @@ const signupBodySchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
   password: z.string().min(8, { message: 'Senha deve ter no mínimo 8 caracteres' }),
   cnpj: z.string().min(14, { message: 'CNPJ inválido' }).max(18, { message: 'CNPJ inválido' }),
+  type: z.enum(['AGENCIA', 'ASSOCIACAO']).default('AGENCIA'),
 })
 
 const rejectBodySchema = z.object({
@@ -55,6 +57,30 @@ export async function tenantsRoutes(app: FastifyInstance) {
     return tenants
   })
 
+  // Busca pública de agência/associação para o cadastro de guia
+  app.get('/tenants/search', async (request, reply) => {
+    const parsed = z
+      .object({
+        q: z.string().trim().min(2, { message: 'Digite ao menos 2 caracteres' }).max(60, { message: 'Busca muito longa' }),
+        type: z.enum(['AGENCIA', 'ASSOCIACAO'], { message: 'Tipo inválido' }).optional(),
+      })
+      .safeParse(request.query)
+    if (!parsed.success) return reply.status(400).send(zodError(parsed.error))
+
+    const tenants = await prisma.tenant.findMany({
+      where: {
+        approvalStatus: 'APPROVED',
+        slug: { notIn: ['independente', PLATFORM_TENANT_SLUG] },
+        ...(parsed.data.type ? { type: parsed.data.type } : {}),
+        name: { contains: parsed.data.q, mode: 'insensitive' },
+      },
+      select: { id: true, name: true, slug: true, type: true },
+      orderBy: { name: 'asc' },
+      take: 10,
+    })
+    return reply.send({ tenants })
+  })
+
   app.get('/tenants/:slug', async (request, reply) => {
     const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
     if (paramsError) return
@@ -62,7 +88,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
 
     const tenant = await prisma.tenant.findUnique({
       where: { slug },
-      select: { id: true, name: true, slug: true, approvalStatus: true },
+      select: { id: true, name: true, slug: true, approvalStatus: true, logoUrl: true },
     })
 
     if (!tenant) {
@@ -74,6 +100,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
       name: tenant.name,
       slug: tenant.slug,
       approvalStatus: tenant.approvalStatus,
+      logoUrl: tenant.logoUrl,
     })
   })
 
@@ -92,7 +119,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
     try {
       await prisma.$transaction(async (tx) => {
         const tenant = await tx.tenant.create({
-          data: { name: body.name, slug: body.slug, cnpj: body.cnpj, approvalStatus: 'PENDING' },
+          data: { name: body.name, slug: body.slug, cnpj: body.cnpj, type: body.type, approvalStatus: 'PENDING' },
         })
         await tx.user.create({
           data: {
@@ -154,6 +181,8 @@ export async function tenantsRoutes(app: FastifyInstance) {
           name: true,
           slug: true,
           cnpj: true,
+          whatsapp: true,
+          logoUrl: true,
           approvalStatus: true,
           createdAt: true,
           users: {
@@ -189,6 +218,8 @@ export async function tenantsRoutes(app: FastifyInstance) {
           name: true,
           slug: true,
           cnpj: true,
+          whatsapp: true,
+          logoUrl: true,
           approvalStatus: true,
           createdAt: true,
           users: {
@@ -233,7 +264,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
       select: { id: true },
     })
 
-    auditLog(prisma, { actorType: 'USER', actorId: (request.user as { sub: string }).sub, action: 'tenant.approved', targetType: 'TENANT', targetId: params.id, ipAddress: request.ip, metadata: { tenantName: tenant.slug } })
+    auditLog(prisma, { actorType: 'USER', action: 'tenant.approved', targetType: 'TENANT', targetId: params.id, ipAddress: request.ip, metadata: { actorUserId: request.user.sub, tenantName: tenant.slug } })
 
     const resend = getResend()
     if (resend && tenant.users[0]) {

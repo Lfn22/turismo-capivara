@@ -1,10 +1,17 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
+import { painelEyebrow } from "@/lib/painel"
 import BackButton from "@/src/components/ui/BackButton"
 import { PhotoUploadArea } from "@/src/components/ui/PhotoUploadArea"
+import { AvatarPicker } from "@/src/components/ui/AvatarPicker"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { toast } from "sonner"
 import { MapPin, ShieldCheck } from "lucide-react"
-import { Alert, Avatar, Badge, Button, Input, PageHeader, Skeleton, Textarea } from "@/src/components/ui/capi"
+import { Alert, Badge, Button, Input, ListGroup, ListRow, PageHeader, Skeleton, Textarea } from "@/src/components/ui/capi"
+import { callProxy } from "@/src/components/membership/membership-shared"
+import { guideShareUrl } from "@/src/lib/share-link"
 
 interface GuideProfileData {
   id: string
@@ -22,18 +29,40 @@ interface GuideProfileData {
   }
 }
 
+interface Memberships {
+  destinations: { slug: string; title: string }[]
+  packages: {
+    id: string
+    name: string
+    destinationSlug: string | null
+    state: "PENDING" | "REJECTED" | "IN"
+    rejectionReason: string | null
+  }[]
+}
+
+function membershipBadge(state: "PENDING" | "REJECTED" | "IN", reason: string | null) {
+  if (state === "PENDING") return "Aguardando aprovação"
+  if (state === "REJECTED") return `Recusado: ${reason ?? ""}`
+  return "Você atua aqui ✓"
+}
+
 export default function PerfilPage({
   params,
 }: {
   params: Promise<{ slug: string }>
 }) {
-  const { data: session } = useSession()
+  const { data: session, update: updateSession } = useSession()
+  const router = useRouter()
   const sessionUserId = (session?.user as any)?.id ?? ""
 
   const [slug, setSlug] = useState("")
   const [profile, setProfile] = useState<GuideProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+
+  const [memberships, setMemberships] = useState<Memberships | null>(null)
+  const [leavingId, setLeavingId] = useState<string | null>(null)
+  const [leaveError, setLeaveError] = useState<string | null>(null)
 
   // Form fields
   const [bio, setBio] = useState("")
@@ -45,6 +74,23 @@ export default function PerfilPage({
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
+  const [shareUrl, setShareUrl] = useState("")
+  const [linkCopied, setLinkCopied] = useState(false)
+
+  useEffect(() => {
+    if (profile?.id) setShareUrl(guideShareUrl(window.location.origin, profile.id))
+  }, [profile?.id])
+
+  async function copyShareUrl() {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 3000)
+    } catch {
+      (document.getElementById("share-link") as HTMLInputElement | null)?.select()
+    }
+  }
+
   // Unwrap params Promise (Next.js 16 Client Components)
   useEffect(() => {
     Promise.resolve(params).then(({ slug: s }) => setSlug(s))
@@ -55,45 +101,68 @@ export default function PerfilPage({
     setLoading(true)
     setLoadError(false)
 
-    // GET /tenants/:slug/guides returns only APPROVED guides.
-    // For PENDING guides, fall back to an empty profile using session data.
-    fetch(`/api/proxy?path=/tenants/${slug}/guides`)
+    fetch("/api/proxy?path=/guides/me")
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
       })
       .then((data) => {
-        const guides: GuideProfileData[] = Array.isArray(data)
-          ? data
-          : data.guides ?? []
-        const mine = guides.find((g) => g.user?.id === sessionUserId)
-        if (mine) {
-          setProfile(mine)
-          setBio(mine.bio ?? "")
-          setEspecialidades((mine.especialidades ?? []).join(", "))
-          setRegioes((mine.regioes ?? []).join(", "))
-          setPortfolioPhotos(mine.portfolioPhotos ?? [])
-        } else {
-          // Guia PENDING ou sem perfil aprovado — exibir formulário vazio
-          setProfile({
-            id: "",
-            bio: null,
-            photoUrl: null,
-            especialidades: [],
-            regioes: [],
-            portfolioPhotos: [],
-            user: {
-              id: sessionUserId,
-              name: (session?.user as any)?.name ?? "",
-              email: (session?.user as any)?.email ?? "",
-              approvalStatus: "PENDING_APPROVAL",
-            },
-          })
-        }
+        const p = data.profile ?? {}
+        setProfile({
+          id: p.id ?? "",
+          bio: p.bio ?? null,
+          photoUrl: p.photoUrl ?? null,
+          especialidades: p.especialidades ?? [],
+          regioes: p.regioes ?? [],
+          portfolioPhotos: p.portfolioPhotos ?? [],
+          user: {
+            id: sessionUserId,
+            name: (session?.user as any)?.name ?? "",
+            email: (session?.user as any)?.email ?? "",
+            approvalStatus: data.approvalStatus,
+          },
+        })
+        setBio(p.bio ?? "")
+        setEspecialidades((p.especialidades ?? []).join(", "))
+        setRegioes((p.regioes ?? []).join(", "))
+        setPortfolioPhotos(p.portfolioPhotos ?? [])
       })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
   }, [slug, sessionUserId])
+
+  const loadMemberships = useCallback(
+    () =>
+      fetch("/api/proxy?path=/guides/me/memberships")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => data && setMemberships(data))
+        .catch(() => {}),
+    [],
+  )
+
+  useEffect(() => {
+    void loadMemberships()
+  }, [loadMemberships])
+
+  // Sair (ou cancelar o pedido) de um roteiro — funciona também para rascunho/arquivado, que não têm página pública
+  async function leavePackage(p: Memberships["packages"][number]) {
+    const text = p.state === "PENDING" ? "Deseja cancelar o pedido?" : "Deseja mesmo deixar de atuar neste roteiro?"
+    if (!window.confirm(text)) return
+    setLeavingId(p.id)
+    setLeaveError(null)
+    try {
+      const { res, data } = await callProxy(`/packages/${p.id}/guides/me`, "DELETE")
+      if (!res.ok) {
+        setLeaveError(data?.message ?? "Não foi possível concluir a ação.")
+        return
+      }
+      await loadMemberships()
+    } catch {
+      setLeaveError("Não foi possível concluir a ação.")
+    } finally {
+      setLeavingId(null)
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -141,9 +210,24 @@ export default function PerfilPage({
     const res = await fetch("/api/uploads/photos?folder=guides", { method: "POST", body: form })
     if (!res.ok) throw new Error("Falha ao enviar foto")
     const data = await res.json()
-    const url = data.url ?? data.secure_url ?? data.path
+    const url = data.url
     if (!url) throw new Error("URL não retornada")
     setPortfolioPhotos((prev) => [...prev, url])
+  }
+
+  // Foto do guia = GuideProfile.photoUrl; /account/me grava nela e a sessão reflete no UserBar/sidebar
+  async function handleAvatarChange(photoUrl: string | null) {
+    const res = await fetch(`/api/proxy?path=${encodeURIComponent("/account/me")}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photoUrl }),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok) throw new Error(data?.message ?? "Não foi possível salvar a foto.")
+    setProfile((prev) => (prev ? { ...prev, photoUrl: data?.photoUrl ?? null } : prev))
+    await updateSession()
+    router.refresh()
+    toast.success(photoUrl ? "Foto atualizada." : "Foto removida.")
   }
 
   function handleRemovePhoto(url: string) {
@@ -228,7 +312,7 @@ export default function PerfilPage({
       <BackButton fallbackHref={slug ? `/${slug}/painel` : "/"} />
 
       <PageHeader
-        eyebrow="Painel do guia"
+        eyebrow={painelEyebrow(session?.user?.role)}
         title="Meu perfil"
         description="Como os turistas veem você na sua página de guia."
       />
@@ -258,19 +342,27 @@ export default function PerfilPage({
       ) : (
         <>
           <div className="perfil-id">
-            <Avatar name={profile?.user?.name} src={profile?.photoUrl} size={80} verified={isApproved} />
-            <div style={{ minWidth: 0 }}>
-              <p className="perfil-id__name">{profile?.user?.name || "Guia"}</p>
-              {profile?.user?.email ? <p className="perfil-id__email">{profile.user.email}</p> : null}
-              {/* GUIDE-02: Badge de guia verificado */}
-              {isApproved && (
-                <div className="perfil-id__badge">
-                  <Badge tone="brand" icon={ShieldCheck} title="Guia verificado pela plataforma">
-                    Guia verificado
-                  </Badge>
-                </div>
-              )}
-            </div>
+            <AvatarPicker
+              name={profile?.user?.name}
+              src={profile?.photoUrl}
+              size={80}
+              verified={isApproved}
+              folder={session?.user?.role === "CONDUTOR" ? "guides" : "avatars"}
+              onChange={handleAvatarChange}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p className="perfil-id__name">{profile?.user?.name || "Guia"}</p>
+                {profile?.user?.email ? <p className="perfil-id__email">{profile.user.email}</p> : null}
+                {/* GUIDE-02: Badge de guia verificado */}
+                {isApproved && (
+                  <div className="perfil-id__badge">
+                    <Badge tone="brand" icon={ShieldCheck} title="Guia verificado pela plataforma">
+                      Guia verificado
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            </AvatarPicker>
           </div>
 
           {approvalAlert && (
@@ -279,11 +371,26 @@ export default function PerfilPage({
             </Alert>
           )}
 
+          {isApproved && shareUrl && (
+            <section className="perfil-section" style={{ marginBottom: "var(--space-8)" }}>
+              <div className="perfil-head">
+                <h2 className="perfil-title">Seu link de divulgação</h2>
+                <p className="perfil-desc">
+                  Use este link no seu Instagram, WhatsApp e status. Assim a gente sabe quantas pessoas você trouxe.
+                </p>
+              </div>
+              <Input id="share-link" label="Link" type="text" value={shareUrl} readOnly />
+              <Button type="button" onClick={copyShareUrl}>
+                {linkCopied ? "Link copiado!" : "Copiar link"}
+              </Button>
+            </section>
+          )}
+
           <form onSubmit={handleSave} className="perfil-form">
             <section className="perfil-section">
               <div className="perfil-head">
                 <h2 className="perfil-title">Dados pessoais</h2>
-                <p className="perfil-desc">Para alterar estes dados, fale com o suporte.</p>
+                <p className="perfil-desc">Para alterar o nome, acesse <Link href="/conta">Minha conta</Link>.</p>
               </div>
 
               <Input
@@ -395,6 +502,50 @@ export default function PerfilPage({
             </div>
           </form>
         </>
+      )}
+
+      {memberships && (memberships.destinations.length > 0 || memberships.packages.length > 0) && (
+        <section className="perfil-section" style={{ marginTop: "var(--space-10)" }}>
+          <div className="perfil-head">
+            <h2 className="perfil-title">Meus destinos e roteiros</h2>
+          </div>
+          <ListGroup>
+            {memberships.destinations.map((d) => (
+              <ListRow
+                key={d.slug}
+                href={`/destinos/${d.slug}`}
+                title={d.title}
+                trailing={<Badge tone="success">{membershipBadge("IN", null)}</Badge>}
+              />
+            ))}
+            {memberships.packages.map((p) => (
+              <div key={p.id} style={{ display: "flex", alignItems: "center" }}>
+                <ListRow
+                  className="flex-1"
+                  href={p.destinationSlug ? `/destinos/${p.destinationSlug}/roteiros/${p.id}` : `/${slug}/roteiros/${p.id}`}
+                  title={p.name}
+                  trailing={
+                    <Badge tone={p.state === "REJECTED" ? "danger" : p.state === "IN" ? "success" : "warning"}>
+                      {membershipBadge(p.state, p.rejectionReason)}
+                    </Badge>
+                  }
+                />
+                {p.state !== "REJECTED" ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    loading={leavingId === p.id}
+                    disabled={leavingId !== null}
+                    onClick={() => leavePackage(p)}
+                  >
+                    {p.state === "PENDING" ? "Cancelar pedido" : "Sair"}
+                  </Button>
+                ) : null}
+              </div>
+            ))}
+          </ListGroup>
+          {leaveError && <Alert tone="danger">{leaveError}</Alert>}
+        </section>
       )}
     </div>
   )

@@ -7,11 +7,7 @@ import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
-import { getResend, getEmailFrom } from '../../shared/email'
-import { notifyGuideDecision } from '../notifications/guide-events'
-import { guideApprovedEmailText, guideApprovedSubject } from '../bookings/emails/guide-approved-email'
-import { Sentry } from '../../shared/sentry'
-import { guideRejectedEmailText, guideRejectedSubject } from '../bookings/emails/guide-rejected-email'
+import { imageUrlSchema } from '../../shared/utils/image-url'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -26,13 +22,9 @@ const adminGuidesQuerySchema = z.object({
   status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
 })
 
-const rejectBodySchema = z.object({
-  reason: z.string().min(1, { message: 'Motivo da rejeição obrigatório' }),
-})
-
 const updateProfileBodySchema = z.object({
   bio: z.string().optional(),
-  photoUrl: z.string().url({ message: 'URL inválida' }).optional().nullable(),
+  photoUrl: imageUrlSchema.optional().nullable(),
   especialidades: z.array(z.string()).optional(),
   regioes: z.array(z.string()).optional(),
   portfolioPhotos: z.array(z.string().url({ message: 'URL inválida' })).optional(),
@@ -169,125 +161,6 @@ export async function guidesRoutes(app: FastifyInstance) {
     return reply.status(200).send({ guides })
   })
 
-  // PATCH /tenants/:slug/admin/guides/:id/approve — ADMIN only
-  app.patch('/tenants/:slug/admin/guides/:id/approve', {
-    preHandler: [authenticate, authorize(['ADMIN'])],
-  }, async (request, reply) => {
-    const admin = request.user as { sub: string; tenantId: string; role: string }
-
-    const { data: params, error: paramsError } = parseParams(guideIdParamsSchema, request.params, reply)
-    if (paramsError) return
-
-    Sentry.setTag('module', 'guides')
-    Sentry.setTag('tenant', params.slug)
-    Sentry.setTag('action', 'approve')
-
-    const guideProfile = await prisma.guideProfile.findFirst({
-      where: {
-        id: params.id,
-        user: {
-          tenantId: admin.tenantId,
-          role: 'CONDUTOR',
-        },
-      },
-      select: {
-        userId: true,
-        user: { select: { name: true, email: true } },
-      },
-    })
-
-    if (!guideProfile) throw new AppError('Guia não encontrado', 404)
-
-    await prisma.user.update({
-      where: { id: guideProfile.userId },
-      data: { approvalStatus: 'APPROVED', rejectionReason: null },
-    })
-
-    // NOTIF-03: Notify guide of account approval (fire-and-forget, D-12)
-    const resend = getResend()
-    if (resend && guideProfile.user.email) {
-      resend.emails
-        .send({
-          from: getEmailFrom(),
-          to: guideProfile.user.email,
-          subject: guideApprovedSubject,
-          text: guideApprovedEmailText({ guideName: guideProfile.user.name ?? 'Guia', slug: params.slug }),
-        })
-        .catch((emailErr: unknown) => {
-          app.log.warn({ err: emailErr, guideId: params.id }, '[email] Failed to send guide-approved email')
-        })
-    }
-
-    void notifyGuideDecision(app.log, guideProfile.userId, { approved: true }, admin.sub).catch(() => {})
-
-    return reply.status(200).send({ message: 'Guia aprovado com sucesso' })
-  })
-
-  // PATCH /tenants/:slug/admin/guides/:id/reject — ADMIN only
-  app.patch('/tenants/:slug/admin/guides/:id/reject', {
-    preHandler: [authenticate, authorize(['ADMIN'])],
-  }, async (request, reply) => {
-    const admin = request.user as { sub: string; tenantId: string; role: string }
-
-    const { data: params, error: paramsError } = parseParams(guideIdParamsSchema, request.params, reply)
-    if (paramsError) return
-
-    const { data: body, error: bodyError } = parseBody(rejectBodySchema, request.body, reply)
-    if (bodyError) return
-
-    Sentry.setTag('module', 'guides')
-    Sentry.setTag('tenant', params.slug)
-    Sentry.setTag('action', 'reject')
-
-    const guideProfile = await prisma.guideProfile.findFirst({
-      where: {
-        id: params.id,
-        user: {
-          tenantId: admin.tenantId,
-          role: 'CONDUTOR',
-        },
-      },
-      select: {
-        userId: true,
-        user: { select: { name: true, email: true } },
-      },
-    })
-
-    if (!guideProfile) throw new AppError('Guia não encontrado', 404)
-
-    await prisma.user.update({
-      where: { id: guideProfile.userId },
-      data: { approvalStatus: 'REJECTED', rejectionReason: body.reason },
-    })
-
-    const resend = getResend()
-    if (resend && guideProfile.user.email) {
-      resend.emails
-        .send({
-          from: getEmailFrom(),
-          to: guideProfile.user.email,
-          subject: guideRejectedSubject,
-          text: guideRejectedEmailText({
-            guideName: guideProfile.user.name ?? 'Guia',
-            reason: body.reason,
-            slug: params.slug,
-          }),
-        })
-        .catch((emailErr: unknown) => {
-          app.log.warn({ err: emailErr, guideId: params.id }, '[email] Failed to send guide-rejected email')
-        })
-    }
-
-    void notifyGuideDecision(
-      app.log,
-      guideProfile.userId,
-      { approved: false, reason: body.reason },
-      admin.sub,
-    ).catch(() => {})
-
-    return reply.status(200).send({ message: 'Guia rejeitado' })
-  })
-
   // GET /tenants/:slug/guides/me/bookings — CONDUTOR only
   app.get('/tenants/:slug/guides/me/bookings', {
     preHandler: [authenticate, authorize(['CONDUTOR'])],
@@ -407,7 +280,8 @@ export async function guidesRoutes(app: FastifyInstance) {
     const packageGuides = await prisma.packageGuide.findMany({
       where: {
         guideId: params.id,
-        active: true,
+        status: 'ACCEPTED',
+        package: { active: true, publishedAt: { not: null } },
       },
       include: {
         package: {

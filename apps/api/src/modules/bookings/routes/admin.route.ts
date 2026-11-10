@@ -7,6 +7,7 @@ import { authenticate } from '../../../shared/middlewares/authenticate'
 import { authorize } from '../../../shared/middlewares/authorize'
 import { AppError } from '../../../shared/errors/AppError'
 import { Sentry } from '../../../shared/sentry'
+import { notifyBookingEvent } from '../../notifications/booking-events'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -120,6 +121,8 @@ export async function adminBookingsRoute(app: FastifyInstance) {
         })
       })
 
+      void notifyBookingEvent(app.log, updated.id, 'cancelled').catch(() => {})
+
       const { customerCpfHash, customerPhone, ...safeBooking } = updated
       return safeBooking
     }
@@ -166,10 +169,17 @@ export async function adminBookingsRoute(app: FastifyInstance) {
         throw new AppError('Apenas reservas pendentes podem ser confirmadas', 400)
       }
 
-      const updated = await prisma.booking.update({
-        where: { id },
+      const confirmed = await prisma.booking.updateMany({
+        where: { id, status: 'PENDING' },
         data: { status: 'CONFIRMED' },
       })
+      if (confirmed.count === 0) {
+        throw new AppError('Apenas reservas pendentes podem ser confirmadas', 400)
+      }
+
+      const updated = await prisma.booking.findUniqueOrThrow({ where: { id } })
+
+      void notifyBookingEvent(app.log, updated.id, 'confirmed').catch(() => {})
 
       const { customerCpfHash, customerPhone, ...safeBooking } = updated
       return safeBooking

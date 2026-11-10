@@ -73,7 +73,7 @@ export function ConsentBanner() {
             lineHeight: 1.5,
           }}
         >
-          Usamos cookies para melhorar sua experiência e analisar o uso do site.{' '}
+          Usamos cookies para analisar o uso do site e medir nossos anúncios (Meta). Você pode aceitar ou recusar.{' '}
           <a
             href="/politica-privacidade"
             style={{ color: '#C4852A', textDecoration: 'underline' }}

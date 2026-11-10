@@ -13,6 +13,8 @@ const envSchema = z
     CLOUDFLARE_API_TOKEN: z.string().min(1),
     R2_BUCKET_NAME: z.string().min(1),
     R2_PUBLIC_URL: z.string().min(1),
+    // Bucket PRIVADO dos comprovantes de guia (obrigatório em produção, checado em credential.storage)
+    R2_CREDENTIALS_BUCKET: z.string().optional(),
     // Email
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),

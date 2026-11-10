@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useCallback, type ReactNode } from "react"
-import { Building2, Check, Eye, Link2, RotateCw, X } from "lucide-react"
+import { Building2, Check, Eye, Link2, Pencil, RotateCw, X } from "lucide-react"
 import {
   Alert,
   Avatar,
@@ -12,8 +12,13 @@ import {
   Select,
   Skeleton,
   StatusBadge,
+  Input,
   Textarea,
 } from "@/src/components/ui/capi"
+import { toast } from "sonner"
+import { AvatarPicker } from "@/src/components/ui/AvatarPicker"
+import { patchViaProxy } from "@/lib/notification-actions"
+import { normalizeWhatsapp } from "@/src/lib/whatsapp"
 
 interface Tenant {
   id: string
@@ -24,7 +29,11 @@ interface Tenant {
   createdAt: string
   users: Array<{ email: string; name: string }>
   destinationId: string | null
+  whatsapp: string | null
+  logoUrl: string | null
 }
+
+type EditForm = { name: string; whatsapp: string; logoUrl: string | null }
 
 interface DestinationOption {
   id: string
@@ -111,6 +120,11 @@ export default function SuperAdminOperadorasPage() {
   const closeReview = useCallback(() => setReviewTarget(null), [])
   const closeReject = useCallback(() => setRejectTarget(null), [])
   const closeLink = useCallback(() => setLinkTarget(null), [])
+  const [editTarget, setEditTarget] = useState<Tenant | null>(null)
+  const [editForm, setEditForm] = useState<EditForm>({ name: "", whatsapp: "", logoUrl: null })
+  const [editErrors, setEditErrors] = useState<{ name?: string | null; whatsapp?: string | null; form?: string | null }>({})
+  const [editSaving, setEditSaving] = useState(false)
+  const closeEdit = useCallback(() => setEditTarget(null), [])
 
   function loadTenants() {
     setLoading(true)
@@ -248,6 +262,33 @@ export default function SuperAdminOperadorasPage() {
     setLinkError(null)
   }
 
+  function openEdit(tenant: Tenant) {
+    setEditTarget(tenant)
+    setEditForm({ name: tenant.name, whatsapp: tenant.whatsapp ?? "", logoUrl: tenant.logoUrl ?? null })
+    setEditErrors({})
+  }
+
+  async function handleEditSubmit() {
+    if (!editTarget) return
+    const name = editForm.name.trim()
+    const nameError = name.length < 2 || name.length > 120 ? "O nome deve ter entre 2 e 120 caracteres." : null
+    const wa = normalizeWhatsapp(editForm.whatsapp)
+    setEditErrors({ name: nameError, whatsapp: wa.error })
+    if (nameError || wa.error) return
+    setEditSaving(true)
+    try {
+      const body = { name, whatsapp: wa.value, logoUrl: editForm.logoUrl }
+      await patchViaProxy(`/tenants/${editTarget.id}/admin-settings`, body)
+      setItems((prev) => prev.map((t) => (t.id === editTarget.id ? { ...t, ...body } : t)))
+      setEditTarget(null)
+      toast.success("Operadora atualizada.")
+    } catch (e) {
+      setEditErrors({ form: e instanceof Error ? e.message : "Não foi possível salvar." })
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
   function destinationTitle(id: string | null) {
     if (!id) return null
     return destinations.find((d) => d.id === id)?.title ?? null
@@ -316,7 +357,7 @@ export default function SuperAdminOperadorasPage() {
                 <QueueRow
                   key={item.id}
                   busy={busy}
-                  lead={<Avatar name={item.name} size={48} />}
+                  lead={<Avatar name={item.name} src={item.logoUrl} size={48} />}
                   title={item.name}
                   subtitle={`${item.slug} · ${email}`}
                   meta={
@@ -340,6 +381,15 @@ export default function SuperAdminOperadorasPage() {
                         aria-label={`Revisar operadora ${item.name}`}
                       >
                         Revisar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        iconLeft={Pencil}
+                        onClick={() => openEdit(item)}
+                        aria-label={`Editar operadora ${item.name}`}
+                      >
+                        Editar
                       </Button>
                       {item.approvalStatus === "PENDING" ? (
                         <>
@@ -433,6 +483,7 @@ export default function SuperAdminOperadorasPage() {
               <DetailItem label="Responsável">{reviewTarget.users[0]?.name ?? "—"}</DetailItem>
               <DetailItem label="E-mail">{reviewTarget.users[0]?.email ?? "—"}</DetailItem>
               <DetailItem label="Endereço (slug)">{reviewTarget.slug}</DetailItem>
+              <DetailItem label="WhatsApp">{reviewTarget.whatsapp ?? "—"}</DetailItem>
               <DetailItem label="Destino vinculado">
                 {reviewTarget.destinationId ? destinationTitle(reviewTarget.destinationId) ?? "Vinculado" : "Nenhum"}
               </DetailItem>
@@ -444,6 +495,54 @@ export default function SuperAdminOperadorasPage() {
             ) : null}
           </div>
         ) : null}
+      </Modal>
+
+      {/* Editar dados da operadora */}
+      <Modal
+        open={!!editTarget}
+        onClose={closeEdit}
+        title="Editar operadora"
+        description={editTarget?.slug}
+        footer={
+          <>
+            <Button variant="secondary" onClick={closeEdit}>
+              Cancelar
+            </Button>
+            <Button variant="primary" onClick={handleEditSubmit} loading={editSaving}>
+              {editSaving ? "Salvando..." : "Salvar"}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <AvatarPicker
+            name={editForm.name}
+            src={editForm.logoUrl}
+            folder="logos"
+            noun="logo"
+            size={64}
+            onChange={(url) => setEditForm((f) => ({ ...f, logoUrl: url }))}
+          />
+          <Input
+            label="Nome da operadora"
+            value={editForm.name}
+            maxLength={120}
+            onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+            error={editErrors.name}
+          />
+          <Input
+            label="WhatsApp"
+            optional
+            type="tel"
+            inputMode="tel"
+            placeholder="(89) 99999-0000"
+            hint="Com DDD. Deixe em branco para remover."
+            value={editForm.whatsapp}
+            onChange={(e) => setEditForm((f) => ({ ...f, whatsapp: e.target.value }))}
+            error={editErrors.whatsapp}
+          />
+          {editErrors.form ? <Alert tone="danger">{editErrors.form}</Alert> : null}
+        </div>
       </Modal>
 
       {/* Vincular destino */}

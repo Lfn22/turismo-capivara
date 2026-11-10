@@ -86,12 +86,12 @@ export async function repayRoute(app: FastifyInstance) {
         throw new AppError('Novo pagamento só é possível para reservas expiradas', 422)
       }
 
-      // Verify slot is still OPEN before creating a new payment
+      // Verify slot is still OPEN (and its roteiro published and active) before creating a new payment
       const slot = await prisma.departureSlot.findUnique({
         where: { id: booking.slotId },
-        select: { status: true },
+        select: { status: true, package: { select: { active: true, publishedAt: true } } },
       })
-      if (!slot || slot.status !== 'OPEN') {
+      if (!slot || slot.status !== 'OPEN' || !slot.package.active || slot.package.publishedAt === null) {
         throw new AppError('Slot indisponível para novo pagamento', 422)
       }
 
