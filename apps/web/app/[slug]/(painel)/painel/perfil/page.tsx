@@ -11,6 +11,7 @@ import { toast } from "sonner"
 import { MapPin, ShieldCheck } from "lucide-react"
 import { Alert, Badge, Button, Input, ListGroup, ListRow, PageHeader, Skeleton, Textarea } from "@/src/components/ui/capi"
 import { callProxy } from "@/src/components/membership/membership-shared"
+import { guideShareUrl } from "@/src/lib/share-link"
 
 interface GuideProfileData {
   id: string
@@ -73,6 +74,23 @@ export default function PerfilPage({
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
+  const [shareUrl, setShareUrl] = useState("")
+  const [linkCopied, setLinkCopied] = useState(false)
+
+  useEffect(() => {
+    if (profile?.id) setShareUrl(guideShareUrl(window.location.origin, profile.id))
+  }, [profile?.id])
+
+  async function copyShareUrl() {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 3000)
+    } catch {
+      (document.getElementById("share-link") as HTMLInputElement | null)?.select()
+    }
+  }
+
   // Unwrap params Promise (Next.js 16 Client Components)
   useEffect(() => {
     Promise.resolve(params).then(({ slug: s }) => setSlug(s))
@@ -91,7 +109,7 @@ export default function PerfilPage({
       .then((data) => {
         const p = data.profile ?? {}
         setProfile({
-          id: "",
+          id: p.id ?? "",
           bio: p.bio ?? null,
           photoUrl: p.photoUrl ?? null,
           especialidades: p.especialidades ?? [],
@@ -351,6 +369,21 @@ export default function PerfilPage({
             <Alert tone={approvalAlert.tone} title={approvalAlert.title} className="mb-8">
               {approvalAlert.text}
             </Alert>
+          )}
+
+          {isApproved && shareUrl && (
+            <section className="perfil-section" style={{ marginBottom: "var(--space-8)" }}>
+              <div className="perfil-head">
+                <h2 className="perfil-title">Seu link de divulgação</h2>
+                <p className="perfil-desc">
+                  Use este link no seu Instagram, WhatsApp e status. Assim a gente sabe quantas pessoas você trouxe.
+                </p>
+              </div>
+              <Input id="share-link" label="Link" type="text" value={shareUrl} readOnly />
+              <Button type="button" onClick={copyShareUrl}>
+                {linkCopied ? "Link copiado!" : "Copiar link"}
+              </Button>
+            </section>
           )}
 
           <form onSubmit={handleSave} className="perfil-form">

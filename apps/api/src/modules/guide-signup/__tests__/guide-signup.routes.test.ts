@@ -253,6 +253,7 @@ describe('GET /guides/me', () => {
       rejectionReason: 'Documento ilegível',
       tenant: { slug: 'independente' },
       guideProfile: {
+        id: 'gp1',
         bio: 'b',
         photoUrl: null,
         especialidades: ['x'],
@@ -275,7 +276,7 @@ describe('GET /guides/me', () => {
       rejectionReason: 'Documento ilegível',
       credentialType: 'CADASTUR',
       tenantSlug: 'independente',
-      profile: { bio: 'b', especialidades: ['x'] },
+      profile: { id: 'gp1', bio: 'b', especialidades: ['x'] },
       affiliation: { id: 'aff1', tenantName: 'Agência X', tenantType: 'AGENCIA', status: 'PENDING', rejectionReason: null },
     })
   })

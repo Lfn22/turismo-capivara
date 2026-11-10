@@ -203,6 +203,7 @@ export async function guideSignupRoutes(app: FastifyInstance) {
         tenant: { select: { slug: true } },
         guideProfile: {
           select: {
+            id: true,
             bio: true,
             photoUrl: true,
             especialidades: true,
@@ -233,6 +234,7 @@ export async function guideSignupRoutes(app: FastifyInstance) {
       credentialSubmittedAt: p.credentialSubmittedAt,
       tenantSlug: user.tenant.slug,
       profile: {
+        id: p.id,
         bio: p.bio,
         photoUrl: p.photoUrl,
         especialidades: p.especialidades,
