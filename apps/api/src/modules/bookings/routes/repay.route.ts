@@ -3,33 +3,7 @@ import prisma from '../../../database'
 import { AppError } from '../../../shared/errors/AppError'
 import { repayBodySchema, type RepayBody } from '../bookings.schemas'
 import * as paymentService from '../../../services/payment.service'
-
-function isValidCPF(cpf: string): boolean {
-  // Rejeitar sequências de dígitos iguais (00000000000, 11111111111, etc.)
-  if (/^(\d)\1{10}$/.test(cpf)) return false
-
-  const digits = cpf.split('').map(Number)
-
-  // Dígito verificador 1: soma dos 9 primeiros × pesos 10..2
-  let sum = 0
-  for (let i = 0; i < 9; i++) {
-    sum += digits[i] * (10 - i)
-  }
-  let remainder = sum % 11
-  const digit1 = remainder < 2 ? 0 : 11 - remainder
-
-  if (digits[9] !== digit1) return false
-
-  // Dígito verificador 2: soma dos 10 primeiros × pesos 11..2
-  sum = 0
-  for (let i = 0; i < 10; i++) {
-    sum += digits[i] * (11 - i)
-  }
-  remainder = sum % 11
-  const digit2 = remainder < 2 ? 0 : 11 - remainder
-
-  return digits[10] === digit2
-}
+import { isValidCPF } from '../../../shared/utils/cpf'
 
 export async function repayRoute(app: FastifyInstance) {
   // POST /tenants/:slug/bookings/repay — public, no JWT — EXPIRED bookings only
@@ -47,7 +21,9 @@ export async function repayRoute(app: FastifyInstance) {
     async (request, reply) => {
       const parsed = repayBodySchema.safeParse(request.body)
       if (!parsed.success) {
-        return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
+        return reply
+          .status(400)
+          .send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
       }
       const { slug } = request.params
       const { email, code, cpf } = parsed.data
@@ -64,10 +40,8 @@ export async function repayRoute(app: FastifyInstance) {
 
       const normalizedEmail = email.trim().toLowerCase()
 
-      // TODO WR-002: endsWith gera LIKE '%suffix' sem índice — migrar para campo `code String @unique`
       const booking = await prisma.booking.findFirst({
-        where: { id: { endsWith: code.toLowerCase() }, tenantId: tenant.id },
-        orderBy: { createdAt: 'desc' },
+        where: { code: code.toLowerCase(), tenantId: tenant.id },
         include: {
           slot: {
             select: {
@@ -91,7 +65,12 @@ export async function repayRoute(app: FastifyInstance) {
         where: { id: booking.slotId },
         select: { status: true, package: { select: { active: true, publishedAt: true } } },
       })
-      if (!slot || slot.status !== 'OPEN' || !slot.package.active || slot.package.publishedAt === null) {
+      if (
+        !slot ||
+        slot.status !== 'OPEN' ||
+        !slot.package.active ||
+        slot.package.publishedAt === null
+      ) {
         throw new AppError('Slot indisponível para novo pagamento', 422)
       }
 
@@ -108,38 +87,42 @@ export async function repayRoute(app: FastifyInstance) {
 
       // Lock slot and update booking atomically to prevent race condition
       // CR-003: on DB failure, cancel the MP payment to avoid orphaned charges
-      try { await prisma.$transaction(async (tx) => {
-        const [slotRow] = await tx.$queryRaw<Array<{ status: string; booked: number; capacity: number }>>`
+      try {
+        await prisma.$transaction(async (tx) => {
+          const [slotRow] = await tx.$queryRaw<
+            Array<{ status: string; booked: number; capacity: number }>
+          >`
           SELECT status, booked, capacity FROM "DepartureSlot"
           WHERE id = ${booking.slotId}
           FOR UPDATE
         `
-        if (!slotRow || slotRow.status !== 'OPEN') {
-          // MP payment was created but slot is gone — log for manual reconciliation
-          throw new AppError('Slot indisponível para novo pagamento', 422)
-        }
-        if (slotRow.booked + booking.pax > slotRow.capacity) {
-          throw new AppError('SLOT_UNAVAILABLE', 409)
-        }
-        const newBooked = slotRow.booked + booking.pax
-        await tx.departureSlot.update({
-          where: { id: booking.slotId },
-          data: {
-            booked: { increment: booking.pax },
-            status: newBooked >= slotRow.capacity ? 'FULL' : 'OPEN',
-          },
+          if (!slotRow || slotRow.status !== 'OPEN') {
+            // MP payment was created but slot is gone — log for manual reconciliation
+            throw new AppError('Slot indisponível para novo pagamento', 422)
+          }
+          if (slotRow.booked + booking.pax > slotRow.capacity) {
+            throw new AppError('SLOT_UNAVAILABLE', 409)
+          }
+          const newBooked = slotRow.booked + booking.pax
+          await tx.departureSlot.update({
+            where: { id: booking.slotId },
+            data: {
+              booked: { increment: booking.pax },
+              status: newBooked >= slotRow.capacity ? 'FULL' : 'OPEN',
+            },
+          })
+          await tx.booking.update({
+            where: { id: booking.id },
+            data: {
+              paymentId: paymentResult.paymentId,
+              paymentUrl: paymentResult.paymentUrl,
+              qrCode: paymentResult.qrCode,
+              expiresAt: paymentResult.expiresAt,
+              status: 'PENDING',
+            },
+          })
         })
-        await tx.booking.update({
-          where: { id: booking.id },
-          data: {
-            paymentId: paymentResult.paymentId,
-            paymentUrl: paymentResult.paymentUrl,
-            qrCode: paymentResult.qrCode,
-            expiresAt: paymentResult.expiresAt,
-            status: 'PENDING',
-          },
-        })
-      }) } catch (txErr) {
+      } catch (txErr) {
         await paymentService.cancelPixPayment(paymentResult.paymentId).catch((e) => {
           app.log.error(e, '[repay] cancelPixPayment falhou após falha na transação DB')
         })
@@ -151,6 +134,6 @@ export async function repayRoute(app: FastifyInstance) {
         paymentUrl: paymentResult.paymentUrl,
         expiresAt: paymentResult.expiresAt,
       })
-    }
+    },
   )
 }

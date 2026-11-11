@@ -44,9 +44,7 @@ export interface CreateBookingResult {
   packageName: string
 }
 
-export async function createBooking(
-  input: CreateBookingInput,
-): Promise<CreateBookingResult> {
+export async function createBooking(input: CreateBookingInput): Promise<CreateBookingResult> {
   const {
     tenantId,
     slotId,
@@ -74,16 +72,18 @@ export async function createBooking(
   // The caller handles the resulting P2002 by returning the winner's booking.
   await prisma.$transaction(async (tx) => {
     // Lock the slot row to prevent concurrent overbooking (WR-04)
-    const [slot] = await tx.$queryRaw<Array<{
-      id: string
-      booked: number
-      capacity: number
-      status: string
-      packageId: string
-      tenantId: string
-      active: boolean
-      publishedAt: Date | null
-    }>>`
+    const [slot] = await tx.$queryRaw<
+      Array<{
+        id: string
+        booked: number
+        capacity: number
+        status: string
+        packageId: string
+        tenantId: string
+        active: boolean
+        publishedAt: Date | null
+      }>
+    >`
       SELECT ds.id, ds.booked, ds.capacity, ds.status, ds."packageId", tp."tenantId", tp.active, tp."publishedAt"
       FROM "DepartureSlot" ds
       JOIN "TourPackage" tp ON tp.id = ds."packageId"
@@ -119,6 +119,7 @@ export async function createBooking(
     return tx.booking.create({
       data: {
         id: bookingId,
+        code: bookingId.slice(-8),
         tenantId,
         slotId,
         customerName,
@@ -145,7 +146,10 @@ export async function createBooking(
         data: { status: 'EXPIRED' },
       })
       if (released.count === 0) return
-      const slot = await tx.departureSlot.findUnique({ where: { id: slotId }, select: { status: true } })
+      const slot = await tx.departureSlot.findUnique({
+        where: { id: slotId },
+        select: { status: true },
+      })
       await tx.departureSlot.updateMany({
         where: { id: slotId, booked: { gte: pax } },
         data: {

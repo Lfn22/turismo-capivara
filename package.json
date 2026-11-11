@@ -7,13 +7,28 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
-    "test": "turbo test"
+    "test": "turbo test",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "apps/api/src/**/*.ts": [
+      "pnpm -C apps/api exec eslint --fix --max-warnings 50"
+    ],
+    "apps/web/src/**/*.{ts,tsx}": [
+      "pnpm -C apps/web exec eslint --fix"
+    ],
+    "*.{ts,tsx,js,jsx,json,md}": [
+      "prettier --write --ignore-unknown"
+    ]
   },
   "engines": {
     "node": ">=22.12.0"
   },
   "packageManager": "pnpm@10.32.1",
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10",
     "turbo": "^2.8.19"
   }
 }

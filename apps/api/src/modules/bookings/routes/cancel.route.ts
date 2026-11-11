@@ -25,7 +25,9 @@ export async function cancelSelfRoute(app: FastifyInstance) {
     async (request, reply) => {
       const parsed = cancelSelfBodySchema.safeParse(request.body)
       if (!parsed.success) {
-        return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
+        return reply
+          .status(400)
+          .send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
       }
       const { slug } = request.params
       const { token } = parsed.data
@@ -52,10 +54,16 @@ export async function cancelSelfRoute(app: FastifyInstance) {
         throw new AppError('Token de cancelamento expirado. Entre em contato com a operadora.', 410)
       }
 
-      // 24h cutoff check (D-04)
-      const cutoffMs = 24 * 60 * 60 * 1000
-      if (booking.slot.startsAt.getTime() - Date.now() < cutoffMs) {
-        throw new AppError('Cancelamento não permitido — menos de 24h até a partida', 422)
+      // CDC Art.49: direito de arrependimento — 7 dias a contar da compra
+      const cdcCoolingMs = 7 * 24 * 60 * 60 * 1000
+      const withinCdcPeriod = Date.now() - booking.createdAt.getTime() <= cdcCoolingMs
+
+      if (!withinCdcPeriod) {
+        // Fora do período de arrependimento: cutoff de 24h antes da partida
+        const cutoffMs = 24 * 60 * 60 * 1000
+        if (booking.slot.startsAt.getTime() - Date.now() < cutoffMs) {
+          throw new AppError('Cancelamento não permitido — menos de 24h até a partida', 422)
+        }
       }
 
       if (!['PENDING', 'CONFIRMED'].includes(booking.status)) {
@@ -103,11 +111,18 @@ export async function cancelSelfRoute(app: FastifyInstance) {
           })
       }
 
-      auditLog(prisma, { actorType: 'USER', action: 'booking.cancelled', targetType: 'BOOKING', targetId: booking.id, ipAddress: request.ip, metadata: { tenantSlug: slug, previousStatus: booking.status } })
+      auditLog(prisma, {
+        actorType: 'USER',
+        action: 'booking.cancelled',
+        targetType: 'BOOKING',
+        targetId: booking.id,
+        ipAddress: request.ip,
+        metadata: { tenantSlug: slug, previousStatus: booking.status },
+      })
 
       void notifyBookingEvent(app.log, booking.id, 'cancelled').catch(() => {})
 
       return reply.status(200).send({ message: 'Reserva cancelada com sucesso' })
-    }
+    },
   )
 }

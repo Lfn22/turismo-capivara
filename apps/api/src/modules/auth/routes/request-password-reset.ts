@@ -46,7 +46,8 @@ export async function requestPasswordResetRoute(app: FastifyInstance) {
 
       // Always respond with same message — no user enumeration
       const genericResponse = {
-        message: 'Se este email estiver cadastrado, você receberá um link para redefinir sua senha.',
+        message:
+          'Se este email estiver cadastrado, você receberá um link para redefinir sua senha.',
       }
 
       const user = await prisma.user.findUnique({
@@ -95,10 +96,12 @@ export async function requestPasswordResetRoute(app: FastifyInstance) {
         })
       } else {
         // Dev fallback: log reset link to console
-        console.log(`[password-reset] Reset link for ${email}: ${resetLink}`)
+        if (process.env.NODE_ENV !== 'production') {
+          app.log.debug({ resetLink }, '[password-reset] Reset link (dev only)')
+        }
       }
 
       return reply.status(200).send(genericResponse)
-    }
+    },
   )
 }

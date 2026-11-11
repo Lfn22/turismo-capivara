@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto'
+import { randomBytes, createHash } from 'crypto'
 import { FastifyInstance } from 'fastify'
 import type { Prisma } from '@prisma/client'
 import prisma from '../../database'
@@ -12,21 +12,27 @@ export function generateRefreshToken(): string {
   return randomBytes(40).toString('hex')
 }
 
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex')
+}
+
 export async function createRefreshToken(userId: string, tenantId: string): Promise<string> {
   const token = generateRefreshToken()
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
 
   await prisma.refreshToken.create({
-    data: { token, userId, tenantId, expiresAt },
+    data: { token: hashToken(token), userId, tenantId, expiresAt },
   })
 
   return token
 }
 
-export async function rotateRefreshToken(oldToken: string): Promise<{ newToken: string; userId: string; tenantId: string } | null> {
+export async function rotateRefreshToken(
+  oldToken: string,
+): Promise<{ newToken: string; userId: string; tenantId: string } | null> {
   return prisma.$transaction(async (tx) => {
     const existing = await tx.refreshToken.findUnique({
-      where: { token: oldToken },
+      where: { token: hashToken(oldToken) },
     })
 
     const now = new Date()
@@ -36,7 +42,10 @@ export async function rotateRefreshToken(oldToken: string): Promise<{ newToken: 
       // Revogado por rotação há menos de ROTATION_GRACE_MS: corrida entre requisições
       // concorrentes do mesmo cliente — emite um token novo em vez de tratar como roubo.
       // Tokens revogados por logout/troca de senha/e-mail têm replacedAt nulo e nunca entram aqui.
-      if (existing.replacedAt && now.getTime() - existing.replacedAt.getTime() < ROTATION_GRACE_MS) {
+      if (
+        existing.replacedAt &&
+        now.getTime() - existing.replacedAt.getTime() < ROTATION_GRACE_MS
+      ) {
         const newToken = await insertRefreshToken(tx, existing.userId, existing.tenantId)
         return { newToken, userId: existing.userId, tenantId: existing.tenantId }
       }
@@ -56,10 +65,14 @@ export async function rotateRefreshToken(oldToken: string): Promise<{ newToken: 
   })
 }
 
-async function insertRefreshToken(tx: Prisma.TransactionClient, userId: string, tenantId: string): Promise<string> {
+async function insertRefreshToken(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  tenantId: string,
+): Promise<string> {
   const token = generateRefreshToken()
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
-  await tx.refreshToken.create({ data: { token, userId, tenantId, expiresAt } })
+  await tx.refreshToken.create({ data: { token: hashToken(token), userId, tenantId, expiresAt } })
   return token
 }
 
@@ -90,10 +103,7 @@ export function createTokenCleanupJob(app: FastifyInstance) {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
         const result = await prisma.refreshToken.deleteMany({
           where: {
-            OR: [
-              { expiresAt: { lt: thirtyDaysAgo } },
-              { revokedAt: { lt: thirtyDaysAgo } },
-            ],
+            OR: [{ expiresAt: { lt: thirtyDaysAgo } }, { revokedAt: { lt: thirtyDaysAgo } }],
           },
         })
         app.log.info(`[cron:token-cleanup] Deleted ${result.count} expired/revoked refresh tokens`)

@@ -56,13 +56,11 @@ const isProd = process.env.NODE_ENV === 'production'
 const app = Fastify({
   logger: {
     level: process.env.LOG_LEVEL ?? (isProd ? 'info' : 'debug'),
-    ...(isProd
-      ? {}
-      : { transport: { target: 'pino-pretty' } }),
+    ...(isProd ? {} : { transport: { target: 'pino-pretty' } }),
     serializers: {
       req(request) {
         const params = request.params as Record<string, string> | undefined
-        const user = (request as any).user as { sub?: string } | undefined
+        const user = request.user as { sub?: string } | undefined
         return {
           method: request.method,
           url: request.url,
@@ -92,7 +90,17 @@ app.register(cors, {
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 })
 
-app.register(helmet)
+app.register(helmet, {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:'],
+      frameAncestors: ["'none'"],
+    },
+  },
+})
 
 app.register(rateLimit, {
   global: true,
@@ -183,7 +191,7 @@ app.setErrorHandler((err, request, reply) => {
   Sentry.withScope((scope) => {
     const params = request.params as Record<string, string>
     if (params?.slug) scope.setTag('tenant_slug', params.slug)
-    const user = (request as any).user as { sub?: string } | undefined
+    const user = request.user as { sub?: string } | undefined
     if (user?.sub) scope.setUser({ id: user.sub })
     scope.setTag('route', `${request.method} ${request.url}`)
     Sentry.captureException(err)

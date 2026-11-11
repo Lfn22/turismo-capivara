@@ -1,0 +1,29 @@
+name: Post-Deploy Health Check
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  health-check:
+    name: Verify Deploy
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Wait for Railway deploy
+        run: sleep 120
+
+      - name: Check API health
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ vars.API_URL }}/health || echo "000")
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::API health check failed with status $STATUS"
+            exit 1
+          fi
+          echo "API is healthy (HTTP $STATUS)"

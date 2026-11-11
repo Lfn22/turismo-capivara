@@ -1,35 +1,37 @@
-import type { Metadata, Viewport } from "next"
-import localFont from "next/font/local"
-import "./globals.css"
-import { Suspense } from "react"
-import { Providers } from "./providers"
-import { PostHogProvider } from "@/src/components/providers/PostHogProvider"
-import { UtmCapture } from "@/src/components/tracking/UtmCapture"
-import { MetaPixel } from "@/src/components/tracking/MetaPixel"
-import { ConsentBanner } from "@/src/components/providers/ConsentBanner"
-import { ToastProvider } from "@/src/components/providers/ToastProvider"
+import type { Metadata, Viewport } from 'next'
+import localFont from 'next/font/local'
+import './globals.css'
+import { Suspense } from 'react'
+import { Providers } from './providers'
+import { PostHogProvider } from '@/src/components/providers/PostHogProvider'
+import { UtmCapture } from '@/src/components/tracking/UtmCapture'
+import { MetaPixel } from '@/src/components/tracking/MetaPixel'
+import { ConsentBanner } from '@/src/components/providers/ConsentBanner'
+import { ToastProvider } from '@/src/components/providers/ToastProvider'
 
 // Interface: Plus Jakarta Sans. Momentos de marca (hero, nome de destino): Playfair Display.
 // Arquivos locais (subset latin, fontes variáveis do Google Fonts): o build não depende de baixar do Google.
 const jakarta = localFont({
-  src: "./fonts/plus-jakarta-sans-latin.woff2",
-  weight: "200 800",
-  variable: "--font-jakarta",
-  display: "swap",
+  src: './fonts/plus-jakarta-sans-latin.woff2',
+  weight: '200 800',
+  variable: '--font-jakarta',
+  display: 'swap',
 })
 
 const playfair = localFont({
-  src: "./fonts/playfair-display-latin.woff2",
-  weight: "600 700",
-  variable: "--font-playfair",
-  display: "swap",
+  src: './fonts/playfair-display-latin.woff2',
+  weight: '600 700',
+  variable: '--font-playfair',
+  display: 'swap',
 })
 
 // URL pública usada nos links absolutos de Open Graph/Twitter (imagem de prévia ao compartilhar).
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ??
   process.env.NEXTAUTH_URL ??
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000")
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : 'http://localhost:3000')
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -59,26 +61,32 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#f7f5f2",
-  width: "device-width",
+  themeColor: '#f7f5f2',
+  width: 'device-width',
   initialScale: 1,
-  viewportFit: "cover",
+  viewportFit: 'cover',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" data-theme="light" className={`${jakarta.variable} ${playfair.variable}`}>
       <body className="antialiased">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[9999] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-base focus:font-semibold focus:shadow-lg focus:ring-2 focus:ring-[var(--ochre)]"
+        >
+          Ir para o conteúdo principal
+        </a>
         <Providers>
           <ToastProvider>
             <Suspense fallback={null}>
               <UtmCapture />
               <MetaPixel />
-              <PostHogProvider>{children}</PostHogProvider>
+              <PostHogProvider>
+                <div id="main-content" tabIndex={-1} className="outline-none">
+                  {children}
+                </div>
+              </PostHogProvider>
             </Suspense>
           </ToastProvider>
         </Providers>

@@ -19,7 +19,9 @@ export async function selfServiceRoute(app: FastifyInstance) {
     async (request, reply) => {
       const parsed = selfServiceBodySchema.safeParse(request.body)
       if (!parsed.success) {
-        return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
+        return reply
+          .status(400)
+          .send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
       }
       const { slug } = request.params
       const { email, code } = parsed.data
@@ -29,14 +31,11 @@ export async function selfServiceRoute(app: FastifyInstance) {
 
       const normalizedEmail = email.trim().toLowerCase()
 
-      // TODO WR-002: endsWith gera LIKE '%suffix' sem índice — migrar para campo `code String @unique`
-      // separado com índice dedicado para evitar full-table scan em produção com volume alto.
       const booking = await prisma.booking.findFirst({
         where: {
-          id: { endsWith: code.toLowerCase() },
+          code: code.toLowerCase(),
           tenantId: tenant.id,
         },
-        orderBy: { createdAt: 'desc' },
         include: {
           slot: {
             select: {
@@ -66,6 +65,6 @@ export async function selfServiceRoute(app: FastifyInstance) {
           packageName: booking.slot.package.name,
         },
       })
-    }
+    },
   )
 }

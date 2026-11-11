@@ -104,28 +104,35 @@ describe('createBookingExpiryJob (OPS-01)', () => {
     mockPrisma.booking.findMany.mockResolvedValueOnce([fakeBooking])
 
     // Simulate $transaction executing the callback
-    mockPrisma.$transaction.mockImplementationOnce(async (fn: Function) => {
-      const tx = {
-        booking: { update: vi.fn() },
-        departureSlot: { update: vi.fn() },
-        $queryRaw: vi.fn().mockResolvedValueOnce([{
-          id: 'slot-1', booked: 4, capacity: 4, status: 'FULL',
-        }]),
-      }
-      await fn(tx)
-      // Verify booking was expired
-      expect(tx.booking.update).toHaveBeenCalledWith({
-        where: { id: 'bk-1' },
-        data: { status: 'EXPIRED' },
-      })
-      // Verify slot booked was decremented
-      expect(tx.departureSlot.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'slot-1' },
-          data: expect.objectContaining({ booked: { decrement: 2 } }),
-        }),
-      )
-    })
+    mockPrisma.$transaction.mockImplementationOnce(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          booking: { update: vi.fn() },
+          departureSlot: { update: vi.fn() },
+          $queryRaw: vi.fn().mockResolvedValueOnce([
+            {
+              id: 'slot-1',
+              booked: 4,
+              capacity: 4,
+              status: 'FULL',
+            },
+          ]),
+        }
+        await fn(tx)
+        // Verify booking was expired
+        expect(tx.booking.update).toHaveBeenCalledWith({
+          where: { id: 'bk-1' },
+          data: { status: 'EXPIRED' },
+        })
+        // Verify slot booked was decremented
+        expect(tx.departureSlot.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { id: 'slot-1' },
+            data: expect.objectContaining({ booked: { decrement: 2 } }),
+          }),
+        )
+      },
+    )
 
     mockGetResend.mockReturnValue(null) // no email
 
@@ -157,16 +164,23 @@ describe('createBookingExpiryJob (OPS-01)', () => {
       .mockResolvedValueOnce([{}])
 
     mockPrisma.booking.findMany.mockResolvedValueOnce([fakeBooking])
-    mockPrisma.$transaction.mockImplementationOnce(async (fn: Function) => {
-      const tx = {
-        booking: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-        departureSlot: { update: vi.fn() },
-        $queryRaw: vi.fn().mockResolvedValueOnce([{
-          id: 'slot-2', booked: 1, capacity: 5, status: 'OPEN',
-        }]),
-      }
-      await fn(tx)
-    })
+    mockPrisma.$transaction.mockImplementationOnce(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          booking: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+          departureSlot: { update: vi.fn() },
+          $queryRaw: vi.fn().mockResolvedValueOnce([
+            {
+              id: 'slot-2',
+              booked: 1,
+              capacity: 5,
+              status: 'OPEN',
+            },
+          ]),
+        }
+        await fn(tx)
+      },
+    )
 
     const mockSend = vi.fn().mockReturnValue({ catch: vi.fn() })
     mockGetResend.mockReturnValue({ emails: { send: mockSend } })
@@ -204,16 +218,23 @@ describe('createBookingExpiryJob (OPS-01)', () => {
       .mockResolvedValueOnce([{}])
 
     mockPrisma.booking.findMany.mockResolvedValueOnce([fakeBooking])
-    mockPrisma.$transaction.mockImplementationOnce(async (fn: Function) => {
-      const tx = {
-        booking: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-        departureSlot: { update: vi.fn() },
-        $queryRaw: vi.fn().mockResolvedValueOnce([{
-          id: 'slot-3', booked: 1, capacity: 3, status: 'OPEN',
-        }]),
-      }
-      await fn(tx)
-    })
+    mockPrisma.$transaction.mockImplementationOnce(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          booking: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+          departureSlot: { update: vi.fn() },
+          $queryRaw: vi.fn().mockResolvedValueOnce([
+            {
+              id: 'slot-3',
+              booked: 1,
+              capacity: 3,
+              status: 'OPEN',
+            },
+          ]),
+        }
+        await fn(tx)
+      },
+    )
 
     // email.send returns a promise that rejects — caught via .catch()
     const catchMock = vi.fn()
@@ -233,15 +254,17 @@ describe('createBookingExpiryJob (OPS-01)', () => {
       .mockResolvedValueOnce([{ pg_try_advisory_lock: true }])
       .mockResolvedValueOnce([{}]) // release in finally
 
-    mockPrisma.booking.findMany.mockResolvedValueOnce([{
-      id: 'bk-fail',
-      customerName: 'X',
-      customerEmail: 'x@x.com',
-      pax: 1,
-      slotId: 's1',
-      tenantId: 't1',
-      slot: null,
-    }])
+    mockPrisma.booking.findMany.mockResolvedValueOnce([
+      {
+        id: 'bk-fail',
+        customerName: 'X',
+        customerEmail: 'x@x.com',
+        pax: 1,
+        slotId: 's1',
+        tenantId: 't1',
+        slot: null,
+      },
+    ])
 
     mockPrisma.$transaction.mockRejectedValueOnce(new Error('DB error'))
     mockGetResend.mockReturnValue(null)
@@ -272,14 +295,18 @@ describe('createBookingExpiryJob notificação por transição', () => {
       .mockResolvedValueOnce([{ pg_try_advisory_lock: true }])
       .mockResolvedValueOnce([{}])
     mockPrisma.booking.findMany.mockResolvedValueOnce([pending])
-    mockPrisma.$transaction.mockImplementationOnce(async (fn: Function) => {
-      const tx = {
-        booking: { updateMany: vi.fn().mockResolvedValue({ count }) },
-        departureSlot: { update: vi.fn() },
-        $queryRaw: vi.fn().mockResolvedValue([{ id: 's1', booked: 1, capacity: 4, status: 'OPEN' }]),
-      }
-      await fn(tx)
-    })
+    mockPrisma.$transaction.mockImplementationOnce(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          booking: { updateMany: vi.fn().mockResolvedValue({ count }) },
+          departureSlot: { update: vi.fn() },
+          $queryRaw: vi
+            .fn()
+            .mockResolvedValue([{ id: 's1', booked: 1, capacity: 4, status: 'OPEN' }]),
+        }
+        await fn(tx)
+      },
+    )
     mockGetResend.mockReturnValue(null)
     return createBookingExpiryJob(makeApp()).onTick()
   }

@@ -86,31 +86,30 @@ model GuideAffiliation {
 }
 
 model Tenant {
-  id                        String               @id @default(cuid())
-  name                      String
-  slug                      String               @unique
-  cnpj                      String?
-  destinationId             String?
-  approvalStatus            TenantApprovalStatus @default(PENDING)
-  rejectionReason           String?
-  whatsapp                  String?
-  logoUrl                   String?
-  confirmationCode          String?
-  confirmationCodeExpiresAt DateTime?
-  confirmationAttempts      Int                  @default(0)
-  confirmedAt               DateTime?
-  type                      TenantType           @default(AGENCIA)
-  createdAt                 DateTime             @default(now())
-  updatedAt                 DateTime             @updatedAt
+  id              String               @id @default(cuid())
+  name            String
+  slug            String               @unique
+  cnpj            String?
+  destinationId   String?
+  approvalStatus              ApprovalStatus @default(PENDING)
+  rejectionReason             String?
+  whatsapp                    String?
+  confirmationCode            String?
+  confirmationCodeExpiresAt   DateTime?
+  confirmationAttempts        Int      @default(0)
+  confirmedAt                 DateTime?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
 
-  destination        Destination?        @relation(fields: [destinationId], references: [id])
-  users              User[]
-  tourPackages       TourPackage[]
-  bookings           Booking[]
-  reviews            Review[]
-  tenantDestinations TenantDestination[]
-  refreshTokens      RefreshToken[]
-  affiliations       GuideAffiliation[]
+  destination         Destination?  @relation(fields: [destinationId], references: [id])
+  users               User[]
+  tourPackages        TourPackage[]
+  bookings            Booking[]
+  reviews             Review[]
+  tenantDestinations  TenantDestination[]
+  refreshTokens       RefreshToken[]
+  affiliations        GuideAffiliation[]
+  payouts             Payout[]
 
   @@index([destinationId])
 }
@@ -167,6 +166,7 @@ model GuideProfile {
   destinations   GuideDestination[]
   affiliation    GuideAffiliation?
   reviews        Review[]
+  payouts        Payout[]
 }
 
 model TourPackage {
@@ -197,6 +197,7 @@ model TourPackage {
   packageGuides  PackageGuide[]
 
   @@index([destinationId])
+  @@index([tenantId, active])
 }
 
 model DepartureSlot {
@@ -220,6 +221,7 @@ model DepartureSlot {
 
 model Booking {
   id                   String        @id @default(cuid())
+  code                 String?       @unique
   cancelToken          String        @unique
   cancelTokenExpiresAt DateTime?
   tenantId             String
@@ -245,9 +247,12 @@ model Booking {
   review      Review?
   testimonial Testimonial?
   user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  payouts     Payout[]
 
   @@unique([tenantId, idempotencyKey])
   @@index([userId])
+  @@index([tenantId, status])
+  @@index([status, expiresAt])
 }
 
 model Notification {
@@ -334,10 +339,31 @@ enum Difficulty {
   HARD
 }
 
-enum TenantApprovalStatus {
+enum PayoutStatus {
   PENDING
-  APPROVED
-  REJECTED
+  PROCESSING
+  PAID
+  FAILED
+}
+
+model Payout {
+  id          String       @id @default(cuid())
+  tenantId    String
+  guideId     String
+  bookingId   String
+  amount      Decimal      @db.Decimal(10, 2)
+  platformFee Decimal      @db.Decimal(10, 2)
+  status      PayoutStatus @default(PENDING)
+  paidAt      DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  tenant  Tenant       @relation(fields: [tenantId], references: [id])
+  guide   GuideProfile @relation(fields: [guideId], references: [id])
+  booking Booking      @relation(fields: [bookingId], references: [id])
+
+  @@index([tenantId, status])
+  @@index([guideId, status])
 }
 
 model PackageGuide {
