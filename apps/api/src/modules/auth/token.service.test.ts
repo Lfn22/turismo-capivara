@@ -1,3 +1,4 @@
+import { createHash } from 'crypto'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../../database', () => {
@@ -54,13 +55,20 @@ describe('rotateRefreshToken', () => {
       data: { revokedAt: expect.any(Date), replacedAt: expect.any(Date) },
     })
     expect(db.refreshToken.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ token: result!.newToken, userId: 'user-1', tenantId: 'tenant-1' }),
+      // O banco guarda só o hash SHA-256; o token em claro vai apenas para o cliente
+      data: expect.objectContaining({
+        token: createHash('sha256').update(result!.newToken).digest('hex'),
+        userId: 'user-1',
+        tenantId: 'tenant-1',
+      }),
     })
   })
 
   it('reuso dentro da janela após rotação (corrida) → emite token novo sem revogar tudo', async () => {
     const rotatedAt = new Date(Date.now() - 5_000)
-    db.refreshToken.findUnique.mockResolvedValue(row({ revokedAt: rotatedAt, replacedAt: rotatedAt }))
+    db.refreshToken.findUnique.mockResolvedValue(
+      row({ revokedAt: rotatedAt, replacedAt: rotatedAt }),
+    )
     const result = await rotateRefreshToken('old')
     expect(result).toEqual({ newToken: expect.any(String), userId: 'user-1', tenantId: 'tenant-1' })
     expect(db.refreshToken.create).toHaveBeenCalledTimes(1)
@@ -70,7 +78,9 @@ describe('rotateRefreshToken', () => {
 
   it('reuso após a janela → trata como roubo: revoga todos e retorna null', async () => {
     const rotatedAt = new Date(Date.now() - ROTATION_GRACE_MS - 1_000)
-    db.refreshToken.findUnique.mockResolvedValue(row({ revokedAt: rotatedAt, replacedAt: rotatedAt }))
+    db.refreshToken.findUnique.mockResolvedValue(
+      row({ revokedAt: rotatedAt, replacedAt: rotatedAt }),
+    )
     expect(await rotateRefreshToken('old')).toBeNull()
     expect(db.refreshToken.create).not.toHaveBeenCalled()
     expect(db.refreshToken.updateMany).toHaveBeenCalledWith({
@@ -84,7 +94,9 @@ describe('rotateRefreshToken', () => {
   })
 
   it('revogado por logout/troca de senha (replacedAt nulo), mesmo há 1s → nunca aceito, revoga todos', async () => {
-    db.refreshToken.findUnique.mockResolvedValue(row({ revokedAt: new Date(Date.now() - 1_000), replacedAt: null }))
+    db.refreshToken.findUnique.mockResolvedValue(
+      row({ revokedAt: new Date(Date.now() - 1_000), replacedAt: null }),
+    )
     expect(await rotateRefreshToken('old')).toBeNull()
     expect(db.refreshToken.create).not.toHaveBeenCalled()
     expect(db.refreshToken.updateMany).toHaveBeenCalled()

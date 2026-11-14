@@ -66,6 +66,8 @@ const BASE_BOOKING = {
   expiresAt: new Date(Date.now() + 30 * 60 * 1000),
   slotId: 'slot-1',
   tenantId: TENANT.id,
+  // Fora dos 7 dias de arrependimento (CDC Art.49): vale o cutoff de 24h antes da partida
+  createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
   slot: {
     startsAt: FUTURE_DATE,
     package: { name: 'Trilha do Sol', description: 'Lindo passeio', price: 100 },
