@@ -14,6 +14,17 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.r2.dev',
       },
+      {
+        // Fotos de destinos cadastradas antes da migração para o R2
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/dkt7oywsz/**',
+      },
+      {
+        // Fotos de guias vindas do seed
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
   },
 }
