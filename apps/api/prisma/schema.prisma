@@ -94,10 +94,12 @@ model Tenant {
   approvalStatus              ApprovalStatus @default(PENDING)
   rejectionReason             String?
   whatsapp                    String?
+  logoUrl                     String?
   confirmationCode            String?
   confirmationCodeExpiresAt   DateTime?
   confirmationAttempts        Int      @default(0)
   confirmedAt                 DateTime?
+  type                        TenantType @default(AGENCIA)
   createdAt                   DateTime @default(now())
   updatedAt                   DateTime @updatedAt
 
