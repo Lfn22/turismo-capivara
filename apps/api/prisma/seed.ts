@@ -20,9 +20,32 @@ async function createTenantData(
   tenantId: string,
   adminEmail: string,
   adminName: string,
-  guia1: { name: string; email: string; cpf: string; bio: string; especialidades: string[]; regioes: string[]; photoUrl?: string },
-  guia2: { name: string; email: string; cpf: string; bio: string; especialidades: string[]; regioes: string[]; photoUrl?: string },
-  pacotes: { name: string; description: string; duration: number; price: number; capacity: number; difficulty: string }[]
+  guia1: {
+    name: string
+    email: string
+    cpf: string
+    bio: string
+    especialidades: string[]
+    regioes: string[]
+    photoUrl?: string
+  },
+  guia2: {
+    name: string
+    email: string
+    cpf: string
+    bio: string
+    especialidades: string[]
+    regioes: string[]
+    photoUrl?: string
+  },
+  pacotes: {
+    name: string
+    description: string
+    duration: number
+    price: number
+    capacity: number
+    difficulty: string
+  }[],
 ) {
   await prisma.user.create({
     data: {
@@ -60,7 +83,10 @@ async function createTenantData(
     },
   })
 
-  const tenantDoGuia = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { destinationId: true } })
+  const tenantDoGuia = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { destinationId: true },
+  })
   if (tenantDoGuia?.destinationId) {
     await prisma.guideDestination.create({
       data: { guideId: perfilAprovado.id, destinationId: tenantDoGuia.destinationId },
@@ -233,7 +259,7 @@ async function main() {
     data: {
       name: 'Guias Serra da Capivara',
       slug: 'serra-capivara',
-      type: 'AGENCIA',
+
       cnpj: '11222333000181',
       approvalStatus: 'APPROVED',
       destinationId: destSerraCapivara.id,
@@ -244,7 +270,7 @@ async function main() {
     data: {
       name: 'Jalapão Expedições',
       slug: 'jalapao',
-      type: 'AGENCIA',
+
       cnpj: '22333444000192',
       approvalStatus: 'APPROVED',
       destinationId: destJalapao.id,
@@ -255,7 +281,7 @@ async function main() {
     data: {
       name: 'Petrolina Turismo',
       slug: 'petrolina',
-      type: 'AGENCIA',
+
       cnpj: '33444555000103',
       approvalStatus: 'APPROVED',
       destinationId: destPetrolina.id,
@@ -289,7 +315,8 @@ async function main() {
     [
       {
         name: 'Circuito das Pedras Pintadas',
-        description: 'Visita guiada aos principais sítios arqueológicos com pinturas rupestres de até 30 mil anos.',
+        description:
+          'Visita guiada aos principais sítios arqueológicos com pinturas rupestres de até 30 mil anos.',
         duration: 4,
         price: 150,
         capacity: 8,
@@ -297,13 +324,14 @@ async function main() {
       },
       {
         name: 'Trilha do Boqueirão da Pedra Furada',
-        description: 'Trilha icônica até a Pedra Furada, um dos símbolos do parque, com vista panorâmica do vale.',
+        description:
+          'Trilha icônica até a Pedra Furada, um dos símbolos do parque, com vista panorâmica do vale.',
         duration: 6,
         price: 220,
         capacity: 6,
         difficulty: 'HARD',
       },
-    ]
+    ],
   )
 
   // ── Jalapão — usuários e roteiros ────────────────────────────────────────
@@ -333,7 +361,8 @@ async function main() {
     [
       {
         name: 'Rota dos Fervedouros',
-        description: 'Visita aos principais fervedouros do Jalapão: Buritizeiro, Ceiça e Encantado, com banho incluído.',
+        description:
+          'Visita aos principais fervedouros do Jalapão: Buritizeiro, Ceiça e Encantado, com banho incluído.',
         duration: 8,
         price: 280,
         capacity: 10,
@@ -341,13 +370,14 @@ async function main() {
       },
       {
         name: 'Dunas do Jalapão ao Pôr do Sol',
-        description: 'Passeio até as dunas de areia dourada com pôr do sol e observação do cerrado.',
+        description:
+          'Passeio até as dunas de areia dourada com pôr do sol e observação do cerrado.',
         duration: 4,
         price: 180,
         capacity: 12,
         difficulty: 'EASY',
       },
-    ]
+    ],
   )
 
   // ── Petrolina — usuários e roteiros ──────────────────────────────────────
@@ -377,7 +407,8 @@ async function main() {
     [
       {
         name: 'Tour pelas Vinícolas do Vale',
-        description: 'Visita a 3 vinícolas premiadas do Vale do São Francisco com degustação e almoço incluídos.',
+        description:
+          'Visita a 3 vinícolas premiadas do Vale do São Francisco com degustação e almoço incluídos.',
         duration: 6,
         price: 320,
         capacity: 10,
@@ -385,13 +416,14 @@ async function main() {
       },
       {
         name: 'Passeio de Barco no São Francisco',
-        description: 'Navegação pelo Rio São Francisco ao pôr do sol, com paradas em ilhas e cultura ribeirinha.',
+        description:
+          'Navegação pelo Rio São Francisco ao pôr do sol, com paradas em ilhas e cultura ribeirinha.',
         duration: 3,
         price: 160,
         capacity: 15,
         difficulty: 'EASY',
       },
-    ]
+    ],
   )
 
   // ── CAPI Platform — super admin ───────────────────────────────────────────
@@ -401,7 +433,7 @@ async function main() {
     data: {
       name: 'CAPI Platform',
       slug: 'capi-platform',
-      type: 'AGENCIA',
+
       approvalStatus: 'APPROVED',
     },
   })
@@ -427,6 +459,19 @@ async function main() {
       approvalStatus: 'APPROVED',
     },
   })
+
+  // ── Tenant CAPI (plataforma de turistas) ─────────────────────────────────
+  const capiTenant = await prisma.tenant.upsert({
+    where: { slug: 'capi' },
+    update: {},
+    create: {
+      name: 'CAPI Plataforma',
+      slug: 'capi',
+
+      approvalStatus: 'APPROVED',
+    },
+  })
+  console.log('Tenant plataforma:', capiTenant.slug)
 
   console.log('\nSeed concluído!')
   console.log('\nDestinations: serra-da-capivara | jalapao | petrolina')

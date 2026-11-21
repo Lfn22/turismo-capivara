@@ -32,6 +32,7 @@ model Destination {
   tourPackages       TourPackage[]
   createdBy          User?               @relation("DestinationCreator", fields: [createdById], references: [id])
   guides             GuideDestination[]
+  favorites          Favorite[]
 }
 
 enum TenantType {
@@ -80,7 +81,7 @@ model GuideAffiliation {
   updatedAt       DateTime          @updatedAt
 
   guide  GuideProfile @relation(fields: [guideId], references: [id], onDelete: Cascade)
-  tenant Tenant       @relation(fields: [tenantId], references: [id])
+  tenant Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, status])
 }
@@ -89,6 +90,8 @@ model Tenant {
   id              String               @id @default(cuid())
   name            String
   slug            String               @unique
+  type            TenantType?
+  logoUrl         String?
   cnpj            String?
   destinationId   String?
   approvalStatus              ApprovalStatus @default(PENDING)
@@ -135,7 +138,7 @@ model User {
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
 
-  tenant                    Tenant               @relation(fields: [tenantId], references: [id])
+  tenant                    Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   guideProfile              GuideProfile?
   tourPackages              TourPackage[]        @relation("ConductorPackages")
   passwordResetTokens       PasswordResetToken[]
@@ -144,6 +147,9 @@ model User {
   refreshTokens             RefreshToken[]
   notifications             Notification[]
   bookings                  Booking[]
+  favorites                 Favorite[]
+
+  @@index([tenantId])
 }
 
 model GuideProfile {
@@ -188,6 +194,9 @@ model TourPackage {
   durationMaxHours Int?
   bufferMinutes    Int        @default(60)
   destinationId    String?
+  meetingPointName String?
+  meetingPointLat  Float?
+  meetingPointLng  Float?
   publishedAt      DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
@@ -197,6 +206,7 @@ model TourPackage {
   destination    Destination?    @relation(fields: [destinationId], references: [id])
   departureSlots DepartureSlot[]
   packageGuides  PackageGuide[]
+  favorites      Favorite[]
 
   @@index([destinationId])
   @@index([tenantId, active])
@@ -531,4 +541,20 @@ model Lead {
 
   @@index([destinationSlug])
   @@index([createdAt])
+}
+
+model Favorite {
+  id            String       @id @default(cuid())
+  userId        String
+  packageId     String?
+  destinationId String?
+  createdAt     DateTime     @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package     TourPackage? @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  destination Destination? @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, packageId])
+  @@unique([userId, destinationId])
+  @@index([userId])
 }
