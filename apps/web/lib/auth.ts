@@ -4,11 +4,17 @@ import { apiTokenExpiresAt, ensureFreshApiToken } from '@/src/lib/api-token'
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
 
-if (
-  process.env.NODE_ENV === 'production' &&
-  (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.length < 32)
-) {
-  throw new Error('NEXTAUTH_SECRET deve ter no mínimo 32 caracteres em produção')
+// Secret validation deferred to first auth request (Railway injects env vars only at runtime, not build time)
+let secretValidated = false
+function validateSecret() {
+  if (secretValidated) return
+  secretValidated = true
+  if (
+    process.env.NODE_ENV === 'production' &&
+    (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.length < 32)
+  ) {
+    throw new Error('NEXTAUTH_SECRET deve ter no mínimo 32 caracteres em produção')
+  }
 }
 
 // Nome e foto exibidos no UserBar/painel. Melhor esforço: falha não impede o login.
@@ -37,6 +43,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Senha', type: 'password' },
       },
       async authorize(credentials) {
+        validateSecret()
         if (!credentials?.email || !credentials?.password) {
           return null
         }
