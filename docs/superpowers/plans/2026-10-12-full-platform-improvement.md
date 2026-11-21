@@ -13,12 +13,13 @@
 ## File Structure Overview
 
 ### New Files (API)
+
 - `apps/api/src/shared/utils/zod-error.ts` — centralizar zodError helper
 - `apps/api/src/modules/bookings/routes/create.route.ts` — booking create saga
 - `apps/api/src/modules/bookings/routes/self-service.route.ts` — self-service lookup
 - `apps/api/src/modules/bookings/routes/cancel.route.ts` — cancel by token
 - `apps/api/src/modules/bookings/routes/repay.route.ts` — repay PIX
-- `apps/api/src/modules/bookings/routes/admin.route.ts` — admin list/confirm/cancel
+  d-- `apps/api/src/modules/bookings/routes/admin.route.ts` — admin list/confirm/cancel
 - `apps/api/src/modules/bookings/booking.service.ts` — lógica extraída dos handlers
 - `apps/api/src/__tests__/webhooks.test.ts` — testes de webhook
 - `apps/api/src/__tests__/auth.test.ts` — testes de auth
@@ -26,17 +27,20 @@
 - `apps/api/src/__tests__/users-lgpd.test.ts` — testes LGPD
 
 ### New Files (Web)
+
 - `apps/web/src/lib/api.ts` — HTTP client centralizado
 - `apps/web/src/components/ui/capi/Toast.tsx` — toast notification system
 - `apps/web/app/politica-privacidade/page.tsx` — política de privacidade LGPD
 - `apps/web/src/components/providers/ConsentBanner.tsx` — consent banner LGPD
 
 ### New Files (Infra)
+
 - `.github/workflows/ci.yml` — pipeline CI/CD
 - `apps/api/railway.toml` — Railway config com watch paths
 - `apps/web/vercel.json` — Vercel config com ignored build step
 
 ### Modified Files (API)
+
 - `apps/api/src/modules/bookings/bookings.routes.ts` — refatorar para barrel de sub-rotas
 - `apps/api/src/modules/bookings/bookings.schemas.ts` — expandir com create schema
 - `apps/api/src/shared/env.ts` — adicionar NEXT_PUBLIC_CONSENT vars
@@ -44,10 +48,12 @@
 - `apps/api/vitest.config.ts` — adicionar coverage threshold
 
 ### Modified Files (Web)
+
 - `apps/web/src/app/layout.tsx` — integrar ConsentBanner
 - `apps/web/src/components/providers/PostHogProvider.tsx` — condicionar a consent
 
 ### Modified Files (Root)
+
 - `turbo.json` — adicionar tasks lint, test, typecheck
 - `package.json` — adicionar scripts lint, test, typecheck
 
@@ -58,6 +64,7 @@
 ### Task 1: Centralizar zodError helper
 
 **Files:**
+
 - Create: `apps/api/src/shared/utils/zod-error.ts`
 - Modify: `apps/api/src/modules/bookings/bookings.routes.ts`
 - Modify: `apps/api/src/modules/destinations/destinations.routes.ts`
@@ -103,7 +110,7 @@ export function zodError(err: ZodError) {
 export function parseBody<T extends z.ZodType>(
   schema: T,
   data: unknown,
-  reply: FastifyReply
+  reply: FastifyReply,
 ): { data: z.infer<T>; error: false } | { data: null; error: true } {
   const result = schema.safeParse(data)
   if (!result.success) {
@@ -116,7 +123,7 @@ export function parseBody<T extends z.ZodType>(
 export function parseParams<T extends z.ZodType>(
   schema: T,
   data: unknown,
-  reply: FastifyReply
+  reply: FastifyReply,
 ): { data: z.infer<T>; error: false } | { data: null; error: true } {
   return parseBody(schema, data, reply)
 }
@@ -124,7 +131,7 @@ export function parseParams<T extends z.ZodType>(
 export function parseQuery<T extends z.ZodType>(
   schema: T,
   data: unknown,
-  reply: FastifyReply
+  reply: FastifyReply,
 ): { data: z.infer<T>; error: false } | { data: null; error: true } {
   return parseBody(schema, data, reply)
 }
@@ -153,6 +160,7 @@ if (error) return
 ```
 
 Arquivos a atualizar (remover a função local `zodError` de cada um):
+
 - `apps/api/src/modules/bookings/bookings.routes.ts`
 - `apps/api/src/modules/destinations/destinations.routes.ts`
 - `apps/api/src/modules/packages/packages.routes.ts`
@@ -179,6 +187,7 @@ git commit -m "refactor(api): centralizar zodError e parse helpers no shared lay
 ### Task 2: Criar HTTP client centralizado no frontend
 
 **Files:**
+
 - Create: `apps/web/src/lib/api.ts`
 
 - [ ] **Step 1: Criar o client**
@@ -203,15 +212,12 @@ type FetchOptions = Omit<RequestInit, 'body'> & {
   token?: string
 }
 
-export async function api<T = unknown>(
-  path: string,
-  options: FetchOptions = {},
-): Promise<T> {
+export async function api<T = unknown>(path: string, options: FetchOptions = {}): Promise<T> {
   const { body, token, headers: customHeaders, ...rest } = options
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...customHeaders as Record<string, string>,
+    ...(customHeaders as Record<string, string>),
   }
 
   if (token) {
@@ -252,6 +258,7 @@ git commit -m "feat(web): criar HTTP client centralizado em lib/api.ts"
 ### Task 3: LGPD Consent Banner + Política de Privacidade
 
 **Files:**
+
 - Create: `apps/web/src/components/providers/ConsentBanner.tsx`
 - Create: `apps/web/app/politica-privacidade/page.tsx`
 - Modify: `apps/web/src/app/layout.tsx`
@@ -323,11 +330,11 @@ export function ConsentBanner() {
       }}
     >
       <p style={{ margin: 0, maxWidth: '600px' }}>
-        Usamos cookies para melhorar sua experiência e analisar o uso do site.
-        Veja nossa{' '}
+        Usamos cookies para melhorar sua experiência e analisar o uso do site. Veja nossa{' '}
         <a href="/politica-privacidade" style={{ textDecoration: 'underline' }}>
           política de privacidade
-        </a>.
+        </a>
+        .
       </p>
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         <button
@@ -377,59 +384,59 @@ export default function PoliticaPrivacidade() {
   return (
     <main style={{ maxWidth: '720px', margin: '0 auto', padding: '2rem 1rem' }}>
       <h1>Política de Privacidade</h1>
-      <p><strong>Última atualização:</strong> Outubro 2026</p>
+      <p>
+        <strong>Última atualização:</strong> Outubro 2026
+      </p>
 
       <h2>1. Dados coletados</h2>
       <p>
-        Coletamos os dados necessários para a prestação do serviço de reservas turísticas:
-        nome, e-mail, CPF (armazenado de forma hasheada), dados de reserva e pagamento.
+        Coletamos os dados necessários para a prestação do serviço de reservas turísticas: nome,
+        e-mail, CPF (armazenado de forma hasheada), dados de reserva e pagamento.
       </p>
 
       <h2>2. Finalidade</h2>
       <p>
-        Os dados são utilizados para processar reservas, enviar confirmações por e-mail,
-        prevenir fraudes e melhorar a experiência do usuário na plataforma.
+        Os dados são utilizados para processar reservas, enviar confirmações por e-mail, prevenir
+        fraudes e melhorar a experiência do usuário na plataforma.
       </p>
 
       <h2>3. Cookies e analytics</h2>
       <p>
-        Utilizamos cookies de analytics (PostHog) apenas com seu consentimento explícito.
-        Você pode revogar o consentimento a qualquer momento limpando os cookies do navegador.
-        Utilizamos Sentry para monitoramento de erros técnicos, o que é necessário para
-        o funcionamento adequado da plataforma (base legal: legítimo interesse).
+        Utilizamos cookies de analytics (PostHog) apenas com seu consentimento explícito. Você pode
+        revogar o consentimento a qualquer momento limpando os cookies do navegador. Utilizamos
+        Sentry para monitoramento de erros técnicos, o que é necessário para o funcionamento
+        adequado da plataforma (base legal: legítimo interesse).
       </p>
 
       <h2>4. Compartilhamento</h2>
       <p>
-        Seus dados são compartilhados apenas com os prestadores necessários:
-        Mercado Pago (pagamentos), Resend (e-mails transacionais), Cloudflare (armazenamento de fotos).
-        Não vendemos seus dados a terceiros.
+        Seus dados são compartilhados apenas com os prestadores necessários: Mercado Pago
+        (pagamentos), Resend (e-mails transacionais), Cloudflare (armazenamento de fotos). Não
+        vendemos seus dados a terceiros.
       </p>
 
       <h2>5. Seus direitos (LGPD Art. 18)</h2>
       <p>
         Você tem direito a: acessar seus dados, solicitar correção, solicitar exclusão/anonimização,
-        revogar consentimento e portabilidade. Para exercer seus direitos,
-        entre em contato pelo e-mail indicado abaixo.
+        revogar consentimento e portabilidade. Para exercer seus direitos, entre em contato pelo
+        e-mail indicado abaixo.
       </p>
 
       <h2>6. Retenção</h2>
       <p>
-        Dados de reservas são mantidos para fins fiscais e legais. Ao solicitar exclusão,
-        seus dados pessoais são anonimizados — o histórico de transações é preservado
-        de forma não identificável.
+        Dados de reservas são mantidos para fins fiscais e legais. Ao solicitar exclusão, seus dados
+        pessoais são anonimizados — o histórico de transações é preservado de forma não
+        identificável.
       </p>
 
       <h2>7. Segurança</h2>
       <p>
-        Utilizamos criptografia em trânsito (HTTPS/TLS), senhas hasheadas com bcrypt,
-        CPFs hasheados com SHA-256 + salt, e validação de webhooks com HMAC-SHA256.
+        Utilizamos criptografia em trânsito (HTTPS/TLS), senhas hasheadas com bcrypt, CPFs hasheados
+        com SHA-256 + salt, e validação de webhooks com HMAC-SHA256.
       </p>
 
       <h2>8. Contato</h2>
-      <p>
-        Para questões sobre privacidade: privacidade@capi.turismo
-      </p>
+      <p>Para questões sobre privacidade: privacidade@capi.turismo</p>
     </main>
   )
 }
@@ -452,7 +459,7 @@ No `apps/web/src/app/layout.tsx` (ou `apps/web/app/layout.tsx`), adicionar:
 ```tsx
 import { ConsentBanner } from '../src/components/providers/ConsentBanner'
 // ... dentro do body, antes do </body>:
-<ConsentBanner />
+;<ConsentBanner />
 ```
 
 - [ ] **Step 5: Testar manualmente**
@@ -476,6 +483,7 @@ git commit -m "feat(web): adicionar consent banner LGPD e política de privacida
 ### Task 4: Adicionar idempotency no booking create
 
 **Files:**
+
 - Modify: `apps/api/src/modules/bookings/bookings.routes.ts:76-338`
 - Modify: `apps/api/src/modules/bookings/bookings.schemas.ts`
 
@@ -569,6 +577,7 @@ git commit -m "feat(api): adicionar idempotency key no booking create"
 ### Task 5: Extrair booking service layer
 
 **Files:**
+
 - Create: `apps/api/src/modules/bookings/booking.service.ts`
 - Modify: `apps/api/src/modules/bookings/bookings.routes.ts`
 
@@ -613,6 +622,7 @@ export interface CreateBookingResult {
 - [ ] **Step 2: Mover a lógica de criação para o service**
 
 Extrair a saga de 3 fases (linhas ~90-335 do bookings.routes.ts) para o método `BookingService.create()`. A lógica inclui:
+
 1. Validação de CPF
 2. Tx1: SELECT FOR UPDATE no slot + validação de capacidade
 3. Criação do PIX no Mercado Pago
@@ -624,11 +634,9 @@ Extrair a saga de 3 fases (linhas ~90-335 do bookings.routes.ts) para o método 
 export async function createBooking(input: CreateBookingInput): Promise<CreateBookingResult> {
   // Mover toda a lógica do handler aqui, substituindo request/reply
   // por parâmetros explícitos e throws ao invés de reply.status()
-  
   // ... (copiar a lógica existente do handler, adaptando)
   // Onde antes fazia reply.status(400).send({...}), agora faz:
   // throw new AppError('mensagem', 400)
-  
   // Retornar o resultado ao invés de reply.send()
 }
 ```
@@ -662,6 +670,7 @@ git commit -m "refactor(api): extrair booking service layer do handler monolíti
 ### Task 6: Quebrar bookings.routes.ts em sub-rotas
 
 **Files:**
+
 - Create: `apps/api/src/modules/bookings/routes/create.route.ts`
 - Create: `apps/api/src/modules/bookings/routes/self-service.route.ts`
 - Create: `apps/api/src/modules/bookings/routes/cancel.route.ts`
@@ -720,6 +729,7 @@ git commit -m "refactor(api): quebrar bookings.routes.ts em 5 sub-rotas coesas"
 ### Task 7: Adicionar paginação cursor-based nas listagens
 
 **Files:**
+
 - Modify: `apps/api/src/modules/bookings/routes/admin.route.ts`
 - Modify: `apps/api/src/modules/packages/packages.routes.ts`
 - Modify: `apps/api/src/modules/guides/guides.routes.ts`
@@ -757,7 +767,7 @@ const bookings = await prisma.booking.findMany({
   take: query.limit + 1, // +1 para detectar hasMore
   ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
   orderBy: { createdAt: 'desc' },
-  select: { /* campos existentes */ },
+  select: {/* campos existentes */},
 })
 
 return reply.status(200).send(paginatedResponse(bookings, query.limit))
@@ -786,6 +796,7 @@ git commit -m "feat(api): adicionar paginação cursor-based em listagens de boo
 ### Task 8: Criar pipeline CI/CD com GitHub Actions
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`
 - Modify: `turbo.json`
 - Modify: `package.json`
@@ -835,6 +846,7 @@ git commit -m "feat(api): adicionar paginação cursor-based em listagens de boo
 - [ ] **Step 3: Adicionar scripts em cada app package.json**
 
 Em `apps/api/package.json`:
+
 ```json
 {
   "scripts": {
@@ -845,6 +857,7 @@ Em `apps/api/package.json`:
 ```
 
 Em `apps/web/package.json` (se não existir):
+
 ```json
 {
   "scripts": {
@@ -889,7 +902,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://turismo:turismo123@localhost:5432/turismo_test
       JWT_SECRET: ci-test-secret-minimum-32-characters-xxxx
-      MP_ACCESS_TOKEN: ""
+      MP_ACCESS_TOKEN: ''
       MP_WEBHOOK_SECRET: test-webhook-secret
       CPF_SECRET: test-cpf-secret
       ANONYMIZATION_SALT: test-anonymization-salt
@@ -944,6 +957,7 @@ git commit -m "feat(infra): adicionar pipeline CI/CD com GitHub Actions"
 ### Task 9: Configurar Railway e Vercel para monorepo
 
 **Files:**
+
 - Create: `apps/api/railway.toml`
 - Create: `apps/web/vercel.json`
 
@@ -987,6 +1001,7 @@ git commit -m "feat(infra): configurar Railway watch paths e Vercel ignore comma
 ### Task 10: Testes de webhook Mercado Pago
 
 **Files:**
+
 - Create: `apps/api/src/__tests__/webhooks.test.ts`
 
 - [ ] **Step 1: Escrever testes de webhook**
@@ -1011,10 +1026,7 @@ function buildWebhookApp(): FastifyInstance {
 
 function makeSignature(paymentId: string, ts: string): string {
   const manifest = `id:${paymentId};request-date:${ts};`
-  const hash = crypto
-    .createHmac('sha256', WEBHOOK_SECRET)
-    .update(manifest)
-    .digest('hex')
+  const hash = crypto.createHmac('sha256', WEBHOOK_SECRET).update(manifest).digest('hex')
   return `ts=${ts},v1=${hash}`
 }
 
@@ -1105,6 +1117,7 @@ git commit -m "test(api): adicionar testes de webhook Mercado Pago (HMAC, replay
 ### Task 11: Testes de auth routes
 
 **Files:**
+
 - Create: `apps/api/src/__tests__/auth.test.ts`
 
 - [ ] **Step 1: Escrever testes de auth**
@@ -1186,6 +1199,7 @@ git commit -m "test(api): adicionar testes de auth routes (login, me, register)"
 ### Task 12: Testes de guides routes
 
 **Files:**
+
 - Create: `apps/api/src/__tests__/guides.test.ts`
 
 - [ ] **Step 1: Escrever testes de guides**
@@ -1260,6 +1274,7 @@ git commit -m "test(api): adicionar testes de guides routes (public, admin, auth
 ### Task 13: Testes de LGPD (users routes)
 
 **Files:**
+
 - Create: `apps/api/src/__tests__/users-lgpd.test.ts`
 
 - [ ] **Step 1: Escrever testes de LGPD**
@@ -1318,6 +1333,7 @@ git commit -m "test(api): adicionar testes de rotas LGPD (export, anonymization)
 ### Task 14: Configurar coverage threshold
 
 **Files:**
+
 - Modify: `apps/api/vitest.config.ts`
 
 - [ ] **Step 1: Adicionar thresholds**
@@ -1366,6 +1382,7 @@ git commit -m "feat(api): configurar coverage thresholds no vitest (50% initial)
 ### Task 15: Adicionar auth no booking create
 
 **Files:**
+
 - Modify: `apps/api/src/modules/bookings/routes/create.route.ts` (ou bookings.routes.ts se Task 6 não executada)
 
 - [ ] **Step 1: Adicionar email verification opcional no booking create**
@@ -1408,6 +1425,7 @@ git commit -m "feat(api): adicionar rate limit por email no booking create (anti
 ### Task 16: Adicionar expiração ao cancelToken
 
 **Files:**
+
 - Modify: `apps/api/src/modules/bookings/routes/cancel.route.ts` (ou bookings.routes.ts)
 
 - [ ] **Step 1: Adicionar campo cancelTokenExpiresAt ao Prisma schema**
@@ -1458,6 +1476,7 @@ git commit -m "feat(api): adicionar expiração de 48h ao cancelToken de booking
 ### Task 17: Expandir métricas de negócio no OTel
 
 **Files:**
+
 - Modify: `apps/api/src/shared/metrics.ts`
 - Modify: `apps/api/src/modules/bookings/routes/create.route.ts`
 - Modify: `apps/api/src/modules/bookings/routes/cancel.route.ts`
@@ -1520,6 +1539,7 @@ git commit -m "feat(api): expandir métricas OTel com counters de cancel, expiry
 ### Task 18: Adicionar Toast system no frontend
 
 **Files:**
+
 - Create: `apps/web/src/components/providers/ToastProvider.tsx`
 - Modify: `apps/web/src/app/layout.tsx` ou `apps/web/app/layout.tsx`
 
@@ -1611,9 +1631,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 import { ToastProvider } from '../src/components/providers/ToastProvider'
 
 // Dentro do body:
-<ToastProvider>
-  {children}
-</ToastProvider>
+;<ToastProvider>{children}</ToastProvider>
 ```
 
 - [ ] **Step 3: Commit**
@@ -1628,6 +1646,7 @@ git commit -m "feat(web): adicionar toast notification system com useToast hook"
 ### Task 19: Adicionar loading states com Skeleton
 
 **Files:**
+
 - Verify existing: `apps/web/src/components/ui/capi/Feedback.tsx` — já exporta `Skeleton`
 - Create loading.tsx files onde faltam
 
@@ -1645,7 +1664,13 @@ export default function Loading() {
   return (
     <div style={{ padding: '2rem 1rem', maxWidth: '1200px', margin: '0 auto' }}>
       <Skeleton style={{ height: '2rem', width: '200px', marginBottom: '1.5rem' }} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap: '1.5rem',
+        }}
+      >
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} style={{ height: '280px', borderRadius: '12px' }} />
         ))}
@@ -1656,6 +1681,7 @@ export default function Loading() {
 ```
 
 Criar loading.tsx similares para:
+
 - `apps/web/app/destinos/loading.tsx`
 - `apps/web/app/[slug]/(painel)/painel/dashboard/loading.tsx`
 - `apps/web/app/[slug]/(painel)/painel/reservas/loading.tsx`
@@ -1675,6 +1701,7 @@ git commit -m "feat(web): adicionar loading.tsx com Skeleton nas rotas principai
 ### Task 20: Health check expandido
 
 **Files:**
+
 - Modify: `apps/api/src/app.ts`
 
 - [ ] **Step 1: Expandir o health check existente**
@@ -1719,6 +1746,7 @@ git commit -m "feat(api): expandir health check com status detalhado por serviç
 ### Task 21: Atualizar .env.example
 
 **Files:**
+
 - Modify: `apps/api/.env.example`
 
 - [ ] **Step 1: Sincronizar com env.ts schema**
@@ -1772,18 +1800,19 @@ git commit -m "docs(api): sincronizar .env.example com env.ts schema"
 
 ## Resumo de Entrega por Sprint
 
-| Sprint | Tasks | Foco |
-|--------|-------|------|
-| Sprint 1 — Fundação | Tasks 1-4 | zodError centralizado, HTTP client, LGPD, idempotency |
-| Sprint 2 — Refatoração Backend | Tasks 5-7 | Service layer, sub-rotas, paginação |
-| Sprint 3 — CI/CD e Infra | Tasks 8-9 | GitHub Actions, Railway/Vercel config |
-| Sprint 4 — Testes | Tasks 10-14 | Webhook, auth, guides, LGPD tests, coverage |
-| Sprint 5 — Segurança | Tasks 15-16 | Rate limit por email, cancelToken expiry |
+| Sprint                              | Tasks       | Foco                                                          |
+| ----------------------------------- | ----------- | ------------------------------------------------------------- |
+| Sprint 1 — Fundação                 | Tasks 1-4   | zodError centralizado, HTTP client, LGPD, idempotency         |
+| Sprint 2 — Refatoração Backend      | Tasks 5-7   | Service layer, sub-rotas, paginação                           |
+| Sprint 3 — CI/CD e Infra            | Tasks 8-9   | GitHub Actions, Railway/Vercel config                         |
+| Sprint 4 — Testes                   | Tasks 10-14 | Webhook, auth, guides, LGPD tests, coverage                   |
+| Sprint 5 — Segurança                | Tasks 15-16 | Rate limit por email, cancelToken expiry                      |
 | Sprint 6 — Observabilidade e Polish | Tasks 17-21 | Métricas OTel, toasts, loading states, health check, env sync |
 
 **Total: 21 tasks, ~42 commits atômicos.**
 
 Cada task é independente e pode ser executada/commitada isoladamente. As dependências entre tasks são mínimas:
+
 - Task 6 depende de Task 5 (service layer antes de quebrar rotas)
 - Task 15-16 podem usar Task 6 se executada (ou modificar o arquivo original)
 - Todos os outros tasks são independentes
