@@ -5,14 +5,23 @@ import prisma from '../../database'
 import { Sentry } from '../../shared/sentry'
 import { getResend, getEmailFrom } from '../../shared/email'
 import { notifyBookingEvent } from '../notifications/booking-events'
-import { bookingConfirmedEmailText, bookingConfirmedSubject } from '../bookings/emails/booking-confirmed-email'
+import {
+  bookingConfirmedEmailText,
+  bookingConfirmedSubject,
+} from '../bookings/emails/booking-confirmed-email'
 import { auditLog } from '../../shared/audit.js'
 import { bookingsConfirmedCounter } from '../../shared/metrics.js'
+import { z } from 'zod'
+
+const webhookBodySchema = z.object({
+  action: z.string().optional(),
+  data: z.object({ id: z.string() }).optional(),
+})
 
 function validateMpSignature(
   signatureHeader: string,
   paymentId: string,
-  requestId: string | undefined
+  requestId: string | undefined,
 ): boolean {
   // Parse "ts=<timestamp>,v1=<hash>" from x-signature header
   const parts: Record<string, string> = {}
@@ -36,9 +45,7 @@ function validateMpSignature(
   // - data.id is lowercased when it contains uppercase alphanumerics
   // - a component whose value is absent from the notification is omitted entirely
   const manifest =
-    `id:${paymentId.toLowerCase()};` +
-    (requestId ? `request-id:${requestId};` : '') +
-    `ts:${ts};`
+    `id:${paymentId.toLowerCase()};` + (requestId ? `request-id:${requestId};` : '') + `ts:${ts};`
 
   const computed = crypto
     .createHmac('sha256', process.env.MP_WEBHOOK_SECRET!)
@@ -46,10 +53,7 @@ function validateMpSignature(
     .digest('hex')
 
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(computed, 'hex'),
-      Buffer.from(v1, 'hex')
-    )
+    return crypto.timingSafeEqual(Buffer.from(computed, 'hex'), Buffer.from(v1, 'hex'))
   } catch {
     // Buffers of different lengths — invalid signature
     return false
@@ -76,8 +80,8 @@ export async function webhooksRoutes(app: FastifyInstance) {
       }
 
       // 2. Parse body for data.id (payment ID)
-      const body = request.body as { action?: string; data?: { id?: string } }
-      const paymentId = body?.data?.id
+      const parsed = webhookBodySchema.safeParse(request.body)
+      const paymentId = parsed.success ? parsed.data.data?.id : undefined
 
       if (!paymentId) {
         return reply.status(200).send({ message: 'ok' })
@@ -94,7 +98,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
         // silently never reach CONFIRMED. This must be visible, not buried in logs.
         app.log.error(
           { sig: signatureHeader.slice(0, 40), paymentId, hasRequestId: Boolean(requestId) },
-          'Assinatura de webhook inválida'
+          'Assinatura de webhook inválida',
         )
         Sentry.captureException(new Error('Mercado Pago webhook signature validation failed'))
         return reply.status(200).send({ message: 'ok' })
@@ -164,7 +168,13 @@ export async function webhooksRoutes(app: FastifyInstance) {
       }
 
       // 7. Idempotency check (per D-08): already in terminal state — no reprocessing
-      const TERMINAL_STATES: string[] = ['CONFIRMED', 'CANCELLED', 'EXPIRED', 'COMPLETED', 'NO_SHOW']
+      const TERMINAL_STATES: string[] = [
+        'CONFIRMED',
+        'CANCELLED',
+        'EXPIRED',
+        'COMPLETED',
+        'NO_SHOW',
+      ]
       if (TERMINAL_STATES.includes(booking.status)) {
         return reply.status(200).send({ message: 'ok' })
       }
@@ -181,7 +191,13 @@ export async function webhooksRoutes(app: FastifyInstance) {
           bookingsConfirmedCounter.add(1, { tenant: booking.tenant?.slug ?? 'unknown' })
         }
 
-        auditLog(prisma, { actorType: 'SYSTEM', action: 'booking.confirmed', targetType: 'BOOKING', targetId: booking.id, metadata: { paymentId } })
+        auditLog(prisma, {
+          actorType: 'SYSTEM',
+          action: 'booking.confirmed',
+          targetType: 'BOOKING',
+          targetId: booking.id,
+          metadata: { paymentId },
+        })
 
         // NOTIF-02: Notify customer of confirmed booking (fire-and-forget, D-12)
         const resend = getResend()
@@ -201,7 +217,10 @@ export async function webhooksRoutes(app: FastifyInstance) {
               }),
             })
             .catch((emailErr: unknown) => {
-              app.log.warn({ err: emailErr, bookingId: booking.id }, '[email] Failed to send booking-confirmed email')
+              app.log.warn(
+                { err: emailErr, bookingId: booking.id },
+                '[email] Failed to send booking-confirmed email',
+              )
             })
         }
       } else if (status === 'cancelled' || status === 'rejected') {
@@ -222,7 +241,11 @@ export async function webhooksRoutes(app: FastifyInstance) {
 
           // Re-read slot to recalculate status after atomic decrement
           const updatedSlot = await tx.departureSlot.findUnique({ where: { id: booking.slotId } })
-          if (updatedSlot && updatedSlot.status !== 'CANCELLED' && updatedSlot.status !== 'COMPLETED') {
+          if (
+            updatedSlot &&
+            updatedSlot.status !== 'CANCELLED' &&
+            updatedSlot.status !== 'COMPLETED'
+          ) {
             const correctedBooked = Math.max(0, updatedSlot.booked)
             const newStatus = correctedBooked < updatedSlot.capacity ? 'OPEN' : 'FULL'
             await tx.departureSlot.update({
@@ -237,6 +260,6 @@ export async function webhooksRoutes(app: FastifyInstance) {
       // Other statuses (pending, in_process) — no-op, acknowledge with 200
 
       return reply.status(200).send({ message: 'ok' })
-    }
+    },
   )
 }

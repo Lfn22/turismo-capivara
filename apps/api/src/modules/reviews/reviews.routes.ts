@@ -18,7 +18,11 @@ const guideReviewsParamsSchema = z.object({
 
 const createReviewBodySchema = z.object({
   bookingId: z.string().min(1, { message: 'ID da reserva obrigatório' }),
-  rating: z.number().int().min(1, { message: 'Nota mínima é 1' }).max(5, { message: 'Nota máxima é 5' }),
+  rating: z
+    .number()
+    .int()
+    .min(1, { message: 'Nota mínima é 1' })
+    .max(5, { message: 'Nota máxima é 5' }),
   comment: z.string().max(1000, { message: 'Comentário muito longo' }).optional(),
   customerName: z.string().min(1, { message: 'Nome obrigatório' }),
   customerEmail: z.string().email({ message: 'Email inválido' }),
@@ -27,7 +31,11 @@ const createReviewBodySchema = z.object({
 export async function reviewsRoutes(app: FastifyInstance) {
   // POST /tenants/:slug/reviews — Create a review (public, verified by email)
   app.post('/tenants/:slug/reviews', async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    const { data: params, error: paramsError } = parseParams(
+      slugParamsSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
 
     const { data: body, error: bodyError } = parseBody(createReviewBodySchema, request.body, reply)
@@ -68,11 +76,11 @@ export async function reviewsRoutes(app: FastifyInstance) {
 
     // Determine guide: slot.guideId (assigned guide) or package conductor
     const guideId = booking.slot.guideId ?? booking.slot.package.conductorId
-    if (!guideId) throw new AppError('Guia não encontrado para esta reserva', 400)
+    if (!guideId) throw new AppError('Guia não encontrado para esta reserva', 404)
 
     // Find the GuideProfile for this user
     const guideProfile = await prisma.guideProfile.findUnique({ where: { userId: guideId } })
-    if (!guideProfile) throw new AppError('Perfil de guia não encontrado', 400)
+    if (!guideProfile) throw new AppError('Perfil de guia não encontrado', 404)
 
     // Check if already reviewed
     const existing = await prisma.review.findUnique({ where: { bookingId: body.bookingId } })
@@ -102,13 +110,21 @@ export async function reviewsRoutes(app: FastifyInstance) {
 
   // GET /tenants/:slug/guides/:guideId/reviews — Public: list reviews for a guide
   app.get('/tenants/:slug/guides/:guideId/reviews', async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(guideReviewsParamsSchema, request.params, reply)
+    const { data: params, error: paramsError } = parseParams(
+      guideReviewsParamsSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
 
     const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
     if (!tenant) throw new AppError('Tenant não encontrado', 404)
 
-    const { data: pagination, error: pgErr } = parseQuery(paginationQuerySchema, request.query, reply)
+    const { data: pagination, error: pgErr } = parseQuery(
+      paginationQuerySchema,
+      request.query,
+      reply,
+    )
     if (pgErr) return
 
     const reviews = await prisma.review.findMany({
@@ -146,38 +162,50 @@ export async function reviewsRoutes(app: FastifyInstance) {
   })
 
   // GET /tenants/:slug/reviews — Admin: list all tenant reviews (authenticated)
-  app.get('/tenants/:slug/reviews', {
-    preHandler: [authenticate, authorize(['ADMIN'])],
-  }, async (request, reply) => {
-    const admin = request.user as { sub: string; tenantId: string }
+  app.get(
+    '/tenants/:slug/reviews',
+    {
+      preHandler: [authenticate, authorize(['ADMIN'])],
+    },
+    async (request, reply) => {
+      const admin = request.user as { sub: string; tenantId: string }
 
-    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
-    if (paramsError) return
+      const { data: params, error: paramsError } = parseParams(
+        slugParamsSchema,
+        request.params,
+        reply,
+      )
+      if (paramsError) return
 
-    const { data: pagination, error: pgErr } = parseQuery(paginationQuerySchema, request.query, reply)
-    if (pgErr) return
+      const { data: pagination, error: pgErr } = parseQuery(
+        paginationQuerySchema,
+        request.query,
+        reply,
+      )
+      if (pgErr) return
 
-    const reviews = await prisma.review.findMany({
-      where: { tenantId: admin.tenantId },
-      take: pagination.limit + 1,
-      ...(pagination.cursor ? { cursor: { id: pagination.cursor }, skip: 1 } : {}),
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        rating: true,
-        comment: true,
-        customerName: true,
-        customerEmail: true,
-        createdAt: true,
-        guide: {
-          select: {
-            id: true,
-            user: { select: { name: true } },
+      const reviews = await prisma.review.findMany({
+        where: { tenantId: admin.tenantId },
+        take: pagination.limit + 1,
+        ...(pagination.cursor ? { cursor: { id: pagination.cursor }, skip: 1 } : {}),
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          rating: true,
+          comment: true,
+          customerName: true,
+          customerEmail: true,
+          createdAt: true,
+          guide: {
+            select: {
+              id: true,
+              user: { select: { name: true } },
+            },
           },
         },
-      },
-    })
+      })
 
-    return reply.status(200).send(paginatedResponse(reviews, pagination.limit))
-  })
+      return reply.status(200).send(paginatedResponse(reviews, pagination.limit))
+    },
+  )
 }

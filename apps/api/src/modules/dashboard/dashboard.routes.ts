@@ -59,7 +59,8 @@ export async function dashboardRoutes(app: FastifyInstance) {
       }
 
       const confirmedRevenue = confirmedBookings.reduce((sum, b) => {
-        return sum + Number(b.slot?.package?.price ?? 0) * b.pax
+        const price = b.slot?.package?.price
+        return sum + (price ? Number(price) : 0) * b.pax
       }, 0)
 
       return reply.status(200).send({
@@ -75,6 +76,6 @@ export async function dashboardRoutes(app: FastifyInstance) {
         },
         upcomingSlots,
       })
-    }
+    },
   )
 }

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isValidCPF } from '../../shared/utils/cpf'
 
 export const selfServiceBodySchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
@@ -14,7 +15,11 @@ export const cancelSelfBodySchema = z.object({
 export type CancelSelfBody = z.infer<typeof cancelSelfBodySchema>
 
 export const repayBodySchema = selfServiceBodySchema.extend({
-  cpf: z.string().regex(/^\d{11}$/, { message: 'CPF deve conter 11 dígitos numéricos' }).optional(),
+  cpf: z
+    .string()
+    .regex(/^\d{11}$/, { message: 'CPF deve conter 11 dígitos numéricos' })
+    .refine(isValidCPF, { message: 'CPF inválido' })
+    .optional(),
 })
 
 export type RepayBody = z.infer<typeof repayBodySchema>

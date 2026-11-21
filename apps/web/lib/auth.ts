@@ -1,15 +1,24 @@
-import { NextAuthOptions } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { apiTokenExpiresAt, ensureFreshApiToken } from "@/src/lib/api-token"
+import { NextAuthOptions } from 'next-auth'
+import CredentialsProvider from 'next-auth/providers/credentials'
+import { apiTokenExpiresAt, ensureFreshApiToken } from '@/src/lib/api-token'
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
 
+if (
+  process.env.NODE_ENV === 'production' &&
+  (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.length < 32)
+) {
+  throw new Error('NEXTAUTH_SECRET deve ter no mínimo 32 caracteres em produção')
+}
+
 // Nome e foto exibidos no UserBar/painel. Melhor esforço: falha não impede o login.
-async function fetchAccount(apiToken: string): Promise<{ name?: string; photoUrl?: string | null } | null> {
+async function fetchAccount(
+  apiToken: string,
+): Promise<{ name?: string; photoUrl?: string | null } | null> {
   try {
     const res = await fetch(`${API_URL}/account/me`, {
       headers: { Authorization: `Bearer ${apiToken}` },
-      cache: "no-store",
+      cache: 'no-store',
     })
     if (!res.ok) return null
     const data = await res.json()
@@ -22,10 +31,10 @@ async function fetchAccount(apiToken: string): Promise<{ name?: string; photoUrl
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: "credentials",
+      name: 'credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Senha", type: "password" },
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Senha', type: 'password' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -34,8 +43,8 @@ export const authOptions: NextAuthOptions = {
         const apiUrl = API_URL
         try {
           const res = await fetch(`${apiUrl}/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               email: credentials.email,
               password: credentials.password,
@@ -82,11 +91,11 @@ export const authOptions: NextAuthOptions = {
         // Renova o token da API perto de expirar (o middleware cobre getToken/RSC; aqui cobre /api/auth/session)
         const fresh = await ensureFreshApiToken(token)
         // Lançar faz o next-auth limpar o cookie de sessão → useSession/getServerSession sem sessão → login
-        if (fresh.status === "invalid") throw new Error("API_REFRESH_FAILED")
+        if (fresh.status === 'invalid') throw new Error('API_REFRESH_FAILED')
         token = fresh.token
       }
       // useSession().update(): relê nome/foto da API (não confia no payload do cliente)
-      if (trigger === "update" && token.apiToken) {
+      if (trigger === 'update' && token.apiToken) {
         const account = await fetchAccount(token.apiToken)
         if (account) {
           if (account.name) token.name = account.name
@@ -112,8 +121,8 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: "/login",
+    signIn: '/login',
   },
-  session: { strategy: "jwt" },
+  session: { strategy: 'jwt' },
   secret: process.env.NEXTAUTH_SECRET,
 }

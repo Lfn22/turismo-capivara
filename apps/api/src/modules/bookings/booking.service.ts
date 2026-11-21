@@ -172,7 +172,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
 
   if (!pkg) {
     await releaseBooking()
-    throw new AppError('Pacote não encontrado para este slot', 500)
+    throw new AppError('Pacote não encontrado para este slot', 404)
   }
 
   // MP call stays OUTSIDE the transaction (per D-02) — a network round-trip must never
@@ -209,7 +209,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     qrCode: paymentResult.qrCode,
     cancelToken: booking.cancelToken,
     conductorEmail: pkg.conductor?.email ?? null,
-    departureStartsAt: pkg.departureSlots[0]?.startsAt ?? new Date(),
+    departureStartsAt: pkg.departureSlots.length > 0 ? pkg.departureSlots[0].startsAt : new Date(),
     packageName: pkg.name,
   }
 }

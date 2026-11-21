@@ -35,8 +35,17 @@ const envSchema = z
     if (!data.CORS_ORIGIN) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'CORS_ORIGIN é obrigatório em produção (senão a API rejeitará todas as requests do browser)',
+        message:
+          'CORS_ORIGIN é obrigatório em produção (senão a API rejeitará todas as requests do browser)',
         path: ['CORS_ORIGIN'],
+      })
+    }
+    if (!data.R2_CREDENTIALS_BUCKET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'R2_CREDENTIALS_BUCKET é obrigatório em produção para armazenar comprovantes de guia',
+        path: ['R2_CREDENTIALS_BUCKET'],
       })
     }
   })
