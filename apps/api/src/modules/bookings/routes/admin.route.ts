@@ -8,6 +8,7 @@ import { authorize } from '../../../shared/middlewares/authorize'
 import { AppError } from '../../../shared/errors/AppError'
 import { Sentry } from '../../../shared/sentry'
 import { notifyBookingEvent } from '../../notifications/booking-events'
+import { isPlatformStaff } from '../../../shared/auth/roles'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -21,12 +22,22 @@ const slugAndIdParamsSchema = z.object({
 export async function adminBookingsRoute(app: FastifyInstance) {
   app.get(
     '/tenants/:slug/bookings/:id',
-    { preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])] },
+    {
+      preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])],
+    },
     async (request, reply) => {
-      const { data: params, error: paramsError } = parseParams(slugAndIdParamsSchema, request.params, reply)
+      const { data: params, error: paramsError } = parseParams(
+        slugAndIdParamsSchema,
+        request.params,
+        reply,
+      )
       if (paramsError) return
 
-      const { data: query, error: queryError } = parseQuery(z.object({ email: z.string().email({ message: 'Email inválido' }) }), request.query, reply)
+      const { data: query, error: queryError } = parseQuery(
+        z.object({ email: z.string().email({ message: 'Email inválido' }) }),
+        request.query,
+        reply,
+      )
       if (queryError) return
 
       const { slug, id } = params
@@ -54,16 +65,28 @@ export async function adminBookingsRoute(app: FastifyInstance) {
         throw new AppError('Reserva não encontrada', 404)
       }
 
+      // Tenant ownership check — non-platform staff can only view their own tenant's bookings
+      const user = request.user as { sub: string; role: string; tenantId: string }
+      if (!isPlatformStaff(user.role) && booking.tenantId !== user.tenantId) {
+        throw new AppError('Reserva não encontrada', 404)
+      }
+
       const { customerCpfHash, customerPhone, ...safeBooking } = booking
       return safeBooking
-    }
+    },
   )
 
   app.patch(
     '/tenants/:slug/bookings/:id/cancel',
-    { preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])] },
+    {
+      preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])],
+    },
     async (request, reply) => {
-      const { data: params, error: paramsError } = parseParams(slugAndIdParamsSchema, request.params, reply)
+      const { data: params, error: paramsError } = parseParams(
+        slugAndIdParamsSchema,
+        request.params,
+        reply,
+      )
       if (paramsError) return
       const { slug, id } = params
 
@@ -105,11 +128,21 @@ export async function adminBookingsRoute(app: FastifyInstance) {
       }
 
       const updated = await prisma.$transaction(async (tx) => {
+        // Re-check status inside transaction to prevent race conditions
+        const freshBooking = await tx.booking.findUnique({
+          where: { id },
+          select: { status: true },
+        })
+        if (freshBooking?.status === 'CANCELLED') {
+          throw new AppError('BOOKING_ALREADY_CANCELLED', 400)
+        }
+
         const currentSlot = await tx.departureSlot.findUnique({ where: { id: booking.slotId } })
+        const newBooked = Math.max(0, (currentSlot?.booked ?? 0) - booking.pax)
         await tx.departureSlot.update({
           where: { id: booking.slotId },
           data: {
-            booked: { decrement: booking.pax },
+            booked: newBooked,
             // Restore to OPEN if slot was FULL — preserve CANCELLED/COMPLETED
             ...(currentSlot?.status === 'FULL' ? { status: 'OPEN' } : {}),
           },
@@ -125,14 +158,20 @@ export async function adminBookingsRoute(app: FastifyInstance) {
 
       const { customerCpfHash, customerPhone, ...safeBooking } = updated
       return safeBooking
-    }
+    },
   )
 
   app.patch(
     '/tenants/:slug/bookings/:id/confirm',
-    { preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])] },
+    {
+      preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])],
+    },
     async (request, reply) => {
-      const { data: params, error: paramsError } = parseParams(slugAndIdParamsSchema, request.params, reply)
+      const { data: params, error: paramsError } = parseParams(
+        slugAndIdParamsSchema,
+        request.params,
+        reply,
+      )
       if (paramsError) return
       const { slug, id } = params
 
@@ -183,7 +222,7 @@ export async function adminBookingsRoute(app: FastifyInstance) {
 
       const { customerCpfHash, customerPhone, ...safeBooking } = updated
       return safeBooking
-    }
+    },
   )
 
   app.get(
@@ -192,7 +231,11 @@ export async function adminBookingsRoute(app: FastifyInstance) {
       preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN'])],
     },
     async (request, reply) => {
-      const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+      const { data: params, error: paramsError } = parseParams(
+        slugParamsSchema,
+        request.params,
+        reply,
+      )
       if (paramsError) return
       const { slug } = params
 
@@ -204,7 +247,11 @@ export async function adminBookingsRoute(app: FastifyInstance) {
         throw new AppError('Tenant não encontrado', 404)
       }
 
-      const { data: pagination, error: pgErr } = parseQuery(paginationQuerySchema, request.query, reply)
+      const { data: pagination, error: pgErr } = parseQuery(
+        paginationQuerySchema,
+        request.query,
+        reply,
+      )
       if (pgErr) return
 
       const bookings = await prisma.booking.findMany({
@@ -227,6 +274,6 @@ export async function adminBookingsRoute(app: FastifyInstance) {
       })
 
       return reply.status(200).send(paginatedResponse(bookings, pagination.limit))
-    }
+    },
   )
 }

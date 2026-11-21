@@ -7,10 +7,12 @@ import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
 import DestinationMembershipButton from '@/src/components/membership/DestinationMembershipButton';
 import PublicLayout from '@/src/components/layout/PublicLayout';
 import { Button } from '@/src/components/ui/capi';
+import PackageCard, { type PackageCardPackage } from '@/src/components/ui/PackageCard';
 import { LeadForm } from '@/src/components/leads/LeadForm';
 import { TrackView } from '@/src/components/tracking/TrackView';
 import { DestinationEditControls, DestinationEditSection } from '@/src/components/edit-mode/DestinationEditControls';
-import MapWidgetClient, { type PartnerData } from '@/src/components/ui/MapWidgetClient';
+import { MapWidgetClient, type MapMarker } from '@/src/components/ui/map';
+import type { PartnerData } from '@/src/components/ui/MapWidgetClient';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -110,6 +112,46 @@ export default async function DestinationPage({ params }: Props) {
   const partners = destination.lat && destination.lng
     ? await fetchPartners(slug)
     : []
+
+  // Fetch pacotes do destino
+  let packages: (PackageCardPackage & { tenantSlug: string; lat?: number | null; lng?: number | null })[] = [];
+  try {
+    const pkgRes = await fetch(`${API_URL}/destinations/${slug}/packages`, { next: { revalidate: 60 } });
+    if (pkgRes.ok) {
+      const raw = await pkgRes.json();
+      packages = Array.isArray(raw) ? raw.map((p: Record<string, unknown>) => ({
+        tenantSlug: p.tenantSlug as string,
+        id: p.id as string,
+        name: p.name as string,
+        durationMinutes: ((p.duration as number) ?? 0) * 60,
+        difficulty: (p.difficulty ?? 'MODERATE') as PackageCardPackage['difficulty'],
+        priceFrom: Number(p.price ?? 0),
+        coverImageUrl: (p.coverPhotoUrl as string) ?? null,
+        lat: p.lat as number | null,
+        lng: p.lng as number | null,
+        tags: [],
+      })) : [];
+    }
+  } catch { /* graceful degradation */ }
+
+  // Converter parceiros + pacotes em marcadores do mapa
+  const mapMarkers: MapMarker[] = [
+    ...partners.map((p): MapMarker => ({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, type: 'partner' })),
+    ...packages
+      .filter((p) => p.lat != null && p.lng != null)
+      .map((p): MapMarker => ({
+        id: p.id,
+        name: p.name,
+        lat: p.lat!,
+        lng: p.lng!,
+        type: 'package',
+        price: p.priceFrom,
+        imageUrl: p.coverImageUrl,
+        duration: p.durationMinutes ? `${Math.floor(p.durationMinutes / 60)}h${p.durationMinutes % 60 > 0 ? ` ${p.durationMinutes % 60}min` : ''}` : null,
+        href: `/${p.tenantSlug}/roteiros/${p.id}`,
+        badge: p.difficulty,
+      })),
+  ]
 
   const guidesHref = `/destinos/${slug}/roteiros`;
   const highlights = destination.highlights ?? [];
@@ -258,7 +300,31 @@ export default async function DestinationPage({ params }: Props) {
         </section>
         </DestinationEditSection>
 
-        {/* ── 4. Pontos de interesse (fotos) ───────────────────── */}
+        {/* ── 4. Roteiros disponíveis ────────────────────────── */}
+        {packages.length > 0 && (
+          <section className="dest__section" aria-labelledby="roteiros-heading">
+            <div className="capi-container">
+              <p className="dest__overline">Roteiros</p>
+              <h2 id="roteiros-heading" className="dest__h2">Roteiros disponíveis</h2>
+              <div className="capi-grid-cards">
+                {packages.map((pkg) => (
+                  <PackageCard
+                    key={pkg.id}
+                    package={pkg}
+                    href={`/${pkg.tenantSlug}/roteiros/${pkg.id}`}
+                  />
+                ))}
+              </div>
+              <div style={{ marginTop: 'var(--space-6)', textAlign: 'center' }}>
+                <Button href={guidesHref} variant="secondary" iconRight={ArrowRight}>
+                  Ver todos os roteiros
+                </Button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── 5. Pontos de interesse (fotos) ───────────────────── */}
         {highlights.length > 0 && (
           <DestinationEditSection>
           <section className="dest__section" aria-labelledby="poi-heading">
@@ -298,7 +364,7 @@ export default async function DestinationPage({ params }: Props) {
               <MapWidgetClient
                 lat={destination.lat as number}
                 lng={destination.lng as number}
-                partners={partners}
+                markers={mapMarkers}
                 destinationName={destination.title}
               />
             </div>
@@ -316,7 +382,7 @@ export default async function DestinationPage({ params }: Props) {
           </div>
         </section>
 
-        {/* ── 6. CTA — Roteiros ────────────────────────────────── */}
+        {/* ── 6. CTA ────────────────────────────────────────── */}
         <section className="dest__section" aria-labelledby="cta-heading">
           <div className="capi-container">
             <div className="dest__cta">
@@ -325,16 +391,18 @@ export default async function DestinationPage({ params }: Props) {
                   Pronto para explorar {destination.title}?
                 </h2>
                 <p className="dest__cta-sub">
-                  Descubra os roteiros disponíveis em {destination.title}. Compare duração, dificuldade e preço — e reserve com guias certificados.
+                  Conheça os guias certificados de {destination.title} e reserve sua próxima aventura.
                 </p>
               </div>
               <div className="dest__cta-actions">
-                <Button href={guidesHref} size="lg" iconRight={ArrowRight}>
-                  Ver roteiros
-                </Button>
-                <Button href={`/destinos/${slug}/guias`} size="lg" variant="secondary">
+                <Button href={`/destinos/${slug}/guias`} size="lg" iconRight={ArrowRight}>
                   Conhecer os guias
                 </Button>
+                {packages.length > 0 && (
+                  <Button href={guidesHref} size="lg" variant="secondary">
+                    Ver todos os roteiros
+                  </Button>
+                )}
                 <DestinationMembershipButton destinationSlug={slug} />
               </div>
             </div>

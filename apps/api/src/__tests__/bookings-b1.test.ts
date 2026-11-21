@@ -25,7 +25,7 @@ vi.mock('../services/payment.service', () => ({
 vi.mock('../database', () => ({
   default: {
     tenant: { findUnique: vi.fn() },
-    booking: { findFirst: vi.fn(), update: vi.fn(), count: vi.fn() },
+    booking: { findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn(), count: vi.fn() },
     departureSlot: { findUnique: vi.fn(), update: vi.fn() },
     tourPackage: { findFirst: vi.fn() },
     $transaction: vi.fn(),
@@ -36,7 +36,7 @@ import prisma from '../database'
 
 const db = prisma as unknown as {
   tenant: { findUnique: Mock }
-  booking: { findFirst: Mock; update: Mock; count: Mock }
+  booking: { findFirst: Mock; findUnique: Mock; update: Mock; count: Mock }
   departureSlot: { findUnique: Mock; update: Mock }
   tourPackage: { findFirst: Mock }
   $transaction: Mock
@@ -56,7 +56,12 @@ beforeAll(async () => {
   await app.ready()
   // Cancel route requires ADMIN
   adminToken = app.jwt.sign({ sub: 'admin-1', role: 'ADMIN', tenantId: TENANT.id, name: 'Admin' })
-  crossTenantAdminToken = app.jwt.sign({ sub: 'admin-x', role: 'ADMIN', tenantId: 'other-tenant', name: 'Admin X' })
+  crossTenantAdminToken = app.jwt.sign({
+    sub: 'admin-x',
+    role: 'ADMIN',
+    tenantId: 'other-tenant',
+    name: 'Admin X',
+  })
 })
 
 afterAll(() => app.close())
@@ -74,8 +79,13 @@ describe('[B1] Booking cancel — slot status preservation', () => {
   it('preserves CANCELLED slot status when booking is cancelled on it', async () => {
     const cancelledSlot = { id: 'slot-1', status: 'CANCELLED', booked: 1, capacity: 5 }
     const confirmedBooking = {
-      id: 'booking-1', slotId: 'slot-1', tenantId: TENANT.id, pax: 1, status: 'CONFIRMED',
-      customerCpf: '111.111.111-11', customerPhone: '99999999999',
+      id: 'booking-1',
+      slotId: 'slot-1',
+      tenantId: TENANT.id,
+      pax: 1,
+      status: 'CONFIRMED',
+      customerCpf: '111.111.111-11',
+      customerPhone: '99999999999',
     }
     const updatedBooking = { ...confirmedBooking, status: 'CANCELLED' }
 
@@ -88,6 +98,7 @@ describe('[B1] Booking cancel — slot status preservation', () => {
           update: vi.fn().mockResolvedValue(cancelledSlot),
         },
         booking: {
+          findUnique: vi.fn().mockResolvedValue({ status: 'CONFIRMED' }),
           count: vi.fn().mockResolvedValue(0),
           update: vi.fn().mockResolvedValue(updatedBooking),
         },
@@ -97,7 +108,7 @@ describe('[B1] Booking cancel — slot status preservation', () => {
       // Assert: slot update must NOT include a `status` key when slot is CANCELLED
       const slotUpdate = tx.departureSlot.update.mock.calls[0][0]
       expect(slotUpdate.data).not.toHaveProperty('status')
-      expect(slotUpdate.data.booked).toEqual({ decrement: 1 })
+      expect(slotUpdate.data.booked).toBe(Math.max(0, cancelledSlot.booked - 1))
 
       return result
     })
@@ -114,8 +125,13 @@ describe('[B1] Booking cancel — slot status preservation', () => {
   it('sets slot to OPEN when FULL slot has no remaining bookings after cancel', async () => {
     const fullSlot = { id: 'slot-2', status: 'FULL', booked: 1, capacity: 1 }
     const pendingBooking = {
-      id: 'booking-2', slotId: 'slot-2', tenantId: TENANT.id, pax: 1, status: 'PENDING',
-      customerCpf: null, customerPhone: '88888888888',
+      id: 'booking-2',
+      slotId: 'slot-2',
+      tenantId: TENANT.id,
+      pax: 1,
+      status: 'PENDING',
+      customerCpf: null,
+      customerPhone: '88888888888',
     }
     const cancelledBooking = { ...pendingBooking, status: 'CANCELLED' }
 
@@ -128,6 +144,7 @@ describe('[B1] Booking cancel — slot status preservation', () => {
           update: vi.fn().mockResolvedValue({ ...fullSlot, status: 'OPEN' }),
         },
         booking: {
+          findUnique: vi.fn().mockResolvedValue({ status: 'PENDING' }),
           count: vi.fn().mockResolvedValue(0),
           update: vi.fn().mockResolvedValue(cancelledBooking),
         },
@@ -157,19 +174,33 @@ describe('[B1] Booking cancel — slot status preservation', () => {
 describe('[Contract] Booking cancel response shape', () => {
   it('response omits customerCpf and customerPhone', async () => {
     const booking = {
-      id: 'booking-3', slotId: 'slot-3', tenantId: TENANT.id, pax: 2, status: 'PENDING',
-      customerCpf: '123.456.789-00', customerPhone: '77777777777',
+      id: 'booking-3',
+      slotId: 'slot-3',
+      tenantId: TENANT.id,
+      pax: 2,
+      status: 'PENDING',
+      customerCpf: '123.456.789-00',
+      customerPhone: '77777777777',
     }
-    const cancelled = { id: 'booking-3', slotId: 'slot-3', tenantId: TENANT.id, pax: 2, status: 'CANCELLED' }
+    const cancelled = {
+      id: 'booking-3',
+      slotId: 'slot-3',
+      tenantId: TENANT.id,
+      pax: 2,
+      status: 'CANCELLED',
+    }
 
     db.booking.findFirst.mockResolvedValue(booking)
     db.$transaction.mockImplementation(async (fn: Function) => {
       const tx = {
         departureSlot: {
-          findUnique: vi.fn().mockResolvedValue({ id: 'slot-3', status: 'OPEN', booked: 2, capacity: 10 }),
+          findUnique: vi
+            .fn()
+            .mockResolvedValue({ id: 'slot-3', status: 'OPEN', booked: 2, capacity: 10 }),
           update: vi.fn().mockResolvedValue({}),
         },
         booking: {
+          findUnique: vi.fn().mockResolvedValue({ status: 'PENDING' }),
           count: vi.fn().mockResolvedValue(0),
           update: vi.fn().mockResolvedValue(cancelled),
         },
@@ -258,7 +289,7 @@ describe('[Wave 0] POST /bookings — qrCode persistence', () => {
           paymentId: 'mp-pay-456',
           paymentUrl: 'https://mp.com/pay/456',
         }),
-      })
+      }),
     )
   })
 })
