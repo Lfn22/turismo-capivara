@@ -45,6 +45,8 @@ function LoginForm() {
       const callbackUrl = safeCallbackUrl(searchParams.get('callbackUrl'), window.location.origin)
       if (callbackUrl) {
         router.push(callbackUrl)
+      } else if (role === 'CLIENTE') {
+        router.push('/minha-conta/viagens')
       } else if (isPlatformStaff(role)) {
         router.push('/super-admin/operadoras')
       } else if (role === 'CONDUTOR' && (await isGuideUnverified())) {
@@ -182,6 +184,16 @@ function LoginForm() {
               className="font-semibold text-[var(--ochre)] no-underline hover:underline"
             >
               Cadastrar agência ou guia →
+            </Link>
+          </p>
+
+          <p className="text-center text-sm text-[var(--stone-500)]">
+            Não tem conta?{' '}
+            <Link
+              href="/cadastro"
+              className="font-semibold text-[var(--ochre)] no-underline hover:underline"
+            >
+              Criar conta
             </Link>
           </p>
         </form>
