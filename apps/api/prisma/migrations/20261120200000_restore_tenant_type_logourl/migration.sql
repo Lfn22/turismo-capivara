@@ -1,3 +1,3 @@
--- AlterTable
-ALTER TABLE "Tenant" ADD COLUMN "type" "TenantType",
-ADD COLUMN "logoUrl" TEXT;
+-- AlterTable (idempotent — columns may already exist from a prior migration)
+ALTER TABLE "Tenant" ADD COLUMN IF NOT EXISTS "type" "TenantType",
+ADD COLUMN IF NOT EXISTS "logoUrl" TEXT;
