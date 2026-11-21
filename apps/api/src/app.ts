@@ -46,6 +46,7 @@ import { editRoutes } from './modules/edit/edit.routes'
 import { accountRoutes } from './modules/account/account.routes'
 import { tenantSettingsRoutes } from './modules/tenants/tenant-settings.routes'
 import { leadsRoutes } from './modules/leads/leads.routes'
+import { meRoutes } from './modules/me/me.routes'
 import { createBookingExpiryJob } from './modules/bookings/expiry.job'
 import { createTokenCleanupJob } from './modules/auth/token.service'
 import { createNotificationDigestJob } from './modules/notifications/digest.job'
@@ -85,6 +86,10 @@ app.register(rawBody, {
   runFirst: true,
 })
 
+if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN) {
+  throw new Error('CORS_ORIGIN é obrigatório em produção')
+}
+
 app.register(cors, {
   origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -95,7 +100,7 @@ app.register(helmet, {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'"],
       imgSrc: ["'self'", 'data:'],
       frameAncestors: ["'none'"],
     },
@@ -132,7 +137,7 @@ app.register(fastifyCron, {
 })
 
 app.get('/health', { config: { rateLimit: false } }, async (request, reply) => {
-  const checks: Record<string, 'ok' | 'error'> = {}
+  const checks: Record<string, 'ok' | 'error' | 'skipped'> = {}
 
   try {
     const prisma = (await import('./database')).default
@@ -143,7 +148,25 @@ app.get('/health', { config: { rateLimit: false } }, async (request, reply) => {
     checks.database = 'error'
   }
 
-  const allOk = Object.values(checks).every((v) => v === 'ok')
+  if (process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN) {
+    try {
+      const { getR2Client, getR2Bucket } = await import('./shared/config/r2')
+      const { HeadBucketCommand } = await import('@aws-sdk/client-s3')
+      await Promise.race([
+        getR2Client().send(new HeadBucketCommand({ Bucket: getR2Bucket() })),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('R2 timeout')), 3000)),
+      ])
+      checks.storage = 'ok'
+    } catch {
+      checks.storage = 'error'
+    }
+  } else {
+    checks.storage = 'skipped'
+  }
+
+  checks.email = process.env.RESEND_API_KEY ? 'ok' : 'skipped'
+
+  const allOk = Object.values(checks).every((v) => v === 'ok' || v === 'skipped')
 
   return reply.status(allOk ? 200 : 503).send({
     status: allOk ? 'healthy' : 'degraded',
@@ -177,6 +200,7 @@ app.register(editRoutes)
 app.register(accountRoutes)
 app.register(tenantSettingsRoutes)
 app.register(leadsRoutes)
+app.register(meRoutes)
 
 app.addHook('onSend', async (request, reply) => {
   reply.header('X-Request-Id', request.id)
@@ -185,6 +209,7 @@ app.addHook('onSend', async (request, reply) => {
 app.setErrorHandler((err, request, reply) => {
   if (err instanceof AppError) {
     // Business error — expected, do NOT send to Sentry (per D-07)
+    request.log.warn({ statusCode: err.statusCode, message: err.message }, 'AppError')
     return reply.status(err.statusCode).send({ message: err.message })
   }
   // Unexpected error — capture with tenant/user context (per D-06)
@@ -196,7 +221,7 @@ app.setErrorHandler((err, request, reply) => {
     scope.setTag('route', `${request.method} ${request.url}`)
     Sentry.captureException(err)
   })
-  app.log.error(err)
+  request.log.error(err)
   reply.status(500).send({ message: 'Erro interno do servidor' })
 })
 
