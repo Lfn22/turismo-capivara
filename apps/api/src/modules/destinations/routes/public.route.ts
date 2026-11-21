@@ -18,7 +18,11 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
       sortBy: z.enum(['newest', 'name']).optional().default('newest'),
     })
 
-    const { data: query, error: queryErr } = parseQuery(destinationQuerySchema, request.query, reply)
+    const { data: query, error: queryErr } = parseQuery(
+      destinationQuerySchema,
+      request.query,
+      reply,
+    )
     if (queryErr) return
     const { state, search, sortBy, cursor, limit } = query
 
@@ -30,7 +34,12 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
         approvalStatus: 'APPROVED',
         ...(state ? { state } : {}),
         ...(search
-          ? { OR: [{ title: { contains: search, mode: 'insensitive' as const } }, { description: { contains: search, mode: 'insensitive' as const } }] }
+          ? {
+              OR: [
+                { title: { contains: search, mode: 'insensitive' as const } },
+                { description: { contains: search, mode: 'insensitive' as const } },
+              ],
+            }
           : {}),
       },
       select: {
@@ -42,6 +51,9 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
         heroImageUrl: true,
         heroImageBlurDataUrl: true,
         photos: true,
+        lat: true,
+        lng: true,
+        _count: { select: { tenantDestinations: true } },
       },
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -53,7 +65,11 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
 
   // GET /destinations/:slug — detalhe de um destino (público)
   app.get('/destinations/:slug', async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    const { data: params, error: paramsError } = parseParams(
+      slugParamsSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
 
     const destination = await prisma.destination.findUnique({
@@ -86,7 +102,11 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
 
   // GET /destinations/:slug/guides — guias aprovados do destino (público)
   app.get('/destinations/:slug/guides', async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    const { data: params, error: paramsError } = parseParams(
+      slugParamsSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
 
     const destination = await prisma.destination.findUnique({
@@ -138,7 +158,11 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
       slug: z.string().min(1),
       guideId: z.string().min(1),
     })
-    const { data: params, error: paramsError } = parseParams(guideParamsSchema, request.params, reply)
+    const { data: params, error: paramsError } = parseParams(
+      guideParamsSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
 
     const destination = await prisma.destination.findUnique({
@@ -231,15 +255,21 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
 
   // GET /destinations/:slug/packages — pacotes ativos de um destino aprovado (público)
   app.get('/destinations/:slug/packages', async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    const { data: params, error: paramsError } = parseParams(
+      slugParamsSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
 
     const destination = await prisma.destination.findUnique({
       where: { slug: params.slug, active: true, approvalStatus: 'APPROVED' },
-      select: { id: true },
+      select: { id: true, lat: true, lng: true },
     })
 
     if (!destination) throw new AppError('Destino não encontrado', 404)
+
+    const dest = destination
 
     const packages = await prisma.tourPackage.findMany({
       where: {
@@ -258,6 +288,10 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
         difficulty: true,
         durationMinHours: true,
         durationMaxHours: true,
+        photos: true,
+        meetingPointName: true,
+        meetingPointLat: true,
+        meetingPointLng: true,
         tenant: {
           select: { slug: true },
         },
@@ -275,8 +309,12 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
         difficulty: p.difficulty,
         durationMinHours: p.durationMinHours,
         durationMaxHours: p.durationMaxHours,
+        coverPhotoUrl: p.photos[0] ?? null,
+        meetingPointName: p.meetingPointName,
+        lat: p.meetingPointLat ?? dest?.lat ?? null,
+        lng: p.meetingPointLng ?? dest?.lng ?? null,
         tenantSlug: p.tenant.slug,
-      }))
+      })),
     )
   })
 }

@@ -1,32 +1,17 @@
+/**
+ * @deprecated Use `@/src/components/ui/map/MapWidgetClient` instead.
+ * This file exists for backward compatibility.
+ */
 'use client'
 
-import dynamic from 'next/dynamic'
-import { MapPin } from 'lucide-react'
-import type { PartnerData } from './MapWidget'
+import MapWidgetClientNew, { type MapMarker } from './map/MapWidgetClient'
 
-export type { PartnerData }
-
-function MapPlaceholder() {
-  return (
-    <div
-      role="status"
-      className="relative flex flex-col items-center justify-center gap-2 overflow-hidden border border-line text-sm font-medium text-fg-secondary h-[320px] md:h-[420px]"
-      style={{ width: '100%', borderRadius: 'var(--radius-lg)', background: 'var(--bg-muted)' }}
-    >
-      <span className="capi-skel" aria-hidden="true" style={{ position: 'absolute', inset: 0, borderRadius: 0 }} />
-      <MapPin size={24} strokeWidth={1.75} aria-hidden="true" style={{ position: 'relative' }} />
-      <span style={{ position: 'relative' }}>Carregando mapa…</span>
-    </div>
-  )
+export interface PartnerData {
+  id: string
+  name: string
+  lat: number
+  lng: number
 }
-
-const MapWidget = dynamic(
-  () => import('./MapWidget'),
-  {
-    ssr: false,
-    loading: () => <MapPlaceholder />,
-  }
-)
 
 interface MapWidgetClientProps {
   lat: number
@@ -35,6 +20,22 @@ interface MapWidgetClientProps {
   destinationName: string
 }
 
-export default function MapWidgetClient(props: MapWidgetClientProps) {
-  return <MapWidget {...props} />
+/** Adapter: converts old PartnerData[] to new MapMarker[] */
+export default function MapWidgetClient({
+  lat,
+  lng,
+  partners,
+  destinationName,
+}: MapWidgetClientProps) {
+  const markers: MapMarker[] = partners.map((p) => ({
+    id: p.id,
+    name: p.name,
+    lat: p.lat,
+    lng: p.lng,
+    type: 'partner' as const,
+  }))
+
+  return (
+    <MapWidgetClientNew lat={lat} lng={lng} markers={markers} destinationName={destinationName} />
+  )
 }
