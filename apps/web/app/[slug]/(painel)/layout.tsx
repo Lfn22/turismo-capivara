@@ -1,8 +1,8 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { redirect } from "next/navigation"
-import { SidebarNav } from "@/components/sidebar/SidebarNav"
-import ErrorBoundary from "@/src/components/ui/ErrorBoundary"
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { SidebarNav } from '@/components/sidebar/SidebarNav'
+import ErrorBoundary from '@/src/components/ui/ErrorBoundary'
 
 export default async function PainelLayout({
   children,
@@ -18,8 +18,8 @@ export default async function PainelLayout({
     redirect(`/${slug}/login`)
   }
 
-  const role = (session.user as any).role
-  const PAINEL_ROLES = ["CONDUTOR", "ADMIN"]
+  const role = session.user.role
+  const PAINEL_ROLES = ['CONDUTOR', 'ADMIN']
   if (!PAINEL_ROLES.includes(role)) {
     redirect(`/${slug}/login?error=forbidden`)
   }

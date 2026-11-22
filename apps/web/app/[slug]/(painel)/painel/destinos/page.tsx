@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import type { Session } from 'next-auth'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PainelDestinationCard, PainelDestination } from '@/src/components/ui/PainelDestinationCard'
@@ -33,9 +34,9 @@ export default function DestinosPage() {
       ])
       setScope(editScope)
       if (sessionRes.ok) {
-        const session = await sessionRes.json()
-        setCurrentUserId((session?.user as any)?.id ?? '')
-        setCurrentUserRole((session?.user as any)?.role ?? '')
+        const session: Session = await sessionRes.json()
+        setCurrentUserId(session?.user?.id ?? '')
+        setCurrentUserRole(session?.user?.role ?? '')
       }
       if (!destRes.ok) throw new Error(`HTTP ${destRes.status}`)
       const data = await destRes.json()
@@ -69,7 +70,9 @@ export default function DestinosPage() {
         const body = await res.json().catch(() => ({}))
         const msg = body?.message ?? ''
         if (res.status === 400 && msg.includes('aprovado')) {
-          toast.error('Não é possível excluir um destino já aprovado. Entre em contato com o suporte.')
+          toast.error(
+            'Não é possível excluir um destino já aprovado. Entre em contato com o suporte.',
+          )
         } else {
           toast.error(msg || 'Não foi possível excluir o destino. Tente novamente.')
         }
@@ -91,7 +94,9 @@ export default function DestinosPage() {
 
   // ADMIN: a API só aceita destinos do escopo de edição ou propostas próprias ainda não aprovadas
   const adminCanManage = (dest: PainelDestination) =>
-    (!!dest.slug && !!scope && (scope.destinations === 'ALL' || scope.destinations.includes(dest.slug))) ||
+    (!!dest.slug &&
+      !!scope &&
+      (scope.destinations === 'ALL' || scope.destinations.includes(dest.slug))) ||
     (dest.approvalStatus !== 'APPROVED' && !!currentUserId && dest.createdById === currentUserId)
 
   const deleteTarget = deleteConfirm ? destinations.find((d) => d.id === deleteConfirm) : undefined
@@ -140,11 +145,17 @@ export default function DestinosPage() {
         <div className="destinos-grid" aria-busy="true" aria-label="Carregando destinos">
           {[0, 1, 2].map((i) => (
             <div key={i} className="destinos-skel">
-              <span className="capi-skel" aria-hidden="true" style={{ aspectRatio: '16 / 9', borderRadius: 0 }} />
+              <span
+                className="capi-skel"
+                aria-hidden="true"
+                style={{ aspectRatio: '16 / 9', borderRadius: 0 }}
+              />
               <div className="destinos-skel__body">
                 <Skeleton width="70%" height={18} />
                 <Skeleton width="30%" height={14} />
-                <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                <div
+                  style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}
+                >
                   <Skeleton width={88} height={36} />
                   <Skeleton width={88} height={36} />
                 </div>
@@ -157,7 +168,12 @@ export default function DestinosPage() {
           tone="danger"
           title="Não foi possível carregar seus destinos"
           action={
-            <Button variant="secondary" size="sm" iconLeft={RotateCw} onClick={() => fetchDestinations()}>
+            <Button
+              variant="secondary"
+              size="sm"
+              iconLeft={RotateCw}
+              onClick={() => fetchDestinations()}
+            >
               Tentar novamente
             </Button>
           }
@@ -181,7 +197,11 @@ export default function DestinosPage() {
             <PainelDestinationCard
               key={dest.id}
               destination={dest}
-              isOwner={currentUserRole === 'ADMIN' ? adminCanManage(dest) : (!!currentUserId && dest.createdById === currentUserId)}
+              isOwner={
+                currentUserRole === 'ADMIN'
+                  ? adminCanManage(dest)
+                  : !!currentUserId && dest.createdById === currentUserId
+              }
               showStatus
               onEdit={handleEdit}
               onDelete={(id) => setDeleteConfirm(id)}

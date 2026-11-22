@@ -1,8 +1,8 @@
 /**
  * Testes de integração para o webhook do Mercado Pago.
  *
- * Comportamento real: o handler retorna 200 em TODOS os casos (incluindo falhas
- * de validação) para evitar enumeration e retry storms do MP.
+ * Erros de validação (header ausente, assinatura inválida) retornam 4xx/5xx
+ * para que o Mercado Pago retente a notificação (até 72h).
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify from 'fastify'
@@ -21,7 +21,9 @@ vi.mock('../database', () => ({
   },
 }))
 
-const mockPaymentGet = vi.fn().mockResolvedValue({ status: 'pending', external_reference: 'booking-x' })
+const mockPaymentGet = vi
+  .fn()
+  .mockResolvedValue({ status: 'pending', external_reference: 'booking-x' })
 
 vi.mock('mercadopago', () => {
   function MercadoPagoConfig() {}
@@ -44,7 +46,7 @@ vi.mock('../shared/metrics.js', () => ({ bookingsConfirmedCounter: { add: vi.fn(
 const WEBHOOK_SECRET = 'test-webhook-secret-for-hmac'
 
 function makeSignature(paymentId: string, ts: string): string {
-  const manifest = `id:${paymentId};request-date:${ts};`
+  const manifest = `id:${paymentId.toLowerCase()};ts:${ts};`
   return `ts=${ts},v1=${crypto.createHmac('sha256', WEBHOOK_SECRET).update(manifest).digest('hex')}`
 }
 
@@ -70,7 +72,7 @@ afterAll(async () => {
 // ---------- testes ----------
 
 describe('POST /webhooks/mercadopago', () => {
-  it('rejeita requisição sem cabeçalho x-signature → 200 com ok', async () => {
+  it('rejeita requisição sem cabeçalho x-signature → 400', async () => {
     const app = buildTestApp()
     await app.ready()
 
@@ -81,12 +83,12 @@ describe('POST /webhooks/mercadopago', () => {
       body: JSON.stringify({ action: 'payment', data: { id: 'pay-123' } }),
     })
 
-    expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ message: 'ok' })
+    expect(res.statusCode).toBe(400)
+    expect(res.json()).toEqual({ error: 'Missing x-signature header' })
     await app.close()
   })
 
-  it('rejeita assinatura HMAC inválida → 200 com ok', async () => {
+  it('rejeita assinatura HMAC inválida → 500', async () => {
     const app = buildTestApp()
     await app.ready()
 
@@ -101,12 +103,12 @@ describe('POST /webhooks/mercadopago', () => {
       body: JSON.stringify({ action: 'payment', data: { id: 'pay-123' } }),
     })
 
-    expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ message: 'ok' })
+    expect(res.statusCode).toBe(500)
+    expect(res.json()).toEqual({ error: 'Signature verification failed' })
     await app.close()
   })
 
-  it('rejeita timestamp expirado (>300s) → 200 com ok', async () => {
+  it('rejeita timestamp expirado (>300s) → 500', async () => {
     const app = buildTestApp()
     await app.ready()
 
@@ -124,8 +126,8 @@ describe('POST /webhooks/mercadopago', () => {
       body: JSON.stringify({ action: 'payment', data: { id: paymentId } }),
     })
 
-    expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ message: 'ok' })
+    expect(res.statusCode).toBe(500)
+    expect(res.json()).toEqual({ error: 'Signature verification failed' })
     await app.close()
   })
 

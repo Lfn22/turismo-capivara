@@ -93,6 +93,7 @@ describe('[B1] Booking cancel — slot status preservation', () => {
 
     db.$transaction.mockImplementation(async (fn: Function) => {
       const tx = {
+        $queryRaw: vi.fn().mockResolvedValue([cancelledSlot]),
         departureSlot: {
           findUnique: vi.fn().mockResolvedValue(cancelledSlot),
           update: vi.fn().mockResolvedValue(cancelledSlot),
@@ -139,6 +140,7 @@ describe('[B1] Booking cancel — slot status preservation', () => {
 
     db.$transaction.mockImplementation(async (fn: Function) => {
       const tx = {
+        $queryRaw: vi.fn().mockResolvedValue([fullSlot]),
         departureSlot: {
           findUnique: vi.fn().mockResolvedValue(fullSlot),
           update: vi.fn().mockResolvedValue({ ...fullSlot, status: 'OPEN' }),
@@ -193,6 +195,9 @@ describe('[Contract] Booking cancel response shape', () => {
     db.booking.findFirst.mockResolvedValue(booking)
     db.$transaction.mockImplementation(async (fn: Function) => {
       const tx = {
+        $queryRaw: vi
+          .fn()
+          .mockResolvedValue([{ id: 'slot-3', status: 'OPEN', booked: 2, capacity: 10 }]),
         departureSlot: {
           findUnique: vi
             .fn()

@@ -1,17 +1,27 @@
-"use client"
-import { useState, useEffect, useCallback } from "react"
-import { useSession } from "next-auth/react"
-import { painelEyebrow } from "@/lib/painel"
-import BackButton from "@/src/components/ui/BackButton"
-import { PhotoUploadArea } from "@/src/components/ui/PhotoUploadArea"
-import { AvatarPicker } from "@/src/components/ui/AvatarPicker"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { toast } from "sonner"
-import { MapPin, ShieldCheck } from "lucide-react"
-import { Alert, Badge, Button, Input, ListGroup, ListRow, PageHeader, Skeleton, Textarea } from "@/src/components/ui/capi"
-import { callProxy } from "@/src/components/membership/membership-shared"
-import { guideShareUrl } from "@/src/lib/share-link"
+'use client'
+import { useState, useEffect, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
+import { painelEyebrow } from '@/lib/painel'
+import BackButton from '@/src/components/ui/BackButton'
+import { PhotoUploadArea } from '@/src/components/ui/PhotoUploadArea'
+import { AvatarPicker } from '@/src/components/ui/AvatarPicker'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { toast } from 'sonner'
+import { MapPin, ShieldCheck } from 'lucide-react'
+import {
+  Alert,
+  Badge,
+  Button,
+  Input,
+  ListGroup,
+  ListRow,
+  PageHeader,
+  Skeleton,
+  Textarea,
+} from '@/src/components/ui/capi'
+import { callProxy } from '@/src/components/membership/membership-shared'
+import { guideShareUrl } from '@/src/lib/share-link'
 
 interface GuideProfileData {
   id: string
@@ -35,27 +45,23 @@ interface Memberships {
     id: string
     name: string
     destinationSlug: string | null
-    state: "PENDING" | "REJECTED" | "IN"
+    state: 'PENDING' | 'REJECTED' | 'IN'
     rejectionReason: string | null
   }[]
 }
 
-function membershipBadge(state: "PENDING" | "REJECTED" | "IN", reason: string | null) {
-  if (state === "PENDING") return "Aguardando aprovação"
-  if (state === "REJECTED") return `Recusado: ${reason ?? ""}`
-  return "Você atua aqui ✓"
+function membershipBadge(state: 'PENDING' | 'REJECTED' | 'IN', reason: string | null) {
+  if (state === 'PENDING') return 'Aguardando aprovação'
+  if (state === 'REJECTED') return `Recusado: ${reason ?? ''}`
+  return 'Você atua aqui ✓'
 }
 
-export default function PerfilPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
+export default function PerfilPage({ params }: { params: Promise<{ slug: string }> }) {
   const { data: session, update: updateSession } = useSession()
   const router = useRouter()
-  const sessionUserId = (session?.user as any)?.id ?? ""
+  const sessionUserId = session?.user?.id ?? ''
 
-  const [slug, setSlug] = useState("")
+  const [slug, setSlug] = useState('')
   const [profile, setProfile] = useState<GuideProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -65,16 +71,16 @@ export default function PerfilPage({
   const [leaveError, setLeaveError] = useState<string | null>(null)
 
   // Form fields
-  const [bio, setBio] = useState("")
-  const [especialidades, setEspecialidades] = useState("")
-  const [regioes, setRegioes] = useState("")
+  const [bio, setBio] = useState('')
+  const [especialidades, setEspecialidades] = useState('')
+  const [regioes, setRegioes] = useState('')
   const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>([])
   // Save state
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
-  const [shareUrl, setShareUrl] = useState("")
+  const [shareUrl, setShareUrl] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
 
   useEffect(() => {
@@ -87,7 +93,7 @@ export default function PerfilPage({
       setLinkCopied(true)
       setTimeout(() => setLinkCopied(false), 3000)
     } catch {
-      (document.getElementById("share-link") as HTMLInputElement | null)?.select()
+      ;(document.getElementById('share-link') as HTMLInputElement | null)?.select()
     }
   }
 
@@ -101,7 +107,7 @@ export default function PerfilPage({
     setLoading(true)
     setLoadError(false)
 
-    fetch("/api/proxy?path=/guides/me")
+    fetch('/api/proxy?path=/guides/me')
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
@@ -109,7 +115,7 @@ export default function PerfilPage({
       .then((data) => {
         const p = data.profile ?? {}
         setProfile({
-          id: p.id ?? "",
+          id: p.id ?? '',
           bio: p.bio ?? null,
           photoUrl: p.photoUrl ?? null,
           especialidades: p.especialidades ?? [],
@@ -117,14 +123,14 @@ export default function PerfilPage({
           portfolioPhotos: p.portfolioPhotos ?? [],
           user: {
             id: sessionUserId,
-            name: (session?.user as any)?.name ?? "",
-            email: (session?.user as any)?.email ?? "",
+            name: session?.user?.name ?? '',
+            email: session?.user?.email ?? '',
             approvalStatus: data.approvalStatus,
           },
         })
-        setBio(p.bio ?? "")
-        setEspecialidades((p.especialidades ?? []).join(", "))
-        setRegioes((p.regioes ?? []).join(", "))
+        setBio(p.bio ?? '')
+        setEspecialidades((p.especialidades ?? []).join(', '))
+        setRegioes((p.regioes ?? []).join(', '))
         setPortfolioPhotos(p.portfolioPhotos ?? [])
       })
       .catch(() => setLoadError(true))
@@ -133,7 +139,7 @@ export default function PerfilPage({
 
   const loadMemberships = useCallback(
     () =>
-      fetch("/api/proxy?path=/guides/me/memberships")
+      fetch('/api/proxy?path=/guides/me/memberships')
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => data && setMemberships(data))
         .catch(() => {}),
@@ -145,20 +151,23 @@ export default function PerfilPage({
   }, [loadMemberships])
 
   // Sair (ou cancelar o pedido) de um roteiro — funciona também para rascunho/arquivado, que não têm página pública
-  async function leavePackage(p: Memberships["packages"][number]) {
-    const text = p.state === "PENDING" ? "Deseja cancelar o pedido?" : "Deseja mesmo deixar de atuar neste roteiro?"
+  async function leavePackage(p: Memberships['packages'][number]) {
+    const text =
+      p.state === 'PENDING'
+        ? 'Deseja cancelar o pedido?'
+        : 'Deseja mesmo deixar de atuar neste roteiro?'
     if (!window.confirm(text)) return
     setLeavingId(p.id)
     setLeaveError(null)
     try {
-      const { res, data } = await callProxy(`/packages/${p.id}/guides/me`, "DELETE")
+      const { res, data } = await callProxy(`/packages/${p.id}/guides/me`, 'DELETE')
       if (!res.ok) {
-        setLeaveError(data?.message ?? "Não foi possível concluir a ação.")
+        setLeaveError(data?.message ?? 'Não foi possível concluir a ação.')
         return
       }
       await loadMemberships()
     } catch {
-      setLeaveError("Não foi possível concluir a ação.")
+      setLeaveError('Não foi possível concluir a ação.')
     } finally {
       setLeavingId(null)
     }
@@ -172,18 +181,18 @@ export default function PerfilPage({
 
     try {
       const res = await fetch(`/api/proxy?path=/tenants/${slug}/guides/me/profile`, {
-        method: "PATCH",
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           bio: bio || null,
           especialidades: especialidades
-            .split(",")
+            .split(',')
             .map((s) => s.trim())
             .filter(Boolean),
           regioes: regioes
-            .split(",")
+            .split(',')
             .map((s) => s.trim())
             .filter(Boolean),
           portfolioPhotos,
@@ -191,14 +200,14 @@ export default function PerfilPage({
       })
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: "Erro ao salvar" }))
-        throw new Error(err.message ?? "Erro ao salvar")
+        const err = await res.json().catch(() => ({ message: 'Erro ao salvar' }))
+        throw new Error(err.message ?? 'Erro ao salvar')
       }
 
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
     } catch (err: any) {
-      setSaveError(err.message ?? "Não foi possível salvar. Tente novamente.")
+      setSaveError(err.message ?? 'Não foi possível salvar. Tente novamente.')
     } finally {
       setSaving(false)
     }
@@ -206,48 +215,60 @@ export default function PerfilPage({
 
   async function handleUploadPhoto(file: File) {
     const form = new FormData()
-    form.append("file", file)
-    const res = await fetch("/api/uploads/photos?folder=guides", { method: "POST", body: form })
-    if (!res.ok) throw new Error("Falha ao enviar foto")
+    form.append('file', file)
+    const res = await fetch('/api/uploads/photos?folder=guides', { method: 'POST', body: form })
+    if (!res.ok) throw new Error('Falha ao enviar foto')
     const data = await res.json()
     const url = data.url
-    if (!url) throw new Error("URL não retornada")
+    if (!url) throw new Error('URL não retornada')
     setPortfolioPhotos((prev) => [...prev, url])
   }
 
   // Foto do guia = GuideProfile.photoUrl; /account/me grava nela e a sessão reflete no UserBar/sidebar
   async function handleAvatarChange(photoUrl: string | null) {
-    const res = await fetch(`/api/proxy?path=${encodeURIComponent("/account/me")}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch(`/api/proxy?path=${encodeURIComponent('/account/me')}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ photoUrl }),
     })
     const data = await res.json().catch(() => null)
-    if (!res.ok) throw new Error(data?.message ?? "Não foi possível salvar a foto.")
+    if (!res.ok) throw new Error(data?.message ?? 'Não foi possível salvar a foto.')
     setProfile((prev) => (prev ? { ...prev, photoUrl: data?.photoUrl ?? null } : prev))
     await updateSession()
     router.refresh()
-    toast.success(photoUrl ? "Foto atualizada." : "Foto removida.")
+    toast.success(photoUrl ? 'Foto atualizada.' : 'Foto removida.')
   }
 
   function handleRemovePhoto(url: string) {
     setPortfolioPhotos((prev) => prev.filter((u) => u !== url))
   }
 
-  const isApproved = profile?.user?.approvalStatus === "APPROVED"
+  const isApproved = profile?.user?.approvalStatus === 'APPROVED'
   const approvalStatus = profile?.user?.approvalStatus
   const approvalAlert =
-    approvalStatus === "APPROVED"
-      ? { tone: "success" as const, title: "Perfil aprovado", text: "Seu perfil está visível para os turistas no marketplace." }
-      : approvalStatus === "REJECTED"
-      ? { tone: "danger" as const, title: "Perfil não aprovado", text: "Revise suas informações e fale com o suporte para uma nova análise." }
-      : approvalStatus
-      ? { tone: "warning" as const, title: "Perfil em análise", text: "Enquanto a equipe revisa seu cadastro, complete a bio, as especialidades e o portfólio." }
-      : null
+    approvalStatus === 'APPROVED'
+      ? {
+          tone: 'success' as const,
+          title: 'Perfil aprovado',
+          text: 'Seu perfil está visível para os turistas no marketplace.',
+        }
+      : approvalStatus === 'REJECTED'
+        ? {
+            tone: 'danger' as const,
+            title: 'Perfil não aprovado',
+            text: 'Revise suas informações e fale com o suporte para uma nova análise.',
+          }
+        : approvalStatus
+          ? {
+              tone: 'warning' as const,
+              title: 'Perfil em análise',
+              text: 'Enquanto a equipe revisa seu cadastro, complete a bio, as especialidades e o portfólio.',
+            }
+          : null
 
   const parseList = (value: string) =>
     value
-      .split(",")
+      .split(',')
       .map((v) => v.trim())
       .filter(Boolean)
   const especialidadesList = parseList(especialidades)
@@ -309,7 +330,7 @@ export default function PerfilPage({
         }
       `}</style>
 
-      <BackButton fallbackHref={slug ? `/${slug}/painel` : "/"} />
+      <BackButton fallbackHref={slug ? `/${slug}/painel` : '/'} />
 
       <PageHeader
         eyebrow={painelEyebrow(session?.user?.role)}
@@ -321,14 +342,19 @@ export default function PerfilPage({
         <div aria-busy="true">
           <div className="perfil-id">
             <Skeleton width={80} height={80} radius={999} />
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            <div
+              style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
+            >
               <Skeleton width="60%" height={18} />
               <Skeleton width="40%" height={14} />
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
             {[0, 1, 2, 3].map((i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <div
+                key={i}
+                style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
+              >
                 <Skeleton width={120} height={14} />
                 <Skeleton height={48} radius={12} />
               </div>
@@ -347,12 +373,14 @@ export default function PerfilPage({
               src={profile?.photoUrl}
               size={80}
               verified={isApproved}
-              folder={session?.user?.role === "CONDUTOR" ? "guides" : "avatars"}
+              folder={session?.user?.role === 'CONDUTOR' ? 'guides' : 'avatars'}
               onChange={handleAvatarChange}
             >
               <div style={{ minWidth: 0 }}>
-                <p className="perfil-id__name">{profile?.user?.name || "Guia"}</p>
-                {profile?.user?.email ? <p className="perfil-id__email">{profile.user.email}</p> : null}
+                <p className="perfil-id__name">{profile?.user?.name || 'Guia'}</p>
+                {profile?.user?.email ? (
+                  <p className="perfil-id__email">{profile.user.email}</p>
+                ) : null}
                 {/* GUIDE-02: Badge de guia verificado */}
                 {isApproved && (
                   <div className="perfil-id__badge">
@@ -372,16 +400,17 @@ export default function PerfilPage({
           )}
 
           {isApproved && shareUrl && (
-            <section className="perfil-section" style={{ marginBottom: "var(--space-8)" }}>
+            <section className="perfil-section" style={{ marginBottom: 'var(--space-8)' }}>
               <div className="perfil-head">
                 <h2 className="perfil-title">Seu link de divulgação</h2>
                 <p className="perfil-desc">
-                  Use este link no seu Instagram, WhatsApp e status. Assim a gente sabe quantas pessoas você trouxe.
+                  Use este link no seu Instagram, WhatsApp e status. Assim a gente sabe quantas
+                  pessoas você trouxe.
                 </p>
               </div>
               <Input id="share-link" label="Link" type="text" value={shareUrl} readOnly />
               <Button type="button" onClick={copyShareUrl}>
-                {linkCopied ? "Link copiado!" : "Copiar link"}
+                {linkCopied ? 'Link copiado!' : 'Copiar link'}
               </Button>
             </section>
           )}
@@ -390,34 +419,30 @@ export default function PerfilPage({
             <section className="perfil-section">
               <div className="perfil-head">
                 <h2 className="perfil-title">Dados pessoais</h2>
-                <p className="perfil-desc">Para alterar o nome, acesse <Link href="/conta">Minha conta</Link>.</p>
+                <p className="perfil-desc">
+                  Para alterar o nome, acesse <Link href="/conta">Minha conta</Link>.
+                </p>
               </div>
 
-              <Input
-                label="Nome"
-                type="text"
-                value={profile?.user?.name ?? ""}
-                readOnly
-                disabled
-              />
+              <Input label="Nome" type="text" value={profile?.user?.name ?? ''} readOnly disabled />
 
-              {profile?.user &&
-                "cpf" in profile.user &&
-                profile.user.cpf && (
-                  <Input
-                    label="CPF / CNPJ"
-                    type="text"
-                    value={String(profile.user.cpf)}
-                    readOnly
-                    disabled
-                  />
-                )}
+              {profile?.user && 'cpf' in profile.user && profile.user.cpf && (
+                <Input
+                  label="CPF / CNPJ"
+                  type="text"
+                  value={String(profile.user.cpf)}
+                  readOnly
+                  disabled
+                />
+              )}
             </section>
 
             <section className="perfil-section">
               <div className="perfil-head">
                 <h2 className="perfil-title">Sobre você</h2>
-                <p className="perfil-desc">Sua experiência, o que gosta de mostrar e por que guia.</p>
+                <p className="perfil-desc">
+                  Sua experiência, o que gosta de mostrar e por que guia.
+                </p>
               </div>
 
               <Textarea
@@ -434,7 +459,9 @@ export default function PerfilPage({
             <section className="perfil-section">
               <div className="perfil-head">
                 <h2 className="perfil-title">Especialidades e regiões</h2>
-                <p className="perfil-desc">Ajudam o turista a encontrar o guia certo para o passeio.</p>
+                <p className="perfil-desc">
+                  Ajudam o turista a encontrar o guia certo para o passeio.
+                </p>
               </div>
 
               <Input
@@ -468,7 +495,9 @@ export default function PerfilPage({
               {regioesList.length > 0 && (
                 <div className="perfil-tags" aria-label="Regiões informadas">
                   {regioesList.map((item, i) => (
-                    <Badge key={`${item}-${i}`} icon={MapPin}>{item}</Badge>
+                    <Badge key={`${item}-${i}`} icon={MapPin}>
+                      {item}
+                    </Badge>
                   ))}
                 </div>
               )}
@@ -497,7 +526,7 @@ export default function PerfilPage({
 
             <div className="perfil-bar">
               <Button type="submit" loading={saving}>
-                {saving ? "Salvando…" : "Salvar alterações"}
+                {saving ? 'Salvando…' : 'Salvar alterações'}
               </Button>
             </div>
           </form>
@@ -505,7 +534,7 @@ export default function PerfilPage({
       )}
 
       {memberships && (memberships.destinations.length > 0 || memberships.packages.length > 0) && (
-        <section className="perfil-section" style={{ marginTop: "var(--space-10)" }}>
+        <section className="perfil-section" style={{ marginTop: 'var(--space-10)' }}>
           <div className="perfil-head">
             <h2 className="perfil-title">Meus destinos e roteiros</h2>
           </div>
@@ -515,22 +544,30 @@ export default function PerfilPage({
                 key={d.slug}
                 href={`/destinos/${d.slug}`}
                 title={d.title}
-                trailing={<Badge tone="success">{membershipBadge("IN", null)}</Badge>}
+                trailing={<Badge tone="success">{membershipBadge('IN', null)}</Badge>}
               />
             ))}
             {memberships.packages.map((p) => (
-              <div key={p.id} style={{ display: "flex", alignItems: "center" }}>
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center' }}>
                 <ListRow
                   className="flex-1"
-                  href={p.destinationSlug ? `/destinos/${p.destinationSlug}/roteiros/${p.id}` : `/${slug}/roteiros/${p.id}`}
+                  href={
+                    p.destinationSlug
+                      ? `/destinos/${p.destinationSlug}/roteiros/${p.id}`
+                      : `/${slug}/roteiros/${p.id}`
+                  }
                   title={p.name}
                   trailing={
-                    <Badge tone={p.state === "REJECTED" ? "danger" : p.state === "IN" ? "success" : "warning"}>
+                    <Badge
+                      tone={
+                        p.state === 'REJECTED' ? 'danger' : p.state === 'IN' ? 'success' : 'warning'
+                      }
+                    >
                       {membershipBadge(p.state, p.rejectionReason)}
                     </Badge>
                   }
                 />
-                {p.state !== "REJECTED" ? (
+                {p.state !== 'REJECTED' ? (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -538,7 +575,7 @@ export default function PerfilPage({
                     disabled={leavingId !== null}
                     onClick={() => leavePackage(p)}
                   >
-                    {p.state === "PENDING" ? "Cancelar pedido" : "Sair"}
+                    {p.state === 'PENDING' ? 'Cancelar pedido' : 'Sair'}
                   </Button>
                 ) : null}
               </div>

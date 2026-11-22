@@ -22,13 +22,45 @@ const tenantIdParamsSchema = z.object({
   id: z.string().min(1, { message: 'ID obrigatório' }),
 })
 
+const RESERVED_SLUGS = [
+  'admin',
+  'api',
+  'auth',
+  'bookings',
+  'check-slug',
+  'dashboard',
+  'guides',
+  'health',
+  'independente',
+  'leads',
+  'memberships',
+  'metrics',
+  'notifications',
+  'packages',
+  'payments',
+  'platform-admins',
+  'reports',
+  'reviews',
+  'search',
+  'signup',
+  'tenants',
+  'uploads',
+  'users',
+  'webhooks',
+]
+
 const signupBodySchema = z.object({
   name: z.string().min(2, { message: 'Nome deve ter no mínimo 2 caracteres' }).trim(),
   slug: z
     .string()
     .min(3, { message: 'Slug deve ter no mínimo 3 caracteres' })
     .max(50, { message: 'Slug deve ter no máximo 50 caracteres' })
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: 'Slug deve começar e terminar com letras ou números' }),
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+      message: 'Slug deve começar e terminar com letras ou números',
+    })
+    .refine((slug) => !RESERVED_SLUGS.includes(slug), {
+      message: 'Este slug é reservado — escolha outro',
+    }),
   email: z.string().email({ message: 'Email inválido' }),
   password: z.string().min(8, { message: 'Senha deve ter no mínimo 8 caracteres' }),
   cnpj: z.string().min(14, { message: 'CNPJ inválido' }).max(18, { message: 'CNPJ inválido' }),
@@ -39,29 +71,35 @@ const rejectBodySchema = z.object({
   reason: z.string().min(1, { message: 'Informe o motivo da rejeição' }),
 })
 
-
-
 export async function tenantsRoutes(app: FastifyInstance) {
   // ---------------------------------------------------------------------------
   // Existing routes
   // ---------------------------------------------------------------------------
 
-  app.get('/tenants', {
-    preHandler: [authenticate, authorize(['ADMIN'])],
-  }, async (request) => {
-    const user = request.user as { tenantId: string }
-    const tenants = await prisma.tenant.findMany({
-      where: { id: user.tenantId },
-      select: { id: true, name: true, slug: true },
-    })
-    return tenants
-  })
+  app.get(
+    '/tenants',
+    {
+      preHandler: [authenticate, authorize(['ADMIN'])],
+    },
+    async (request) => {
+      const user = request.user as { tenantId: string }
+      const tenants = await prisma.tenant.findMany({
+        where: { id: user.tenantId },
+        select: { id: true, name: true, slug: true },
+      })
+      return tenants
+    },
+  )
 
   // Busca pública de agência/associação para o cadastro de guia
   app.get('/tenants/search', async (request, reply) => {
     const parsed = z
       .object({
-        q: z.string().trim().min(2, { message: 'Digite ao menos 2 caracteres' }).max(60, { message: 'Busca muito longa' }),
+        q: z
+          .string()
+          .trim()
+          .min(2, { message: 'Digite ao menos 2 caracteres' })
+          .max(60, { message: 'Busca muito longa' }),
         type: z.enum(['AGENCIA', 'ASSOCIACAO'], { message: 'Tipo inválido' }).optional(),
       })
       .safeParse(request.query)
@@ -82,7 +120,11 @@ export async function tenantsRoutes(app: FastifyInstance) {
   })
 
   app.get('/tenants/:slug', async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    const { data: params, error: paramsError } = parseParams(
+      slugParamsSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
     const { slug } = params
 
@@ -108,50 +150,64 @@ export async function tenantsRoutes(app: FastifyInstance) {
   // New routes — operator self-service signup
   // ---------------------------------------------------------------------------
 
-  app.post('/tenants/signup', {
-    config: { rateLimit: { max: 5, timeWindow: '1 hour' } },
-  }, async (request, reply) => {
-    const { data: body, error: bodyError } = parseBody(signupBodySchema, request.body, reply)
-    if (bodyError) return
+  app.post(
+    '/tenants/signup',
+    {
+      config: { rateLimit: { max: 5, timeWindow: '1 hour' } },
+    },
+    async (request, reply) => {
+      const { data: body, error: bodyError } = parseBody(signupBodySchema, request.body, reply)
+      if (bodyError) return
 
-    const hashedPassword = hashSync(body.password, 10)
+      const hashedPassword = hashSync(body.password, 10)
 
-    try {
-      await prisma.$transaction(async (tx) => {
-        const tenant = await tx.tenant.create({
-          data: { name: body.name, slug: body.slug, cnpj: body.cnpj, type: body.type, approvalStatus: 'PENDING' },
+      try {
+        await prisma.$transaction(async (tx) => {
+          const tenant = await tx.tenant.create({
+            data: {
+              name: body.name,
+              slug: body.slug,
+              cnpj: body.cnpj,
+              type: body.type,
+              approvalStatus: 'PENDING',
+            },
+          })
+          await tx.user.create({
+            data: {
+              tenantId: tenant.id,
+              name: body.name,
+              email: body.email.toLowerCase().trim(),
+              password: hashedPassword,
+              role: 'ADMIN',
+              approvalStatus: 'APPROVED',
+            },
+          })
         })
-        await tx.user.create({
-          data: {
-            tenantId: tenant.id,
-            name: body.name,
-            email: body.email.toLowerCase().trim(),
-            password: hashedPassword,
-            role: 'ADMIN',
-            approvalStatus: 'APPROVED',
-          },
-        })
-      })
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        const target = err.meta?.target as string[] | undefined
-        if (target?.includes('email')) {
-          throw new AppError('Email já cadastrado', 409)
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          const target = err.meta?.target as string[] | undefined
+          if (target?.includes('email')) {
+            throw new AppError('Email já cadastrado', 409)
+          }
+          throw new AppError('Slug já em uso', 409)
         }
-        throw new AppError('Slug já em uso', 409)
+        throw err
       }
-      throw err
-    }
 
-    return reply.status(201).send({ message: 'Operadora cadastrada com sucesso' })
-  })
+      return reply.status(201).send({ message: 'Operadora cadastrada com sucesso' })
+    },
+  )
 
   // ---------------------------------------------------------------------------
   // Slug availability check — public, no auth
   // ---------------------------------------------------------------------------
 
   app.get('/tenants/check-slug', async (request, reply) => {
-    const { data: query, error: queryError } = parseQuery(z.object({ slug: z.string().min(1, { message: 'Slug obrigatório' }) }), request.query, reply)
+    const { data: query, error: queryError } = parseQuery(
+      z.object({ slug: z.string().min(1, { message: 'Slug obrigatório' }) }),
+      request.query,
+      reply,
+    )
     if (queryError) return
     const existing = await prisma.tenant.findUnique({
       where: { slug: query.slug },
@@ -164,179 +220,221 @@ export async function tenantsRoutes(app: FastifyInstance) {
   // Admin routes — SUPER_ADMIN only
   // ---------------------------------------------------------------------------
 
-  app.get('/tenants/admin/pending', {
-    preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
-  }, async (request, reply) => {
-    const pendingQuerySchema = z.object({
-      limit: z.coerce.number().int().min(1).max(100).default(20),
-      offset: z.coerce.number().int().min(0).default(0),
-    })
-    const { data: query, error: queryError } = parseQuery(pendingQuerySchema, request.query, reply)
-    if (queryError) return
-    const [tenants, total] = await Promise.all([
-      prisma.tenant.findMany({
-        where: { approvalStatus: 'PENDING' },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          cnpj: true,
-          whatsapp: true,
-          logoUrl: true,
-          approvalStatus: true,
-          createdAt: true,
-          users: {
-            where: { role: 'ADMIN' },
-            select: { email: true, name: true },
+  app.get(
+    '/tenants/admin/pending',
+    {
+      preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
+    },
+    async (request, reply) => {
+      const pendingQuerySchema = z.object({
+        limit: z.coerce.number().int().min(1).max(100).default(20),
+        offset: z.coerce.number().int().min(0).default(0),
+      })
+      const { data: query, error: queryError } = parseQuery(
+        pendingQuerySchema,
+        request.query,
+        reply,
+      )
+      if (queryError) return
+      const [tenants, total] = await Promise.all([
+        prisma.tenant.findMany({
+          where: { approvalStatus: 'PENDING' },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            cnpj: true,
+            whatsapp: true,
+            logoUrl: true,
+            approvalStatus: true,
+            createdAt: true,
+            users: {
+              where: { role: 'ADMIN' },
+              select: { email: true, name: true },
+            },
           },
-        },
-        orderBy: { createdAt: 'asc' },
-        take: query.limit,
-        skip: query.offset,
-      }),
-      prisma.tenant.count({ where: { approvalStatus: 'PENDING' } }),
-    ])
-    return reply.send({ tenants, total, limit: query.limit, offset: query.offset })
-  })
+          orderBy: { createdAt: 'asc' },
+          take: query.limit,
+          skip: query.offset,
+        }),
+        prisma.tenant.count({ where: { approvalStatus: 'PENDING' } }),
+      ])
+      return reply.send({ tenants, total, limit: query.limit, offset: query.offset })
+    },
+  )
 
-  app.get('/tenants/admin/all', {
-    preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
-  }, async (request, reply) => {
-    const allQuerySchema = z.object({
-      limit: z.coerce.number().int().min(1).max(100).default(50),
-      offset: z.coerce.number().int().min(0).default(0),
-      status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
-    })
-    const { data: query, error: queryError } = parseQuery(allQuerySchema, request.query, reply)
-    if (queryError) return
-    const where = query.status ? { approvalStatus: query.status } : {}
-    const [tenants, total] = await Promise.all([
-      prisma.tenant.findMany({
-        where,
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          cnpj: true,
-          whatsapp: true,
-          logoUrl: true,
-          approvalStatus: true,
-          createdAt: true,
-          users: {
-            where: { role: 'ADMIN' },
-            select: { email: true, name: true },
+  app.get(
+    '/tenants/admin/all',
+    {
+      preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
+    },
+    async (request, reply) => {
+      const allQuerySchema = z.object({
+        limit: z.coerce.number().int().min(1).max(100).default(50),
+        offset: z.coerce.number().int().min(0).default(0),
+        status: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
+      })
+      const { data: query, error: queryError } = parseQuery(allQuerySchema, request.query, reply)
+      if (queryError) return
+      const where = query.status ? { approvalStatus: query.status } : {}
+      const [tenants, total] = await Promise.all([
+        prisma.tenant.findMany({
+          where,
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            cnpj: true,
+            whatsapp: true,
+            logoUrl: true,
+            approvalStatus: true,
+            createdAt: true,
+            users: {
+              where: { role: 'ADMIN' },
+              select: { email: true, name: true },
+            },
           },
+          orderBy: { createdAt: 'desc' },
+          take: query.limit,
+          skip: query.offset,
+        }),
+        prisma.tenant.count({ where }),
+      ])
+      return reply.send({ tenants, total, limit: query.limit, offset: query.offset })
+    },
+  )
+
+  app.patch(
+    '/tenants/:id/approve',
+    {
+      preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
+    },
+    async (request, reply) => {
+      const { data: params, error: paramsError } = parseParams(
+        tenantIdParamsSchema,
+        request.params,
+        reply,
+      )
+      if (paramsError) return
+
+      Sentry.setTag('module', 'tenants')
+      Sentry.setTag('action', 'approve')
+
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: params.id },
+        select: {
+          slug: true,
+          approvalStatus: true,
+          users: { where: { role: 'ADMIN' }, select: { email: true, name: true } },
         },
-        orderBy: { createdAt: 'desc' },
-        take: query.limit,
-        skip: query.offset,
-      }),
-      prisma.tenant.count({ where }),
-    ])
-    return reply.send({ tenants, total, limit: query.limit, offset: query.offset })
-  })
-
-  app.patch('/tenants/:id/approve', {
-    preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
-  }, async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(tenantIdParamsSchema, request.params, reply)
-    if (paramsError) return
-
-    Sentry.setTag('module', 'tenants')
-    Sentry.setTag('action', 'approve')
-
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: params.id },
-      select: {
-        slug: true,
-        approvalStatus: true,
-        users: { where: { role: 'ADMIN' }, select: { email: true, name: true } },
-      },
-    })
-    if (!tenant) throw new AppError('Operadora não encontrada', 404)
-    if (tenant.approvalStatus !== 'PENDING') {
-      throw new AppError('Operadora já foi processada', 409)
-    }
-
-    await prisma.tenant.update({
-      where: { id: params.id },
-      data: { approvalStatus: 'APPROVED' },
-      select: { id: true },
-    })
-
-    auditLog(prisma, { actorType: 'USER', action: 'tenant.approved', targetType: 'TENANT', targetId: params.id, ipAddress: request.ip, metadata: { actorUserId: request.user.sub, tenantName: tenant.slug } })
-
-    const resend = getResend()
-    if (resend && tenant.users[0]) {
-      try {
-        await resend.emails.send({
-          from: getEmailFrom(),
-          to: [tenant.users[0].email],
-          subject: 'Sua operadora foi aprovada no CAPI',
-          text: approvalEmailText({ operatorName: tenant.users[0].name, slug: tenant.slug }),
-        })
-      } catch (emailErr) {
-        // Log but don't fail — DB state is authoritative
-        app.log.warn({ err: emailErr }, '[email] Failed to send approval notification')
-        Sentry.captureException(emailErr)
+      })
+      if (!tenant) throw new AppError('Operadora não encontrada', 404)
+      if (tenant.approvalStatus !== 'PENDING') {
+        throw new AppError('Operadora já foi processada', 409)
       }
-    }
 
-    return reply.send({ message: 'Operadora aprovada com sucesso' })
-  })
+      await prisma.tenant.update({
+        where: { id: params.id },
+        data: { approvalStatus: 'APPROVED' },
+        select: { id: true },
+      })
 
-  app.patch('/tenants/:id/reject', {
-    preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
-  }, async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(tenantIdParamsSchema, request.params, reply)
-    if (paramsError) return
-    const { data: body, error: bodyError } = parseBody(rejectBodySchema, request.body, reply)
-    if (bodyError) return
+      auditLog(prisma, {
+        actorType: 'USER',
+        action: 'tenant.approved',
+        targetType: 'TENANT',
+        targetId: params.id,
+        ipAddress: request.ip,
+        metadata: { actorUserId: request.user.sub, tenantName: tenant.slug },
+      })
 
-    Sentry.setTag('module', 'tenants')
-    Sentry.setTag('action', 'reject')
-
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: params.id },
-      select: {
-        slug: true,
-        approvalStatus: true,
-        users: { where: { role: 'ADMIN' }, select: { email: true, name: true } },
-      },
-    })
-    if (!tenant) throw new AppError('Operadora não encontrada', 404)
-    if (tenant.approvalStatus !== 'PENDING') {
-      throw new AppError('Operadora já foi processada', 409)
-    }
-
-    await prisma.tenant.update({
-      where: { id: params.id },
-      data: { approvalStatus: 'REJECTED', rejectionReason: body.reason },
-      select: { id: true },
-    })
-
-    const resend = getResend()
-    if (resend && tenant.users[0]) {
-      try {
-        await resend.emails.send({
-          from: getEmailFrom(),
-          to: [tenant.users[0].email],
-          subject: 'Atualização sobre seu cadastro no CAPI',
-          text: rejectionEmailText({ operatorName: tenant.users[0].name, rejectionReason: body.reason }),
-        })
-      } catch (emailErr) {
-        // Log but don't fail — DB state is authoritative
-        app.log.warn({ err: emailErr }, '[email] Failed to send rejection notification')
-        Sentry.captureException(emailErr)
+      const resend = getResend()
+      if (resend && tenant.users[0]) {
+        try {
+          await resend.emails.send({
+            from: getEmailFrom(),
+            to: [tenant.users[0].email],
+            subject: 'Sua operadora foi aprovada no CAPI',
+            text: approvalEmailText({ operatorName: tenant.users[0].name, slug: tenant.slug }),
+          })
+        } catch (emailErr) {
+          // Log but don't fail — DB state is authoritative
+          app.log.warn({ err: emailErr }, '[email] Failed to send approval notification')
+          Sentry.captureException(emailErr)
+        }
       }
-    }
 
-    return reply.send({ message: 'Operadora rejeitada' })
-  })
+      return reply.send({ message: 'Operadora aprovada com sucesso' })
+    },
+  )
+
+  app.patch(
+    '/tenants/:id/reject',
+    {
+      preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
+    },
+    async (request, reply) => {
+      const { data: params, error: paramsError } = parseParams(
+        tenantIdParamsSchema,
+        request.params,
+        reply,
+      )
+      if (paramsError) return
+      const { data: body, error: bodyError } = parseBody(rejectBodySchema, request.body, reply)
+      if (bodyError) return
+
+      Sentry.setTag('module', 'tenants')
+      Sentry.setTag('action', 'reject')
+
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: params.id },
+        select: {
+          slug: true,
+          approvalStatus: true,
+          users: { where: { role: 'ADMIN' }, select: { email: true, name: true } },
+        },
+      })
+      if (!tenant) throw new AppError('Operadora não encontrada', 404)
+      if (tenant.approvalStatus !== 'PENDING') {
+        throw new AppError('Operadora já foi processada', 409)
+      }
+
+      await prisma.tenant.update({
+        where: { id: params.id },
+        data: { approvalStatus: 'REJECTED', rejectionReason: body.reason },
+        select: { id: true },
+      })
+
+      const resend = getResend()
+      if (resend && tenant.users[0]) {
+        try {
+          await resend.emails.send({
+            from: getEmailFrom(),
+            to: [tenant.users[0].email],
+            subject: 'Atualização sobre seu cadastro no CAPI',
+            text: rejectionEmailText({
+              operatorName: tenant.users[0].name,
+              rejectionReason: body.reason,
+            }),
+          })
+        } catch (emailErr) {
+          // Log but don't fail — DB state is authoritative
+          app.log.warn({ err: emailErr }, '[email] Failed to send rejection notification')
+          Sentry.captureException(emailErr)
+        }
+      }
+
+      return reply.send({ message: 'Operadora rejeitada' })
+    },
+  )
 
   // GET /tenants/:slug/destination — destino vinculado ao tenant (público)
   app.get('/tenants/:slug/destination', async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    const { data: params, error: paramsError } = parseParams(
+      slugParamsSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
 
     const tenant = await prisma.tenant.findUnique({
@@ -362,23 +460,38 @@ export async function tenantsRoutes(app: FastifyInstance) {
     return reply.status(200).send(tenant.destination)
   })
 
-  app.patch('/tenants/:id/link-destination', {
-    preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
-  }, async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(z.object({ id: z.string().min(1) }), request.params, reply)
-    if (paramsError) return
-    const { data: body, error: bodyError } = parseBody(z.object({ destinationId: z.string().nullable() }), request.body, reply)
-    if (bodyError) return
+  app.patch(
+    '/tenants/:id/link-destination',
+    {
+      preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
+    },
+    async (request, reply) => {
+      const { data: params, error: paramsError } = parseParams(
+        z.object({ id: z.string().min(1) }),
+        request.params,
+        reply,
+      )
+      if (paramsError) return
+      const { data: body, error: bodyError } = parseBody(
+        z.object({ destinationId: z.string().nullable() }),
+        request.body,
+        reply,
+      )
+      if (bodyError) return
 
-    const tenant = await prisma.tenant.findUnique({ where: { id: params.id }, select: { id: true } })
-    if (!tenant) throw new AppError('Operadora não encontrada', 404)
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: params.id },
+        select: { id: true },
+      })
+      if (!tenant) throw new AppError('Operadora não encontrada', 404)
 
-    await prisma.tenant.update({
-      where: { id: params.id },
-      data: { destinationId: body.destinationId },
-      select: { id: true },
-    })
+      await prisma.tenant.update({
+        where: { id: params.id },
+        data: { destinationId: body.destinationId },
+        select: { id: true },
+      })
 
-    return reply.send({ message: 'Destino vinculado com sucesso' })
-  })
+      return reply.send({ message: 'Destino vinculado com sucesso' })
+    },
+  )
 }

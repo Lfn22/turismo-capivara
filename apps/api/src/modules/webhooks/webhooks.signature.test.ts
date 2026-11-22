@@ -3,9 +3,8 @@
  *
  * Regressão para V-1: o manifesto da assinatura do webhook Mercado Pago.
  *
- * Este teste existe porque a falha é SILENCIOSA. Um manifesto errado faz toda
- * notificação ser rejeitada, mas a rota ainda responde 200 — o MP para de
- * retentar e nenhuma reserva paga chega a CONFIRMED, sem erro visível.
+ * Este teste existe porque um manifesto errado faz toda notificação ser
+ * rejeitada. A rota responde 500 para que o MP retente (até 72h).
  *
  * O formato correto, por documentação do MP, é:
  *   id:<data.id>;request-id:<x-request-id>;ts:<ts>;
@@ -31,7 +30,12 @@ vi.mock('../../shared/email', () => ({
 }))
 
 vi.mock('../../shared/sentry', () => ({
-  Sentry: { captureException: vi.fn(), withScope: vi.fn(), setupFastifyErrorHandler: vi.fn(), setTag: vi.fn() },
+  Sentry: {
+    captureException: vi.fn(),
+    withScope: vi.fn(),
+    setupFastifyErrorHandler: vi.fn(),
+    setTag: vi.fn(),
+  },
 }))
 
 const paymentGet = vi.fn()
@@ -113,7 +117,7 @@ describe('V-1: manifesto da assinatura do webhook Mercado Pago', () => {
 
     const res = await postWebhook(`ts=${ts},v1=${v1}`, REQUEST_ID)
 
-    expect(res.statusCode).toBe(200) // sempre 200, por design anti-enumeração
+    expect(res.statusCode).toBe(500) // 5xx para que MP retente
     expect(db.processedWebhookEvent.create).not.toHaveBeenCalled()
   })
 
@@ -124,7 +128,7 @@ describe('V-1: manifesto da assinatura do webhook Mercado Pago', () => {
 
     const res = await postWebhook(`ts=${ts},v1=${v1}`, REQUEST_ID)
 
-    expect(res.statusCode).toBe(200)
+    expect(res.statusCode).toBe(500)
     expect(db.processedWebhookEvent.create).not.toHaveBeenCalled()
   })
 
@@ -143,7 +147,7 @@ describe('V-1: manifesto da assinatura do webhook Mercado Pago', () => {
     const staleTs = String(Math.floor(Date.now() / 1000) - 600)
     const res = await postWebhook(signLikeMercadoPago(PAYMENT_ID, REQUEST_ID, staleTs), REQUEST_ID)
 
-    expect(res.statusCode).toBe(200)
+    expect(res.statusCode).toBe(500)
     expect(db.processedWebhookEvent.create).not.toHaveBeenCalled()
   })
 })

@@ -71,12 +71,11 @@ export async function webhooksRoutes(app: FastifyInstance) {
       Sentry.setTag('action', 'payment-notification')
 
       // 1. Validate x-signature header present.
-      // Return 200 (not 400) regardless of why validation fails — a 400 here
-      // would leak that the endpoint inspects headers, enabling enumeration.
+      // Return 400 so Mercado Pago retries (up to 72h) instead of treating as delivered.
       const signatureHeader = request.headers['x-signature']
       if (!signatureHeader || typeof signatureHeader !== 'string') {
         app.log.warn('Webhook recebido sem cabeçalho x-signature')
-        return reply.status(200).send({ message: 'ok' })
+        return reply.status(400).send({ error: 'Missing x-signature header' })
       }
 
       // 2. Parse body for data.id (payment ID)
@@ -84,7 +83,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
       const paymentId = parsed.success ? parsed.data.data?.id : undefined
 
       if (!paymentId) {
-        return reply.status(200).send({ message: 'ok' })
+        return reply.status(400).send({ error: 'Missing payment ID' })
       }
 
       // 3. Validate HMAC-SHA256 signature using manifest: "id:<data.id>;request-id:<x-request-id>;ts:<ts>;"
@@ -101,7 +100,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
           'Assinatura de webhook inválida',
         )
         Sentry.captureException(new Error('Mercado Pago webhook signature validation failed'))
-        return reply.status(200).send({ message: 'ok' })
+        return reply.status(500).send({ error: 'Signature verification failed' })
       }
 
       // 4. Fetch payment details from MP to get authoritative status and external_reference

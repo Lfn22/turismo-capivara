@@ -14,7 +14,7 @@ export default async function PublicLayout({
   let tenantName = slug
   let tenantLogoUrl: string | null = null
   try {
-    const res = await fetch(`${API_URL}/tenants/${slug}`, { cache: 'no-store' })
+    const res = await fetch(`${API_URL}/tenants/${slug}`, { next: { revalidate: 3600 } })
     if (res.ok) {
       const data = await res.json()
       if (data?.name) tenantName = data.name

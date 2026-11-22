@@ -18,8 +18,7 @@ export const repayBodySchema = selfServiceBodySchema.extend({
   cpf: z
     .string()
     .regex(/^\d{11}$/, { message: 'CPF deve conter 11 dígitos numéricos' })
-    .refine(isValidCPF, { message: 'CPF inválido' })
-    .optional(),
+    .refine(isValidCPF, { message: 'CPF inválido' }),
 })
 
 export type RepayBody = z.infer<typeof repayBodySchema>

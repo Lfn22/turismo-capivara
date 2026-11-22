@@ -144,10 +144,15 @@ describe('POST /tenants/:slug/bookings/lookup', () => {
 describe('POST /tenants/:slug/bookings/cancel-self', () => {
   it('cancels booking and releases slot when >24h before start', async () => {
     db.booking.findFirst.mockResolvedValue(BASE_BOOKING)
-    db.$transaction.mockImplementation(async (fn: Function) => fn(db))
     db.booking.update.mockResolvedValue({ ...BASE_BOOKING, status: 'CANCELLED' })
-    db.departureSlot.findUnique.mockResolvedValue({ booked: 2, status: 'OPEN' })
     db.departureSlot.update.mockResolvedValue({})
+    db.$transaction.mockImplementation(async (fn: Function) => {
+      const tx = {
+        ...db,
+        $queryRaw: vi.fn().mockResolvedValue([{ booked: 2, status: 'OPEN', capacity: 10 }]),
+      }
+      return fn(tx)
+    })
 
     const res = await app.inject({
       method: 'POST',

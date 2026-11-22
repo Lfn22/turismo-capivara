@@ -1,10 +1,10 @@
-"use client"
-import { use, useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
-import { painelEyebrow } from "@/lib/painel"
-import Calendar from "react-calendar"
-import { toast } from "sonner"
-import { CalendarDays, CalendarPlus, Clock, Lock, Plus } from "lucide-react"
+'use client'
+import { use, useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { painelEyebrow } from '@/lib/painel'
+import Calendar from 'react-calendar'
+import { toast } from 'sonner'
+import { CalendarDays, CalendarPlus, Clock, Lock, Plus } from 'lucide-react'
 import {
   Alert,
   Badge,
@@ -19,7 +19,7 @@ import {
   Skeleton,
   Tabs,
   type Tone,
-} from "@/src/components/ui/capi"
+} from '@/src/components/ui/capi'
 
 interface Slot {
   id: string
@@ -27,7 +27,7 @@ interface Slot {
   startsAt: string
   capacity: number
   booked: number
-  status: "OPEN" | "FULL" | "CANCELLED" | "COMPLETED"
+  status: 'OPEN' | 'FULL' | 'CANCELLED' | 'COMPLETED'
 }
 
 interface Package {
@@ -42,26 +42,22 @@ interface Guide {
 
 function toLocalDateStr(date: Date): string {
   const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, "0")
-  const d = String(date.getDate()).padStart(2, "0")
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
 }
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
+  return new Date(iso).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
-export default function DisponibilidadePage({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
+export default function DisponibilidadePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params)
   const { data: session } = useSession()
-  const userId = (session?.user as any)?.id ?? ""
+  const userId = session?.user?.id ?? ''
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [allSlots, setAllSlots] = useState<Slot[]>([])
@@ -74,9 +70,9 @@ export default function DisponibilidadePage({
   const [modalOpen, setModalOpen] = useState(false)
 
   // Modal form state
-  const [formPackageId, setFormPackageId] = useState("")
-  const [formStartTime, setFormStartTime] = useState("")
-  const [formEndTime, setFormEndTime] = useState("")
+  const [formPackageId, setFormPackageId] = useState('')
+  const [formStartTime, setFormStartTime] = useState('')
+  const [formEndTime, setFormEndTime] = useState('')
   const [formVagas, setFormVagas] = useState<number>(1)
   const [formMinCapacity, setFormMinCapacity] = useState<number>(1)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
@@ -84,10 +80,10 @@ export default function DisponibilidadePage({
   const [formApiError, setFormApiError] = useState<string | null>(null)
   const [guides, setGuides] = useState<Guide[]>([])
   const [guidesLoading, setGuidesLoading] = useState(false)
-  const [formGuideId, setFormGuideId] = useState<string>("")
+  const [formGuideId, setFormGuideId] = useState<string>('')
   const [formIsConflict, setFormIsConflict] = useState(false)
   // Só apresentação: no celular alterna entre lista por dia e calendário (no desktop os dois aparecem)
-  const [view, setView] = useState<"list" | "calendar">("list")
+  const [view, setView] = useState<'list' | 'calendar'>('list')
 
   // Roteiros que o usuário pode editar (inclui rascunhos e os criados pela equipe); ocultos ficam de fora
   useEffect(() => {
@@ -95,7 +91,9 @@ export default function DisponibilidadePage({
     fetch(`/api/proxy?path=/tenants/${slug}/manage/packages`)
       .then((r) => r.json())
       .then((data) => {
-        const pkgs: Package[] = ((data.packages ?? []) as Array<Package & { status?: string }>).filter((p) => p.status !== "HIDDEN")
+        const pkgs: Package[] = (
+          (data.packages ?? []) as Array<Package & { status?: string }>
+        ).filter((p) => p.status !== 'HIDDEN')
         setPackages(pkgs)
         if (pkgs.length > 0) setFormPackageId(pkgs[0].id)
       })
@@ -110,12 +108,15 @@ export default function DisponibilidadePage({
     Promise.all(
       packages.map((pkg) =>
         fetch(`/api/proxy?path=/tenants/${slug}/packages/${pkg.id}/slots`)
-          .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-          .then((data) => (Array.isArray(data) ? data : (data.slots ?? [])) as Slot[])
-      )
+          .then((r) => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`)
+            return r.json()
+          })
+          .then((data) => (Array.isArray(data) ? data : (data.slots ?? [])) as Slot[]),
+      ),
     )
       .then((results) => setAllSlots(results.flat()))
-      .catch(() => setSlotsError("Erro ao carregar slots. Tente novamente."))
+      .catch(() => setSlotsError('Erro ao carregar slots. Tente novamente.'))
       .finally(() => setLoading(false))
   }, [packages, slug])
 
@@ -129,7 +130,7 @@ export default function DisponibilidadePage({
     fetch(`/api/proxy?path=/tenants/${slug}/guides`)
       .then((res) => res.json())
       .then((data: { guides: Array<{ id: string; user: { id: string; name: string } }> }) => {
-        setGuides((data.guides ?? []).map(g => ({ guideId: g.id, name: g.user.name })))
+        setGuides((data.guides ?? []).map((g) => ({ guideId: g.id, name: g.user.name })))
       })
       .catch(() => setGuides([]))
       .finally(() => setGuidesLoading(false))
@@ -147,21 +148,20 @@ export default function DisponibilidadePage({
 
   // Calendar tile content — color dot for days with slots
   function getTileContent({ date, view }: { date: Date; view: string }) {
-    if (view !== "month") return null
+    if (view !== 'month') return null
     const dateStr = toLocalDateStr(date)
     const slotsForDay = allSlots.filter(
-      (s) => s.startsAt.startsWith(dateStr) && s.status !== "CANCELLED" && s.status !== "COMPLETED"
+      (s) => s.startsAt.startsWith(dateStr) && s.status !== 'CANCELLED' && s.status !== 'COMPLETED',
     )
     if (slotsForDay.length === 0) return null
 
-    const hasOpen = slotsForDay.some((s) => s.status === "OPEN")
-    const isFullyBooked =
-      !hasOpen &&
-      slotsForDay.some((s) => s.status === "FULL")
+    const hasOpen = slotsForDay.some((s) => s.status === 'OPEN')
+    const isFullyBooked = !hasOpen && slotsForDay.some((s) => s.status === 'FULL')
 
-    let bg = "var(--primary)" // disponível
-    if (isFullyBooked) bg = "var(--danger)" // lotado
-    else if (!hasOpen) bg = "var(--text-tertiary)" // fechado/sem slots ativos
+    let bg = 'var(--primary)' // disponível
+    if (isFullyBooked)
+      bg = 'var(--danger)' // lotado
+    else if (!hasOpen) bg = 'var(--text-tertiary)' // fechado/sem slots ativos
 
     return <span className="agenda-dot" aria-hidden="true" style={{ background: bg }} />
   }
@@ -172,14 +172,16 @@ export default function DisponibilidadePage({
     try {
       const res = await fetch(
         `/api/proxy?path=/tenants/${slug}/packages/${slot.packageId}/slots/${slot.id}`,
-        { method: "DELETE" }
+        { method: 'DELETE' },
       )
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      setAllSlots((prev) => prev.map((s) => (s.id === slot.id ? { ...s, status: "CANCELLED" as const } : s)))
-      toast.success("Slot fechado.")
+      setAllSlots((prev) =>
+        prev.map((s) => (s.id === slot.id ? { ...s, status: 'CANCELLED' as const } : s)),
+      )
+      toast.success('Slot fechado.')
     } catch {
-      setCloseError("Erro ao cancelar slot. Tente novamente.")
-      toast.error("Erro ao fechar slot.")
+      setCloseError('Erro ao cancelar slot. Tente novamente.')
+      toast.error('Erro ao fechar slot.')
     } finally {
       setClosingSlot(null)
     }
@@ -194,20 +196,21 @@ export default function DisponibilidadePage({
 
   function validateForm(): boolean {
     const errs: Record<string, string> = {}
-    if (!formPackageId) errs.packageId = "Campo obrigatório."
-    if (!formGuideId) errs.guideId = "Selecione um guia"
+    if (!formPackageId) errs.packageId = 'Campo obrigatório.'
+    if (!formGuideId) errs.guideId = 'Selecione um guia'
     if (!formStartTime) {
-      errs.startTime = "Campo obrigatório."
+      errs.startTime = 'Campo obrigatório.'
     } else if (isStartsAtInPast()) {
-      errs.startTime = "A data do slot deve ser no futuro"
+      errs.startTime = 'A data do slot deve ser no futuro'
     }
-    if (!formEndTime) errs.endTime = "Campo obrigatório."
+    if (!formEndTime) errs.endTime = 'Campo obrigatório.'
     else if (formStartTime && formEndTime && formEndTime <= formStartTime) {
-      errs.endTime = "O horário de fim deve ser após o início."
+      errs.endTime = 'O horário de fim deve ser após o início.'
     }
-    if (!formVagas || formVagas < 1) errs.vagas = "Informe ao menos 1 vaga."
-    if (!formMinCapacity || formMinCapacity < 1) errs.minCapacity = "Informe o mínimo de participantes."
-    else if (formMinCapacity > formVagas) errs.minCapacity = "Mínimo não pode exceder a capacidade."
+    if (!formVagas || formVagas < 1) errs.vagas = 'Informe ao menos 1 vaga.'
+    if (!formMinCapacity || formMinCapacity < 1)
+      errs.minCapacity = 'Informe o mínimo de participantes.'
+    else if (formMinCapacity > formVagas) errs.minCapacity = 'Mínimo não pode exceder a capacidade.'
     setFormErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -223,42 +226,42 @@ export default function DisponibilidadePage({
     const startsAt = new Date(`${dateStr}T${formStartTime}:00`).toISOString()
 
     try {
-      const res = await fetch(
-        `/api/proxy?path=/tenants/${slug}/packages/${formPackageId}/slots`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ startsAt, capacity: formVagas, minCapacity: formMinCapacity, guideId: formGuideId }),
-        }
-      )
+      const res = await fetch(`/api/proxy?path=/tenants/${slug}/packages/${formPackageId}/slots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startsAt,
+          capacity: formVagas,
+          minCapacity: formMinCapacity,
+          guideId: formGuideId,
+        }),
+      })
       if (res.status === 409) {
         const data = await res.json()
         setFormIsConflict(true)
-        setFormApiError(data.message ?? "Conflito de agenda para este guia")
+        setFormApiError(data.message ?? 'Conflito de agenda para este guia')
         return
       }
       setFormIsConflict(false)
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: "Erro ao criar slot" }))
-        throw new Error(err.message ?? "Erro ao criar slot")
+        const err = await res.json().catch(() => ({ message: 'Erro ao criar slot' }))
+        throw new Error(err.message ?? 'Erro ao criar slot')
       }
       const data = await res.json()
       const newSlot: Slot = data.slot ?? data
       setAllSlots((prev) => [...prev, newSlot])
       setModalOpen(false)
-      setFormStartTime("")
-      setFormEndTime("")
+      setFormStartTime('')
+      setFormEndTime('')
       setFormVagas(1)
       setFormMinCapacity(1)
       setFormErrors({})
-      toast.success("Slot criado com sucesso.")
+      toast.success('Slot criado com sucesso.')
     } catch (err: unknown) {
       setFormApiError(
-        err instanceof Error
-          ? err.message
-          : "Não foi possível criar o slot. Tente novamente."
+        err instanceof Error ? err.message : 'Não foi possível criar o slot. Tente novamente.',
       )
-      toast.error("Erro ao criar slot.")
+      toast.error('Erro ao criar slot.')
     } finally {
       setFormSubmitting(false)
     }
@@ -268,7 +271,7 @@ export default function DisponibilidadePage({
     setModalOpen(false)
     setFormErrors({})
     setFormApiError(null)
-    setFormGuideId("")
+    setFormGuideId('')
     setGuides([])
     setGuidesLoading(false)
     setFormIsConflict(false)
@@ -276,17 +279,17 @@ export default function DisponibilidadePage({
 
   // ── Apresentação ───────────────────────────────────────────────────────────
 
-  const SLOT_STATUS: Record<Slot["status"], [string, Tone]> = {
-    OPEN: ["Aberto", "success"],
-    FULL: ["Lotado", "warning"],
-    CANCELLED: ["Cancelado", "neutral"],
-    COMPLETED: ["Concluído", "neutral"],
+  const SLOT_STATUS: Record<Slot['status'], [string, Tone]> = {
+    OPEN: ['Aberto', 'success'],
+    FULL: ['Lotado', 'warning'],
+    CANCELLED: ['Cancelado', 'neutral'],
+    COMPLETED: ['Concluído', 'neutral'],
   }
 
   const packageName = (id: string) => packages.find((p) => p.id === id)?.name
 
   function dayLabel(date: Date) {
-    return date.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })
+    return date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })
   }
 
   function openNewSlot(date: Date) {
@@ -308,7 +311,7 @@ export default function DisponibilidadePage({
     })
 
   function renderSlotRow(slot: Slot) {
-    const [label, tone] = SLOT_STATUS[slot.status] ?? [slot.status, "neutral" as Tone]
+    const [label, tone] = SLOT_STATUS[slot.status] ?? [slot.status, 'neutral' as Tone]
     const name = packageName(slot.packageId)
     return (
       <ListRow
@@ -319,11 +322,13 @@ export default function DisponibilidadePage({
           </span>
         }
         title={formatTime(slot.startsAt)}
-        subtitle={`${slot.booked}/${slot.capacity} vagas${name ? ` · ${name}` : ""}`}
+        subtitle={`${slot.booked}/${slot.capacity} vagas${name ? ` · ${name}` : ''}`}
         trailing={
           <div className="flex items-center gap-2">
-            <Badge tone={tone} dot>{label}</Badge>
-            {slot.status === "OPEN" && (
+            <Badge tone={tone} dot>
+              {label}
+            </Badge>
+            {slot.status === 'OPEN' && (
               <Button
                 variant="secondary"
                 size="sm"
@@ -343,9 +348,22 @@ export default function DisponibilidadePage({
 
   const legend = (
     <ul className="agenda-legend" aria-label="Legenda do calendário">
-      <li><span className="agenda-dot" style={{ background: "var(--primary)" }} aria-hidden="true" />Com vagas</li>
-      <li><span className="agenda-dot" style={{ background: "var(--danger)" }} aria-hidden="true" />Lotado</li>
-      <li><span className="agenda-dot" style={{ background: "var(--text-tertiary)" }} aria-hidden="true" />Fechado</li>
+      <li>
+        <span className="agenda-dot" style={{ background: 'var(--primary)' }} aria-hidden="true" />
+        Com vagas
+      </li>
+      <li>
+        <span className="agenda-dot" style={{ background: 'var(--danger)' }} aria-hidden="true" />
+        Lotado
+      </li>
+      <li>
+        <span
+          className="agenda-dot"
+          style={{ background: 'var(--text-tertiary)' }}
+          aria-hidden="true"
+        />
+        Fechado
+      </li>
     </ul>
   )
 
@@ -441,10 +459,10 @@ export default function DisponibilidadePage({
           className="agenda-switch mb-4"
           label="Modo de visualização"
           value={view}
-          onChange={(v) => setView(v as "list" | "calendar")}
+          onChange={(v) => setView(v as 'list' | 'calendar')}
           items={[
-            { value: "list", label: "Lista" },
-            { value: "calendar", label: "Calendário" },
+            { value: 'list', label: 'Lista' },
+            { value: 'calendar', label: 'Calendário' },
           ]}
         />
 
@@ -460,7 +478,7 @@ export default function DisponibilidadePage({
                 title="Nenhum horário nos próximos dias"
                 description="Escolha um dia no calendário para abrir o primeiro horário."
                 action={
-                  <Button iconLeft={CalendarPlus} onClick={() => setView("calendar")}>
+                  <Button iconLeft={CalendarPlus} onClick={() => setView('calendar')}>
                     Escolher dia
                   </Button>
                 }
@@ -474,7 +492,12 @@ export default function DisponibilidadePage({
                   <section key={d.key} aria-label={dayLabel(date)}>
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <h2 className="agenda-day-title">{dayLabel(date)}</h2>
-                      <Button variant="ghost" size="sm" iconLeft={Plus} onClick={() => openNewSlot(date)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        iconLeft={Plus}
+                        onClick={() => openNewSlot(date)}
+                      >
                         Horário
                       </Button>
                     </div>
@@ -482,7 +505,12 @@ export default function DisponibilidadePage({
                   </section>
                 )
               })}
-              <Button variant="secondary" iconLeft={CalendarPlus} onClick={() => setView("calendar")} fullWidth>
+              <Button
+                variant="secondary"
+                iconLeft={CalendarPlus}
+                onClick={() => setView('calendar')}
+                fullWidth
+              >
                 Abrir horário em outro dia
               </Button>
             </div>
@@ -537,24 +565,19 @@ export default function DisponibilidadePage({
       <Modal
         open={modalOpen}
         onClose={closeModal}
-        title={`Novo horário — ${selectedDate?.toLocaleDateString("pt-BR") ?? ""}`}
+        title={`Novo horário — ${selectedDate?.toLocaleDateString('pt-BR') ?? ''}`}
         footer={
           <>
             <Button variant="secondary" onClick={closeModal}>
               Cancelar
             </Button>
             <Button type="submit" form="slot-form" loading={formSubmitting}>
-              {formSubmitting ? "Criando..." : "Criar horário"}
+              {formSubmitting ? 'Criando...' : 'Criar horário'}
             </Button>
           </>
         }
       >
-        <form
-          id="slot-form"
-          onSubmit={handleCreateSlot}
-          className="flex flex-col gap-4"
-          noValidate
-        >
+        <form id="slot-form" onSubmit={handleCreateSlot} className="flex flex-col gap-4" noValidate>
           <Select
             id="slot-package"
             label="Roteiro"
@@ -580,10 +603,10 @@ export default function DisponibilidadePage({
           >
             <option value="">
               {guidesLoading
-                ? "Carregando guias..."
+                ? 'Carregando guias...'
                 : guides.length === 0
-                ? "Nenhum guia qualificado para este roteiro"
-                : "Selecione um guia"}
+                  ? 'Nenhum guia qualificado para este roteiro'
+                  : 'Selecione um guia'}
             </option>
             {guides.map((g) => (
               <option key={g.guideId} value={g.guideId}>
@@ -603,7 +626,7 @@ export default function DisponibilidadePage({
                 if (formStartTime && isStartsAtInPast()) {
                   setFormErrors((prev) => ({
                     ...prev,
-                    startTime: "A data do slot deve ser no futuro",
+                    startTime: 'A data do slot deve ser no futuro',
                   }))
                 } else {
                   setFormErrors((prev) => {
@@ -652,7 +675,10 @@ export default function DisponibilidadePage({
           />
 
           {formApiError && (
-            <Alert tone={formIsConflict ? "warning" : "danger"} title={formIsConflict ? "Conflito de agenda" : undefined}>
+            <Alert
+              tone={formIsConflict ? 'warning' : 'danger'}
+              title={formIsConflict ? 'Conflito de agenda' : undefined}
+            >
               {formApiError}
             </Alert>
           )}

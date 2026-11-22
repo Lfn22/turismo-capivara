@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { ArrowLeft, CalendarX, Check, Clock, SearchX, Users } from 'lucide-react'
 import PackageMembershipButton from '@/src/components/membership/PackageMembershipButton'
 import GuideCard, { type GuideCardGuide } from '@/src/components/ui/GuideCard'
@@ -148,10 +149,9 @@ export default async function RoteirDetalhe({
   // Try to fetch guide info
   if (pkg.conductorId) {
     try {
-      const res = await fetch(
-        `${API_URL}/tenants/${slug}/guides/${pkg.conductorId}`,
-        { next: { revalidate: 300 } }
-      )
+      const res = await fetch(`${API_URL}/tenants/${slug}/guides/${pkg.conductorId}`, {
+        next: { revalidate: 300 },
+      })
       if (res.ok) guide = await res.json()
     } catch {
       // guide info optional
@@ -166,7 +166,7 @@ export default async function RoteirDetalhe({
   ])
 
   const openSlots = (pkg.departureSlots ?? []).filter(
-    (s) => s.status === 'OPEN' && s.booked < s.capacity
+    (s) => s.status === 'OPEN' && s.booked < s.capacity,
   )
   const hasSlots = openSlots.length > 0
 
@@ -174,147 +174,164 @@ export default async function RoteirDetalhe({
     <div className={hasSlots ? 'capi-has-bottombar capi-has-bottombar--book' : undefined}>
       <TrackView event="package_viewed" properties={{ packageId, destinationSlug }} />
       <div className="capi-container py-6 md:py-10">
-        <Button href={`/${slug}/roteiros`} variant="ghost" size="sm" iconLeft={ArrowLeft} className="mb-4">
+        <Button
+          href={`/${slug}/roteiros`}
+          variant="ghost"
+          size="sm"
+          iconLeft={ArrowLeft}
+          className="mb-4"
+        >
           Todos os roteiros
         </Button>
 
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
           {/* Conteúdo */}
           <div className="min-w-0">
-          <PackageEditSection
-            conductorId={pkg.conductorId ?? null}
-            destinationSlug={destinationSlug}
-            pkg={{
-              id: pkg.id,
-              tenantSlug: slug,
-              name: pkg.name,
-              description: pkg.description,
-              price: Number(pkg.price),
-              duration: parseInt(pkg.duration) || 1,
-              capacity: pkg.capacity,
-              difficulty: difficulty ?? 'EASY',
-              photos: pkg.photos ?? [],
-              highlights: pkg.highlights ?? [],
-              status: 'PUBLISHED',
-            }}
-          >
-          <div className="min-w-0">
-            {/* Galeria: carrossel no mobile, grade no desktop */}
-            {pkg.photos && pkg.photos.length > 0 && (
-              <div className="capi-scroller mb-8" aria-label="Fotos do roteiro">
-                {pkg.photos.map((photoUrl, idx) => (
-                  <div
-                    key={idx}
-                    className="overflow-hidden bg-muted"
-                    style={{ aspectRatio: '4 / 3', borderRadius: 'var(--radius-lg)' }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photoUrl}
-                      alt={`Foto ${idx + 1} do roteiro ${pkg.name}`}
-                      className="block h-full w-full object-cover"
-                    />
+            <PackageEditSection
+              conductorId={pkg.conductorId ?? null}
+              destinationSlug={destinationSlug}
+              pkg={{
+                id: pkg.id,
+                tenantSlug: slug,
+                name: pkg.name,
+                description: pkg.description,
+                price: Number(pkg.price),
+                duration: parseInt(pkg.duration) || 1,
+                capacity: pkg.capacity,
+                difficulty: difficulty ?? 'EASY',
+                photos: pkg.photos ?? [],
+                highlights: pkg.highlights ?? [],
+                status: 'PUBLISHED',
+              }}
+            >
+              <div className="min-w-0">
+                {/* Galeria: carrossel no mobile, grade no desktop */}
+                {pkg.photos && pkg.photos.length > 0 && (
+                  <div className="capi-scroller mb-8" aria-label="Fotos do roteiro">
+                    {pkg.photos.map((photoUrl, idx) => (
+                      <div
+                        key={idx}
+                        className="relative overflow-hidden bg-muted"
+                        style={{ aspectRatio: '4 / 3', borderRadius: 'var(--radius-lg)' }}
+                      >
+                        <Image
+                          src={photoUrl}
+                          alt={`Foto ${idx + 1} do roteiro ${pkg.name}`}
+                          fill
+                          className="object-cover"
+                          sizes="(min-width: 768px) 50vw, 100vw"
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-
-            <header className="mb-8">
-              <div className="mb-3 flex flex-wrap gap-2">
-                {difficulty ? (
-                  <StatusBadge kind="difficulty" status={difficulty} />
-                ) : (
-                  <Badge>{pkg.difficulty}</Badge>
                 )}
-                {pkg.duration && (
-                  <Badge icon={Clock}>{formatDuration(pkg.duration)}</Badge>
-                )}
-              </div>
 
-              <h1 className="font-display m-0 mb-3 text-3xl md:text-4xl">{pkg.name}</h1>
+                <header className="mb-8">
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {difficulty ? (
+                      <StatusBadge kind="difficulty" status={difficulty} />
+                    ) : (
+                      <Badge>{pkg.difficulty}</Badge>
+                    )}
+                    {pkg.duration && <Badge icon={Clock}>{formatDuration(pkg.duration)}</Badge>}
+                  </div>
 
-              <div className="mb-4">
-                <PackageMembershipButton packageId={pkg.id} />
-              </div>
+                  <h1 className="font-display m-0 mb-3 text-3xl md:text-4xl">{pkg.name}</h1>
 
-              <p className="m-0 mb-4 lg:hidden">
-                <span className="text-sm text-fg-secondary">a partir de </span>
-                <strong className="text-2xl text-fg">{formatPrice(pkg.price)}</strong>
-                <span className="text-sm text-fg-secondary"> /pessoa</span>
-              </p>
+                  <div className="mb-4">
+                    <PackageMembershipButton packageId={pkg.id} />
+                  </div>
 
-              {pkg.description && (
-                <p className="m-0 leading-relaxed text-fg-secondary">{pkg.description}</p>
-              )}
-            </header>
+                  <p className="m-0 mb-4 lg:hidden">
+                    <span className="text-sm text-fg-secondary">a partir de </span>
+                    <strong className="text-2xl text-fg">{formatPrice(pkg.price)}</strong>
+                    <span className="text-sm text-fg-secondary"> /pessoa</span>
+                  </p>
 
-            {/* Guia */}
-            {guide && (
-              <section className="mb-8">
-                <h2 className="m-0 mb-3 text-lg">Seu condutor</h2>
-                <ListGroup>
-                  <ListRow
-                    href={`/${slug}/guias/${guide.id}`}
-                    leading={
-                      <Avatar
-                        name={guide.name}
-                        src={guide.photo && /^https?:\/\//.test(guide.photo) ? guide.photo : null}
-                        size={48}
-                        verified={guide.approvalStatus === 'APPROVED'}
+                  {pkg.description && (
+                    <p className="m-0 leading-relaxed text-fg-secondary">{pkg.description}</p>
+                  )}
+                </header>
+
+                {/* Guia */}
+                {guide && (
+                  <section className="mb-8">
+                    <h2 className="m-0 mb-3 text-lg">Seu condutor</h2>
+                    <ListGroup>
+                      <ListRow
+                        href={`/${slug}/guias/${guide.id}`}
+                        leading={
+                          <Avatar
+                            name={guide.name}
+                            src={
+                              guide.photo && /^https?:\/\//.test(guide.photo) ? guide.photo : null
+                            }
+                            size={48}
+                            verified={guide.approvalStatus === 'APPROVED'}
+                          />
+                        }
+                        title={guide.name}
+                        subtitle={
+                          guide.approvalStatus === 'APPROVED' ? 'Condutor verificado' : 'Condutor'
+                        }
                       />
-                    }
-                    title={guide.name}
-                    subtitle={guide.approvalStatus === 'APPROVED' ? 'Condutor verificado' : 'Condutor'}
-                  />
-                </ListGroup>
-              </section>
-            )}
+                    </ListGroup>
+                  </section>
+                )}
 
-            {/* Experiências incluídas */}
-            {pkg.highlights && pkg.highlights.length > 0 && (
-              <section className="mb-8">
-                <h2 className="font-display m-0 mb-4 text-2xl">Experiências incluídas</h2>
-                <ul className="m-0 flex list-none flex-col gap-3 p-0">
-                  {pkg.highlights.map((highlight, idx) => (
-                    <li key={idx} className="flex items-start gap-3 text-fg">
-                      <span className="mt-0.5 inline-flex shrink-0 text-success">
-                        <Check size={18} strokeWidth={2} aria-hidden="true" />
-                      </span>
-                      <span className="leading-relaxed">{highlight}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-          </div>
-          </PackageEditSection>
-
-          {/* Guias do roteiro */}
-          <section id="guias" className="mb-8 scroll-mt-24" aria-labelledby="guias-heading">
-            <h2 id="guias-heading" className="m-0 mb-3 text-lg">Guias deste roteiro</h2>
-            {guides.length > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {guides.map((g) => (
-                  <GuideCard
-                    key={g.id}
-                    guide={g}
-                    href={destinationSlug ? `/destinos/${destinationSlug}/guias/${g.id}` : '#guias'}
-                  />
-                ))}
+                {/* Experiências incluídas */}
+                {pkg.highlights && pkg.highlights.length > 0 && (
+                  <section className="mb-8">
+                    <h2 className="font-display m-0 mb-4 text-2xl">Experiências incluídas</h2>
+                    <ul className="m-0 flex list-none flex-col gap-3 p-0">
+                      {pkg.highlights.map((highlight, idx) => (
+                        <li key={idx} className="flex items-start gap-3 text-fg">
+                          <span className="mt-0.5 inline-flex shrink-0 text-success">
+                            <Check size={18} strokeWidth={2} aria-hidden="true" />
+                          </span>
+                          <span className="leading-relaxed">{highlight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
               </div>
-            ) : (
-              <EmptyState
-                compact
-                icon={Users}
-                title="Nenhum guia vinculado a este roteiro ainda"
-                description="Em breve condutores estarão disponíveis para este roteiro."
-              />
-            )}
-          </section>
+            </PackageEditSection>
+
+            {/* Guias do roteiro */}
+            <section id="guias" className="mb-8 scroll-mt-24" aria-labelledby="guias-heading">
+              <h2 id="guias-heading" className="m-0 mb-3 text-lg">
+                Guias deste roteiro
+              </h2>
+              {guides.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {guides.map((g) => (
+                    <GuideCard
+                      key={g.id}
+                      guide={g}
+                      href={
+                        destinationSlug ? `/destinos/${destinationSlug}/guias/${g.id}` : '#guias'
+                      }
+                    />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  compact
+                  icon={Users}
+                  title="Nenhum guia vinculado a este roteiro ainda"
+                  description="Em breve condutores estarão disponíveis para este roteiro."
+                />
+              )}
+            </section>
           </div>
 
           {/* Reserva: abaixo do conteúdo no mobile, coluna sticky no desktop */}
-          <section id="datas" aria-label="Datas e reserva" className="scroll-mt-24 lg:sticky lg:top-24">
+          <section
+            id="datas"
+            aria-label="Datas e reserva"
+            className="scroll-mt-24 lg:sticky lg:top-24"
+          >
             <BookingSummary
               title={pkg.name}
               subtitle={
@@ -323,14 +340,21 @@ export default async function RoteirDetalhe({
                 </>
               }
               details={[
-                ...(pkg.duration ? [{ label: 'Duração', value: formatDuration(pkg.duration) }] : []),
+                ...(pkg.duration
+                  ? [{ label: 'Duração', value: formatDuration(pkg.duration) }]
+                  : []),
                 { label: 'Datas abertas', value: String(openSlots.length) },
               ]}
               action={
                 hasSlots ? (
                   <SlotPicker slots={pkg.departureSlots ?? []} packageId={pkg.id} slug={slug} />
                 ) : destinationSlug ? (
-                  <LeadForm destinationSlug={destinationSlug} packageId={pkg.id} compact heading="Me avise quando abrir data" />
+                  <LeadForm
+                    destinationSlug={destinationSlug}
+                    packageId={pkg.id}
+                    compact
+                    heading="Me avise quando abrir data"
+                  />
                 ) : (
                   <EmptyState
                     compact
@@ -346,9 +370,7 @@ export default async function RoteirDetalhe({
         </div>
       </div>
 
-      {hasSlots && (
-        <BookingBar price={formatPrice(pkg.price)} href="#datas" ctaLabel="Ver datas" />
-      )}
+      {hasSlots && <BookingBar price={formatPrice(pkg.price)} href="#datas" ctaLabel="Ver datas" />}
     </div>
   )
 }

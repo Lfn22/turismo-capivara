@@ -231,7 +231,7 @@ describe('Self-Service per-email rate limiting (max 5 / 15 min)', () => {
   })
 
   it('blocks 6th POST /tenants/:slug/bookings/repay for the same email', async () => {
-    const payload = { email: 'turista-repay@example.com', code: 'abc123' }
+    const payload = { email: 'turista-repay@example.com', code: 'abc123', cpf: '52998224725' }
     for (let i = 0; i < 5; i++) {
       await app.inject({
         method: 'POST',

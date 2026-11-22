@@ -87,12 +87,12 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user, trigger }) {
       if (user) {
-        token.apiToken = (user as any).token
-        token.role = (user as any).role
-        token.tenantId = (user as any).tenantId
-        token.tenantSlug = (user as { tenantSlug?: string | null }).tenantSlug ?? null
-        token.photoUrl = (user as { photoUrl?: string | null }).photoUrl ?? null
-        token.refreshToken = (user as { refreshToken?: string }).refreshToken
+        token.apiToken = user.token
+        token.role = user.role
+        token.tenantId = user.tenantId
+        token.tenantSlug = user.tenantSlug ?? null
+        token.photoUrl = user.photoUrl ?? null
+        token.refreshToken = user.refreshToken
         token.apiTokenExpires = apiTokenExpiresAt(token.apiToken)
       } else {
         // Renova o token da API perto de expirar (o middleware cobre getToken/RSC; aqui cobre /api/auth/session)
@@ -115,15 +115,15 @@ export const authOptions: NextAuthOptions = {
       session.user = {
         ...session.user,
         name: (token.name as string | undefined) ?? session.user?.name,
-        id: token.sub as string,
-        role: token.role as string,
-        tenantId: token.tenantId as string,
-        tenantSlug: token.tenantSlug as string | null,
+        id: token.sub,
+        role: token.role,
+        tenantId: token.tenantId,
+        tenantSlug: token.tenantSlug,
         photoUrl: token.photoUrl ?? null,
         // NOTE: apiToken is kept only in the encrypted JWT cookie (server-side).
         // Client components must proxy API calls through a Next.js route handler.
         // RSC pages use getToken() from next-auth/jwt to read apiToken server-side.
-      } as any
+      }
       return session
     },
   },

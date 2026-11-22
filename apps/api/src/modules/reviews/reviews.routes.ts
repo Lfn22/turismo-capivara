@@ -30,83 +30,98 @@ const createReviewBodySchema = z.object({
 
 export async function reviewsRoutes(app: FastifyInstance) {
   // POST /tenants/:slug/reviews — Create a review (public, verified by email)
-  app.post('/tenants/:slug/reviews', async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(
-      slugParamsSchema,
-      request.params,
-      reply,
-    )
-    if (paramsError) return
-
-    const { data: body, error: bodyError } = parseBody(createReviewBodySchema, request.body, reply)
-    if (bodyError) return
-
-    const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
-    if (!tenant) throw new AppError('Tenant não encontrado', 404)
-
-    const booking = await prisma.booking.findFirst({
-      where: {
-        id: body.bookingId,
-        tenantId: tenant.id,
+  app.post(
+    '/tenants/:slug/reviews',
+    {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: '1 hour',
+        },
       },
-      select: {
-        id: true,
-        status: true,
-        customerEmail: true,
-        slot: {
-          select: {
-            guideId: true,
-            package: {
-              select: { conductorId: true },
+    },
+    async (request, reply) => {
+      const { data: params, error: paramsError } = parseParams(
+        slugParamsSchema,
+        request.params,
+        reply,
+      )
+      if (paramsError) return
+
+      const { data: body, error: bodyError } = parseBody(
+        createReviewBodySchema,
+        request.body,
+        reply,
+      )
+      if (bodyError) return
+
+      const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
+      if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+      const booking = await prisma.booking.findFirst({
+        where: {
+          id: body.bookingId,
+          tenantId: tenant.id,
+        },
+        select: {
+          id: true,
+          status: true,
+          customerEmail: true,
+          slot: {
+            select: {
+              guideId: true,
+              package: {
+                select: { conductorId: true },
+              },
             },
           },
         },
-      },
-    })
+      })
 
-    if (!booking) throw new AppError('Reserva não encontrada', 404)
+      if (!booking) throw new AppError('Reserva não encontrada', 404)
 
-    if (!['COMPLETED', 'CONFIRMED'].includes(booking.status)) {
-      throw new AppError('Só é possível avaliar reservas concluídas', 422)
-    }
+      if (!['COMPLETED', 'CONFIRMED'].includes(booking.status)) {
+        throw new AppError('Só é possível avaliar reservas concluídas', 422)
+      }
 
-    if (booking.customerEmail !== body.customerEmail) {
-      throw new AppError('Email não corresponde ao da reserva', 403)
-    }
+      if (booking.customerEmail.toLowerCase() !== body.customerEmail.toLowerCase()) {
+        throw new AppError('Email não corresponde ao da reserva', 403)
+      }
 
-    // Determine guide: slot.guideId (assigned guide) or package conductor
-    const guideId = booking.slot.guideId ?? booking.slot.package.conductorId
-    if (!guideId) throw new AppError('Guia não encontrado para esta reserva', 404)
+      // Determine guide: slot.guideId (assigned guide) or package conductor
+      const guideId = booking.slot.guideId ?? booking.slot.package.conductorId
+      if (!guideId) throw new AppError('Guia não encontrado para esta reserva', 404)
 
-    // Find the GuideProfile for this user
-    const guideProfile = await prisma.guideProfile.findUnique({ where: { userId: guideId } })
-    if (!guideProfile) throw new AppError('Perfil de guia não encontrado', 404)
+      // Find the GuideProfile for this user
+      const guideProfile = await prisma.guideProfile.findUnique({ where: { userId: guideId } })
+      if (!guideProfile) throw new AppError('Perfil de guia não encontrado', 404)
 
-    // Check if already reviewed
-    const existing = await prisma.review.findUnique({ where: { bookingId: body.bookingId } })
-    if (existing) throw new AppError('Esta reserva já foi avaliada', 409)
+      // Check if already reviewed
+      const existing = await prisma.review.findUnique({ where: { bookingId: body.bookingId } })
+      if (existing) throw new AppError('Esta reserva já foi avaliada', 409)
 
-    const review = await prisma.review.create({
-      data: {
-        tenantId: tenant.id,
-        bookingId: body.bookingId,
-        guideId: guideProfile.id,
-        rating: body.rating,
-        comment: body.comment,
-        customerName: body.customerName,
-        customerEmail: body.customerEmail,
-      },
-      select: {
-        id: true,
-        rating: true,
-        comment: true,
-        customerName: true,
-        createdAt: true,
-      },
-    })
+      const review = await prisma.review.create({
+        data: {
+          tenantId: tenant.id,
+          bookingId: body.bookingId,
+          guideId: guideProfile.id,
+          rating: body.rating,
+          comment: body.comment,
+          customerName: body.customerName,
+          customerEmail: body.customerEmail,
+        },
+        select: {
+          id: true,
+          rating: true,
+          comment: true,
+          customerName: true,
+          createdAt: true,
+        },
+      })
 
-    return reply.status(201).send({ review })
-  })
+      return reply.status(201).send({ review })
+    },
+  )
 
   // GET /tenants/:slug/guides/:guideId/reviews — Public: list reviews for a guide
   app.get('/tenants/:slug/guides/:guideId/reviews', async (request, reply) => {

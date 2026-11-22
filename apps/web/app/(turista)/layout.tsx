@@ -9,9 +9,9 @@ export default async function TuristaRootLayout({ children }: { children: React.
     redirect('/login')
   }
 
-  const role = (session.user as any)?.role
+  const role = session.user?.role
   if (role !== 'CLIENTE') {
-    const slug = (session.user as any)?.tenantSlug
+    const slug = session.user?.tenantSlug
     redirect(slug ? `/${slug}/painel` : '/')
   }
 

@@ -82,7 +82,7 @@ export async function repayRoute(app: FastifyInstance) {
         transactionAmount,
         description: `Reserva #${booking.id} — ${booking.slot.package.name}`,
         customerEmail: booking.customerEmail,
-        customerCpf: cpf ?? '',
+        customerCpf: cpf,
       })
 
       // Lock slot and update booking atomically to prevent race condition

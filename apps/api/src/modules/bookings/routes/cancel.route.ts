@@ -76,16 +76,22 @@ export async function cancelSelfRoute(app: FastifyInstance) {
           where: { id: booking.id },
           data: { status: 'CANCELLED' },
         })
-        const currentSlot = await tx.departureSlot.findUnique({
-          where: { id: booking.slotId },
-          select: { booked: true, status: true },
-        })
-        const newBooked = Math.max(0, (currentSlot?.booked ?? booking.pax) - booking.pax)
+        const [currentSlot] = await tx.$queryRaw<
+          Array<{ booked: number; status: string; capacity: number }>
+        >`
+          SELECT booked, status, capacity FROM "DepartureSlot"
+          WHERE id = ${booking.slotId}
+          FOR UPDATE
+        `
+
+        if (!currentSlot) return // slot deleted — skip
+
+        const newBooked = Math.max(0, currentSlot.booked - booking.pax)
         await tx.departureSlot.update({
           where: { id: booking.slotId },
           data: {
             booked: newBooked,
-            ...(currentSlot?.status === 'FULL' ? { status: 'OPEN' } : {}),
+            ...(currentSlot.status === 'FULL' ? { status: 'OPEN' } : {}),
           },
         })
       })

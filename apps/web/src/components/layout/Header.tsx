@@ -1,33 +1,33 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
 
 const NAV_LINKS = [
-  { href: "/#como-funciona", label: "Como funciona" },
-  { href: "/#destinos", label: "Destinos" },
-  { href: "/#guias", label: "Guias" },
-];
+  { href: '/#como-funciona', label: 'Como funciona' },
+  { href: '/#destinos', label: 'Destinos' },
+  { href: '/#guias', label: 'Guias' },
+]
 
-const HEADER_HEIGHT = 56; // manter em sincronia com scroll-padding-top no CSS global
+const HEADER_HEIGHT = 56 // manter em sincronia com scroll-padding-top no CSS global
 
 export default function Header() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false)
 
   // Fecha com Esc e trava o scroll do body enquanto o menu está aberto
   useEffect(() => {
-    if (!menuOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
+    if (!menuOpen) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false)
+    document.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
     return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [menuOpen]);
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [menuOpen])
 
-  const closeMenu = () => setMenuOpen(false);
+  const closeMenu = () => setMenuOpen(false)
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[var(--header-bg)] backdrop-blur-md">
@@ -36,11 +36,22 @@ export default function Header() {
         {/* Logo */}
         <Link href="/" aria-label="CAPI — página inicial" className="flex shrink-0 items-center">
           {/* Sirva a versão branca do logo direto (SVG de preferência), sem filter */}
-          <Image src="/images/logo-white.svg" alt="CAPI" width={52} height={47} priority />
+          <Image
+            src="/images/logo.png"
+            alt="CAPI"
+            width={52}
+            height={47}
+            priority
+            className="brightness-0 invert"
+          />
         </Link>
 
         {/* Nav desktop */}
-        <nav role="navigation" className="hidden items-center gap-6 md:flex" aria-label="Menu principal">
+        <nav
+          role="navigation"
+          className="hidden items-center gap-6 md:flex"
+          aria-label="Menu principal"
+        >
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -72,21 +83,61 @@ export default function Header() {
         <button
           type="button"
           className="flex h-10 w-10 items-center justify-center text-[var(--stone-200)] md:hidden"
-          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+          aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
           aria-expanded={menuOpen}
           aria-controls="mobile-menu"
           onClick={() => setMenuOpen((v) => !v)}
         >
           {menuOpen ? (
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-              <line x1="3" y1="3" x2="19" y2="19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="19" y1="3" x2="3" y2="19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <line
+                x1="3"
+                y1="3"
+                x2="19"
+                y2="19"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <line
+                x1="19"
+                y1="3"
+                x2="3"
+                y2="19"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           ) : (
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-              <line x1="2" y1="6" x2="20" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="2" y1="11" x2="20" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              <line x1="2" y1="16" x2="20" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <line
+                x1="2"
+                y1="6"
+                x2="20"
+                y2="6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <line
+                x1="2"
+                y1="11"
+                x2="20"
+                y2="11"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <line
+                x1="2"
+                y1="16"
+                x2="20"
+                y2="16"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           )}
         </button>
@@ -128,5 +179,5 @@ export default function Header() {
         </nav>
       )}
     </header>
-  );
+  )
 }

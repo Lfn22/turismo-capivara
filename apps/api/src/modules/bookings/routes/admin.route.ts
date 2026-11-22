@@ -112,7 +112,7 @@ export async function adminBookingsRoute(app: FastifyInstance) {
       }
 
       const user = request.user as { sub: string; role: string; tenantId: string }
-      if (booking.tenantId !== user.tenantId) {
+      if (!isPlatformStaff(user.role) && booking.tenantId !== user.tenantId) {
         throw new AppError('FORBIDDEN', 403)
       }
       if (user.role === 'CONDUTOR' && booking.slot?.package?.conductorId !== user.sub) {
@@ -197,7 +197,7 @@ export async function adminBookingsRoute(app: FastifyInstance) {
       }
 
       const user = request.user as { sub: string; role: string; tenantId: string }
-      if (booking.tenantId !== user.tenantId) {
+      if (!isPlatformStaff(user.role) && booking.tenantId !== user.tenantId) {
         throw new AppError('FORBIDDEN', 403)
       }
       if (user.role === 'CONDUTOR' && booking.slot?.package?.conductorId !== user.sub) {

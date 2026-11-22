@@ -5,7 +5,7 @@ import TuristaBottomNav from '@/src/components/turista/TuristaBottomNav'
 
 export default async function MinhaContaLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
-  const user = session?.user as any
+  const user = session?.user
 
   return (
     <>

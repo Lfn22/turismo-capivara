@@ -235,3 +235,18 @@ const start = async () => {
 }
 
 start()
+
+const shutdown = async (signal: string) => {
+  app.log.info(`[shutdown] ${signal} received — closing server`)
+  try {
+    await app.close()
+    app.log.info('[shutdown] Fastify closed, connections drained')
+    process.exit(0)
+  } catch (err) {
+    app.log.error(err, '[shutdown] Error during graceful shutdown')
+    process.exit(1)
+  }
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))

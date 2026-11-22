@@ -1,40 +1,40 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { useParams } from 'next/navigation';
-import { ArrowRight, CalendarSearch, CalendarX } from 'lucide-react';
-import BookingForm from '@/src/components/ui/BookingForm';
-import BackButton from '@/src/components/ui/BackButton';
-import { Button, EmptyState, Stepper } from '@/src/components/ui/capi';
+import { Suspense, useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useParams } from 'next/navigation'
+import { ArrowRight, CalendarSearch, CalendarX } from 'lucide-react'
+import BookingForm from '@/src/components/ui/BookingForm'
+import BackButton from '@/src/components/ui/BackButton'
+import { Button, EmptyState, Stepper } from '@/src/components/ui/capi'
 
-const STEPS = ['Data e horário', 'Seus dados', 'Pagamento'];
+const STEPS = ['Data e horário', 'Seus dados', 'Pagamento']
 
-export default function ReservarPage() {
-  const searchParams = useSearchParams();
-  const params = useParams<{ slug: string }>();
+function ReservarContent() {
+  const searchParams = useSearchParams()
+  const params = useParams<{ slug: string }>()
 
-  const slotId = searchParams.get('slotId') ?? '';
-  const packageId = searchParams.get('packageId') ?? '';
-  const slug = params.slug ?? '';
+  const slotId = searchParams.get('slotId') ?? ''
+  const packageId = searchParams.get('packageId') ?? ''
+  const slug = params.slug ?? ''
 
-  const [tenantBlocked, setTenantBlocked] = useState(false);
+  const [tenantBlocked, setTenantBlocked] = useState(false)
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug) return
     fetch(`/api/tenants/${slug}/status`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         // Only block if we have a confirmed non-APPROVED status.
         // Network errors → fail-open (API will reject with 403 if truly blocked).
         if (data && data.approvalStatus && data.approvalStatus !== 'APPROVED') {
-          setTenantBlocked(true);
+          setTenantBlocked(true)
         }
       })
       .catch(() => {
         // fail-open: let the booking attempt proceed; API enforces the gate
-      });
-  }, [slug]);
+      })
+  }, [slug])
 
   if (!slotId || !packageId) {
     return (
@@ -50,7 +50,7 @@ export default function ReservarPage() {
           }
         />
       </div>
-    );
+    )
   }
 
   if (tenantBlocked) {
@@ -67,7 +67,7 @@ export default function ReservarPage() {
           }
         />
       </div>
-    );
+    )
   }
 
   return (
@@ -85,5 +85,19 @@ export default function ReservarPage() {
         <BookingForm slotId={slotId} packageId={packageId} slug={slug} />
       </div>
     </div>
-  );
+  )
+}
+
+export default function ReservarPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh items-center justify-center">
+          <p>Carregando...</p>
+        </div>
+      }
+    >
+      <ReservarContent />
+    </Suspense>
+  )
 }

@@ -73,7 +73,7 @@ model GuideDestination {
 
 model GuideAffiliation {
   id              String            @id @default(cuid())
-  guideId         String            @unique
+  guideId         String
   tenantId        String
   status          AffiliationStatus @default(PENDING)
   rejectionReason String?
@@ -83,6 +83,7 @@ model GuideAffiliation {
   guide  GuideProfile @relation(fields: [guideId], references: [id], onDelete: Cascade)
   tenant Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@unique([guideId, tenantId])
   @@index([tenantId, status])
 }
 
@@ -170,7 +171,7 @@ model GuideProfile {
   departureSlots DepartureSlot[]
   testimonials   Testimonial[]
   destinations   GuideDestination[]
-  affiliation    GuideAffiliation?
+  affiliations   GuideAffiliation[]
   reviews        Review[]
   payouts        Payout[]
 }
@@ -231,7 +232,7 @@ model DepartureSlot {
 
 model Booking {
   id                   String        @id @default(cuid())
-  code                 String?       @unique
+  code                 String?
   cancelToken          String        @unique
   cancelTokenExpiresAt DateTime?
   tenantId             String
@@ -260,6 +261,7 @@ model Booking {
   payouts     Payout[]
 
   @@unique([tenantId, idempotencyKey])
+  @@unique([tenantId, code])
   @@index([userId])
   @@index([tenantId, status])
   @@index([status, expiresAt])
@@ -360,7 +362,7 @@ model Payout {
   id          String       @id @default(cuid())
   tenantId    String
   guideId     String
-  bookingId   String
+  bookingId   String       @unique
   amount      Decimal      @db.Decimal(10, 2)
   platformFee Decimal      @db.Decimal(10, 2)
   status      PayoutStatus @default(PENDING)
