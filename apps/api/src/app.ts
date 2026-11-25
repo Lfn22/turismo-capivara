@@ -54,6 +54,7 @@ import { AppError } from './shared/errors/AppError'
 import { clientIp, isInternalWithoutClient, trustProxyFn } from './shared/utils/client-ip'
 import { pathOnly } from './shared/utils/log-url'
 import { healthResponse } from './shared/utils/health'
+import { corsOrigins } from './shared/utils/cors-origins'
 
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -97,7 +98,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN) {
 }
 
 app.register(cors, {
-  origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+  origin: corsOrigins(process.env.CORS_ORIGIN),
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
 })
 
