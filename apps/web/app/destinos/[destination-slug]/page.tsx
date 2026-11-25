@@ -1,53 +1,56 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
-import DestinationHero, { DestinationTabs } from '@/src/components/ui/DestinationHero';
-import DestinationHighlights from '@/src/components/ui/DestinationHighlights';
-import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
-import DestinationMembershipButton from '@/src/components/membership/DestinationMembershipButton';
-import PublicLayout from '@/src/components/layout/PublicLayout';
-import { Button } from '@/src/components/ui/capi';
-import PackageCard, { type PackageCardPackage } from '@/src/components/ui/PackageCard';
-import { LeadForm } from '@/src/components/leads/LeadForm';
-import { TrackView } from '@/src/components/tracking/TrackView';
-import { DestinationEditControls, DestinationEditSection } from '@/src/components/edit-mode/DestinationEditControls';
-import { MapWidgetClient, type MapMarker } from '@/src/components/ui/map';
-import type { PartnerData } from '@/src/components/ui/MapWidgetClient';
+import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
+import { ArrowRight } from 'lucide-react'
+import DestinationHero, { DestinationTabs } from '@/src/components/ui/DestinationHero'
+import DestinationHighlights from '@/src/components/ui/DestinationHighlights'
+import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav'
+import DestinationMembershipButton from '@/src/components/membership/DestinationMembershipButton'
+import PublicLayout from '@/src/components/layout/PublicLayout'
+import { Button } from '@/src/components/ui/capi'
+import PackageCard, { type PackageCardPackage } from '@/src/components/ui/PackageCard'
+import { LeadForm } from '@/src/components/leads/LeadForm'
+import { TrackView } from '@/src/components/tracking/TrackView'
+import {
+  DestinationEditControls,
+  DestinationEditSection,
+} from '@/src/components/edit-mode/DestinationEditControls'
+import { MapWidgetClient, type MapMarker } from '@/src/components/ui/map'
+import type { PartnerData } from '@/src/components/ui/MapWidgetClient'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const safePhotoUrl = (url: string) => /^https?:\/\//.test(url) ? url : null
+const safePhotoUrl = (url: string) => (/^https?:\/\//.test(url) ? url : null)
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 
-const API_URL = process.env.API_URL ?? 'http://localhost:3333';
+const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 
 interface Destination {
-  id: string;
-  slug: string;
-  title: string;
-  subtitle: string | null;
-  description: string | null;
-  state: string;
-  lat: number | null;
-  lng: number | null;
-  highlights: string[];
-  heroImageUrl: string | null;
-  heroImageBlurDataUrl: string | null;
-  photos: string[];
-  tagline: string | null;
+  id: string
+  slug: string
+  title: string
+  subtitle: string | null
+  description: string | null
+  state: string
+  lat: number | null
+  lng: number | null
+  highlights: string[]
+  heroImageUrl: string | null
+  heroImageBlurDataUrl: string | null
+  photos: string[]
+  tagline: string | null
 }
 
 async function fetchDestination(slug: string): Promise<Destination | null> {
   try {
     const res = await fetch(`${API_URL}/destinations/${slug}`, {
       next: { revalidate: 60 },
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) return null;
-    return res.json();
+    })
+    if (res.status === 404) return null
+    if (!res.ok) return null
+    return res.json()
   } catch {
-    return null;
+    return null
   }
 }
 
@@ -64,13 +67,17 @@ export async function generateStaticParams() {
   try {
     const res = await fetch(`${API_URL}/destinations`, {
       next: { revalidate: 60 },
-    });
-    if (!res.ok) return [];
-    const body = await res.json();
-    const destinations: { slug: string }[] = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
-    return destinations.map((d) => ({ 'destination-slug': d.slug }));
+    })
+    if (!res.ok) return []
+    const body = await res.json()
+    const destinations: { slug: string }[] = Array.isArray(body)
+      ? body
+      : Array.isArray(body?.data)
+        ? body.data
+        : []
+    return destinations.map((d) => ({ 'destination-slug': d.slug }))
   } catch {
-    return [];
+    return []
   }
 }
 
@@ -79,11 +86,11 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ 'destination-slug': string }>;
+  params: Promise<{ 'destination-slug': string }>
 }): Promise<Metadata> {
-  const { 'destination-slug': slug } = await params;
-  const destination = await fetchDestination(slug);
-  if (!destination) return { title: 'Destino não encontrado' };
+  const { 'destination-slug': slug } = await params
+  const destination = await fetchDestination(slug)
+  if (!destination) return { title: 'Destino não encontrado' }
   return {
     title: destination.title,
     description:
@@ -95,48 +102,62 @@ export async function generateMetadata({
       images: destination.heroImageUrl ? [destination.heroImageUrl] : [],
       locale: 'pt_BR',
     },
-  };
+  }
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 interface Props {
-  params: Promise<{ 'destination-slug': string }>;
+  params: Promise<{ 'destination-slug': string }>
 }
 
 export default async function DestinationPage({ params }: Props) {
-  const { 'destination-slug': slug } = await params;
-  const destination = await fetchDestination(slug);
-  if (!destination) notFound();
+  const { 'destination-slug': slug } = await params
+  const destination = await fetchDestination(slug)
+  if (!destination) notFound()
 
-  const partners = destination.lat && destination.lng
-    ? await fetchPartners(slug)
-    : []
+  const partners = destination.lat && destination.lng ? await fetchPartners(slug) : []
 
   // Fetch pacotes do destino
-  let packages: (PackageCardPackage & { tenantSlug: string; lat?: number | null; lng?: number | null })[] = [];
+  let packages: (PackageCardPackage & {
+    tenantSlug: string
+    lat?: number | null
+    lng?: number | null
+  })[] = []
   try {
-    const pkgRes = await fetch(`${API_URL}/destinations/${slug}/packages`, { next: { revalidate: 60 } });
+    const pkgRes = await fetch(`${API_URL}/destinations/${slug}/packages`, {
+      next: { revalidate: 60 },
+    })
     if (pkgRes.ok) {
-      const raw = await pkgRes.json();
-      packages = Array.isArray(raw) ? raw.map((p: Record<string, unknown>) => ({
-        tenantSlug: p.tenantSlug as string,
-        id: p.id as string,
-        name: p.name as string,
-        durationMinutes: ((p.duration as number) ?? 0) * 60,
-        difficulty: (p.difficulty ?? 'MODERATE') as PackageCardPackage['difficulty'],
-        priceFrom: Number(p.price ?? 0),
-        coverImageUrl: (p.coverPhotoUrl as string) ?? null,
-        lat: p.lat as number | null,
-        lng: p.lng as number | null,
-        tags: [],
-      })) : [];
+      const raw = await pkgRes.json()
+      packages = Array.isArray(raw)
+        ? raw.map((p: Record<string, unknown>) => ({
+            tenantSlug: p.tenantSlug as string,
+            id: p.id as string,
+            name: p.name as string,
+            durationMinutes: ((p.duration as number) ?? 0) * 60,
+            difficulty: (p.difficulty ?? 'MODERATE') as PackageCardPackage['difficulty'],
+            priceFrom: Math.round(Number(p.price ?? 0) * 100), // API em reais → card em centavos
+            coverImageUrl: (p.coverPhotoUrl as string) ?? null,
+            lat: p.lat as number | null,
+            lng: p.lng as number | null,
+            tags: [],
+          }))
+        : []
     }
-  } catch { /* graceful degradation */ }
+  } catch {
+    /* graceful degradation */
+  }
 
   // Converter parceiros + pacotes em marcadores do mapa
   const mapMarkers: MapMarker[] = [
-    ...partners.map((p): MapMarker => ({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, type: 'partner' })),
+    ...partners.map((p): MapMarker => ({
+      id: p.id,
+      name: p.name,
+      lat: p.lat,
+      lng: p.lng,
+      type: 'partner',
+    })),
     ...packages
       .filter((p) => p.lat != null && p.lng != null)
       .map((p): MapMarker => ({
@@ -145,23 +166,25 @@ export default async function DestinationPage({ params }: Props) {
         lat: p.lat!,
         lng: p.lng!,
         type: 'package',
-        price: p.priceFrom,
+        price: p.priceFrom / 100, // mapa mostra em reais
         imageUrl: p.coverImageUrl,
-        duration: p.durationMinutes ? `${Math.floor(p.durationMinutes / 60)}h${p.durationMinutes % 60 > 0 ? ` ${p.durationMinutes % 60}min` : ''}` : null,
+        duration: p.durationMinutes
+          ? `${Math.floor(p.durationMinutes / 60)}h${p.durationMinutes % 60 > 0 ? ` ${p.durationMinutes % 60}min` : ''}`
+          : null,
         href: `/${p.tenantSlug}/roteiros/${p.id}`,
         badge: p.difficulty,
       })),
   ]
 
-  const guidesHref = `/destinos/${slug}/roteiros`;
-  const highlights = destination.highlights ?? [];
-  const photos = destination.photos ?? [];
-  const hasMap = Boolean(destination.lat && destination.lng);
+  const guidesHref = `/destinos/${slug}/roteiros`
+  const highlights = destination.highlights ?? []
+  const photos = destination.photos ?? []
+  const hasMap = Boolean(destination.lat && destination.lng)
 
   // Texto descritivo: split em parágrafos (separa por \n\n ou usa como único §)
   const descriptionParagraphs = destination.description
     ? destination.description.split(/\n\n+/).filter(Boolean)
-    : [];
+    : []
 
   return (
     <PublicLayout>
@@ -243,173 +266,187 @@ export default async function DestinationPage({ params }: Props) {
       `}</style>
 
       {/* ── Nav sticky ─────────────────────────────────────────── */}
-      <StickyDestinationNav
-        destinationName={destination.title}
-        destinationSlug={slug}
-      />
+      <StickyDestinationNav destinationName={destination.title} destinationSlug={slug} />
 
       <main className="dest">
         <DestinationEditControls slug={slug}>
-        {/* ── 1. Hero ──────────────────────────────────────────── */}
-        <DestinationEditSection>
-        <DestinationHero
-          title={destination.title}
-          subtitle={destination.subtitle}
-          state={destination.state}
-          heroImageUrl={destination.heroImageUrl}
-          heroImageBlurDataUrl={destination.heroImageBlurDataUrl}
-        />
-        </DestinationEditSection>
-
-        {/* ── 2. Abas sticky ───────────────────────────────────── */}
-        <DestinationTabs slug={slug} active="sobre" showMap={hasMap} />
-
-        {/* ── 3. Sobre ─────────────────────────────────────────── */}
-        <DestinationEditSection>
-        <section id="sobre" className="dest__section" aria-labelledby="sobre-heading">
-          <div className="capi-container">
-            <div className="dest__about">
-              <div>
-                <p className="dest__overline">Sobre o destino</p>
-                <h2 id="sobre-heading" className="dest__h2">
-                  {destination.tagline ?? <>Um lugar que <em>transforma</em> quem visita</>}
-                </h2>
-                {descriptionParagraphs.length > 0 ? (
-                  <div className="dest__text">
-                    {descriptionParagraphs.map((para, i) => (
-                      <p key={i}>{para}</p>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-fg-secondary">
-                    Explore {destination.title} com guias certificados. {destination.state}.
-                  </p>
-                )}
-              </div>
-
-              {highlights.length > 0 && (
-                <aside className="dest__aside" aria-label="Destaques">
-                  <p className="dest__aside-title">
-                    {highlights.length} {highlights.length === 1 ? 'ponto de interesse' : 'pontos de interesse'}
-                  </p>
-                  <DestinationHighlights highlights={highlights} />
-                </aside>
-              )}
-            </div>
-          </div>
-        </section>
-        </DestinationEditSection>
-
-        {/* ── 4. Roteiros disponíveis ────────────────────────── */}
-        {packages.length > 0 && (
-          <section className="dest__section" aria-labelledby="roteiros-heading">
-            <div className="capi-container">
-              <p className="dest__overline">Roteiros</p>
-              <h2 id="roteiros-heading" className="dest__h2">Roteiros disponíveis</h2>
-              <div className="capi-grid-cards">
-                {packages.map((pkg) => (
-                  <PackageCard
-                    key={pkg.id}
-                    package={pkg}
-                    href={`/${pkg.tenantSlug}/roteiros/${pkg.id}`}
-                  />
-                ))}
-              </div>
-              <div style={{ marginTop: 'var(--space-6)', textAlign: 'center' }}>
-                <Button href={guidesHref} variant="secondary" iconRight={ArrowRight}>
-                  Ver todos os roteiros
-                </Button>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ── 5. Pontos de interesse (fotos) ───────────────────── */}
-        {highlights.length > 0 && (
+          {/* ── 1. Hero ──────────────────────────────────────────── */}
           <DestinationEditSection>
-          <section className="dest__section" aria-labelledby="poi-heading">
-            <div className="capi-container">
-              <p className="dest__overline">O que explorar</p>
-              <h2 id="poi-heading" className="dest__h2">Pontos de interesse</h2>
-              <div className="capi-scroller">
-                {highlights.map((highlight, i) => {
-                  const photo = photos[i] ? safePhotoUrl(photos[i]) : null;
-                  return (
-                    <div key={highlight} className="dest__poi">
-                      {photo ? (
-                        <div
-                          className="dest__poi-bg"
-                          style={{ backgroundImage: `url(${photo})` }}
-                          aria-hidden="true"
-                        />
-                      ) : null}
-                      <div className="dest__poi-overlay">
-                        <h3 className="dest__poi-name">{highlight}</h3>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
+            <DestinationHero
+              title={destination.title}
+              subtitle={destination.subtitle}
+              state={destination.state}
+              heroImageUrl={destination.heroImageUrl}
+              heroImageBlurDataUrl={destination.heroImageBlurDataUrl}
+            />
           </DestinationEditSection>
-        )}
 
-        {/* ── 5. Mapa ──────────────────────────────────────────── */}
-        {hasMap && (
-          <section id="mapa" className="dest__section" aria-labelledby="mapa-heading">
-            <div className="capi-container">
-              <p className="dest__overline">Como chegar</p>
-              <h2 id="mapa-heading" className="dest__h2">Mapa</h2>
-              <MapWidgetClient
-                lat={destination.lat as number}
-                lng={destination.lng as number}
-                markers={mapMarkers}
-                destinationName={destination.title}
-              />
-            </div>
-          </section>
-        )}
+          {/* ── 2. Abas sticky ───────────────────────────────────── */}
+          <DestinationTabs slug={slug} active="sobre" showMap={hasMap} />
 
-        {/* ── Quero ir — captura de lead ───────────────────────── */}
-        <section id="quero-ir" className="dest__section" aria-labelledby="quero-ir-heading">
-          <div className="capi-container">
-            <h2 id="quero-ir-heading" className="dest__h2">Quer conhecer {destination.title}?</h2>
-            <p className="dest__text" style={{ marginBottom: 'var(--space-5)', color: 'var(--text-secondary)' }}>
-              Deixe seu contato e a gente te ajuda a montar a viagem com um guia de lá.
-            </p>
-            <LeadForm destinationSlug={slug} />
-          </div>
-        </section>
+          {/* ── 3. Sobre ─────────────────────────────────────────── */}
+          <DestinationEditSection>
+            <section id="sobre" className="dest__section" aria-labelledby="sobre-heading">
+              <div className="capi-container">
+                <div className="dest__about">
+                  <div>
+                    <p className="dest__overline">Sobre o destino</p>
+                    <h2 id="sobre-heading" className="dest__h2">
+                      {destination.tagline ?? (
+                        <>
+                          Um lugar que <em>transforma</em> quem visita
+                        </>
+                      )}
+                    </h2>
+                    {descriptionParagraphs.length > 0 ? (
+                      <div className="dest__text">
+                        {descriptionParagraphs.map((para, i) => (
+                          <p key={i}>{para}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-fg-secondary">
+                        Explore {destination.title} com guias certificados. {destination.state}.
+                      </p>
+                    )}
+                  </div>
 
-        {/* ── 6. CTA ────────────────────────────────────────── */}
-        <section className="dest__section" aria-labelledby="cta-heading">
-          <div className="capi-container">
-            <div className="dest__cta">
-              <div>
-                <h2 id="cta-heading" className="dest__cta-title">
-                  Pronto para explorar {destination.title}?
-                </h2>
-                <p className="dest__cta-sub">
-                  Conheça os guias certificados de {destination.title} e reserve sua próxima aventura.
-                </p>
+                  {highlights.length > 0 && (
+                    <aside className="dest__aside" aria-label="Destaques">
+                      <p className="dest__aside-title">
+                        {highlights.length}{' '}
+                        {highlights.length === 1 ? 'ponto de interesse' : 'pontos de interesse'}
+                      </p>
+                      <DestinationHighlights highlights={highlights} />
+                    </aside>
+                  )}
+                </div>
               </div>
-              <div className="dest__cta-actions">
-                <Button href={`/destinos/${slug}/guias`} size="lg" iconRight={ArrowRight}>
-                  Conhecer os guias
-                </Button>
-                {packages.length > 0 && (
-                  <Button href={guidesHref} size="lg" variant="secondary">
+            </section>
+          </DestinationEditSection>
+
+          {/* ── 4. Roteiros disponíveis ────────────────────────── */}
+          {packages.length > 0 && (
+            <section className="dest__section" aria-labelledby="roteiros-heading">
+              <div className="capi-container">
+                <p className="dest__overline">Roteiros</p>
+                <h2 id="roteiros-heading" className="dest__h2">
+                  Roteiros disponíveis
+                </h2>
+                <div className="capi-grid-cards">
+                  {packages.map((pkg) => (
+                    <PackageCard
+                      key={pkg.id}
+                      package={pkg}
+                      href={`/${pkg.tenantSlug}/roteiros/${pkg.id}`}
+                    />
+                  ))}
+                </div>
+                <div style={{ marginTop: 'var(--space-6)', textAlign: 'center' }}>
+                  <Button href={guidesHref} variant="secondary" iconRight={ArrowRight}>
                     Ver todos os roteiros
                   </Button>
-                )}
-                <DestinationMembershipButton destinationSlug={slug} />
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* ── 5. Pontos de interesse (fotos) ───────────────────── */}
+          {highlights.length > 0 && (
+            <DestinationEditSection>
+              <section className="dest__section" aria-labelledby="poi-heading">
+                <div className="capi-container">
+                  <p className="dest__overline">O que explorar</p>
+                  <h2 id="poi-heading" className="dest__h2">
+                    Pontos de interesse
+                  </h2>
+                  <div className="capi-scroller">
+                    {highlights.map((highlight, i) => {
+                      const photo = photos[i] ? safePhotoUrl(photos[i]) : null
+                      return (
+                        <div key={highlight} className="dest__poi">
+                          {photo ? (
+                            <div
+                              className="dest__poi-bg"
+                              style={{ backgroundImage: `url(${photo})` }}
+                              aria-hidden="true"
+                            />
+                          ) : null}
+                          <div className="dest__poi-overlay">
+                            <h3 className="dest__poi-name">{highlight}</h3>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </section>
+            </DestinationEditSection>
+          )}
+
+          {/* ── 5. Mapa ──────────────────────────────────────────── */}
+          {hasMap && (
+            <section id="mapa" className="dest__section" aria-labelledby="mapa-heading">
+              <div className="capi-container">
+                <p className="dest__overline">Como chegar</p>
+                <h2 id="mapa-heading" className="dest__h2">
+                  Mapa
+                </h2>
+                <MapWidgetClient
+                  lat={destination.lat as number}
+                  lng={destination.lng as number}
+                  markers={mapMarkers}
+                  destinationName={destination.title}
+                />
+              </div>
+            </section>
+          )}
+
+          {/* ── Quero ir — captura de lead ───────────────────────── */}
+          <section id="quero-ir" className="dest__section" aria-labelledby="quero-ir-heading">
+            <div className="capi-container">
+              <h2 id="quero-ir-heading" className="dest__h2">
+                Quer conhecer {destination.title}?
+              </h2>
+              <p
+                className="dest__text"
+                style={{ marginBottom: 'var(--space-5)', color: 'var(--text-secondary)' }}
+              >
+                Deixe seu contato e a gente te ajuda a montar a viagem com um guia de lá.
+              </p>
+              <LeadForm destinationSlug={slug} />
+            </div>
+          </section>
+
+          {/* ── 6. CTA ────────────────────────────────────────── */}
+          <section className="dest__section" aria-labelledby="cta-heading">
+            <div className="capi-container">
+              <div className="dest__cta">
+                <div>
+                  <h2 id="cta-heading" className="dest__cta-title">
+                    Pronto para explorar {destination.title}?
+                  </h2>
+                  <p className="dest__cta-sub">
+                    Conheça os guias certificados de {destination.title} e reserve sua próxima
+                    aventura.
+                  </p>
+                </div>
+                <div className="dest__cta-actions">
+                  <Button href={`/destinos/${slug}/guias`} size="lg" iconRight={ArrowRight}>
+                    Conhecer os guias
+                  </Button>
+                  {packages.length > 0 && (
+                    <Button href={guidesHref} size="lg" variant="secondary">
+                      Ver todos os roteiros
+                    </Button>
+                  )}
+                  <DestinationMembershipButton destinationSlug={slug} />
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
         </DestinationEditControls>
       </main>
     </PublicLayout>
-  );
+  )
 }
