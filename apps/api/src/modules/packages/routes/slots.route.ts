@@ -2,9 +2,21 @@ import { FastifyInstance } from 'fastify'
 import { z, ZodError } from 'zod'
 import prisma from '../../../database'
 import { AppError } from '../../../shared/errors/AppError'
+import { BOOKING_CUTOFF_HOURS } from '../../bookings/booking-cutoff'
+import { cancelBooking } from '../../bookings/cancel-booking'
+import {
+  assertGuideAssignable,
+  assertGuideFree,
+  eachDate,
+  ScheduleConflictError,
+  tourDateKey,
+  tourDateTime,
+  tourDayRange,
+  weekdayOf,
+} from '../slot-rules'
 import { authenticate } from '../../../shared/middlewares/authenticate'
 import { authorize } from '../../../shared/middlewares/authorize'
-import { Role } from '@prisma/client'
+import { Role, type Prisma } from '@prisma/client'
 import { parseBody, parseParams, parseQuery } from '../../../shared/utils/zod-error'
 import {
   canEditPackage,
@@ -22,17 +34,6 @@ const slugIdAndSlotIdParamsSchema = z.object({
   id: z.string().min(1, { message: 'ID obrigatório' }),
   slotId: z.string().min(1, { message: 'slotId obrigatório' }),
 })
-
-class ScheduleConflictError extends Error {
-  constructor(
-    public readonly code: string,
-    public readonly statusCode: number,
-    message: string,
-  ) {
-    super(message)
-    this.name = 'ScheduleConflictError'
-  }
-}
 
 const createSlotBodySchema = z
   .object({
@@ -105,8 +106,9 @@ export async function slotsRoute(app: FastifyInstance) {
       throw new AppError('Tenant não encontrado', 404)
     }
 
+    // Leitura pública: só roteiro publicado (rascunho não expõe datas/vagas)
     const tourPackage = await prisma.tourPackage.findFirst({
-      where: { id: params!.id, tenantId: tenant.id, active: true },
+      where: { id: params!.id, tenantId: tenant.id, active: true, publishedAt: { not: null } },
     })
 
     if (!tourPackage) {
@@ -117,7 +119,8 @@ export async function slotsRoute(app: FastifyInstance) {
       where: {
         packageId: params!.id,
         status: 'OPEN',
-        startsAt: { gte: new Date() },
+        // Mesmo corte do createBooking: não oferecer datas que a reserva recusaria
+        startsAt: { gte: new Date(Date.now() + BOOKING_CUTOFF_HOURS * 3600_000) },
       },
       orderBy: { startsAt: 'asc' },
     })
@@ -172,71 +175,14 @@ export async function slotsRoute(app: FastifyInstance) {
       if (await isUnverifiedGuide(user))
         throw new AppError('Guia não aprovado para criar slots', 403)
 
-      // CR-004: Validate guideId belongs to the same tenant (cross-tenant isolation)
-      const guideOwner = await prisma.guideProfile.findUnique({
-        where: { id: body!.guideId },
-        select: { user: { select: { tenantId: true } } },
-      })
-      if (!guideOwner || guideOwner.user.tenantId !== tenant.id) {
-        throw new AppError('Guia não pertence a este tenant', 403)
-      }
+      // Guia do tenant, aprovado, parte do roteiro; CONDUTOR só agenda a si mesmo
+      await assertGuideAssignable(user, body!.guideId, tenant.id, pkg)
 
-      // Calcular janela do novo slot
-      const newStart = new Date(body!.startsAt)
-      const newSlotEndMs =
-        newStart.getTime() + ((pkg.durationMaxHours ?? 0) * 60 + pkg.bufferMinutes) * 60_000
-
-      // Transação: conflict check + create
+      // Transação: conflito de agenda (duração + buffer) + criação
       let slot
       try {
         slot = await prisma.$transaction(async (tx) => {
-          const existingSlots = await tx.departureSlot.findMany({
-            where: {
-              guideId: body!.guideId,
-              status: { in: ['OPEN', 'FULL'] },
-              startsAt: { lt: new Date(newSlotEndMs) },
-            },
-            select: {
-              startsAt: true,
-              package: {
-                select: { durationMaxHours: true, bufferMinutes: true, name: true },
-              },
-            },
-          })
-
-          for (const existing of existingSlots) {
-            const existingStart = existing.startsAt.getTime()
-            const existingEndMs =
-              existingStart +
-              ((existing.package.durationMaxHours ?? 0) * 60 + existing.package.bufferMinutes) *
-                60 *
-                1000
-
-            if (newStart.getTime() < existingEndMs && newSlotEndMs > existingStart) {
-              const existingEndDate = new Date(existingEndMs)
-              const fmt = (d: Date) =>
-                d.toLocaleString('pt-BR', {
-                  timeZone: 'America/Sao_Paulo',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  day: '2-digit',
-                  month: '2-digit',
-                })
-
-              const guideProfile = await tx.guideProfile.findUnique({
-                where: { id: body!.guideId },
-                select: { user: { select: { name: true } } },
-              })
-              const guideName = guideProfile?.user.name ?? 'Guia'
-
-              throw new ScheduleConflictError(
-                'GUIDE_SCHEDULE_CONFLICT',
-                409,
-                `Guia ${guideName} já tem compromisso com roteiro '${existing.package.name}' das ${fmt(existing.startsAt)} até ${fmt(existingEndDate)}`,
-              )
-            }
-          }
-
+          await assertGuideFree(tx, body!.guideId, pkg, [new Date(body!.startsAt)])
           return await tx.departureSlot.create({
             data: {
               packageId: pkg.id,
@@ -279,7 +225,18 @@ export async function slotsRoute(app: FastifyInstance) {
 
       const slot = await prisma.departureSlot.findFirst({
         where: { id: params!.slotId, package: { tenantId: tenant.id } },
-        include: { package: { select: { conductorId: true, tenantId: true, id: true } } },
+        include: {
+          package: {
+            select: {
+              conductorId: true,
+              tenantId: true,
+              id: true,
+              durationMaxHours: true,
+              duration: true,
+              bufferMinutes: true,
+            },
+          },
+        },
       })
       if (!slot) throw new AppError('Slot não encontrado', 404)
       if (slot.package.id !== params!.id) throw new AppError('Slot não encontrado', 404)
@@ -287,15 +244,75 @@ export async function slotsRoute(app: FastifyInstance) {
       const user = request.user as EditUser
       if (!canEditPackage(user, slot.package)) throw new AppError('Acesso negado', 403)
 
-      const updateData: Record<string, unknown> = {}
-      if (body!.startsAt !== undefined) updateData.startsAt = new Date(body!.startsAt)
-      if (body!.capacity !== undefined) updateData.capacity = body!.capacity
-      if (body!.minCapacity !== undefined) updateData.minCapacity = body!.minCapacity
+      let updated
+      try {
+        updated = await prisma.$transaction(async (tx) => {
+          // Lock: reservas concorrentes não podem mudar `booked` no meio da validação
+          const [row] = await tx.$queryRaw<
+            Array<{
+              status: string
+              booked: number
+              capacity: number
+              minCapacity: number
+              guideId: string | null
+              startsAt: Date
+            }>
+          >`
+            SELECT status, booked, capacity, "minCapacity", "guideId", "startsAt"
+            FROM "DepartureSlot" WHERE id = ${params!.slotId} FOR UPDATE
+          `
+          if (!row) throw new AppError('Slot não encontrado', 404)
+          if (row.status !== 'OPEN' && row.status !== 'FULL') {
+            throw new AppError('Só é possível editar datas abertas ou lotadas', 422)
+          }
 
-      const updated = await prisma.departureSlot.update({
-        where: { id: params!.slotId },
-        data: updateData,
-      })
+          const capacity = body!.capacity ?? row.capacity
+          const minCapacity = body!.minCapacity ?? row.minCapacity
+          if (capacity < row.booked) {
+            throw new AppError(
+              `Capacidade não pode ser menor que as ${row.booked} vaga(s) já reservada(s)`,
+              422,
+            )
+          }
+          if (minCapacity > capacity) {
+            throw new AppError('Mínimo não pode exceder capacidade máxima', 422)
+          }
+
+          const data: Prisma.DepartureSlotUpdateInput = {
+            capacity,
+            minCapacity,
+            // Status acompanha a capacidade: lotada reabre ao ganhar vagas e vice-versa
+            status: row.booked >= capacity ? 'FULL' : 'OPEN',
+          }
+
+          if (body!.startsAt !== undefined) {
+            const newStart = new Date(body!.startsAt)
+            if (newStart.getTime() !== new Date(row.startsAt).getTime()) {
+              if (newStart.getTime() <= Date.now()) {
+                throw new AppError('A data do slot deve ser no futuro', 422)
+              }
+              // Cliente pagou por um horário: mudar sem aviso é quebra de contrato
+              if (row.booked > 0) {
+                throw new AppError(
+                  'Esta data tem reservas — cancele e crie outra data em vez de mudar o horário',
+                  409,
+                )
+              }
+              if (row.guideId) {
+                await assertGuideFree(tx, row.guideId, slot.package, [newStart], params!.slotId)
+              }
+              data.startsAt = newStart
+            }
+          }
+
+          return tx.departureSlot.update({ where: { id: params!.slotId }, data })
+        })
+      } catch (err) {
+        if (err instanceof ScheduleConflictError) {
+          return reply.status(err.statusCode).send({ code: err.code, message: err.message })
+        }
+        throw err
+      }
 
       return reply.status(200).send(updated)
     },
@@ -327,37 +344,35 @@ export async function slotsRoute(app: FastifyInstance) {
       if (await isUnverifiedGuide(user))
         throw new AppError('Guia não aprovado para criar slots', 403)
 
-      const start = new Date(body!.startDate)
-      const end = new Date(body!.endDate)
-      if (start > end) {
+      // CONDUTOR sem guideId agenda a si mesmo (slot sem guia não entra em agenda nenhuma)
+      let guideId = body!.guideId
+      if (!guideId && user.role === 'CONDUTOR') {
+        const own = await prisma.guideProfile.findUnique({
+          where: { userId: user.sub },
+          select: { id: true },
+        })
+        guideId = own?.id
+      }
+      if (guideId) await assertGuideAssignable(user, guideId, tenant.id, pkg)
+
+      if (body!.startDate > body!.endDate) {
         return reply.status(400).send({ message: 'Data inicial deve ser anterior à data final' })
       }
 
-      const [hours, minutes] = body!.timeOfDay.split(':').map(Number)
-
-      const slots: Array<{
-        packageId: string
-        guideId?: string
-        startsAt: Date
-        capacity: number
-        booked: number
-        status: 'OPEN'
-      }> = []
-
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        if (body!.daysOfWeek.includes(d.getDay())) {
-          const startsAt = new Date(d)
-          startsAt.setHours(hours, minutes, 0, 0)
-          slots.push({
-            packageId: params!.id,
-            ...(body!.guideId ? { guideId: body!.guideId } : {}),
-            startsAt,
-            capacity: body!.capacity,
-            booked: 0,
-            status: 'OPEN',
-          })
-        }
-      }
+      // Datas e horário de São Paulo — não do fuso do servidor
+      const now = Date.now()
+      const slots = eachDate(body!.startDate, body!.endDate)
+        .filter((date) => body!.daysOfWeek.includes(weekdayOf(date)))
+        .map((date) => tourDateTime(date, body!.timeOfDay))
+        .filter((startsAt) => startsAt.getTime() > now)
+        .map((startsAt) => ({
+          packageId: params!.id,
+          ...(guideId ? { guideId } : {}),
+          startsAt,
+          capacity: body!.capacity,
+          booked: 0,
+          status: 'OPEN' as const,
+        }))
 
       if (slots.length === 0) {
         return reply
@@ -365,35 +380,25 @@ export async function slotsRoute(app: FastifyInstance) {
           .send({ message: 'Nenhum slot gerado para o período e dias informados' })
       }
 
-      const created = await prisma.$transaction(async (tx) => {
-        if (body!.guideId) {
-          for (const slot of slots) {
-            const slotEndMs = slot.startsAt.getTime() + (pkg.durationMaxHours ?? 0) * 3600_000
-            const existing = await tx.departureSlot.findMany({
-              where: {
-                guideId: body!.guideId,
-                status: { in: ['OPEN', 'FULL'] },
-                startsAt: { lt: new Date(slotEndMs) },
-              },
-              include: { package: { select: { durationMaxHours: true, bufferMinutes: true } } },
-            })
-
-            for (const ex of existing) {
-              const exEnd =
-                ex.startsAt.getTime() +
-                ((ex.package.durationMaxHours ?? 0) * 60 + (ex.package.bufferMinutes ?? 0)) * 60_000
-              if (slot.startsAt.getTime() < exEnd && slotEndMs > ex.startsAt.getTime()) {
-                throw new AppError(
-                  `Conflito de horário com slot existente em ${ex.startsAt.toISOString()}`,
-                  409,
-                )
-              }
-            }
-          }
+      let created
+      try {
+        created = await prisma.$transaction(async (tx) => {
+          // Mesma regra do slot unitário: duração + buffer, contra a agenda e dentro do lote
+          if (guideId)
+            await assertGuideFree(
+              tx,
+              guideId,
+              pkg,
+              slots.map((sl) => sl.startsAt),
+            )
+          return tx.departureSlot.createMany({ data: slots })
+        })
+      } catch (err) {
+        if (err instanceof ScheduleConflictError) {
+          return reply.status(err.statusCode).send({ code: err.code, message: err.message })
         }
-
-        return tx.departureSlot.createMany({ data: slots })
-      })
+        throw err
+      }
 
       return reply.status(201).send({ created: created.count })
     },
@@ -423,12 +428,9 @@ export async function slotsRoute(app: FastifyInstance) {
       const user = request.user as EditUser
       if (!canEditPackage(user, pkg)) throw new AppError('Acesso negado', 403)
 
-      // Build date ranges for each date
+      // Dia inteiro em São Paulo (não no fuso do servidor)
       const dateRanges = body!.dates.map((dateStr) => {
-        const dayStart = new Date(dateStr)
-        dayStart.setHours(0, 0, 0, 0)
-        const dayEnd = new Date(dateStr)
-        dayEnd.setHours(23, 59, 59, 999)
+        const { start: dayStart, end: dayEnd } = tourDayRange(dateStr)
         return { dayStart, dayEnd, dateStr }
       })
 
@@ -445,9 +447,7 @@ export async function slotsRoute(app: FastifyInstance) {
 
       // Check for slots with bookings
       const datesWithBookings = [
-        ...new Set(
-          slots.filter((s) => s.booked > 0).map((s) => s.startsAt.toISOString().split('T')[0]),
-        ),
+        ...new Set(slots.filter((s) => s.booked > 0).map((s) => tourDateKey(s.startsAt))),
       ]
 
       if (datesWithBookings.length > 0) {
@@ -470,6 +470,36 @@ export async function slotsRoute(app: FastifyInstance) {
       })
 
       return reply.status(200).send({ cancelled: result.count })
+    },
+  )
+
+  // GET /tenants/:slug/packages/:id/slots/manage — painel de disponibilidade: todas as
+  // datas futuras (qualquer status, roteiro em rascunho, dentro do corte de 24h). A
+  // listagem pública esconde exatamente isso.
+  app.get(
+    '/tenants/:slug/packages/:id/slots/manage',
+    {
+      preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN, Role.SUPER_ADMIN])],
+    },
+    async (request, reply) => {
+      const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
+      if (error) return
+
+      const tenant = await prisma.tenant.findUnique({ where: { slug: params!.slug } })
+      if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+      const pkg = await prisma.tourPackage.findFirst({
+        where: { id: params!.id, tenantId: tenant.id },
+      })
+      if (!pkg) throw new AppError('Roteiro não encontrado', 404)
+
+      const user = request.user as EditUser
+      if (!canEditPackage(user, pkg)) throw new AppError('Acesso negado', 403)
+
+      return prisma.departureSlot.findMany({
+        where: { packageId: params!.id, startsAt: { gte: new Date() } },
+        orderBy: { startsAt: 'asc' },
+      })
     },
   )
 
@@ -497,10 +527,13 @@ export async function slotsRoute(app: FastifyInstance) {
         where: { id: params!.id, tenantId: tenant.id },
       })
       if (!pkg) throw new AppError('Roteiro não encontrado', 404)
+      // Mesma permissão das demais rotas de gestão de datas
+      if (!canEditPackage(request.user as EditUser, pkg)) throw new AppError('Acesso negado', 403)
 
       const [year, month] = query!.month.split('-').map(Number)
-      const monthStart = new Date(year, month - 1, 1)
-      const monthEnd = new Date(year, month, 0, 23, 59, 59, 999)
+      const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate()
+      const monthStart = tourDayRange(`${query!.month}-01`).start
+      const monthEnd = tourDayRange(`${query!.month}-${String(lastDay).padStart(2, '0')}`).end
 
       const slots = await prisma.departureSlot.findMany({
         where: {
@@ -522,7 +555,7 @@ export async function slotsRoute(app: FastifyInstance) {
       > = {}
 
       for (const slot of slots) {
-        const dateKey = slot.startsAt.toISOString().split('T')[0]
+        const dateKey = tourDateKey(slot.startsAt)
         if (!days[dateKey]) days[dateKey] = []
         days[dateKey].push({
           id: slot.id,
@@ -555,7 +588,7 @@ export async function slotsRoute(app: FastifyInstance) {
 
       const user = request.user as EditUser
 
-      const result = await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx) => {
         const slot = await tx.departureSlot.findFirst({
           where: { id: params!.slotId, package: { tenantId: tenant.id } },
           include: { package: { select: { conductorId: true, tenantId: true, id: true } } },
@@ -573,20 +606,31 @@ export async function slotsRoute(app: FastifyInstance) {
           throw new AppError('Esta data tem reservas confirmadas. Cancele-as antes de fechar.', 409)
         }
 
+        // Fecha a data primeiro: createBooking exige OPEN, então nenhuma reserva nova entra
         await tx.departureSlot.update({
           where: { id: params!.slotId },
           data: { status: 'CANCELLED' },
         })
-
-        const { count } = await tx.booking.updateMany({
-          where: { slotId: params!.slotId, status: 'PENDING' },
-          data: { status: 'CANCELLED' },
-        })
-
-        return { message: 'Slot cancelado', bookingsCancelled: count }
       })
 
-      return reply.status(200).send(result)
+      // Reservas que sobraram: pendentes (cancela o PIX no MP) e alguma confirmada que
+      // tenha entrado em corrida com a checagem acima (estorna)
+      const active = await prisma.booking.findMany({
+        where: { slotId: params!.slotId, status: { in: ['PENDING', 'CONFIRMED'] } },
+        select: { id: true, status: true, slotId: true, pax: true, paymentId: true },
+      })
+      let bookingsCancelled = 0
+      for (const booking of active) {
+        try {
+          await cancelBooking(booking, request.log)
+          bookingsCancelled++
+        } catch (err) {
+          if (err instanceof AppError && err.statusCode === 409) continue // já mudou
+          throw err
+        }
+      }
+
+      return reply.status(200).send({ message: 'Slot cancelado', bookingsCancelled })
     },
   )
 }

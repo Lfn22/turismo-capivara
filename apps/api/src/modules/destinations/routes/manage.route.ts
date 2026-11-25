@@ -11,6 +11,8 @@ import { geocode, slugify, uniqueSlug } from '../destinations.service'
 import { assertNoDestinationLinks, DESTINATION_LINKED_MESSAGE } from '../destinations.links'
 import { auditLog } from '../../../shared/audit.js'
 import { Sentry } from '../../../shared/sentry'
+import { clientIp } from '../../../shared/utils/client-ip'
+import { httpsUrlSchema } from '../../../shared/utils/image-url'
 
 const paramsSchema = z.object({
   destinationSlug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -29,8 +31,11 @@ const createBodySchema = z.object({
   state: z.enum(BR_STATES, { error: 'Estado inválido' }),
   tagline: z.string().nullable().optional(),
   highlights: z.array(z.string().min(1)).max(10, { message: 'Máximo de 10 destaques' }).optional(),
-  photos: z.array(z.string().url({ message: 'URL de foto inválida' })).max(5, { message: 'Máximo de 5 fotos' }).optional(),
-  heroImageUrl: z.string().url({ message: 'URL de imagem inválida' }).optional(),
+  photos: z
+    .array(httpsUrlSchema('URL de foto inválida'))
+    .max(5, { message: 'Máximo de 5 fotos' })
+    .optional(),
+  heroImageUrl: httpsUrlSchema('URL de imagem inválida').optional(),
 })
 
 const deleteBodySchema = z.object({
@@ -71,12 +76,22 @@ export async function manageDestinationsRoute(app: FastifyInstance) {
 
     Sentry.setTag('module', 'destinations')
     Sentry.setTag('action', 'create')
-    auditLog(prisma, { actorType: 'USER', action: 'destination.created', targetType: 'DESTINATION', targetId: destination.id, ipAddress: request.ip, metadata: { actorUserId: request.user.sub, destinationName: destination.title } })
+    auditLog(prisma, {
+      actorType: 'USER',
+      action: 'destination.created',
+      targetType: 'DESTINATION',
+      targetId: destination.id,
+      ipAddress: clientIp(request),
+      metadata: { actorUserId: request.user.sub, destinationName: destination.title },
+    })
 
     return reply.status(201).send(destination)
   })
 
-  for (const [action, active] of [['archive', false], ['restore', true]] as const) {
+  for (const [action, active] of [
+    ['archive', false],
+    ['restore', true],
+  ] as const) {
     app.post(`/destinations/:destinationSlug/${action}`, staffOnly, async (request, reply) => {
       const { data: params, error } = parseParams(paramsSchema, request.params, reply)
       if (error) return
@@ -91,7 +106,14 @@ export async function manageDestinationsRoute(app: FastifyInstance) {
         await prisma.destination.update({ where: { id: destination.id }, data: { active } })
         Sentry.setTag('module', 'destinations')
         Sentry.setTag('action', action)
-        auditLog(prisma, { actorType: 'USER', action: `destination.${action}d`, targetType: 'DESTINATION', targetId: destination.id, ipAddress: request.ip, metadata: { actorUserId: request.user.sub } })
+        auditLog(prisma, {
+          actorType: 'USER',
+          action: `destination.${action}d`,
+          targetType: 'DESTINATION',
+          targetId: destination.id,
+          ipAddress: clientIp(request),
+          metadata: { actorUserId: request.user.sub },
+        })
       }
 
       return reply.status(200).send({ slug: destination.slug, active })
@@ -128,7 +150,14 @@ export async function manageDestinationsRoute(app: FastifyInstance) {
 
     Sentry.setTag('module', 'destinations')
     Sentry.setTag('action', 'delete')
-    auditLog(prisma, { actorType: 'USER', action: 'destination.deleted', targetType: 'DESTINATION', targetId: destination.id, ipAddress: request.ip, metadata: { actorUserId: request.user.sub, destinationName: destination.title } })
+    auditLog(prisma, {
+      actorType: 'USER',
+      action: 'destination.deleted',
+      targetType: 'DESTINATION',
+      targetId: destination.id,
+      ipAddress: clientIp(request),
+      metadata: { actorUserId: request.user.sub, destinationName: destination.title },
+    })
 
     return reply.status(204).send()
   })

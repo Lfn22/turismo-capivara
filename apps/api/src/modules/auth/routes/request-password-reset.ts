@@ -3,6 +3,7 @@ import { z, ZodError } from 'zod'
 import { randomBytes, createHash } from 'crypto'
 import prisma from '../../../database'
 import { getResend, getEmailFrom } from '../../../shared/email'
+import { clientIp } from '../../../shared/utils/client-ip'
 
 const bodySchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
@@ -23,7 +24,7 @@ export async function requestPasswordResetRoute(app: FastifyInstance) {
           keyGenerator: (request) => {
             const body = request.body as { email?: string }
             const email = (body?.email ?? '').toLowerCase().trim()
-            return `pwd-reset:${email}:${request.ip}`
+            return `pwd-reset:${email}:${clientIp(request)}`
           },
         },
       },

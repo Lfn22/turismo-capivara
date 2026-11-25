@@ -16,6 +16,7 @@ import { bookingsCreatedCounter } from '../../../shared/metrics.js'
 import { Sentry } from '../../../shared/sentry'
 import { notifyBookingEvent } from '../../notifications/booking-events'
 import { isValidCPF } from '../../../shared/utils/cpf'
+import { clientIp } from '../../../shared/utils/client-ip'
 
 const createBookingBodySchema = z.object({
   slotId: z.string().min(1, { message: 'slotId obrigatório' }),
@@ -140,13 +141,26 @@ export async function createBookingRoute(app: FastifyInstance) {
       // Fast path: a retry that already succeeded returns the same booking without work.
       // This is only an optimisation — the real guarantee is the unique constraint claimed
       // inside the booking transaction (C-3), which is what makes concurrent retries safe.
+      // A mesma chave só devolve a reserva se for a MESMA reserva (slot, pax, e-mail);
+      // reusar a chave para outra compra devolvia a reserva errada
+      const sameRequest = (b: { slotId: string; pax: number; customerEmail: string }) =>
+        b.slotId === slotId &&
+        b.pax === pax &&
+        b.customerEmail.toLowerCase() === customerEmail.toLowerCase()
+      const replay = (
+        b: Parameters<typeof bookingResponse>[0] & Parameters<typeof sameRequest>[0],
+      ) => {
+        if (!sameRequest(b)) {
+          throw new AppError('Idempotency-Key já usada para outra reserva', 409)
+        }
+        return reply.status(200).send(bookingResponse(b))
+      }
+
       if (idempotencyKey) {
         const existing = await prisma.booking.findUnique({
           where: { tenantId_idempotencyKey: { tenantId: tenant.id, idempotencyKey } },
         })
-        if (existing && existing.tenantId === tenant.id) {
-          return reply.status(200).send(bookingResponse(existing))
-        }
+        if (existing && existing.tenantId === tenant.id) return replay(existing)
       }
 
       let result
@@ -175,7 +189,7 @@ export async function createBookingRoute(app: FastifyInstance) {
           const winner = await prisma.booking.findUnique({
             where: { tenantId_idempotencyKey: { tenantId: tenant.id, idempotencyKey } },
           })
-          if (winner) return reply.status(200).send(bookingResponse(winner))
+          if (winner) return replay(winner)
         }
         throw err
       }
@@ -232,7 +246,7 @@ export async function createBookingRoute(app: FastifyInstance) {
         action: 'booking.created',
         targetType: 'BOOKING',
         targetId: booking.id,
-        ipAddress: request.ip,
+        ipAddress: clientIp(request),
         metadata: { tenantSlug: slug, pax: body.pax, slotId: body.slotId },
       })
 

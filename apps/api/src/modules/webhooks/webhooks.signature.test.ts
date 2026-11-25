@@ -18,7 +18,7 @@ process.env.MP_ACCESS_TOKEN = 'test-mp-token'
 
 vi.mock('../../database', () => ({
   default: {
-    processedWebhookEvent: { create: vi.fn() },
+    processedWebhookEvent: { create: vi.fn(), findUnique: vi.fn().mockResolvedValue(null) },
     booking: { findFirst: vi.fn(), updateMany: vi.fn() },
     $transaction: vi.fn(),
   },
@@ -107,7 +107,9 @@ describe('V-1: manifesto da assinatura do webhook Mercado Pago', () => {
 
     expect(res.statusCode).toBe(200)
     // Prova de que passou da validação: o dedupe só roda depois da assinatura ser aceita
-    expect(db.processedWebhookEvent.create).toHaveBeenCalledWith({ data: { id: PAYMENT_ID } })
+    expect(db.processedWebhookEvent.create).toHaveBeenCalledWith({
+      data: { id: `${PAYMENT_ID}:approved` },
+    })
   })
 
   it('rejeita o manifesto antigo "request-date" (o bug corrigido em V-1)', async () => {

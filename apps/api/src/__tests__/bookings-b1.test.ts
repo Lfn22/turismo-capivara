@@ -102,6 +102,7 @@ describe('[B1] Booking cancel — slot status preservation', () => {
           findUnique: vi.fn().mockResolvedValue({ status: 'CONFIRMED' }),
           count: vi.fn().mockResolvedValue(0),
           update: vi.fn().mockResolvedValue(updatedBooking),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         },
       }
       const result = await fn(tx)
@@ -149,6 +150,7 @@ describe('[B1] Booking cancel — slot status preservation', () => {
           findUnique: vi.fn().mockResolvedValue({ status: 'PENDING' }),
           count: vi.fn().mockResolvedValue(0),
           update: vi.fn().mockResolvedValue(cancelledBooking),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         },
       }
       const result = await fn(tx)
@@ -208,6 +210,7 @@ describe('[Contract] Booking cancel response shape', () => {
           findUnique: vi.fn().mockResolvedValue({ status: 'PENDING' }),
           count: vi.fn().mockResolvedValue(0),
           update: vi.fn().mockResolvedValue(cancelled),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         },
       }
       return fn(tx)

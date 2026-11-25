@@ -16,7 +16,7 @@ describe('bookingConfirmedEmail', () => {
       meetingPoint: 'Portão principal do parque',
     })
     expect(result).toContain('Ana Paula')
-    expect(result).toContain('booking-456')
+    expect(result).toContain('Código da reserva: NG-456')
     expect(result).toContain('Trilha do Rio Negro')
     expect(result).toContain('Pedro Guia')
     expect(result).toContain('Ponto de encontro: Portão principal do parque')

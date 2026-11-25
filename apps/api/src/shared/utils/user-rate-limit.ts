@@ -1,4 +1,5 @@
 import type { FastifyRequest } from 'fastify'
+import { clientIp } from './client-ip'
 
 /**
  * Chave de rate limit por usuário autenticado.
@@ -11,7 +12,7 @@ export function userRateLimitKey(prefix: string) {
       const payload = await request.jwtVerify<{ sub: string }>()
       return `${prefix}:user:${payload.sub}`
     } catch {
-      return `${prefix}:ip:${request.ip}`
+      return `${prefix}:ip:${clientIp(request)}`
     }
   }
 }

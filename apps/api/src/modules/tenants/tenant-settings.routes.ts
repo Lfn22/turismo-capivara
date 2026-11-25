@@ -10,6 +10,7 @@ import { parseBody, parseParams } from '../../shared/utils/zod-error'
 import { imageUrlSchema } from '../../shared/utils/image-url'
 import { whatsappSchema } from '../../shared/validation/whatsapp'
 import { deleteReplacedPhoto } from '../uploads/replaced-photo'
+import { clientIp } from '../../shared/utils/client-ip'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -30,7 +31,14 @@ const settingsBodySchema = z.object({
   logoUrl: imageUrlSchema.nullable().optional(),
 })
 
-const settingsSelect = { id: true, slug: true, name: true, whatsapp: true, logoUrl: true, type: true } as const
+const settingsSelect = {
+  id: true,
+  slug: true,
+  name: true,
+  whatsapp: true,
+  logoUrl: true,
+  type: true,
+} as const
 
 type SettingsBody = z.infer<typeof settingsBodySchema>
 
@@ -63,7 +71,11 @@ export async function tenantSettingsRoutes(app: FastifyInstance) {
   })
 
   app.patch('/tenants/:slug/settings', { preHandler: ownerOrStaff }, async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    const { data: params, error: paramsError } = parseParams(
+      slugParamsSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
     const { data: body, error: bodyError } = parseBody(settingsBodySchema, request.body, reply)
     if (bodyError) return
@@ -85,7 +97,7 @@ export async function tenantSettingsRoutes(app: FastifyInstance) {
       action: 'tenant.updated',
       targetType: 'TENANT',
       targetId: updated.id,
-      ipAddress: request.ip,
+      ipAddress: clientIp(request),
       metadata: { actorUserId: request.user.sub, fields: Object.keys(data).join(',') },
     })
 
@@ -93,33 +105,48 @@ export async function tenantSettingsRoutes(app: FastifyInstance) {
   })
 
   // Equipe da plataforma edita qualquer operadora pelo id
-  app.patch('/tenants/:id/admin-settings', {
-    preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
-  }, async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(tenantIdParamsSchema, request.params, reply)
-    if (paramsError) return
-    const { data: body, error: bodyError } = parseBody(settingsBodySchema, request.body, reply)
-    if (bodyError) return
+  app.patch(
+    '/tenants/:id/admin-settings',
+    {
+      preHandler: [authenticate, authorize(['SUPER_ADMIN'])],
+    },
+    async (request, reply) => {
+      const { data: params, error: paramsError } = parseParams(
+        tenantIdParamsSchema,
+        request.params,
+        reply,
+      )
+      if (paramsError) return
+      const { data: body, error: bodyError } = parseBody(settingsBodySchema, request.body, reply)
+      if (bodyError) return
 
-    const existing = await prisma.tenant.findUnique({ where: { id: params.id }, select: { id: true, logoUrl: true } })
-    if (!existing) throw new AppError('Operadora não encontrada', 404)
+      const existing = await prisma.tenant.findUnique({
+        where: { id: params.id },
+        select: { id: true, logoUrl: true },
+      })
+      if (!existing) throw new AppError('Operadora não encontrada', 404)
 
-    const data = toUpdateData(body)
-    const updated = await prisma.tenant.update({ where: { id: params.id }, data, select: settingsSelect })
+      const data = toUpdateData(body)
+      const updated = await prisma.tenant.update({
+        where: { id: params.id },
+        data,
+        select: settingsSelect,
+      })
 
-    if (body.logoUrl !== undefined) {
-      await deleteReplacedPhoto(existing.logoUrl, body.logoUrl, request.log)
-    }
+      if (body.logoUrl !== undefined) {
+        await deleteReplacedPhoto(existing.logoUrl, body.logoUrl, request.log)
+      }
 
-    auditLog(prisma, {
-      actorType: 'USER',
-      action: 'tenant.updated',
-      targetType: 'TENANT',
-      targetId: updated.id,
-      ipAddress: request.ip,
-      metadata: { actorUserId: request.user.sub, fields: Object.keys(data).join(',') },
-    })
+      auditLog(prisma, {
+        actorType: 'USER',
+        action: 'tenant.updated',
+        targetType: 'TENANT',
+        targetId: updated.id,
+        ipAddress: clientIp(request),
+        metadata: { actorUserId: request.user.sub, fields: Object.keys(data).join(',') },
+      })
 
-    return reply.send(updated)
-  })
+      return reply.send(updated)
+    },
+  )
 }

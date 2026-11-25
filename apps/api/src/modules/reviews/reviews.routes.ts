@@ -6,6 +6,7 @@ import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
+import { resolveReviewGuideProfileId, isUniqueViolation } from './review-guide'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -69,6 +70,7 @@ export async function reviewsRoutes(app: FastifyInstance) {
           customerEmail: true,
           slot: {
             select: {
+              startsAt: true,
               guideId: true,
               package: {
                 select: { conductorId: true },
@@ -88,36 +90,44 @@ export async function reviewsRoutes(app: FastifyInstance) {
         throw new AppError('Email não corresponde ao da reserva', 403)
       }
 
-      // Determine guide: slot.guideId (assigned guide) or package conductor
-      const guideId = booking.slot.guideId ?? booking.slot.package.conductorId
-      if (!guideId) throw new AppError('Guia não encontrado para esta reserva', 404)
+      // Só depois do passeio (CONFIRMED também é aceito, mas o passeio precisa ter ocorrido)
+      if (booking.slot.startsAt.getTime() > Date.now()) {
+        throw new AppError('Só é possível avaliar depois do passeio', 422)
+      }
 
-      // Find the GuideProfile for this user
-      const guideProfile = await prisma.guideProfile.findUnique({ where: { userId: guideId } })
-      if (!guideProfile) throw new AppError('Perfil de guia não encontrado', 404)
+      // Guia do slot (GuideProfile.id) ou perfil do condutor do roteiro
+      const guideProfileId = await resolveReviewGuideProfileId(booking.slot)
+      if (!guideProfileId) throw new AppError('Guia não encontrado para esta reserva', 404)
 
       // Check if already reviewed
       const existing = await prisma.review.findUnique({ where: { bookingId: body.bookingId } })
       if (existing) throw new AppError('Esta reserva já foi avaliada', 409)
 
-      const review = await prisma.review.create({
-        data: {
-          tenantId: tenant.id,
-          bookingId: body.bookingId,
-          guideId: guideProfile.id,
-          rating: body.rating,
-          comment: body.comment,
-          customerName: body.customerName,
-          customerEmail: body.customerEmail,
-        },
-        select: {
-          id: true,
-          rating: true,
-          comment: true,
-          customerName: true,
-          createdAt: true,
-        },
-      })
+      let review
+      try {
+        review = await prisma.review.create({
+          data: {
+            tenantId: tenant.id,
+            bookingId: body.bookingId,
+            guideId: guideProfileId,
+            rating: body.rating,
+            comment: body.comment,
+            customerName: body.customerName,
+            customerEmail: body.customerEmail,
+          },
+          select: {
+            id: true,
+            rating: true,
+            comment: true,
+            customerName: true,
+            createdAt: true,
+          },
+        })
+      } catch (err) {
+        // Duas avaliações concorrentes da mesma reserva: a 2ª bate no unique
+        if (isUniqueViolation(err)) throw new AppError('Esta reserva já foi avaliada', 409)
+        throw err
+      }
 
       return reply.status(201).send({ review })
     },
@@ -134,6 +144,13 @@ export async function reviewsRoutes(app: FastifyInstance) {
 
     const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
     if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+    // Mesmo critério do perfil público: guia suspenso/rejeitado não tem página nem avaliações
+    const guide = await prisma.guideProfile.findFirst({
+      where: { id: params.guideId, user: { approvalStatus: 'APPROVED' } },
+      select: { id: true },
+    })
+    if (!guide) throw new AppError('Guia não encontrado', 404)
 
     const { data: pagination, error: pgErr } = parseQuery(
       paginationQuerySchema,

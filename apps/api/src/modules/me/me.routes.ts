@@ -6,6 +6,8 @@ import { authorize } from '../../shared/middlewares/authorize'
 import { AppError } from '../../shared/errors/AppError'
 import { parseQuery, parseParams, parseBody } from '../../shared/utils/zod-error'
 import { paginationQuerySchema, paginatedResponse } from '../../shared/utils/pagination'
+import { resolveReviewGuideProfileId } from '../reviews/review-guide'
+import { httpsUrlSchema } from '../../shared/utils/image-url'
 
 const listQuerySchema = paginationQuerySchema.extend({
   status: z.enum(['upcoming', 'past']).optional(),
@@ -24,8 +26,8 @@ const createFavoriteBodySchema = z
     packageId: z.string().min(1).optional(),
     destinationId: z.string().min(1).optional(),
   })
-  .refine((d) => d.packageId || d.destinationId, {
-    message: 'Informe packageId ou destinationId',
+  .refine((d) => Boolean(d.packageId) !== Boolean(d.destinationId), {
+    message: 'Informe packageId ou destinationId (apenas um)',
   })
 
 const createReviewBodySchema = z.object({
@@ -36,7 +38,7 @@ const createReviewBodySchema = z.object({
 
 const updateProfileBodySchema = z.object({
   name: z.string().min(1, { message: 'Nome obrigatório' }).optional(),
-  photoUrl: z.string().url().nullable().optional(),
+  photoUrl: httpsUrlSchema().nullable().optional(),
 })
 
 const UPCOMING_STATUSES = ['CONFIRMED', 'PENDING', 'CHECKED_IN'] as const
@@ -135,6 +137,8 @@ export async function meRoutes(app: FastifyInstance) {
             price: true,
             duration: true,
             difficulty: true,
+            active: true,
+            publishedAt: true,
             tenant: { select: { slug: true } },
           },
         },
@@ -145,6 +149,8 @@ export async function meRoutes(app: FastifyInstance) {
             slug: true,
             heroImageUrl: true,
             state: true,
+            active: true,
+            approvalStatus: true,
           },
         },
       },
@@ -156,6 +162,10 @@ export async function meRoutes(app: FastifyInstance) {
       data: data.map((f) => ({
         id: f.id,
         type: f.packageId ? 'package' : 'destination',
+        // Saiu do ar depois de favoritado (arquivado, despublicado, destino não aprovado)
+        available: f.package
+          ? f.package.active && f.package.publishedAt !== null
+          : !!f.destination && f.destination.active && f.destination.approvalStatus === 'APPROVED',
         packageId: f.packageId,
         destinationId: f.destinationId,
         packageName: f.package?.name ?? null,
@@ -181,6 +191,21 @@ export async function meRoutes(app: FastifyInstance) {
 
     const { packageId, destinationId } = parsed.data
     const user = request.user
+
+    // Só o que está público: id inexistente virava 500 (FK) e rascunho podia ser favoritado
+    if (packageId) {
+      const pkg = await prisma.tourPackage.findFirst({
+        where: { id: packageId, active: true, publishedAt: { not: null } },
+        select: { id: true },
+      })
+      if (!pkg) throw new AppError('Roteiro não encontrado', 404)
+    } else {
+      const dest = await prisma.destination.findFirst({
+        where: { id: destinationId, active: true, approvalStatus: 'APPROVED' },
+        select: { id: true },
+      })
+      if (!dest) throw new AppError('Destino não encontrado', 404)
+    }
 
     try {
       const favorite = await prisma.favorite.create({
@@ -315,6 +340,7 @@ export async function meRoutes(app: FastifyInstance) {
         review: { select: { id: true } },
         slot: {
           select: {
+            guideId: true,
             package: {
               select: { conductorId: true },
             },
@@ -335,15 +361,9 @@ export async function meRoutes(app: FastifyInstance) {
       throw new AppError('Avaliação já existe para esta reserva', 409)
     }
 
-    const conductorId = booking.slot.package.conductorId
-    const guideProfile = conductorId
-      ? await prisma.guideProfile.findUnique({
-          where: { userId: conductorId },
-          select: { id: true },
-        })
-      : null
-
-    if (!guideProfile) {
+    // Guia do slot (roteiro multi-guia / da agência) ou o condutor do roteiro
+    const guideProfileId = await resolveReviewGuideProfileId(booking.slot)
+    if (!guideProfileId) {
       throw new AppError('Guia não encontrado', 404)
     }
 
@@ -351,7 +371,7 @@ export async function meRoutes(app: FastifyInstance) {
       data: {
         tenantId: booking.tenantId,
         bookingId: booking.id,
-        guideId: guideProfile.id,
+        guideId: guideProfileId,
         rating,
         comment,
         customerName: booking.customerName,

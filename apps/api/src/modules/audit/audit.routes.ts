@@ -9,8 +9,9 @@ import { paginationQuerySchema, paginatedResponse } from '../../shared/utils/pag
 
 const auditQuerySchema = paginationQuerySchema.extend({
   action: z.string().optional(),
+  // Ficam no metadata JSON (AuditLog não tem colunas de ator/tenant)
   actorId: z.string().optional(),
-  tenantId: z.string().optional(),
+  tenantSlug: z.string().optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
 })
@@ -23,10 +24,15 @@ export async function auditRoutes(app: FastifyInstance) {
       const { data: query, error } = parseQuery(auditQuerySchema, request.query, reply)
       if (error) return
 
-      const { action, from, to, cursor, limit } = query
+      const { action, actorId, tenantSlug, from, to, cursor, limit } = query
 
       const where: Record<string, unknown> = {}
       if (action) where.action = action
+      const metadataFilters = [
+        ...(actorId ? [{ metadata: { path: ['actorUserId'], equals: actorId } }] : []),
+        ...(tenantSlug ? [{ metadata: { path: ['tenantSlug'], equals: tenantSlug } }] : []),
+      ]
+      if (metadataFilters.length > 0) where.AND = metadataFilters
       if (from || to) {
         where.createdAt = {
           ...(from ? { gte: new Date(from) } : {}),
@@ -42,6 +48,6 @@ export async function auditRoutes(app: FastifyInstance) {
       })
 
       return reply.status(200).send(paginatedResponse(items, limit))
-    }
+    },
   )
 }

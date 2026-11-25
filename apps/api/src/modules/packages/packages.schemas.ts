@@ -1,8 +1,9 @@
 import { z } from 'zod'
+import { httpsUrlSchema } from '../../shared/utils/image-url'
 
 export const UpdatePackagePhotosInput = z.object({
   photos: z
-    .array(z.string().url({ message: 'URL de foto inválida' }))
+    .array(httpsUrlSchema('URL de foto inválida'))
     .max(5, { message: 'Máximo 5 fotos permitidas' })
     .default([]),
 })

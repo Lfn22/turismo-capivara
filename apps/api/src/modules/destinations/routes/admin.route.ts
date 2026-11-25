@@ -10,6 +10,8 @@ import { ApprovalUpdateInput, BR_STATES } from '../destinations.schemas'
 import { approveDestination, geocode, rejectDestination } from '../destinations.service'
 import { auditLog } from '../../../shared/audit.js'
 import { Sentry } from '../../../shared/sentry'
+import { clientIp } from '../../../shared/utils/client-ip'
+import { httpsUrlSchema } from '../../../shared/utils/image-url'
 
 export async function adminDestinationsRoute(app: FastifyInstance) {
   // PATCH /destinations/:destinationSlug — edita o destino (equipe, ou ADMIN do tenant ligado a ele)
@@ -21,13 +23,17 @@ export async function adminDestinationsRoute(app: FastifyInstance) {
       const destinationParamsSchema = z.object({
         destinationSlug: z.string().min(1, { message: 'Slug obrigatório' }),
       })
-      const { data: rawParams, error: paramsError } = parseParams(destinationParamsSchema, request.params, reply)
+      const { data: rawParams, error: paramsError } = parseParams(
+        destinationParamsSchema,
+        request.params,
+        reply,
+      )
       if (paramsError) return
       const params = { slug: rawParams.destinationSlug }
 
       const bodySchema = z.object({
-        heroImageUrl: z.string().url().nullable().optional(),
-        photos: z.array(z.string().url()).max(5).optional(),
+        heroImageUrl: httpsUrlSchema().nullable().optional(),
+        photos: z.array(httpsUrlSchema()).max(5).optional(),
         title: z.string().min(1).optional(),
         subtitle: z.string().nullable().optional(),
         description: z.string().optional(),
@@ -99,7 +105,13 @@ export async function adminDestinationsRoute(app: FastifyInstance) {
     '/destinations/:id/approve',
     { preHandler: [authenticate, authorize(['SUPER_ADMIN'])] },
     async (request, reply) => {
-      const { id } = request.params as { id: string }
+      const { data: params, error: paramsErr } = parseParams(
+        z.object({ id: z.string().min(1, { message: 'ID obrigatório' }) }),
+        request.params,
+        reply,
+      )
+      if (paramsErr) return
+      const { id } = params
 
       const { data: input, error: inputError } = parseBody(ApprovalUpdateInput, request.body, reply)
       if (inputError) return
@@ -113,7 +125,14 @@ export async function adminDestinationsRoute(app: FastifyInstance) {
           : await rejectDestination(id, input.rejectionReason)
 
       if (input.approvalStatus === 'APPROVED') {
-        auditLog(prisma, { actorType: 'USER', action: 'destination.approved', targetType: 'DESTINATION', targetId: destination.id, ipAddress: request.ip, metadata: { actorUserId: request.user.sub, destinationName: destination.title } })
+        auditLog(prisma, {
+          actorType: 'USER',
+          action: 'destination.approved',
+          targetType: 'DESTINATION',
+          targetId: destination.id,
+          ipAddress: clientIp(request),
+          metadata: { actorUserId: request.user.sub, destinationName: destination.title },
+        })
       }
 
       return reply.status(200).send(destination)
@@ -134,7 +153,9 @@ export async function adminDestinationsRoute(app: FastifyInstance) {
       const { data: query, error: queryError } = parseQuery(querySchema, request.query, reply)
       if (queryError) return
 
-      const where = query.status ? { approvalStatus: query.status as 'PENDING' | 'APPROVED' | 'REJECTED' } : {}
+      const where = query.status
+        ? { approvalStatus: query.status as 'PENDING' | 'APPROVED' | 'REJECTED' }
+        : {}
 
       const [destinations, total] = await Promise.all([
         prisma.destination.findMany({
@@ -164,7 +185,9 @@ export async function adminDestinationsRoute(app: FastifyInstance) {
         prisma.destination.count({ where }),
       ])
 
-      return reply.status(200).send({ destinations, total, limit: query.limit, offset: query.offset })
+      return reply
+        .status(200)
+        .send({ destinations, total, limit: query.limit, offset: query.offset })
     },
   )
 
@@ -208,7 +231,9 @@ export async function adminDestinationsRoute(app: FastifyInstance) {
         prisma.destination.count({ where: { approvalStatus: 'PENDING' } }),
       ])
 
-      return reply.status(200).send({ destinations, total, limit: query.limit, offset: query.offset })
+      return reply
+        .status(200)
+        .send({ destinations, total, limit: query.limit, offset: query.offset })
     },
   )
 }

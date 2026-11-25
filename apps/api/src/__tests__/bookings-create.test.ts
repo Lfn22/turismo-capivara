@@ -12,6 +12,7 @@ import type { Mock } from 'vitest'
 import { Prisma } from '@prisma/client'
 import { buildApp } from './helpers/build-app'
 import { bookingsRoutes } from '../modules/bookings/bookings.routes'
+import { selfServiceBodySchema } from '../modules/bookings/bookings.schemas'
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -70,6 +71,7 @@ const OPEN_SLOT = {
   tenantId: TENANT.id,
   active: true,
   publishedAt: new Date('2026-01-01'),
+  startsAt: FUTURE_DATE,
 }
 
 const BOOKING_PENDING = {
@@ -196,6 +198,27 @@ describe('POST /tenants/:slug/bookings', () => {
       expect(body).not.toHaveProperty('customerCpfHash')
       expect(body).not.toHaveProperty('customerPhone')
     })
+
+    it('grava um código de consulta que "Minha reserva" aceita e que a tela exibe', async () => {
+      mockCreateTransaction()
+      db.tourPackage.findFirst.mockResolvedValue(PKG)
+      mockCreatePixPayment.mockResolvedValue(PAYMENT_RESULT)
+      db.booking.update.mockResolvedValue(BOOKING_WITH_PAYMENT)
+
+      await app.inject({
+        method: 'POST',
+        url: `/tenants/${TENANT.slug}/bookings`,
+        payload: VALID_BODY,
+      })
+
+      const { id, code } = lastBookingCreate.mock.calls[0][0].data
+      // O web mostra ao turista os 6 últimos caracteres do id (ConfirmationCard, MinhaReservaClient)
+      expect(code).toBe(id.slice(-6))
+      // ...e a consulta (POST /bookings/lookup) só aceita o que este schema valida
+      expect(
+        selfServiceBodySchema.safeParse({ email: VALID_BODY.customerEmail, code }).success,
+      ).toBe(true)
+    })
   })
 
   describe('userId opcional (JWT)', () => {
@@ -216,27 +239,37 @@ describe('POST /tenants/:slug/bookings', () => {
       const token = app.jwt.sign({ sub: 'c1', role: 'CLIENTE', tenantId: TENANT.id, name: 'Cli' })
       const res = await post({ authorization: `Bearer ${token}` })
       expect(res.statusCode).toBe(201)
-      expect(lastBookingCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ userId: 'c1' }) })
+      expect(lastBookingCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({ userId: 'c1' }),
+      })
     })
 
     it('não grava userId para CONDUTOR', async () => {
       const token = app.jwt.sign({ sub: 'g1', role: 'CONDUTOR', tenantId: TENANT.id, name: 'Guia' })
       const res = await post({ authorization: `Bearer ${token}` })
       expect(res.statusCode).toBe(201)
-      expect(lastBookingCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ userId: null }) })
+      expect(lastBookingCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({ userId: null }),
+      })
     })
 
     it('token inválido segue como guest (201, userId nulo)', async () => {
       const res = await post({ authorization: 'Bearer lixo' })
       expect(res.statusCode).toBe(201)
-      expect(lastBookingCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ userId: null }) })
+      expect(lastBookingCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({ userId: null }),
+      })
     })
 
     it('falha na notificação não altera a resposta (201)', async () => {
       ;(notifyBookingEvent as Mock).mockRejectedValueOnce(new Error('db'))
       const res = await post({})
       expect(res.statusCode).toBe(201)
-      expect(notifyBookingEvent).toHaveBeenCalledWith(expect.anything(), BOOKING_PENDING.id, 'created')
+      expect(notifyBookingEvent).toHaveBeenCalledWith(
+        expect.anything(),
+        BOOKING_PENDING.id,
+        'created',
+      )
     })
   })
 
@@ -256,6 +289,20 @@ describe('POST /tenants/:slug/bookings', () => {
 
       expect(res.statusCode).toBe(200)
       expect(res.json().id).toBe(BOOKING_WITH_PAYMENT.id)
+      expect(mockCreatePixPayment).not.toHaveBeenCalled()
+    })
+
+    it('mesma Idempotency-Key com outra reserva (outro slot/pax/e-mail) → 409, não a reserva antiga', async () => {
+      db.booking.findUnique.mockResolvedValue({ ...BOOKING_WITH_PAYMENT, idempotencyKey: 'k1' })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/tenants/${TENANT.slug}/bookings`,
+        headers: { 'Idempotency-Key': 'k1' },
+        payload: { ...VALID_BODY, pax: 3 },
+      })
+
+      expect(res.statusCode).toBe(409)
       expect(mockCreatePixPayment).not.toHaveBeenCalled()
     })
   })
@@ -357,6 +404,30 @@ describe('POST /tenants/:slug/bookings', () => {
 
       expect(res.statusCode).toBe(400)
     })
+
+    it('retorna 400 quando faltam menos de 24h para o início (corte de reserva)', async () => {
+      const update = vi.fn()
+      db.$transaction.mockImplementation(async (fn: Function) => {
+        const tx = {
+          $queryRaw: vi
+            .fn()
+            .mockResolvedValue([{ ...OPEN_SLOT, startsAt: new Date(Date.now() + 12 * 3600_000) }]),
+          departureSlot: { update },
+          booking: { create: vi.fn() },
+        }
+        return fn(tx)
+      })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/tenants/${TENANT.slug}/bookings`,
+        payload: VALID_BODY,
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toMatch(/24h/)
+      expect(update).not.toHaveBeenCalled()
+    })
   })
 
   describe('falha no pagamento + compensação', () => {
@@ -397,7 +468,7 @@ describe('POST /tenants/:slug/bookings', () => {
       expect(res.statusCode).toBeGreaterThanOrEqual(500)
       // A reserva vira EXPIRED (só se ainda estiver PENDING) e as vagas voltam
       expect(releaseBookingUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: expect.any(String), status: 'PENDING' } })
+        expect.objectContaining({ where: { id: expect.any(String), status: 'PENDING' } }),
       )
       expect(releaseSlotUpdate).toHaveBeenCalled()
     })
@@ -416,7 +487,7 @@ describe('POST /tenants/:slug/bookings', () => {
           $queryRaw: vi.fn().mockResolvedValue([OPEN_SLOT]),
           departureSlot: { update: slotUpdate },
           booking: { create: bookingCreate },
-        })
+        }),
       )
       db.tourPackage.findFirst.mockResolvedValue(PKG)
       mockCreatePixPayment.mockResolvedValue(PAYMENT_RESULT)
@@ -433,7 +504,7 @@ describe('POST /tenants/:slug/bookings', () => {
       expect(bookingCreate).toHaveBeenCalled()
       // E o Booking já existe quando o MP é chamado
       expect(bookingCreate.mock.invocationCallOrder[0]).toBeLessThan(
-        mockCreatePixPayment.mock.invocationCallOrder[0]
+        mockCreatePixPayment.mock.invocationCallOrder[0],
       )
     })
 
@@ -446,7 +517,7 @@ describe('POST /tenants/:slug/bookings', () => {
           $queryRaw: vi.fn().mockResolvedValue([OPEN_SLOT]),
           departureSlot: { update: vi.fn().mockResolvedValue({}) },
           booking: { create: bookingCreate },
-        })
+        }),
       )
       db.tourPackage.findFirst.mockResolvedValue(PKG)
       mockCreatePixPayment.mockResolvedValue(PAYMENT_RESULT)
@@ -466,7 +537,7 @@ describe('POST /tenants/:slug/bookings', () => {
 
       // E o MP recebe a MESMA janela, para o PIX não sobreviver à reserva
       expect(mockCreatePixPayment).toHaveBeenCalledWith(
-        expect.objectContaining({ expiresAt: written })
+        expect.objectContaining({ expiresAt: written }),
       )
     })
   })
@@ -497,6 +568,38 @@ describe('POST /tenants/:slug/bookings', () => {
       expect(res.json().id).toBe(winner.id)
       // O ponto do C-3: nenhuma segunda cobrança é criada
       expect(mockCreatePixPayment).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('colisão do código de 6 caracteres', () => {
+    it('gera outro id e tenta de novo em vez de responder 500', async () => {
+      const codeCollision = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: 'test',
+        meta: { target: ['tenantId', 'code'] },
+      })
+      const bookingCreate = vi.fn().mockResolvedValue(BOOKING_PENDING)
+      db.$transaction
+        .mockRejectedValueOnce(codeCollision)
+        .mockImplementation(async (fn: Function) =>
+          fn({
+            $queryRaw: vi.fn().mockResolvedValue([OPEN_SLOT]),
+            departureSlot: { update: vi.fn() },
+            booking: { create: bookingCreate },
+          }),
+        )
+      db.tourPackage.findFirst.mockResolvedValue(PKG)
+      mockCreatePixPayment.mockResolvedValue(PAYMENT_RESULT)
+      db.booking.update.mockResolvedValue(BOOKING_WITH_PAYMENT)
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/tenants/${TENANT.slug}/bookings`,
+        payload: VALID_BODY,
+      })
+
+      expect(res.statusCode).toBe(201)
+      expect(db.$transaction).toHaveBeenCalledTimes(2)
     })
   })
 })

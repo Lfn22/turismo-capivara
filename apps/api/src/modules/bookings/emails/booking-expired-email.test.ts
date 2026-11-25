@@ -14,7 +14,7 @@ describe('bookingExpiredEmail', () => {
       slug: 'foz-tours',
     })
     expect(result).toContain('Cláudia')
-    expect(result).toContain('expired-001')
+    expect(result).toContain('Código da reserva: ED-001')
     expect(result).toContain('Passeio nas Cataratas')
     expect(result).toContain('https://capi.turismo/foz-tours')
     expect(result).toContain('— Equipe CAPI')

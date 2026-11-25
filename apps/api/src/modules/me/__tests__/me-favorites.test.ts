@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vites
 vi.mock('../../../database', () => {
   const db: any = {
     favorite: { findMany: vi.fn(), create: vi.fn(), findFirst: vi.fn(), delete: vi.fn() },
+    tourPackage: { findFirst: vi.fn() },
+    destination: { findFirst: vi.fn() },
   }
   return { default: db }
 })
@@ -16,7 +18,12 @@ const app = buildApp(meRoutes)
 
 beforeAll(() => app.ready())
 afterAll(() => app.close())
-beforeEach(() => vi.resetAllMocks())
+beforeEach(() => {
+  vi.resetAllMocks()
+  // Alvos disponíveis por padrão (roteiro publicado e ativo, destino aprovado)
+  db.tourPackage.findFirst.mockResolvedValue({ id: 'pkg-1' })
+  db.destination.findFirst.mockResolvedValue({ id: 'dest-1' })
+})
 
 function auth(role = 'CLIENTE') {
   const t = app.jwt.sign({
@@ -43,6 +50,8 @@ function makeFavoritePackage(id: string, userId = 'user-1') {
       price: 150.0,
       duration: 4,
       difficulty: 'EASY',
+      active: true,
+      publishedAt: new Date('2024-01-01'),
       tenant: { slug: 'capi' },
     },
     destination: null,
@@ -63,6 +72,8 @@ function makeFavoriteDestination(id: string, userId = 'user-1') {
       slug: 'serra-da-canastra',
       heroImageUrl: 'https://cdn.x/dest.jpg',
       state: 'MG',
+      active: true,
+      approvalStatus: 'APPROVED',
     },
   }
 }
@@ -107,6 +118,17 @@ describe('GET /me/favorites', () => {
       destinationState: 'MG',
       packageName: null,
     })
+  })
+
+  it('roteiro arquivado/despublicado aparece como indisponível', async () => {
+    const fav = makeFavoritePackage('fav-1')
+    fav.package.publishedAt = null as unknown as Date
+    db.favorite.findMany.mockResolvedValue([fav, makeFavoriteDestination('fav-2')])
+
+    const body = (await app.inject({ method: 'GET', url: '/me/favorites', headers: auth() })).json()
+
+    expect(body.data[0].available).toBe(false)
+    expect(body.data[1].available).toBe(true)
   })
 
   it('sem token → 401', async () => {
@@ -160,6 +182,49 @@ describe('POST /me/favorites', () => {
       payload: {},
     })
 
+    expect(res.statusCode).toBe(400)
+  })
+
+  it('roteiro inexistente, rascunho ou arquivado → 404 sem gravar (antes: 500 de FK)', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(null)
+    const res = await app.inject({
+      method: 'POST',
+      url: '/me/favorites',
+      headers: { ...auth(), 'content-type': 'application/json' },
+      payload: { packageId: 'pkg-x' },
+    })
+    expect(res.statusCode).toBe(404)
+    expect(db.tourPackage.findFirst.mock.calls[0][0].where).toEqual({
+      id: 'pkg-x',
+      active: true,
+      publishedAt: { not: null },
+    })
+    expect(db.favorite.create).not.toHaveBeenCalled()
+  })
+
+  it('destino não aprovado → 404', async () => {
+    db.destination.findFirst.mockResolvedValue(null)
+    const res = await app.inject({
+      method: 'POST',
+      url: '/me/favorites',
+      headers: { ...auth(), 'content-type': 'application/json' },
+      payload: { destinationId: 'dest-x' },
+    })
+    expect(res.statusCode).toBe(404)
+    expect(db.destination.findFirst.mock.calls[0][0].where).toEqual({
+      id: 'dest-x',
+      active: true,
+      approvalStatus: 'APPROVED',
+    })
+  })
+
+  it('packageId e destinationId juntos → 400', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/me/favorites',
+      headers: { ...auth(), 'content-type': 'application/json' },
+      payload: { packageId: 'pkg-1', destinationId: 'dest-1' },
+    })
     expect(res.statusCode).toBe(400)
   })
 

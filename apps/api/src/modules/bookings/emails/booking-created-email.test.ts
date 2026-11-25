@@ -17,7 +17,8 @@ describe('bookingCreatedEmail', () => {
       tenantSlug: 'meu-tenant',
     })
     expect(result).toContain('João Silva')
-    expect(result).toContain('booking-123')
+    // Código de 6 caracteres — o mesmo que "Minha reserva" aceita
+    expect(result).toContain('Código da reserva: NG-123')
     expect(result).toContain('pix-qr-code-abc')
     expect(result).toContain('https://pagamento.capi.turismo/abc')
   })
@@ -62,6 +63,7 @@ describe('bookingCreatedEmail', () => {
       tenantSlug: 'meu-guia',
     })
     expect(result).toContain('myopaquetoken64chars')
-    expect(result).toContain('meu-guia.capi.com.br/minha-reserva/cancelar?token=myopaquetoken64chars')
+    expect(result).toContain('/meu-guia/minha-reserva/cancelar?token=myopaquetoken64chars')
+    expect(result).not.toContain('.capi.com.br')
   })
 })

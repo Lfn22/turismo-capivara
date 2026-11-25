@@ -22,6 +22,10 @@ const envSchema = z
     APP_URL: z.string().url().optional(),
     CORS_ORIGIN: z.string().optional(),
     WEB_URL: z.string().optional(),
+    // Segredo compartilhado com a web: autentica o x-client-ip repassado (ver client-ip.ts)
+    INTERNAL_PROXY_SECRET: z.string().min(16).optional(),
+    // Proxies confiáveis à frente da API (Railway: 1)
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).optional(),
     // OpenTelemetry
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
     OTEL_EXPORTER_OTLP_HEADERS: z.string().optional(),

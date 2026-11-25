@@ -13,6 +13,7 @@ import { approvalEmailText } from './emails/approval-email'
 import { rejectionEmailText } from './emails/rejection-email'
 import { PLATFORM_TENANT_SLUG } from '../platform-admins/platform-admins.routes'
 import { auditLog } from '../../shared/audit.js'
+import { clientIp } from '../../shared/utils/client-ip'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -344,7 +345,7 @@ export async function tenantsRoutes(app: FastifyInstance) {
         action: 'tenant.approved',
         targetType: 'TENANT',
         targetId: params.id,
-        ipAddress: request.ip,
+        ipAddress: clientIp(request),
         metadata: { actorUserId: request.user.sub, tenantName: tenant.slug },
       })
 

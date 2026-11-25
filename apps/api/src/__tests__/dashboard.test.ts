@@ -6,8 +6,9 @@ import { dashboardRoutes } from '../modules/dashboard/dashboard.routes'
 vi.mock('../database', () => ({
   default: {
     tenant: { findUnique: vi.fn() },
-    booking: { groupBy: vi.fn(), findMany: vi.fn() },
+    booking: { groupBy: vi.fn(), findMany: vi.fn(), count: vi.fn() },
     departureSlot: { findMany: vi.fn() },
+    guideProfile: { findUnique: vi.fn() },
   },
 }))
 
@@ -15,8 +16,9 @@ import prisma from '../database'
 
 const db = prisma as unknown as {
   tenant: { findUnique: Mock }
-  booking: { groupBy: Mock; findMany: Mock }
+  booking: { groupBy: Mock; findMany: Mock; count: Mock }
   departureSlot: { findMany: Mock }
+  guideProfile: { findUnique: Mock }
 }
 
 const app = buildApp(dashboardRoutes)
@@ -37,6 +39,7 @@ beforeEach(() => {
   db.tenant.findUnique.mockResolvedValue(TENANT)
   db.booking.groupBy.mockResolvedValue([])
   db.booking.findMany.mockResolvedValue([])
+  db.booking.count.mockResolvedValue(0)
   db.departureSlot.findMany.mockResolvedValue([])
 })
 
@@ -64,11 +67,15 @@ describe('GET /tenants/:slug/dashboard', () => {
       { status: 'PENDING', _count: { id: 3 } },
       { status: 'CONFIRMED', _count: { id: 2 } },
     ])
-    db.booking.findMany.mockResolvedValue([
-      { pax: 2, slot: { package: { price: '100.00' } } },
-    ])
+    db.booking.findMany.mockResolvedValue([{ pax: 2, slot: { package: { price: '100.00' } } }])
     db.departureSlot.findMany.mockResolvedValue([
-      { id: 'slot-1', startsAt: new Date('2026-07-01'), booked: 1, capacity: 10, package: { name: 'Trilha' } },
+      {
+        id: 'slot-1',
+        startsAt: new Date('2026-07-01'),
+        booked: 1,
+        capacity: 10,
+        package: { name: 'Trilha' },
+      },
     ])
 
     const res = await app.inject({
@@ -87,5 +94,55 @@ describe('GET /tenants/:slug/dashboard', () => {
     expect(body.revenue.confirmed).toBe(200)
     expect(body.upcomingSlots).toHaveLength(1)
     expect(body.upcomingSlots[0].package.name).toBe('Trilha')
+  })
+
+  it('CONDUTOR vê só os números das próprias datas, não os do tenant inteiro', async () => {
+    db.guideProfile.findUnique.mockResolvedValue({ id: 'gp1' })
+    const token = app.jwt.sign({ sub: 'cond-1', role: 'CONDUTOR', tenantId: TENANT.id, name: 'G' })
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/tenants/capivara/dashboard',
+      headers: { authorization: `Bearer ${token}` },
+    })
+
+    expect(res.statusCode).toBe(200)
+    const own = [{ guideId: 'gp1' }, { package: { conductorId: 'cond-1' } }]
+    expect(db.booking.groupBy.mock.calls[0][0].where).toEqual({
+      tenantId: TENANT.id,
+      OR: own.map((slot) => ({ slot })),
+    })
+    expect(db.booking.findMany.mock.calls[0][0].where).toMatchObject({
+      OR: own.map((slot) => ({ slot })),
+    })
+    expect(db.departureSlot.findMany.mock.calls[0][0].where).toMatchObject({ OR: own })
+  })
+
+  it('ADMIN continua vendo o tenant inteiro', async () => {
+    await app.inject({
+      method: 'GET',
+      url: '/tenants/capivara/dashboard',
+      headers: { authorization: `Bearer ${adminToken}` },
+    })
+    expect(db.booking.groupBy.mock.calls[0][0].where).toEqual({ tenantId: TENANT.id })
+  })
+
+  it('conta as reservas com passeio HOJE (São Paulo) e o total, no banco', async () => {
+    db.booking.groupBy.mockResolvedValue([
+      { status: 'PENDING', _count: { id: 30 } },
+      { status: 'CONFIRMED', _count: { id: 12 } },
+    ])
+    db.booking.count.mockResolvedValue(4)
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/tenants/capivara/dashboard',
+      headers: { authorization: `Bearer ${adminToken}` },
+    })
+
+    expect(res.json().bookings).toMatchObject({ today: 4, total: 42 })
+    const where = db.booking.count.mock.calls[0][0].where
+    expect(where.status).toEqual({ in: ['PENDING', 'CONFIRMED'] })
+    expect(where.slot.startsAt.gte).toBeInstanceOf(Date)
   })
 })

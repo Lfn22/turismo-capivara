@@ -22,7 +22,7 @@ Roteiro: ${packageName}
 Data: ${date}
 Cliente: ${customerName}
 Participantes: ${pax}
-Código da reserva: ${bookingId}
+Código da reserva: ${bookingId.slice(-6).toUpperCase()}
 
 O cliente já recebeu as instruções de pagamento via PIX.
 

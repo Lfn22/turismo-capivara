@@ -1,9 +1,13 @@
 import { FastifyInstance } from 'fastify'
+import { randomUUID } from 'node:crypto'
 import prisma from '../../../database'
 import { AppError } from '../../../shared/errors/AppError'
 import { repayBodySchema, type RepayBody } from '../bookings.schemas'
 import * as paymentService from '../../../services/payment.service'
 import { isValidCPF } from '../../../shared/utils/cpf'
+import { clientIp } from '../../../shared/utils/client-ip'
+import { assertBeforeBookingCutoff } from '../booking-cutoff'
+import { lineTotal } from '../../../shared/utils/money'
 
 export async function repayRoute(app: FastifyInstance) {
   // POST /tenants/:slug/bookings/repay — public, no JWT — EXPIRED bookings only
@@ -14,7 +18,7 @@ export async function repayRoute(app: FastifyInstance) {
         rateLimit: {
           max: 5,
           timeWindow: '15 minutes',
-          keyGenerator: (req) => `repay:ip:${req.ip}`,
+          keyGenerator: (req) => `repay:ip:${clientIp(req)}`,
         },
       },
     },
@@ -23,16 +27,16 @@ export async function repayRoute(app: FastifyInstance) {
       if (!parsed.success) {
         return reply
           .status(400)
-          .send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
+          .send({ message: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
       }
       const { slug } = request.params
       const { email, code, cpf } = parsed.data
 
       if (cpf && !/^\d{11}$/.test(cpf)) {
-        return reply.status(400).send({ error: 'CPF deve conter 11 dígitos numéricos' })
+        return reply.status(400).send({ message: 'CPF deve conter 11 dígitos numéricos' })
       }
       if (cpf && !isValidCPF(cpf)) {
-        return reply.status(400).send({ error: 'CPF inválido' })
+        return reply.status(400).send({ message: 'CPF inválido' })
       }
 
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
@@ -74,15 +78,23 @@ export async function repayRoute(app: FastifyInstance) {
         throw new AppError('Slot indisponível para novo pagamento', 422)
       }
 
+      // Mesmo corte de uma reserva nova: não cobra para passeio a menos de 24h
+      assertBeforeBookingCutoff(booking.slot.startsAt)
+
       // Create new MP payment
       // CPF original não é recuperável (apenas hash armazenado) — cliente pode fornecer CPF no body
-      const transactionAmount = Number(booking.slot.package.price) * booking.pax
+      const transactionAmount = lineTotal(booking.slot.package.price, booking.pax)
+      const expiryMinutes = Number(process.env.BOOKING_EXPIRY_MINUTES ?? '30')
       const paymentResult = await paymentService.createPixPayment({
         bookingId: booking.id,
         transactionAmount,
         description: `Reserva #${booking.id} — ${booking.slot.package.name}`,
         customerEmail: booking.customerEmail,
         customerCpf: cpf,
+        // Prazo igual ao de uma reserva nova (sem isto o MP dava 24h e a vaga ficava presa)
+        expiresAt: new Date(Date.now() + expiryMinutes * 60_000),
+        // Chave própria por tentativa: o bookingId já foi usado na cobrança original
+        idempotencyKey: `${booking.id}:repay:${randomUUID()}`,
       })
 
       // Lock slot and update booking atomically to prevent race condition
@@ -101,7 +113,21 @@ export async function repayRoute(app: FastifyInstance) {
             throw new AppError('Slot indisponível para novo pagamento', 422)
           }
           if (slotRow.booked + booking.pax > slotRow.capacity) {
-            throw new AppError('SLOT_UNAVAILABLE', 409)
+            throw new AppError('Não há mais vagas nesta data', 409)
+          }
+          // Transição condicional: um repay concorrente (clique duplo) já reativou a reserva
+          const reactivated = await tx.booking.updateMany({
+            where: { id: booking.id, status: 'EXPIRED' },
+            data: {
+              paymentId: paymentResult.paymentId,
+              paymentUrl: paymentResult.paymentUrl,
+              qrCode: paymentResult.qrCode,
+              expiresAt: paymentResult.expiresAt,
+              status: 'PENDING',
+            },
+          })
+          if (reactivated.count === 0) {
+            throw new AppError('Um novo pagamento já foi gerado para esta reserva', 409)
           }
           const newBooked = slotRow.booked + booking.pax
           await tx.departureSlot.update({
@@ -109,16 +135,6 @@ export async function repayRoute(app: FastifyInstance) {
             data: {
               booked: { increment: booking.pax },
               status: newBooked >= slotRow.capacity ? 'FULL' : 'OPEN',
-            },
-          })
-          await tx.booking.update({
-            where: { id: booking.id },
-            data: {
-              paymentId: paymentResult.paymentId,
-              paymentUrl: paymentResult.paymentUrl,
-              qrCode: paymentResult.qrCode,
-              expiresAt: paymentResult.expiresAt,
-              status: 'PENDING',
             },
           })
         })

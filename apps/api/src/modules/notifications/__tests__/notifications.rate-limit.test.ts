@@ -10,7 +10,7 @@ vi.mock('../../../database', () => ({
   },
 }))
 
-import { notificationsRoutes, notificationsKeyGenerator } from '../notifications.routes'
+import { notificationsRoutes } from '../notifications.routes'
 
 const SECRET = 'test-secret-minimum-32-characters-xx'
 let app: FastifyInstance
@@ -25,7 +25,13 @@ beforeAll(async () => {
 afterAll(() => app.close())
 
 function tokenFor(sub: string) {
-  return app.jwt.sign({ sub, role: 'CLIENTE', tenantId: 't1', name: 'X', approvalStatus: 'APPROVED' })
+  return app.jwt.sign({
+    sub,
+    role: 'CLIENTE',
+    tenantId: 't1',
+    name: 'X',
+    approvalStatus: 'APPROVED',
+  })
 }
 
 function get(token: string) {
@@ -45,14 +51,14 @@ describe('rate limit de /notifications por usuário', () => {
     expect((await get(b)).statusCode).toBe(200)
   })
 
-  it('keyGenerator usa o sub do token e cai para o IP', () => {
-    const base = { server: app, ip: '1.2.3.4' }
-    expect(
-      notificationsKeyGenerator({ ...base, headers: { authorization: `Bearer ${tokenFor('u9')}` } } as any),
-    ).toBe('notif:user:u9')
-    expect(notificationsKeyGenerator({ ...base, headers: {} } as any)).toBe('notif:ip:1.2.3.4')
-    expect(
-      notificationsKeyGenerator({ ...base, headers: { authorization: 'Bearer lixo' } } as any),
-    ).toBe('notif:ip:1.2.3.4')
+  it('token forjado com o sub da vítima não consome o limite dela', async () => {
+    const forger = Fastify({ logger: false })
+    await forger.register(jwt, { secret: 'outro-segredo-qualquer-com-32-chars!!' })
+    await forger.ready()
+    const forged = forger.jwt.sign({ sub: 'victim', role: 'CLIENTE', tenantId: 't1' })
+    await forger.close()
+
+    for (let i = 0; i < 61; i++) await get(forged)
+    expect((await get(tokenFor('victim'))).statusCode).toBe(200)
   })
 })

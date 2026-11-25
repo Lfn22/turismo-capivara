@@ -84,6 +84,23 @@ describe('POST /me/reviews', () => {
     })
   })
 
+  it('roteiro multi-guia / da agência: avalia o guia do slot, não o condutor', async () => {
+    db.booking.findFirst.mockResolvedValue(
+      makeBooking({ slot: { guideId: 'gp-slot', package: { conductorId: null } } }),
+    )
+    db.review.create.mockResolvedValue({ id: 'review-2' })
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/me/reviews',
+      headers: { ...auth(), 'content-type': 'application/json' },
+      payload: { bookingId: 'booking-1', rating: 5 },
+    })
+
+    expect(res.statusCode).toBe(201)
+    expect(db.review.create.mock.calls[0][0].data.guideId).toBe('gp-slot')
+  })
+
   it('422 se reserva não está COMPLETED', async () => {
     db.booking.findFirst.mockResolvedValue(makeBooking({ status: 'CONFIRMED' }))
 

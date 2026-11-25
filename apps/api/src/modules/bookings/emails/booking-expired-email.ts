@@ -17,7 +17,7 @@ export function bookingExpiredEmailText({
 
 Infelizmente sua reserva expirou pois o pagamento não foi efetuado no prazo.
 
-Código da reserva: ${bookingId}
+Código da reserva: ${bookingId.slice(-6).toUpperCase()}
 Passeio: ${packageName}
 
 Para fazer uma nova reserva, acesse: https://capi.turismo/${slug}

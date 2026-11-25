@@ -9,13 +9,14 @@ process.env.MP_WEBHOOK_SECRET = WEBHOOK_SECRET
 process.env.MP_ACCESS_TOKEN = 'test-mp-token'
 
 const tx = {
-  booking: { update: vi.fn() },
-  departureSlot: { findUnique: vi.fn(), update: vi.fn() },
+  $queryRaw: vi.fn(),
+  booking: { updateMany: vi.fn() },
+  departureSlot: { update: vi.fn() },
 }
 
 vi.mock('../../database', () => ({
   default: {
-    processedWebhookEvent: { create: vi.fn() },
+    processedWebhookEvent: { create: vi.fn(), findUnique: vi.fn() },
     auditLog: { create: vi.fn(() => Promise.resolve({})) },
     booking: { findFirst: vi.fn(), updateMany: vi.fn() },
     $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
@@ -28,7 +29,12 @@ vi.mock('../../shared/email', () => ({
 }))
 
 vi.mock('../../shared/sentry', () => ({
-  Sentry: { captureException: vi.fn(), withScope: vi.fn(), setupFastifyErrorHandler: vi.fn(), setTag: vi.fn() },
+  Sentry: {
+    captureException: vi.fn(),
+    withScope: vi.fn(),
+    setupFastifyErrorHandler: vi.fn(),
+    setTag: vi.fn(),
+  },
 }))
 
 vi.mock('../notifications/booking-events', () => ({
@@ -57,7 +63,11 @@ function sign(): Record<string, string> {
     .createHmac('sha256', WEBHOOK_SECRET)
     .update(`id:${PAYMENT_ID};request-id:r1;ts:${ts};`)
     .digest('hex')
-  return { 'content-type': 'application/json', 'x-signature': `ts=${ts},v1=${v1}`, 'x-request-id': 'r1' }
+  return {
+    'content-type': 'application/json',
+    'x-signature': `ts=${ts},v1=${v1}`,
+    'x-request-id': 'r1',
+  }
 }
 
 async function post() {
@@ -78,9 +88,16 @@ beforeEach(() => {
   vi.clearAllMocks()
   db.processedWebhookEvent.create.mockResolvedValue({ id: PAYMENT_ID })
   db.booking.findFirst.mockResolvedValue({
-    id: 'b1', status: 'PENDING', slotId: 's1', pax: 2, customerEmail: null, slot: null,
+    id: 'b1',
+    status: 'PENDING',
+    slotId: 's1',
+    pax: 2,
+    customerEmail: null,
+    slot: null,
   })
-  tx.departureSlot.findUnique.mockResolvedValue({ booked: 2, capacity: 5, status: 'OPEN' })
+  db.processedWebhookEvent.findUnique.mockResolvedValue(null)
+  tx.booking.updateMany.mockResolvedValue({ count: 1 })
+  tx.$queryRaw.mockResolvedValue([{ booked: 2, capacity: 5, status: 'OPEN' }])
 })
 
 describe('webhook mercadopago → notificação por transição', () => {

@@ -8,16 +8,18 @@ import { authorize } from '../../../shared/middlewares/authorize'
 import { canEditDestination, canManageDestinations } from '../../../shared/auth/edit-permissions'
 import { assertNoDestinationLinks } from '../destinations.links'
 import { CreateDestinationInput, UpdateDestinationInput } from '../destinations.schemas'
-import {
-  createDestination,
-  deleteDestination,
-  updateDestination,
-} from '../destinations.service'
+import { createDestination, deleteDestination, updateDestination } from '../destinations.service'
 
 const slugAndIdParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
   id: z.string().min(1, { message: 'ID obrigatório' }),
 })
+
+// ADMIN vê os destinos da própria agência: criados por gente dela ou ligados ao tenant.
+// Antes via todos, inclusive propostas PENDING/REJECTED (e o motivo) de outras agências.
+function adminScope(tenantId: string) {
+  return { OR: [{ createdBy: { tenantId } }, { tenants: { some: { id: tenantId } } }] }
+}
 
 export async function tenantDestinationsRoute(app: FastifyInstance) {
   // GET /tenants/:slug/destinations — lista destinos do tenant (ADMIN/CONDUTOR/PLATFORM_ADMIN)
@@ -25,11 +27,19 @@ export async function tenantDestinationsRoute(app: FastifyInstance) {
     '/tenants/:slug/destinations',
     { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'PLATFORM_ADMIN'])] },
     async (request, reply) => {
-      // CONDUTOR vê apenas seus próprios destinos; ADMIN/PLATFORM_ADMIN vê todos
+      // CONDUTOR vê os próprios; ADMIN, os da agência; PLATFORM_ADMIN, todos
       const whereClause =
         request.user.role === 'CONDUTOR'
           ? { createdById: request.user.sub }
-          : { approvalStatus: { in: ['PENDING', 'APPROVED', 'REJECTED'] as ('PENDING' | 'APPROVED' | 'REJECTED')[] } }
+          : request.user.role === 'ADMIN'
+            ? adminScope(request.user.tenantId)
+            : {
+                approvalStatus: {
+                  in: ['PENDING', 'APPROVED', 'REJECTED'] as (
+                    'PENDING' | 'APPROVED' | 'REJECTED'
+                  )[],
+                },
+              }
 
       const destinations = await prisma.destination.findMany({
         where: whereClause,
@@ -56,11 +66,19 @@ export async function tenantDestinationsRoute(app: FastifyInstance) {
     '/tenants/:slug/destinations/:id',
     { preHandler: [authenticate, authorize(['ADMIN', 'CONDUTOR', 'PLATFORM_ADMIN'])] },
     async (request, reply) => {
-      const { id } = request.params as { slug: string; id: string }
+      const { data: params, error: paramsErr } = parseParams(
+        slugAndIdParamsSchema,
+        request.params,
+        reply,
+      )
+      if (paramsErr) return
+      const { id } = params
       const whereClause =
         request.user.role === 'CONDUTOR'
           ? { id, createdById: request.user.sub }
-          : { id }
+          : request.user.role === 'ADMIN'
+            ? { id, ...adminScope(request.user.tenantId) }
+            : { id }
 
       const destination = await prisma.destination.findFirst({
         where: whereClause,
@@ -89,7 +107,11 @@ export async function tenantDestinationsRoute(app: FastifyInstance) {
     '/tenants/:slug/destinations',
     { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
     async (request, reply) => {
-      const { data: input, error: inputError } = parseBody(CreateDestinationInput, request.body, reply)
+      const { data: input, error: inputError } = parseBody(
+        CreateDestinationInput,
+        request.body,
+        reply,
+      )
       if (inputError) return
 
       const userId = request.user.sub
@@ -105,17 +127,28 @@ export async function tenantDestinationsRoute(app: FastifyInstance) {
     '/tenants/:slug/destinations/:id',
     { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
     async (request, reply) => {
-      const { data: params, error: paramsError } = parseParams(slugAndIdParamsSchema, request.params, reply)
+      const { data: params, error: paramsError } = parseParams(
+        slugAndIdParamsSchema,
+        request.params,
+        reply,
+      )
       if (paramsError) return
       const { id } = params
 
       const destination = await findDestination(id)
       if (!destination) throw new AppError('Destino não encontrado', 404)
-      if (!(await canEditDestination(request.user, id)) && !isOwnProposal(destination, request.user.tenantId)) {
+      if (
+        !(await canEditDestination(request.user, id)) &&
+        !isOwnProposal(destination, request.user.tenantId)
+      ) {
         throw new AppError('Não autorizado', 403)
       }
 
-      const { data: input, error: inputError } = parseBody(UpdateDestinationInput, request.body, reply)
+      const { data: input, error: inputError } = parseBody(
+        UpdateDestinationInput,
+        request.body,
+        reply,
+      )
       if (inputError) return
 
       const updated = await updateDestination(id, request.user.sub, input, request.user.role)
@@ -129,13 +162,20 @@ export async function tenantDestinationsRoute(app: FastifyInstance) {
     '/tenants/:slug/destinations/:id',
     { preHandler: [authenticate, authorize(['ADMIN', 'SUPER_ADMIN'])] },
     async (request, reply) => {
-      const { data: params, error: paramsError } = parseParams(slugAndIdParamsSchema, request.params, reply)
+      const { data: params, error: paramsError } = parseParams(
+        slugAndIdParamsSchema,
+        request.params,
+        reply,
+      )
       if (paramsError) return
       const { id } = params
 
       const destination = await findDestination(id)
       if (!destination) throw new AppError('Destino não encontrado', 404)
-      if (!canManageDestinations(request.user) && !isOwnProposal(destination, request.user.tenantId)) {
+      if (
+        !canManageDestinations(request.user) &&
+        !isOwnProposal(destination, request.user.tenantId)
+      ) {
         throw new AppError('Não autorizado', 403)
       }
 

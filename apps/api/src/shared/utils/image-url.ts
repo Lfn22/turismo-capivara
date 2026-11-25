@@ -22,4 +22,18 @@ export const imageUrlSchema = z
   .string()
   .max(2048, { message: 'URL deve ter no máximo 2048 caracteres' })
   .url({ message: 'URL inválida' })
-  .refine(isAllowedImageUrl, { message: 'Imagem deve ser enviada pelo upload da plataforma (URL https)' })
+  .refine(isAllowedImageUrl, {
+    message: 'Imagem deve ser enviada pelo upload da plataforma (URL https)',
+  })
+
+/**
+ * URL https qualquer (fotos de roteiro/destino/portfólio, que podem vir de bancos de
+ * imagem como o Unsplash). `z.string().url()` sozinho aceitava `javascript:`/`data:`.
+ */
+export function httpsUrlSchema(message = 'URL inválida (use https)') {
+  return z
+    .string()
+    .max(2048, { message: 'URL deve ter no máximo 2048 caracteres' })
+    .url({ message })
+    .refine((v) => v.startsWith('https://'), { message })
+}

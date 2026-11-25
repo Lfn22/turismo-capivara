@@ -142,16 +142,19 @@ describe('POST /bookings — capacity check', () => {
   it('returns 400 when slot is full (booked + pax > capacity)', async () => {
     db.$transaction.mockImplementation(async (fn: Function) => {
       const tx = {
-        $queryRaw: vi.fn().mockResolvedValue([{
-          id: 'slot-1',
-          booked: 10,
-          capacity: 10,
-          status: 'OPEN',
-          packageId: 'pkg-1',
-          tenantId: TENANT.id,
-          active: true,
-          publishedAt: new Date('2026-01-01'),
-        }]),
+        $queryRaw: vi.fn().mockResolvedValue([
+          {
+            id: 'slot-1',
+            booked: 10,
+            capacity: 10,
+            status: 'OPEN',
+            packageId: 'pkg-1',
+            tenantId: TENANT.id,
+            active: true,
+            publishedAt: new Date('2026-01-01'),
+            startsAt: new Date(Date.now() + 48 * 3600_000),
+          },
+        ]),
         departureSlot: { update: vi.fn().mockResolvedValue({}) },
         booking: { create: vi.fn().mockResolvedValue(CREATED_BOOKING) },
       }
@@ -187,18 +190,25 @@ describe('POST /bookings — happy path', () => {
     // Single tx: lock slot + increment booked + persist booking (C-2)
     db.$transaction.mockImplementation(async (fn: Function) => {
       const tx = {
-        $queryRaw: vi.fn().mockResolvedValue([{
-          id: 'slot-1',
-          booked: 2,
-          capacity: 10,
-          status: 'OPEN',
-          packageId: 'pkg-1',
-          tenantId: TENANT.id,
-          active: true,
-          publishedAt: new Date('2026-01-01'),
-        }]),
+        $queryRaw: vi.fn().mockResolvedValue([
+          {
+            id: 'slot-1',
+            booked: 2,
+            capacity: 10,
+            status: 'OPEN',
+            packageId: 'pkg-1',
+            tenantId: TENANT.id,
+            active: true,
+            publishedAt: new Date('2026-01-01'),
+            startsAt: new Date(Date.now() + 48 * 3600_000),
+          },
+        ]),
         departureSlot: { update: vi.fn().mockResolvedValue({}) },
-        booking: { create: vi.fn().mockResolvedValue({ ...CREATED_BOOKING, cancelToken: 'mock-cancel-token' }) },
+        booking: {
+          create: vi
+            .fn()
+            .mockResolvedValue({ ...CREATED_BOOKING, cancelToken: 'mock-cancel-token' }),
+        },
       }
       return fn(tx)
     })
@@ -206,7 +216,12 @@ describe('POST /bookings — happy path', () => {
     // Payment data is written to the already-persisted booking after the MP call
     db.booking.update.mockResolvedValue(bookingWithPayment)
 
-    db.tourPackage.findFirst.mockResolvedValue({ price: '150.00', name: 'Trilha', conductor: null, departureSlots: [{ startsAt: new Date() }] })
+    db.tourPackage.findFirst.mockResolvedValue({
+      price: '150.00',
+      name: 'Trilha',
+      conductor: null,
+      departureSlots: [{ startsAt: new Date() }],
+    })
 
     mockCreatePixPayment.mockResolvedValue({
       paymentId: 'mp-1',

@@ -1,8 +1,9 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import { FastifyInstance, FastifyReply } from 'fastify'
 import { z, ZodError } from 'zod'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
+import { userRateLimitKey } from '../../shared/utils/user-rate-limit'
 
 const PAGE_SIZE = 20
 
@@ -29,19 +30,9 @@ const notificationSelect = {
 } as const
 
 // Todo o tráfego do sininho chega via /api/proxy (mesmo IP), então o limite é por usuário.
-// O token é só decodificado (sem verificar) para compor a chave; a autenticação continua no authenticate.
-export function notificationsKeyGenerator(req: FastifyRequest): string {
-  const header = req.headers.authorization
-  if (header?.startsWith('Bearer ')) {
-    try {
-      const payload = req.server.jwt.decode<{ sub?: unknown }>(header.slice(7))
-      if (payload && typeof payload.sub === 'string' && payload.sub) return `notif:user:${payload.sub}`
-    } catch {
-      // token ilegível: cai para o IP
-    }
-  }
-  return `notif:ip:${req.ip}`
-}
+// O JWT é VERIFICADO (userRateLimitKey): só decodificar deixava um token forjado com o
+// sub da vítima esgotar o limite dela.
+const notificationsKeyGenerator = userRateLimitKey('notif')
 
 const rateLimit = (max: number) => ({
   rateLimit: { max, timeWindow: '1 minute', keyGenerator: notificationsKeyGenerator },
@@ -93,40 +84,52 @@ export async function notificationsRoutes(app: FastifyInstance) {
     },
   )
 
-  app.get('/notifications/pending', { preHandler, config: rateLimit(60) }, async (request, reply) => {
-    const notifications = await prisma.notification.findMany({
-      where: { userId: request.user.sub, actionKey: { not: null }, resolvedAt: null },
-      orderBy: { updatedAt: 'desc' },
-      take: 100,
-      select: notificationSelect,
-    })
-    return reply.status(200).send({ notifications })
-  })
+  app.get(
+    '/notifications/pending',
+    { preHandler, config: rateLimit(60) },
+    async (request, reply) => {
+      const notifications = await prisma.notification.findMany({
+        where: { userId: request.user.sub, actionKey: { not: null }, resolvedAt: null },
+        orderBy: { updatedAt: 'desc' },
+        take: 100,
+        select: notificationSelect,
+      })
+      return reply.status(200).send({ notifications })
+    },
+  )
 
-  app.patch('/notifications/:id/read', { preHandler, config: rateLimit(60) }, async (request, reply) => {
-    let params
-    try {
-      params = idParamsSchema.parse(request.params)
-    } catch (err) {
-      if (err instanceof ZodError) return badRequest(reply, err)
-      throw err
-    }
+  app.patch(
+    '/notifications/:id/read',
+    { preHandler, config: rateLimit(60) },
+    async (request, reply) => {
+      let params
+      try {
+        params = idParamsSchema.parse(request.params)
+      } catch (err) {
+        if (err instanceof ZodError) return badRequest(reply, err)
+        throw err
+      }
 
-    const result = await prisma.notification.updateMany({
-      where: { id: params.id, userId: request.user.sub },
-      data: { readAt: new Date() },
-    })
-    if (result.count === 0) {
-      throw new AppError('Notificação não encontrada', 404)
-    }
-    return reply.status(204).send()
-  })
+      const result = await prisma.notification.updateMany({
+        where: { id: params.id, userId: request.user.sub },
+        data: { readAt: new Date() },
+      })
+      if (result.count === 0) {
+        throw new AppError('Notificação não encontrada', 404)
+      }
+      return reply.status(204).send()
+    },
+  )
 
-  app.post('/notifications/read-all', { preHandler, config: rateLimit(60) }, async (request, reply) => {
-    await prisma.notification.updateMany({
-      where: { userId: request.user.sub, readAt: null },
-      data: { readAt: new Date() },
-    })
-    return reply.status(204).send()
-  })
+  app.post(
+    '/notifications/read-all',
+    { preHandler, config: rateLimit(60) },
+    async (request, reply) => {
+      await prisma.notification.updateMany({
+        where: { userId: request.user.sub, readAt: null },
+        data: { readAt: new Date() },
+      })
+      return reply.status(204).send()
+    },
+  )
 }

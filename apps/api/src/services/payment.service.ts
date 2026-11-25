@@ -24,16 +24,18 @@ interface CreatePixPaymentInput {
    * Optional for the repay flow, which computes its own window.
    */
   expiresAt?: Date
+  /**
+   * Chave de idempotência no MP. Padrão: bookingId (protege as retentativas da criação).
+   * O repay precisa de uma chave própria — reusar o bookingId devolveria a cobrança antiga.
+   */
+  idempotencyKey?: string
 }
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-
-async function attemptCreatePayment(
-  input: CreatePixPaymentInput
-): Promise<PixPaymentResult> {
+async function attemptCreatePayment(input: CreatePixPaymentInput): Promise<PixPaymentResult> {
   const token = process.env.MP_ACCESS_TOKEN
   // A-4: the caller owns the expiry window (it must match when the seats are released).
   // The 24h fallback only applies to callers that do not pass one.
@@ -73,7 +75,7 @@ async function attemptCreatePayment(
     // C-1: chave estável por reserva — as 3 tentativas de createPixPayment enviam
     // a mesma chave, então um timeout local em uma tentativa que o MP já processou
     // retorna o pagamento existente em vez de criar uma segunda cobrança PIX.
-    requestOptions: { idempotencyKey: input.bookingId },
+    requestOptions: { idempotencyKey: input.idempotencyKey ?? input.bookingId },
   })
 
   const ticketUrl = response.point_of_interaction?.transaction_data?.ticket_url
@@ -91,9 +93,7 @@ async function attemptCreatePayment(
   }
 }
 
-export async function createPixPayment(
-  input: CreatePixPaymentInput
-): Promise<PixPaymentResult> {
+export async function createPixPayment(input: CreatePixPaymentInput): Promise<PixPaymentResult> {
   const maxAttempts = 3
   let lastError: unknown
 
@@ -119,12 +119,34 @@ export async function cancelPixPayment(paymentId: string): Promise<void> {
   if (!token) return // dev mock — nothing to cancel
   const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
     method: 'PUT',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ status: 'cancelled' }),
   })
   if (!response.ok) {
     const body = await response.text().catch(() => '')
     paymentsFailedCounter.add(1, { reason: 'cancel_pix_failed' })
     throw new Error(`cancelPixPayment falhou (HTTP ${response.status}): ${body}`)
+  }
+}
+
+// Estorno total de um pagamento aprovado (cancelamento de reserva paga, pagamento tardio
+// sem vaga, pagamento em dobro). A chave de idempotência por pagamento garante que
+// retries do webhook/cancelamento nunca gerem dois estornos.
+export async function refundPayment(paymentId: string): Promise<void> {
+  const token = process.env.MP_ACCESS_TOKEN
+  if (!token) return // dev mock — nada a estornar
+  const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}/refunds`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'X-Idempotency-Key': `refund-${paymentId}`,
+    },
+    body: JSON.stringify({}),
+  })
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    paymentsFailedCounter.add(1, { reason: 'refund_failed' })
+    throw new Error(`refundPayment falhou (HTTP ${response.status}): ${body}`)
   }
 }

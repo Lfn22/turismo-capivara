@@ -7,7 +7,7 @@ import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
-import { imageUrlSchema } from '../../shared/utils/image-url'
+import { imageUrlSchema, httpsUrlSchema } from '../../shared/utils/image-url'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -23,24 +23,32 @@ const adminGuidesQuerySchema = z.object({
 })
 
 const updateProfileBodySchema = z.object({
-  bio: z.string().optional(),
+  // null = o guia apagou a bio (a web envia `bio || null`)
+  bio: z.string().nullable().optional(),
   photoUrl: imageUrlSchema.optional().nullable(),
   especialidades: z.array(z.string()).optional(),
   regioes: z.array(z.string()).optional(),
-  portfolioPhotos: z.array(z.string().url({ message: 'URL inválida' })).optional(),
+  portfolioPhotos: z.array(httpsUrlSchema('URL inválida')).optional(),
 })
-
 
 export async function guidesRoutes(app: FastifyInstance) {
   // GET /tenants/:slug/guides — PUBLIC: list approved guides
   app.get('/tenants/:slug/guides', async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
+    const { data: params, error: paramsError } = parseParams(
+      slugParamsSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
 
     const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
     if (!tenant) throw new AppError('Tenant não encontrado', 404)
 
-    const { data: pagination, error: pgErr } = parseQuery(paginationQuerySchema, request.query, reply)
+    const { data: pagination, error: pgErr } = parseQuery(
+      paginationQuerySchema,
+      request.query,
+      reply,
+    )
     if (pgErr) return
 
     const guides = await prisma.guideProfile.findMany({
@@ -73,7 +81,11 @@ export async function guidesRoutes(app: FastifyInstance) {
 
   // GET /tenants/:slug/guides/:id — PUBLIC: single approved guide
   app.get('/tenants/:slug/guides/:id', async (request, reply) => {
-    const { data: params, error: paramsError } = parseParams(guideIdParamsSchema, request.params, reply)
+    const { data: params, error: paramsError } = parseParams(
+      guideIdParamsSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
 
     const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
@@ -98,6 +110,7 @@ export async function guidesRoutes(app: FastifyInstance) {
           select: {
             id: true,
             name: true,
+            approvalStatus: true,
           },
         },
       },
@@ -121,83 +134,110 @@ export async function guidesRoutes(app: FastifyInstance) {
   })
 
   // GET /tenants/:slug/admin/guides?status=PENDING — ADMIN only
-  app.get('/tenants/:slug/admin/guides', {
-    preHandler: [authenticate, authorize(['ADMIN'])],
-  }, async (request, reply) => {
-    const admin = request.user as { sub: string; tenantId: string; role: string }
+  app.get(
+    '/tenants/:slug/admin/guides',
+    {
+      preHandler: [authenticate, authorize(['ADMIN'])],
+    },
+    async (request, reply) => {
+      const admin = request.user as { sub: string; tenantId: string; role: string }
 
-    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
-    if (paramsError) return
+      const { data: params, error: paramsError } = parseParams(
+        slugParamsSchema,
+        request.params,
+        reply,
+      )
+      if (paramsError) return
 
-    const { data: query, error: queryError } = parseQuery(adminGuidesQuerySchema, request.query, reply)
-    if (queryError) return
+      const { data: query, error: queryError } = parseQuery(
+        adminGuidesQuerySchema,
+        request.query,
+        reply,
+      )
+      if (queryError) return
 
-    const guides = await prisma.guideProfile.findMany({
-      where: {
-        user: {
-          tenantId: admin.tenantId,
-          role: 'CONDUTOR',
-          ...(query.status ? { approvalStatus: query.status } : {}),
-        },
-      },
-      select: {
-        id: true,
-        bio: true,
-        photoUrl: true,
-        especialidades: true,
-        regioes: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            approvalStatus: true,
-            rejectionReason: true,
+      const guides = await prisma.guideProfile.findMany({
+        where: {
+          user: {
+            tenantId: admin.tenantId,
+            role: 'CONDUTOR',
+            ...(query.status ? { approvalStatus: query.status } : {}),
           },
         },
-      },
-    })
-
-    return reply.status(200).send({ guides })
-  })
-
-  // GET /tenants/:slug/guides/me/bookings — CONDUTOR only
-  app.get('/tenants/:slug/guides/me/bookings', {
-    preHandler: [authenticate, authorize(['CONDUTOR'])],
-  }, async (request, reply) => {
-    const conductor = request.user as { sub: string; tenantId: string; role: string }
-
-    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
-    if (paramsError) return
-
-    const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
-    if (!tenant) throw new AppError('Tenant não encontrado', 404)
-    if (tenant.id !== conductor.tenantId) throw new AppError('Acesso negado', 403)
-
-    const bookings = await prisma.booking.findMany({
-      where: {
-        tenantId: tenant.id,
-        slot: {
-          package: {
-            conductorId: conductor.sub,
-          },
-        },
-      },
-      include: {
-        slot: {
-          include: {
-            package: {
-              select: { id: true, name: true, price: true },
+        select: {
+          id: true,
+          bio: true,
+          photoUrl: true,
+          especialidades: true,
+          regioes: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              approvalStatus: true,
+              rejectionReason: true,
             },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+      })
 
-    const safeBookings = bookings.map(({ customerCpfHash, customerPhone, ...b }) => b)
-    return reply.status(200).send({ bookings: safeBookings })
-  })
+      return reply.status(200).send({ guides })
+    },
+  )
+
+  // GET /tenants/:slug/guides/me/bookings — CONDUTOR only
+  app.get(
+    '/tenants/:slug/guides/me/bookings',
+    {
+      preHandler: [authenticate, authorize(['CONDUTOR'])],
+    },
+    async (request, reply) => {
+      const conductor = request.user as { sub: string; tenantId: string; role: string }
+
+      const { data: params, error: paramsError } = parseParams(
+        slugParamsSchema,
+        request.params,
+        reply,
+      )
+      if (paramsError) return
+
+      const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
+      if (!tenant) throw new AppError('Tenant não encontrado', 404)
+      if (tenant.id !== conductor.tenantId) throw new AppError('Acesso negado', 403)
+
+      // Slots atribuídos ao guia (roteiro multi-guia / da agência) OU roteiros que ele conduz
+      const profile = await prisma.guideProfile.findUnique({
+        where: { userId: conductor.sub },
+        select: { id: true },
+      })
+      const bookings = await prisma.booking.findMany({
+        where: {
+          tenantId: tenant.id,
+          OR: [
+            ...(profile ? [{ slot: { guideId: profile.id } }] : []),
+            { slot: { package: { conductorId: conductor.sub } } },
+          ],
+        },
+        include: {
+          slot: {
+            include: {
+              package: {
+                select: { id: true, name: true, price: true },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      // Nunca CPF, telefone ou tokens (o cancelToken cancela a reserva do cliente)
+      const safeBookings = bookings.map(
+        ({ customerCpfHash, customerPhone, cancelToken, idempotencyKey, ...b }) => b,
+      )
+      return reply.status(200).send({ bookings: safeBookings })
+    },
+  )
 
   // GET /guides — todos os guias aprovados (público)
   app.get('/guides', async (_request, reply) => {
@@ -224,14 +264,20 @@ export async function guidesRoutes(app: FastifyInstance) {
         name: g.user.name,
         photoUrl: g.photoUrl,
         specialties: g.especialidades,
-      }))
+      })),
     )
   })
 
   // GET /guides/:id — perfil público de um guia aprovado
   app.get('/guides/:id', async (request, reply) => {
-    const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
-    const { data: params, error: paramsError } = parseParams(guideOnlyIdSchema, request.params, reply)
+    const guideOnlyIdSchema = z.object({
+      id: z.string().min(1, { message: 'ID do guia obrigatório' }),
+    })
+    const { data: params, error: paramsError } = parseParams(
+      guideOnlyIdSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
 
     const guide = await prisma.guideProfile.findFirst({
@@ -273,8 +319,14 @@ export async function guidesRoutes(app: FastifyInstance) {
 
   // GET /guides/:id/packages — pacotes atendidos por um guia (público)
   app.get('/guides/:id/packages', async (request, reply) => {
-    const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
-    const { data: params, error: paramsError } = parseParams(guideOnlyIdSchema, request.params, reply)
+    const guideOnlyIdSchema = z.object({
+      id: z.string().min(1, { message: 'ID do guia obrigatório' }),
+    })
+    const { data: params, error: paramsError } = parseParams(
+      guideOnlyIdSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
 
     const packageGuides = await prisma.packageGuide.findMany({
@@ -307,52 +359,70 @@ export async function guidesRoutes(app: FastifyInstance) {
         durationMaxHours: pg.package.durationMaxHours,
         difficulty: pg.package.difficulty,
         photos: pg.package.photos,
-      }))
+      })),
     )
   })
 
   // PATCH /tenants/:slug/guides/me/profile — CONDUTOR only
-  app.patch('/tenants/:slug/guides/me/profile', {
-    preHandler: [authenticate, authorize(['CONDUTOR'])],
-  }, async (request, reply) => {
-    const conductor = request.user as { sub: string; tenantId: string; role: string }
+  app.patch(
+    '/tenants/:slug/guides/me/profile',
+    {
+      preHandler: [authenticate, authorize(['CONDUTOR'])],
+    },
+    async (request, reply) => {
+      const conductor = request.user as { sub: string; tenantId: string; role: string }
 
-    const { data: params, error: paramsError } = parseParams(slugParamsSchema, request.params, reply)
-    if (paramsError) return
+      const { data: params, error: paramsError } = parseParams(
+        slugParamsSchema,
+        request.params,
+        reply,
+      )
+      if (paramsError) return
 
-    const { data: body, error: bodyError } = parseBody(updateProfileBodySchema, request.body, reply)
-    if (bodyError) return
+      const { data: body, error: bodyError } = parseBody(
+        updateProfileBodySchema,
+        request.body,
+        reply,
+      )
+      if (bodyError) return
 
-    const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
-    if (!tenant) throw new AppError('Tenant não encontrado', 404)
-    if (tenant.id !== conductor.tenantId) throw new AppError('Acesso negado', 403)
+      const tenant = await prisma.tenant.findUnique({ where: { slug: params.slug } })
+      if (!tenant) throw new AppError('Tenant não encontrado', 404)
+      if (tenant.id !== conductor.tenantId) throw new AppError('Acesso negado', 403)
 
-    const profile = await prisma.guideProfile.update({
-      where: { userId: conductor.sub },
-      data: {
-        ...(body.bio !== undefined && { bio: body.bio }),
-        ...(body.photoUrl !== undefined && { photoUrl: body.photoUrl }),
-        ...(body.especialidades !== undefined && { especialidades: body.especialidades }),
-        ...(body.regioes !== undefined && { regioes: body.regioes }),
-        ...(body.portfolioPhotos !== undefined && { portfolioPhotos: body.portfolioPhotos }),
-      },
-      select: {
-        id: true,
-        bio: true,
-        photoUrl: true,
-        especialidades: true,
-        regioes: true,
-        portfolioPhotos: true,
-      },
-    })
+      const profile = await prisma.guideProfile.update({
+        where: { userId: conductor.sub },
+        data: {
+          ...(body.bio !== undefined && { bio: body.bio }),
+          ...(body.photoUrl !== undefined && { photoUrl: body.photoUrl }),
+          ...(body.especialidades !== undefined && { especialidades: body.especialidades }),
+          ...(body.regioes !== undefined && { regioes: body.regioes }),
+          ...(body.portfolioPhotos !== undefined && { portfolioPhotos: body.portfolioPhotos }),
+        },
+        select: {
+          id: true,
+          bio: true,
+          photoUrl: true,
+          especialidades: true,
+          regioes: true,
+          portfolioPhotos: true,
+        },
+      })
 
-    return reply.status(200).send({ profile })
-  })
+      return reply.status(200).send({ profile })
+    },
+  )
 
   // GET /guides/:id/testimonials — depoimentos públicos de um guia
   app.get('/guides/:id/testimonials', async (request, reply) => {
-    const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
-    const { data: params, error: paramsError } = parseParams(guideOnlyIdSchema, request.params, reply)
+    const guideOnlyIdSchema = z.object({
+      id: z.string().min(1, { message: 'ID do guia obrigatório' }),
+    })
+    const { data: params, error: paramsError } = parseParams(
+      guideOnlyIdSchema,
+      request.params,
+      reply,
+    )
     if (paramsError) return
 
     const guide = await prisma.guideProfile.findFirst({
@@ -375,15 +445,24 @@ export async function guidesRoutes(app: FastifyInstance) {
     '/guides/:id/testimonials',
     { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
     async (request, reply) => {
-      const guideOnlyIdSchema = z.object({ id: z.string().min(1, { message: 'ID do guia obrigatório' }) })
+      const guideOnlyIdSchema = z.object({
+        id: z.string().min(1, { message: 'ID do guia obrigatório' }),
+      })
       const testimonialBodySchema = z.object({
         bookingId: z.string().min(1, { message: 'ID da reserva obrigatório' }),
         customerEmail: z.string().email({ message: 'Email inválido' }),
-        text: z.string().min(10, { message: 'Depoimento muito curto' }).max(500, { message: 'Depoimento muito longo' }),
+        text: z
+          .string()
+          .min(10, { message: 'Depoimento muito curto' })
+          .max(500, { message: 'Depoimento muito longo' }),
         rating: z.number().int().min(1).max(5).default(5),
       })
 
-      const { data: params, error: paramsError } = parseParams(guideOnlyIdSchema, request.params, reply)
+      const { data: params, error: paramsError } = parseParams(
+        guideOnlyIdSchema,
+        request.params,
+        reply,
+      )
       if (paramsError) return
 
       const { data: body, error: bodyError } = parseBody(testimonialBodySchema, request.body, reply)
@@ -417,17 +496,17 @@ export async function guidesRoutes(app: FastifyInstance) {
       }
 
       if (booking.status !== 'CONFIRMED' && booking.status !== 'COMPLETED') {
-        throw new AppError('BOOKING_NOT_ELIGIBLE', 403)
+        throw new AppError('Só reservas confirmadas ou concluídas podem receber depoimento', 403)
       }
 
       if (!booking.slot || booking.slot.startsAt > new Date()) {
-        throw new AppError('TOUR_NOT_FINISHED', 403)
+        throw new AppError('O passeio ainda não aconteceu', 403)
       }
 
       const isGuideOfBooking =
         booking.slot.guideId === guide.id || booking.slot.package?.conductorId === guide.userId
       if (!isGuideOfBooking) {
-        throw new AppError('BOOKING_NOT_FOR_THIS_GUIDE', 403)
+        throw new AppError('Esta reserva não é deste guia', 403)
       }
 
       try {
@@ -445,10 +524,10 @@ export async function guidesRoutes(app: FastifyInstance) {
         return reply.status(201).send({ testimonial })
       } catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-          throw new AppError('TESTIMONIAL_ALREADY_SUBMITTED', 409)
+          throw new AppError('Já existe um depoimento para esta reserva', 409)
         }
         throw err
       }
-    }
+    },
   )
 }

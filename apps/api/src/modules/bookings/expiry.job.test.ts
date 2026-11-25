@@ -1,323 +1,181 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock prisma
 vi.mock('../notifications/booking-events', () => ({
   notifyBookingEvent: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock('../../database', () => ({
   default: {
-    $queryRaw: vi.fn(),
-    booking: { findMany: vi.fn(), update: vi.fn() },
-    departureSlot: { update: vi.fn() },
+    booking: { findMany: vi.fn() },
     $transaction: vi.fn(),
   },
 }))
 
-// Mock shared email
+// O lock é testado em shared/job-lock.test.ts; aqui só controlamos se foi obtido
+const lockObtained = { value: true }
+vi.mock('../../shared/job-lock', () => ({
+  withAdvisoryXactLock: vi.fn(async (_id: number, fn: () => Promise<void>) => {
+    if (!lockObtained.value) return false
+    await fn()
+    return true
+  }),
+}))
+
 vi.mock('../../shared/email', () => ({
   getResend: vi.fn(),
   getEmailFrom: vi.fn(() => 'noreply@capi.app'),
 }))
 
-// Mock metrics
 vi.mock('../../shared/metrics.js', () => ({
   bookingsExpiredCounter: { add: vi.fn() },
 }))
 
 import prisma from '../../database'
 import { getResend } from '../../shared/email'
+import { bookingsExpiredCounter } from '../../shared/metrics.js'
 import { createBookingExpiryJob } from './expiry.job'
 import { notifyBookingEvent } from '../notifications/booking-events'
-
-function makeApp() {
-  return {
-    log: {
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    },
-  } as any
-}
 
 const mockPrisma = prisma as any
 const mockGetResend = getResend as ReturnType<typeof vi.fn>
 
+function makeApp() {
+  return { log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } } as any
+}
+
+function pendingBooking(over: Record<string, unknown> = {}) {
+  return {
+    id: 'bk-1',
+    customerName: 'Ana',
+    customerEmail: 'ana@example.com',
+    pax: 2,
+    slotId: 'slot-1',
+    tenantId: 't1',
+    slot: { package: { name: 'Passeio', tenant: { slug: 'my-tenant' } } },
+    ...over,
+  }
+}
+
+function makeTx(count: number, slot: Record<string, unknown> | null) {
+  return {
+    booking: { updateMany: vi.fn().mockResolvedValue({ count }) },
+    departureSlot: { update: vi.fn() },
+    $queryRaw: vi.fn().mockResolvedValue(slot ? [slot] : []),
+  }
+}
+
+let tx: ReturnType<typeof makeTx>
+
 beforeEach(() => {
   vi.clearAllMocks()
+  lockObtained.value = true
+  mockGetResend.mockReturnValue(null)
+  tx = makeTx(1, { id: 'slot-1', booked: 4, capacity: 4, status: 'FULL' })
+  mockPrisma.$transaction.mockImplementation(async (fn: (t: unknown) => unknown) => fn(tx))
 })
 
-describe('createBookingExpiryJob schedule', () => {
-  it('should run hourly (minute 0), not every minute', () => {
-    const app = makeApp()
-    const job = createBookingExpiryJob(app)
-    expect(job.cronTime).toBe('0 * * * *')
+describe('createBookingExpiryJob', () => {
+  it('roda a cada 5 minutos (PIX vence em ~30 min; de hora em hora segurava vagas)', () => {
+    expect(createBookingExpiryJob(makeApp()).cronTime).toBe('*/5 * * * *')
   })
-})
 
-describe('createBookingExpiryJob (OPS-01)', () => {
-  it('OPS-01: returns early without DB writes when advisory lock not obtained', async () => {
-    mockPrisma.$queryRaw.mockResolvedValueOnce([{ pg_try_advisory_lock: false }])
-
-    const app = makeApp()
-    const job = createBookingExpiryJob(app)
-    await job.onTick()
-
+  it('sem o lock (outra instância rodando) não lê nem escreve nada', async () => {
+    lockObtained.value = false
+    await createBookingExpiryJob(makeApp()).onTick()
     expect(mockPrisma.booking.findMany).not.toHaveBeenCalled()
-    expect(mockPrisma.$transaction).not.toHaveBeenCalled()
   })
 
-  it('OPS-01: releases advisory lock in finally block even when no bookings found', async () => {
-    mockPrisma.$queryRaw
-      .mockResolvedValueOnce([{ pg_try_advisory_lock: true }]) // acquire
-      .mockResolvedValueOnce([{}]) // release
-    mockPrisma.booking.findMany.mockResolvedValueOnce([])
+  it('expira a reserva e devolve a vaga com valor travado (FULL → OPEN)', async () => {
+    mockPrisma.booking.findMany.mockResolvedValue([pendingBooking()])
 
-    const app = makeApp()
-    const job = createBookingExpiryJob(app)
-    await job.onTick()
+    await createBookingExpiryJob(makeApp()).onTick()
 
-    // $queryRaw called twice: acquire + release
-    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(2)
+    expect(tx.booking.updateMany).toHaveBeenCalledWith({
+      where: { id: 'bk-1', status: 'PENDING' },
+      data: { status: 'EXPIRED' },
+    })
+    expect(tx.departureSlot.update).toHaveBeenCalledWith({
+      where: { id: 'slot-1' },
+      data: { booked: 2, status: 'OPEN' },
+    })
+    expect(notifyBookingEvent).toHaveBeenCalledWith(expect.anything(), 'bk-1', 'expired')
+    expect(bookingsExpiredCounter.add).toHaveBeenCalledWith(1)
   })
 
-  it('OPS-01: sets booking status to EXPIRED and decrements slot booked in a transaction', async () => {
-    const fakeBooking = {
-      id: 'bk-1',
-      customerName: 'Test User',
-      customerEmail: 'test@example.com',
-      pax: 2,
-      slotId: 'slot-1',
-      tenantId: 'tenant-1',
-      slot: {
-        status: 'FULL',
-        booked: 4,
-        capacity: 4,
-        package: { name: 'Passeio', tenant: { slug: 'my-tenant' } },
-      },
-    }
+  it('nunca deixa booked negativo', async () => {
+    tx = makeTx(1, { id: 'slot-1', booked: 1, capacity: 4, status: 'OPEN' })
+    mockPrisma.booking.findMany.mockResolvedValue([pendingBooking()])
 
-    mockPrisma.$queryRaw
-      .mockResolvedValueOnce([{ pg_try_advisory_lock: true }])
-      .mockResolvedValueOnce([{}])
+    await createBookingExpiryJob(makeApp()).onTick()
 
-    mockPrisma.booking.findMany.mockResolvedValueOnce([fakeBooking])
-
-    // Simulate $transaction executing the callback
-    mockPrisma.$transaction.mockImplementationOnce(
-      async (fn: (tx: unknown) => Promise<unknown>) => {
-        const tx = {
-          booking: { update: vi.fn() },
-          departureSlot: { update: vi.fn() },
-          $queryRaw: vi.fn().mockResolvedValueOnce([
-            {
-              id: 'slot-1',
-              booked: 4,
-              capacity: 4,
-              status: 'FULL',
-            },
-          ]),
-        }
-        await fn(tx)
-        // Verify booking was expired
-        expect(tx.booking.update).toHaveBeenCalledWith({
-          where: { id: 'bk-1' },
-          data: { status: 'EXPIRED' },
-        })
-        // Verify slot booked was decremented
-        expect(tx.departureSlot.update).toHaveBeenCalledWith(
-          expect.objectContaining({
-            where: { id: 'slot-1' },
-            data: expect.objectContaining({ booked: { decrement: 2 } }),
-          }),
-        )
-      },
-    )
-
-    mockGetResend.mockReturnValue(null) // no email
-
-    const app = makeApp()
-    const job = createBookingExpiryJob(app)
-    await job.onTick()
-
-    expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1)
+    expect(tx.departureSlot.update).toHaveBeenCalledWith({
+      where: { id: 'slot-1' },
+      data: { booked: 0, status: 'OPEN' },
+    })
   })
 
-  it('OPS-01: sends NOTIF-04 expiry email fire-and-forget when resend available', async () => {
-    const fakeBooking = {
-      id: 'bk-2',
-      customerName: 'Ana',
-      customerEmail: 'ana@example.com',
-      pax: 1,
-      slotId: 'slot-2',
-      tenantId: 'tenant-2',
-      slot: {
-        status: 'OPEN',
-        booked: 1,
-        capacity: 5,
-        package: { name: 'Tour', tenant: { slug: 'tour-slug' } },
-      },
-    }
+  it('slot CANCELLED preserva o status', async () => {
+    tx = makeTx(1, { id: 'slot-1', booked: 2, capacity: 4, status: 'CANCELLED' })
+    mockPrisma.booking.findMany.mockResolvedValue([pendingBooking()])
 
-    mockPrisma.$queryRaw
-      .mockResolvedValueOnce([{ pg_try_advisory_lock: true }])
-      .mockResolvedValueOnce([{}])
+    await createBookingExpiryJob(makeApp()).onTick()
 
-    mockPrisma.booking.findMany.mockResolvedValueOnce([fakeBooking])
-    mockPrisma.$transaction.mockImplementationOnce(
-      async (fn: (tx: unknown) => Promise<unknown>) => {
-        const tx = {
-          booking: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-          departureSlot: { update: vi.fn() },
-          $queryRaw: vi.fn().mockResolvedValueOnce([
-            {
-              id: 'slot-2',
-              booked: 1,
-              capacity: 5,
-              status: 'OPEN',
-            },
-          ]),
-        }
-        await fn(tx)
-      },
-    )
+    expect(tx.departureSlot.update).toHaveBeenCalledWith({
+      where: { id: 'slot-1' },
+      data: { booked: 0 },
+    })
+  })
 
+  it('envia o e-mail de expiração quando a reserva expirou', async () => {
     const mockSend = vi.fn().mockReturnValue({ catch: vi.fn() })
     mockGetResend.mockReturnValue({ emails: { send: mockSend } })
+    mockPrisma.booking.findMany.mockResolvedValue([pendingBooking()])
 
-    const app = makeApp()
-    const job = createBookingExpiryJob(app)
-    await job.onTick()
+    await createBookingExpiryJob(makeApp()).onTick()
 
     expect(mockSend).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: ['ana@example.com'],
-        subject: 'Sua reserva expirou — CAPI',
-      }),
+      expect.objectContaining({ to: ['ana@example.com'], subject: 'Sua reserva expirou — CAPI' }),
     )
   })
 
-  it('OPS-01: email failure does not throw or stop expiry processing', async () => {
-    const fakeBooking = {
-      id: 'bk-3',
-      customerName: 'Bruno',
-      customerEmail: 'bruno@example.com',
-      pax: 1,
-      slotId: 'slot-3',
-      tenantId: 'tenant-3',
-      slot: {
-        status: 'OPEN',
-        booked: 1,
-        capacity: 3,
-        package: { name: 'Passeio', tenant: { slug: 'slug-3' } },
-      },
-    }
-
-    mockPrisma.$queryRaw
-      .mockResolvedValueOnce([{ pg_try_advisory_lock: true }])
-      .mockResolvedValueOnce([{}])
-
-    mockPrisma.booking.findMany.mockResolvedValueOnce([fakeBooking])
-    mockPrisma.$transaction.mockImplementationOnce(
-      async (fn: (tx: unknown) => Promise<unknown>) => {
-        const tx = {
-          booking: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-          departureSlot: { update: vi.fn() },
-          $queryRaw: vi.fn().mockResolvedValueOnce([
-            {
-              id: 'slot-3',
-              booked: 1,
-              capacity: 3,
-              status: 'OPEN',
-            },
-          ]),
-        }
-        await fn(tx)
-      },
-    )
-
-    // email.send returns a promise that rejects — caught via .catch()
-    const catchMock = vi.fn()
-    const mockSend = vi.fn().mockReturnValue({ catch: catchMock })
+  it('reserva confirmada no meio do caminho (count 0): sem e-mail, sem métrica, sem notificação', async () => {
+    tx = makeTx(0, null)
+    const mockSend = vi.fn().mockReturnValue({ catch: vi.fn() })
     mockGetResend.mockReturnValue({ emails: { send: mockSend } })
+    mockPrisma.booking.findMany.mockResolvedValue([pendingBooking()])
 
-    const app = makeApp()
-    const job = createBookingExpiryJob(app)
+    await createBookingExpiryJob(makeApp()).onTick()
 
-    // Must not throw
-    await expect(job.onTick()).resolves.toBeUndefined()
+    expect(mockSend).not.toHaveBeenCalled()
+    expect(bookingsExpiredCounter.add).not.toHaveBeenCalled()
+    expect(notifyBookingEvent).not.toHaveBeenCalled()
+    expect(tx.departureSlot.update).not.toHaveBeenCalled()
+  })
+
+  it('falha de e-mail não interrompe o job', async () => {
+    const catchMock = vi.fn()
+    mockGetResend.mockReturnValue({
+      emails: { send: vi.fn().mockReturnValue({ catch: catchMock }) },
+    })
+    mockPrisma.booking.findMany.mockResolvedValue([pendingBooking()])
+
+    await expect(createBookingExpiryJob(makeApp()).onTick()).resolves.toBeUndefined()
     expect(catchMock).toHaveBeenCalled()
   })
 
-  it('OPS-01: advisory lock is always released even when transaction throws', async () => {
-    mockPrisma.$queryRaw
-      .mockResolvedValueOnce([{ pg_try_advisory_lock: true }])
-      .mockResolvedValueOnce([{}]) // release in finally
-
-    mockPrisma.booking.findMany.mockResolvedValueOnce([
-      {
-        id: 'bk-fail',
-        customerName: 'X',
-        customerEmail: 'x@x.com',
-        pax: 1,
-        slotId: 's1',
-        tenantId: 't1',
-        slot: null,
-      },
+  it('falha em uma reserva não impede as demais', async () => {
+    mockPrisma.booking.findMany.mockResolvedValue([
+      pendingBooking({ id: 'bk-fail' }),
+      pendingBooking({ id: 'bk-ok' }),
     ])
-
-    mockPrisma.$transaction.mockRejectedValueOnce(new Error('DB error'))
-    mockGetResend.mockReturnValue(null)
+    mockPrisma.$transaction
+      .mockRejectedValueOnce(new Error('DB error'))
+      .mockImplementationOnce(async (fn: (t: unknown) => unknown) => fn(tx))
 
     const app = makeApp()
-    const job = createBookingExpiryJob(app)
-    await job.onTick()
+    await createBookingExpiryJob(app).onTick()
 
-    // Second $queryRaw call is the unlock
-    const calls = mockPrisma.$queryRaw.mock.calls
-    expect(calls.length).toBeGreaterThanOrEqual(2)
-  })
-})
-
-describe('createBookingExpiryJob notificação por transição', () => {
-  const pending = {
-    id: 'bk-n',
-    customerName: 'X',
-    customerEmail: null,
-    pax: 1,
-    slotId: 's1',
-    tenantId: 't1',
-    slot: null,
-  }
-
-  function runWith(count: number) {
-    mockPrisma.$queryRaw
-      .mockResolvedValueOnce([{ pg_try_advisory_lock: true }])
-      .mockResolvedValueOnce([{}])
-    mockPrisma.booking.findMany.mockResolvedValueOnce([pending])
-    mockPrisma.$transaction.mockImplementationOnce(
-      async (fn: (tx: unknown) => Promise<unknown>) => {
-        const tx = {
-          booking: { updateMany: vi.fn().mockResolvedValue({ count }) },
-          departureSlot: { update: vi.fn() },
-          $queryRaw: vi
-            .fn()
-            .mockResolvedValue([{ id: 's1', booked: 1, capacity: 4, status: 'OPEN' }]),
-        }
-        await fn(tx)
-      },
-    )
-    mockGetResend.mockReturnValue(null)
-    return createBookingExpiryJob(makeApp()).onTick()
-  }
-
-  it('notifica expired quando a transição ocorreu', async () => {
-    await runWith(1)
-    expect(notifyBookingEvent).toHaveBeenCalledWith(expect.anything(), 'bk-n', 'expired')
-  })
-
-  it('não notifica quando count === 0', async () => {
-    await runWith(0)
-    expect(notifyBookingEvent).not.toHaveBeenCalled()
+    expect(app.log.error).toHaveBeenCalled()
+    expect(notifyBookingEvent).toHaveBeenCalledWith(expect.anything(), 'bk-ok', 'expired')
   })
 })

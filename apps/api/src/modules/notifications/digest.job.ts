@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import prisma from '../../database'
 import { getResend, getEmailFrom } from '../../shared/email'
+import { withAdvisoryXactLock } from '../../shared/job-lock'
 import { digestEmailText, digestSubject } from './emails/digest-email'
 
 const NOTIFICATION_DIGEST_LOCK_ID = 1_234_567_891
@@ -10,15 +11,8 @@ export function createNotificationDigestJob(app: FastifyInstance) {
     cronTime: '0 8 * * *',
     timeZone: 'America/Sao_Paulo',
     onTick: async () => {
-      const [lockResult] = await prisma.$queryRaw<Array<{ pg_try_advisory_lock: boolean }>>`
-        SELECT pg_try_advisory_lock(${NOTIFICATION_DIGEST_LOCK_ID})`
-
-      if (!lockResult.pg_try_advisory_lock) {
-        app.log.info('[cron:digest] Lock not obtained — another instance running, skipping')
-        return
-      }
-
-      try {
+      // Advisory lock de transação — evita envio duplicado entre instâncias
+      const ran = await withAdvisoryXactLock(NOTIFICATION_DIGEST_LOCK_ID, async () => {
         const rows = await prisma.notification.findMany({
           where: {
             readAt: null,
@@ -35,7 +29,10 @@ export function createNotificationDigestJob(app: FastifyInstance) {
           orderBy: { createdAt: 'asc' },
         })
 
-        const byUser = new Map<string, { user: (typeof rows)[number]['user']; items: typeof rows }>()
+        const byUser = new Map<
+          string,
+          { user: (typeof rows)[number]['user']; items: typeof rows }
+        >()
         for (const row of rows) {
           const entry = byUser.get(row.user.id) ?? { user: row.user, items: [] }
           entry.items.push(row)
@@ -67,7 +64,10 @@ export function createNotificationDigestJob(app: FastifyInstance) {
               }),
             })
             if (result?.error) {
-              app.log.warn({ err: result.error, userId: user.id }, '[cron:digest] Resend returned an error')
+              app.log.warn(
+                { err: result.error, userId: user.id },
+                '[cron:digest] Resend returned an error',
+              )
               continue
             }
           } catch (err) {
@@ -84,12 +84,10 @@ export function createNotificationDigestJob(app: FastifyInstance) {
             app.log.error({ err, userId: user.id }, '[cron:digest] Failed to mark digest as sent')
           }
         }
-      } finally {
-        try {
-          await prisma.$queryRaw`SELECT pg_advisory_unlock(${NOTIFICATION_DIGEST_LOCK_ID})`
-        } catch (unlockErr) {
-          app.log.error({ err: unlockErr }, '[cron:digest] Failed to release advisory lock')
-        }
+      })
+
+      if (!ran) {
+        app.log.info('[cron:digest] Lock not obtained — another instance running, skipping')
       }
     },
     start: true,

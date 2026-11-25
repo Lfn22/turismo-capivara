@@ -51,6 +51,9 @@ import { createBookingExpiryJob } from './modules/bookings/expiry.job'
 import { createTokenCleanupJob } from './modules/auth/token.service'
 import { createNotificationDigestJob } from './modules/notifications/digest.job'
 import { AppError } from './shared/errors/AppError'
+import { clientIp, isInternalWithoutClient, trustProxyHops } from './shared/utils/client-ip'
+import { pathOnly } from './shared/utils/log-url'
+import { healthResponse } from './shared/utils/health'
 
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -64,14 +67,17 @@ const app = Fastify({
         const user = request.user as { sub?: string } | undefined
         return {
           method: request.method,
-          url: request.url,
+          // Sem query string: rotas públicas recebem e-mail do cliente na query
+          url: pathOnly(request.url),
           tenantSlug: params?.slug,
           userId: user?.sub,
         }
       },
     },
   },
-  trustProxy: true,
+  // Só os saltos reais (borda do Railway): `true` aceitava X-Forwarded-For forjado
+  // pelo cliente e anulava todo rate limit por IP
+  trustProxy: trustProxyHops(),
   genReqId: () => crypto.randomUUID(),
   connectionTimeout: 30000,
 })
@@ -111,6 +117,10 @@ app.register(rateLimit, {
   global: true,
   max: 100,
   timeWindow: '1 minute',
+  // Cliente final, mesmo quando a chamada chega pelo servidor web (ver client-ip.ts)
+  keyGenerator: (req) => clientIp(req),
+  // Render SSR da web (interno, sem cliente) não consome o balde de ninguém
+  allowList: (req) => isInternalWithoutClient(req),
   addHeaders: {
     'x-ratelimit-limit': true,
     'x-ratelimit-remaining': true,
@@ -166,10 +176,10 @@ app.get('/health', { config: { rateLimit: false } }, async (request, reply) => {
 
   checks.email = process.env.RESEND_API_KEY ? 'ok' : 'skipped'
 
-  const allOk = Object.values(checks).every((v) => v === 'ok' || v === 'skipped')
+  const { httpStatus, status } = healthResponse(checks)
 
-  return reply.status(allOk ? 200 : 503).send({
-    status: allOk ? 'healthy' : 'degraded',
+  return reply.status(httpStatus).send({
+    status,
     checks,
     timestamp: new Date().toISOString(),
   })
@@ -218,7 +228,8 @@ app.setErrorHandler((err, request, reply) => {
     if (params?.slug) scope.setTag('tenant_slug', params.slug)
     const user = request.user as { sub?: string } | undefined
     if (user?.sub) scope.setUser({ id: user.sub })
-    scope.setTag('route', `${request.method} ${request.url}`)
+    // Padrão da rota (sem ids nem query com PII)
+    scope.setTag('route', `${request.method} ${request.routeOptions?.url ?? pathOnly(request.url)}`)
     Sentry.captureException(err)
   })
   request.log.error(err)

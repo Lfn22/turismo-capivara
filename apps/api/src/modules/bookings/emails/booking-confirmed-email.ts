@@ -22,7 +22,7 @@ export function bookingConfirmedEmailText({
 
 Seu pagamento foi confirmado. Sua reserva está garantida!
 
-Código da reserva: ${bookingId}
+Código da reserva: ${bookingId.slice(-6).toUpperCase()}
 Passeio: ${packageName}
 Guia: ${guideName}
 Data e hora: ${dateStr}

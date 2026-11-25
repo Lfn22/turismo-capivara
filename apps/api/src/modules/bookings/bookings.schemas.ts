@@ -8,9 +8,11 @@ export const selfServiceBodySchema = z.object({
 
 export type SelfServiceBody = z.infer<typeof selfServiceBodySchema>
 
-export const cancelSelfBodySchema = z.object({
-  token: z.string().min(1, { message: 'Token é obrigatório' }),
-})
+// Link do e-mail envia { token }; a tela "Minha reserva" envia { email, code }
+export const cancelSelfBodySchema = z.union(
+  [z.object({ token: z.string().min(1) }), selfServiceBodySchema],
+  { message: 'Informe o token de cancelamento ou e-mail e código da reserva' },
+)
 
 export type CancelSelfBody = z.infer<typeof cancelSelfBodySchema>
 

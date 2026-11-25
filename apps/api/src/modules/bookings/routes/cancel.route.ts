@@ -8,6 +8,8 @@ import { auditLog } from '../../../shared/audit.js'
 import { bookingsCancelledCounter } from '../../../shared/metrics.js'
 import { Sentry } from '../../../shared/sentry'
 import { notifyBookingEvent } from '../../notifications/booking-events'
+import { cancelBooking } from '../cancel-booking'
+import { clientIp } from '../../../shared/utils/client-ip'
 
 export async function cancelSelfRoute(app: FastifyInstance) {
   // POST /tenants/:slug/bookings/cancel-self — public, no JWT
@@ -18,7 +20,7 @@ export async function cancelSelfRoute(app: FastifyInstance) {
         rateLimit: {
           max: 3,
           timeWindow: '15 minutes',
-          keyGenerator: (req) => req.ip,
+          keyGenerator: (req) => clientIp(req),
         },
       },
     },
@@ -27,10 +29,10 @@ export async function cancelSelfRoute(app: FastifyInstance) {
       if (!parsed.success) {
         return reply
           .status(400)
-          .send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
+          .send({ message: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
       }
       const { slug } = request.params
-      const { token } = parsed.data
+      const input = parsed.data
 
       Sentry.setTag('module', 'bookings')
       Sentry.setTag('tenant', slug)
@@ -39,19 +41,31 @@ export async function cancelSelfRoute(app: FastifyInstance) {
       const tenant = await prisma.tenant.findUnique({ where: { slug } })
       if (!tenant) throw new AppError('Tenant não encontrado', 404)
 
+      const byToken = 'token' in input
       const booking = await prisma.booking.findFirst({
-        where: { cancelToken: token, tenantId: tenant.id },
+        where: byToken
+          ? { cancelToken: input.token, tenantId: tenant.id }
+          : { code: input.code.toLowerCase(), tenantId: tenant.id },
         include: {
           slot: { select: { startsAt: true, package: { select: { name: true } } } },
         },
       })
 
-      if (!booking) {
+      // 404 opaco tanto para reserva inexistente quanto para e-mail divergente
+      if (
+        !booking ||
+        (!byToken && booking.customerEmail.toLowerCase() !== input.email.trim().toLowerCase())
+      ) {
         throw new AppError('Reserva não encontrada ou dados inválidos', 404)
       }
 
-      if (booking.cancelTokenExpiresAt && booking.cancelTokenExpiresAt < new Date()) {
+      if (byToken && booking.cancelTokenExpiresAt && booking.cancelTokenExpiresAt < new Date()) {
         throw new AppError('Token de cancelamento expirado. Entre em contato com a operadora.', 410)
+      }
+
+      // Passeio já iniciado: nem o CDC permite cancelar (e liberar a vaga) depois da partida
+      if (booking.slot.startsAt.getTime() <= Date.now()) {
+        throw new AppError('Cancelamento não permitido — o passeio já começou', 422)
       }
 
       // CDC Art.49: direito de arrependimento — 7 dias a contar da compra
@@ -66,35 +80,8 @@ export async function cancelSelfRoute(app: FastifyInstance) {
         }
       }
 
-      if (!['PENDING', 'CONFIRMED'].includes(booking.status)) {
-        throw new AppError('Reserva não pode ser cancelada neste status', 422)
-      }
-
-      // Atomic cancel + slot release (D-04)
-      await prisma.$transaction(async (tx) => {
-        await tx.booking.update({
-          where: { id: booking.id },
-          data: { status: 'CANCELLED' },
-        })
-        const [currentSlot] = await tx.$queryRaw<
-          Array<{ booked: number; status: string; capacity: number }>
-        >`
-          SELECT booked, status, capacity FROM "DepartureSlot"
-          WHERE id = ${booking.slotId}
-          FOR UPDATE
-        `
-
-        if (!currentSlot) return // slot deleted — skip
-
-        const newBooked = Math.max(0, currentSlot.booked - booking.pax)
-        await tx.departureSlot.update({
-          where: { id: booking.slotId },
-          data: {
-            booked: newBooked,
-            ...(currentSlot.status === 'FULL' ? { status: 'OPEN' } : {}),
-          },
-        })
-      })
+      // Estorno (CONFIRMED) / cancelamento do PIX (PENDING) + cancelamento atômico (D-04)
+      await cancelBooking(booking, request.log)
 
       bookingsCancelledCounter.add(1)
 
@@ -122,7 +109,7 @@ export async function cancelSelfRoute(app: FastifyInstance) {
         action: 'booking.cancelled',
         targetType: 'BOOKING',
         targetId: booking.id,
-        ipAddress: request.ip,
+        ipAddress: clientIp(request),
         metadata: { tenantSlug: slug, previousStatus: booking.status },
       })
 

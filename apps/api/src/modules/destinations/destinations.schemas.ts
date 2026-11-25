@@ -1,9 +1,34 @@
 import { z } from 'zod'
+import { httpsUrlSchema } from '../../shared/utils/image-url'
 
 export const BR_STATES = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
-  'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
-  'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+  'AC',
+  'AL',
+  'AP',
+  'AM',
+  'BA',
+  'CE',
+  'DF',
+  'ES',
+  'GO',
+  'MA',
+  'MT',
+  'MS',
+  'MG',
+  'PA',
+  'PB',
+  'PR',
+  'PE',
+  'PI',
+  'RJ',
+  'RN',
+  'RS',
+  'RO',
+  'RR',
+  'SC',
+  'SP',
+  'SE',
+  'TO',
 ] as const
 
 export const CreateDestinationInput = z.object({
@@ -17,7 +42,7 @@ export const CreateDestinationInput = z.object({
     .max(1000, { message: 'Descrição deve ter entre 10 e 1000 caracteres' }),
   state: z.enum(BR_STATES, { error: 'Estado inválido' }),
   photos: z
-    .array(z.string().url({ message: 'URL de foto inválida' }))
+    .array(httpsUrlSchema('URL de foto inválida'))
     .max(5, { message: 'Máximo de 5 fotos' })
     .default([]),
   highlights: z
@@ -29,7 +54,7 @@ export const CreateDestinationInput = z.object({
     )
     .max(10, { message: 'Máximo de 10 destaques' })
     .default([]),
-  heroImageUrl: z.string().url({ message: 'URL de imagem inválida' }).nullable().optional(),
+  heroImageUrl: httpsUrlSchema('URL de imagem inválida').nullable().optional(),
 })
 
 export type CreateDestinationInputType = z.infer<typeof CreateDestinationInput>
@@ -48,7 +73,7 @@ export const UpdateDestinationInput = z
       .optional(),
     state: z.enum(BR_STATES, { error: 'Estado inválido' }).optional(),
     photos: z
-      .array(z.string().url({ message: 'URL de foto inválida' }))
+      .array(httpsUrlSchema('URL de foto inválida'))
       .max(5, { message: 'Máximo de 5 fotos' })
       .optional(),
     highlights: z
@@ -60,7 +85,7 @@ export const UpdateDestinationInput = z
       )
       .max(10, { message: 'Máximo de 10 destaques' })
       .optional(),
-    heroImageUrl: z.string().url({ message: 'URL de imagem inválida' }).nullable().optional(),
+    heroImageUrl: httpsUrlSchema('URL de imagem inválida').nullable().optional(),
   })
   .refine((data) => Object.values(data).some((v) => v !== undefined), {
     message: 'Pelo menos um campo deve ser informado',

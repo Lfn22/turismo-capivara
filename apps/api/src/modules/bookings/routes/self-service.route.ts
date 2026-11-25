@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import prisma from '../../../database'
 import { AppError } from '../../../shared/errors/AppError'
 import { selfServiceBodySchema, type SelfServiceBody } from '../bookings.schemas'
+import { clientIp } from '../../../shared/utils/client-ip'
 
 export async function selfServiceRoute(app: FastifyInstance) {
   // POST /tenants/:slug/bookings/lookup — public, no JWT
@@ -12,7 +13,7 @@ export async function selfServiceRoute(app: FastifyInstance) {
         rateLimit: {
           max: 5,
           timeWindow: '15 minutes',
-          keyGenerator: (req) => `lookup:ip:${req.ip}`,
+          keyGenerator: (req) => `lookup:ip:${clientIp(req)}`,
         },
       },
     },
@@ -21,7 +22,7 @@ export async function selfServiceRoute(app: FastifyInstance) {
       if (!parsed.success) {
         return reply
           .status(400)
-          .send({ error: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
+          .send({ message: parsed.error.issues[0]?.message ?? 'Dados inválidos' })
       }
       const { slug } = request.params
       const { email, code } = parsed.data

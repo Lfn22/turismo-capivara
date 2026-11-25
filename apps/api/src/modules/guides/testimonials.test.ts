@@ -99,7 +99,9 @@ describe('A-3: depoimento exige reserva comprovada', () => {
     const res = await post(VALID_BODY)
 
     expect(res.statusCode).toBe(403)
-    expect(res.json().message).toBe('BOOKING_NOT_ELIGIBLE')
+    expect(res.json().message).toBe(
+      'Só reservas confirmadas ou concluídas podem receber depoimento',
+    )
   })
 
   it('recusa reserva cancelada', async () => {
@@ -119,7 +121,7 @@ describe('A-3: depoimento exige reserva comprovada', () => {
     const res = await post(VALID_BODY)
 
     expect(res.statusCode).toBe(403)
-    expect(res.json().message).toBe('TOUR_NOT_FINISHED')
+    expect(res.json().message).toBe('O passeio ainda não aconteceu')
   })
 
   it('recusa reserva feita com OUTRO guia', async () => {
@@ -131,7 +133,7 @@ describe('A-3: depoimento exige reserva comprovada', () => {
     const res = await post(VALID_BODY)
 
     expect(res.statusCode).toBe(403)
-    expect(res.json().message).toBe('BOOKING_NOT_FOR_THIS_GUIDE')
+    expect(res.json().message).toBe('Esta reserva não é deste guia')
   })
 
   it('aceita depoimento legítimo e usa o nome da RESERVA, não o do corpo', async () => {
@@ -144,7 +146,7 @@ describe('A-3: depoimento exige reserva comprovada', () => {
           bookingId: 'booking-1',
           touristName: 'Maria Turista', // da reserva
         }),
-      })
+      }),
     )
   })
 
@@ -164,13 +166,13 @@ describe('A-3: depoimento exige reserva comprovada', () => {
       new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
         code: 'P2002',
         clientVersion: 'test',
-      })
+      }),
     )
 
     const res = await post(VALID_BODY)
 
     expect(res.statusCode).toBe(409)
-    expect(res.json().message).toBe('TESTIMONIAL_ALREADY_SUBMITTED')
+    expect(res.json().message).toBe('Já existe um depoimento para esta reserva')
   })
 
   it('recusa depoimento para guia não aprovado', async () => {

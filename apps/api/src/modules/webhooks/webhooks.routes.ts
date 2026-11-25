@@ -11,6 +11,7 @@ import {
 } from '../bookings/emails/booking-confirmed-email'
 import { auditLog } from '../../shared/audit.js'
 import { bookingsConfirmedCounter } from '../../shared/metrics.js'
+import { refundPayment } from '../../services/payment.service'
 import { z } from 'zod'
 
 const webhookBodySchema = z.object({
@@ -60,6 +61,217 @@ function validateMpSignature(
   }
 }
 
+type WebhookBooking = {
+  id: string
+  status: string
+  slotId: string
+  pax: number
+  paymentId: string | null
+  customerName: string
+  customerEmail: string | null
+  tenant?: { slug: string } | null
+  slot?: {
+    startsAt: Date
+    package?: { name: string; conductor?: { name: string } | null } | null
+  } | null
+}
+
+async function markProcessed(dedupeKey: string): Promise<void> {
+  try {
+    await prisma.processedWebhookEvent.create({ data: { id: dedupeKey } })
+  } catch (err: unknown) {
+    // Entrega concorrente já registrou — ok
+    if ((err as { code?: string } | null)?.code !== 'P2002') throw err
+  }
+}
+
+/** Estorno com alerta: falha aqui é dinheiro do cliente retido. Relança para o MP reenviar. */
+async function refundWithAlert(
+  app: FastifyInstance,
+  bookingId: string,
+  paymentId: string,
+  reason: string,
+): Promise<void> {
+  try {
+    await refundPayment(paymentId)
+  } catch (err) {
+    app.log.error({ err, bookingId, paymentId, reason }, '[webhook] Estorno falhou')
+    Sentry.captureException(err, { tags: { module: 'webhooks', action: 'refund' } })
+    throw err
+  }
+  app.log.warn({ bookingId, paymentId, reason }, '[webhook] Pagamento estornado')
+  auditLog(prisma, {
+    actorType: 'SYSTEM',
+    action: 'booking.payment-refunded',
+    targetType: 'BOOKING',
+    targetId: bookingId,
+    metadata: { paymentId, reason },
+  })
+}
+
+function onConfirmed(app: FastifyInstance, booking: WebhookBooking, paymentId: string) {
+  void notifyBookingEvent(app.log, booking.id, 'confirmed').catch(() => {})
+  bookingsConfirmedCounter.add(1, { tenant: booking.tenant?.slug ?? 'unknown' })
+
+  auditLog(prisma, {
+    actorType: 'SYSTEM',
+    action: 'booking.confirmed',
+    targetType: 'BOOKING',
+    targetId: booking.id,
+    metadata: { paymentId },
+  })
+
+  // NOTIF-02: Notify customer of confirmed booking (fire-and-forget, D-12)
+  const resend = getResend()
+  if (resend && booking.customerEmail) {
+    resend.emails
+      .send({
+        from: getEmailFrom(),
+        to: [booking.customerEmail],
+        subject: bookingConfirmedSubject,
+        text: bookingConfirmedEmailText({
+          bookingId: booking.id,
+          customerName: booking.customerName,
+          packageName: booking.slot?.package?.name ?? 'Passeio',
+          guideName: booking.slot?.package?.conductor?.name ?? 'Guia',
+          startsAt: booking.slot?.startsAt ?? new Date(),
+          meetingPoint: null,
+        }),
+      })
+      .catch((emailErr: unknown) => {
+        app.log.warn(
+          { err: emailErr, bookingId: booking.id },
+          '[email] Failed to send booking-confirmed email',
+        )
+      })
+  }
+}
+
+/**
+ * Reserva EXPIRED paga tarde: reocupa a vaga se o slot ainda estiver aberto, com
+ * capacidade e no futuro. Retorna false se não couber (o chamador estorna).
+ */
+async function reactivateExpired(booking: WebhookBooking, paymentId: string): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const [slot] = await tx.$queryRaw<
+      Array<{ status: string; booked: number; capacity: number; startsAt: Date }>
+    >`
+      SELECT status, booked, capacity, "startsAt" FROM "DepartureSlot"
+      WHERE id = ${booking.slotId}
+      FOR UPDATE
+    `
+    if (
+      !slot ||
+      slot.status !== 'OPEN' ||
+      slot.booked + booking.pax > slot.capacity ||
+      new Date(slot.startsAt).getTime() <= Date.now()
+    ) {
+      return false
+    }
+    const res = await tx.booking.updateMany({
+      where: { id: booking.id, status: 'EXPIRED' },
+      data: { status: 'CONFIRMED', paymentId },
+    })
+    if (res.count === 0) return false
+    const newBooked = slot.booked + booking.pax
+    await tx.departureSlot.update({
+      where: { id: booking.slotId },
+      data: { booked: newBooked, status: newBooked >= slot.capacity ? 'FULL' : 'OPEN' },
+    })
+    return true
+  })
+}
+
+async function handleApproved(
+  app: FastifyInstance,
+  booking: WebhookBooking,
+  paymentId: string,
+  retried = false,
+): Promise<void> {
+  switch (booking.status) {
+    case 'PENDING': {
+      // PENDING → CONFIRMED (idempotente: só transiciona se ainda PENDING)
+      const res = await prisma.booking.updateMany({
+        where: { id: booking.id, status: 'PENDING' },
+        data: { status: 'CONFIRMED', paymentId },
+      })
+      if (res.count > 0) return onConfirmed(app, booking, paymentId)
+      break // corrida (ex.: job de expiração) — reavalia com o estado atual
+    }
+    case 'EXPIRED': {
+      // Pago depois de expirar: reativa se houver vaga, senão estorna
+      if (await reactivateExpired(booking, paymentId)) {
+        return onConfirmed(app, booking, paymentId)
+      }
+      const fresh = await prisma.booking.findUnique({
+        where: { id: booking.id },
+        select: { status: true, paymentId: true },
+      })
+      if (fresh?.status === 'CONFIRMED' && fresh.paymentId === paymentId) return // outra entrega reativou
+      return refundWithAlert(app, booking.id, paymentId, 'pago-apos-expirar-sem-vaga')
+    }
+    case 'CANCELLED':
+      // O cliente desistiu — o dinheiro volta
+      return refundWithAlert(app, booking.id, paymentId, 'pago-apos-cancelamento')
+    case 'CONFIRMED':
+    case 'CHECKED_IN':
+    case 'COMPLETED':
+      // Reentrega do mesmo pagamento → nada. Outro pagamento aprovado → pagamento em dobro.
+      if (booking.paymentId && booking.paymentId !== paymentId) {
+        return refundWithAlert(app, booking.id, paymentId, 'pagamento-em-dobro')
+      }
+      return
+    default:
+      return // NO_SHOW etc.
+  }
+
+  if (retried) return
+  const fresh = await prisma.booking.findUnique({
+    where: { id: booking.id },
+    select: { status: true, paymentId: true },
+  })
+  if (fresh) await handleApproved(app, { ...booking, ...fresh }, paymentId, true)
+}
+
+async function handleFailedPayment(
+  app: FastifyInstance,
+  booking: WebhookBooking,
+  paymentId: string,
+): Promise<void> {
+  if (booking.status !== 'PENDING') return
+  // Cobrança antiga (o repay gerou outra): não pode derrubar a reserva com o PIX novo
+  if (booking.paymentId && booking.paymentId !== paymentId) return
+
+  // PENDING → EXPIRED + liberação da vaga, só se a transição de fato ocorreu (D-04)
+  const released = await prisma.$transaction(async (tx) => {
+    const res = await tx.booking.updateMany({
+      where: { id: booking.id, status: 'PENDING' },
+      data: { status: 'EXPIRED' },
+    })
+    if (res.count === 0) return false
+
+    const [slot] = await tx.$queryRaw<Array<{ status: string; booked: number; capacity: number }>>`
+      SELECT status, booked, capacity FROM "DepartureSlot"
+      WHERE id = ${booking.slotId}
+      FOR UPDATE
+    `
+    if (slot) {
+      const newBooked = Math.max(0, slot.booked - booking.pax)
+      const keepStatus = slot.status === 'CANCELLED' || slot.status === 'COMPLETED'
+      await tx.departureSlot.update({
+        where: { id: booking.slotId },
+        data: {
+          booked: newBooked,
+          ...(keepStatus ? {} : { status: newBooked < slot.capacity ? 'OPEN' : 'FULL' }),
+        },
+      })
+    }
+    return true
+  })
+
+  if (released) void notifyBookingEvent(app.log, booking.id, 'expired').catch(() => {})
+}
+
 export async function webhooksRoutes(app: FastifyInstance) {
   app.post(
     '/webhooks/mercadopago',
@@ -75,7 +287,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
       const signatureHeader = request.headers['x-signature']
       if (!signatureHeader || typeof signatureHeader !== 'string') {
         app.log.warn('Webhook recebido sem cabeçalho x-signature')
-        return reply.status(400).send({ error: 'Missing x-signature header' })
+        return reply.status(400).send({ message: 'Cabeçalho x-signature ausente' })
       }
 
       // 2. Parse body for data.id (payment ID)
@@ -83,7 +295,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
       const paymentId = parsed.success ? parsed.data.data?.id : undefined
 
       if (!paymentId) {
-        return reply.status(400).send({ error: 'Missing payment ID' })
+        return reply.status(400).send({ message: 'ID do pagamento ausente' })
       }
 
       // 3. Validate HMAC-SHA256 signature using manifest: "id:<data.id>;request-id:<x-request-id>;ts:<ts>;"
@@ -100,7 +312,7 @@ export async function webhooksRoutes(app: FastifyInstance) {
           'Assinatura de webhook inválida',
         )
         Sentry.captureException(new Error('Mercado Pago webhook signature validation failed'))
-        return reply.status(500).send({ error: 'Signature verification failed' })
+        return reply.status(500).send({ message: 'Assinatura do webhook inválida' })
       }
 
       // 4. Fetch payment details from MP to get authoritative status and external_reference
@@ -112,33 +324,30 @@ export async function webhooksRoutes(app: FastifyInstance) {
       try {
         payment = await new Payment(client).get({ id: paymentId })
       } catch (err) {
-        // MP unreachable — return 200 to prevent MP retry flood
+        // MP indisponível — 503 para o MP reenviar; responder 200 perderia um "approved"
         app.log.error({ err, paymentId }, 'Falha ao buscar pagamento no Mercado Pago')
-        return reply.status(200).send({ message: 'ok' })
+        return reply.status(503).send({ message: 'Mercado Pago indisponível' })
       }
 
       const externalReference = payment.external_reference
-      const status = payment.status
+      const status = payment.status ?? 'unknown'
 
       if (!externalReference) {
         // No external_reference — not a booking payment, ignore
         return reply.status(200).send({ message: 'ok' })
       }
 
-      // 5. Deduplication: attempt to register this paymentId atomically FIRST (per D-08/D-09).
-      //    If another concurrent delivery already claimed it, P2002 unique constraint fires → deduplicate.
-      //    This eliminates the TOCTOU window between findUnique and create.
-      try {
-        await prisma.processedWebhookEvent.create({ data: { id: paymentId } })
-      } catch (dedupeErr: unknown) {
-        const isPrismaUniqueViolation =
-          typeof dedupeErr === 'object' &&
-          dedupeErr !== null &&
-          (dedupeErr as { code?: string }).code === 'P2002'
-        if (isPrismaUniqueViolation) {
-          return reply.status(200).send({ ok: true, deduplicated: true })
-        }
-        throw dedupeErr
+      // 5. Dedupe por (paymentId, status): o MP envia várias notificações para o mesmo
+      //    pagamento (created → updated), então deduplicar só por paymentId descartaria o
+      //    "approved" que chega depois do "pending". O evento só é marcado como processado
+      //    depois do sucesso — uma falha no meio deixa o MP reenviar. Entregas concorrentes
+      //    são seguras porque toda transição é condicional (updateMany where status).
+      const dedupeKey = `${paymentId}:${status}`
+      const alreadyProcessed = await prisma.processedWebhookEvent.findUnique({
+        where: { id: dedupeKey },
+      })
+      if (alreadyProcessed) {
+        return reply.status(200).send({ ok: true, deduplicated: true })
       }
 
       // 6. Find booking by external_reference (= booking.id set at creation)
@@ -161,103 +370,18 @@ export async function webhooksRoutes(app: FastifyInstance) {
         },
       })
 
-      if (!booking) {
-        // Unknown booking — return 200 (MP retries 404 indefinitely)
-        return reply.status(200).send({ message: 'ok' })
-      }
-
-      // 7. Idempotency check (per D-08): already in terminal state — no reprocessing
-      const TERMINAL_STATES: string[] = [
-        'CONFIRMED',
-        'CANCELLED',
-        'EXPIRED',
-        'COMPLETED',
-        'NO_SHOW',
-      ]
-      if (TERMINAL_STATES.includes(booking.status)) {
-        return reply.status(200).send({ message: 'ok' })
-      }
-
-      // 8. Transition based on authoritative payment status from MP API
-      if (status === 'approved') {
-        // PENDING → CONFIRMED (idempotent: only transitions if still PENDING)
-        const confirmResult = await prisma.booking.updateMany({
-          where: { id: booking.id, status: 'PENDING' },
-          data: { status: 'CONFIRMED' },
-        })
-        if (confirmResult.count > 0) {
-          void notifyBookingEvent(app.log, booking.id, 'confirmed').catch(() => {})
-          bookingsConfirmedCounter.add(1, { tenant: booking.tenant?.slug ?? 'unknown' })
+      // 7. Transição pelo status autoritativo do MP (booking inexistente → 200, MP
+      //    reenviaria um 404 indefinidamente)
+      if (booking) {
+        if (status === 'approved') {
+          await handleApproved(app, booking, paymentId)
+        } else if (status === 'cancelled' || status === 'rejected') {
+          await handleFailedPayment(app, booking, paymentId)
         }
-
-        auditLog(prisma, {
-          actorType: 'SYSTEM',
-          action: 'booking.confirmed',
-          targetType: 'BOOKING',
-          targetId: booking.id,
-          metadata: { paymentId },
-        })
-
-        // NOTIF-02: Notify customer of confirmed booking (fire-and-forget, D-12)
-        const resend = getResend()
-        if (resend && booking.customerEmail) {
-          resend.emails
-            .send({
-              from: getEmailFrom(),
-              to: [booking.customerEmail],
-              subject: bookingConfirmedSubject,
-              text: bookingConfirmedEmailText({
-                bookingId: booking.id,
-                customerName: booking.customerName,
-                packageName: booking.slot?.package?.name ?? 'Passeio',
-                guideName: booking.slot?.package?.conductor?.name ?? 'Guia',
-                startsAt: booking.slot?.startsAt ?? new Date(),
-                meetingPoint: null,
-              }),
-            })
-            .catch((emailErr: unknown) => {
-              app.log.warn(
-                { err: emailErr, bookingId: booking.id },
-                '[email] Failed to send booking-confirmed email',
-              )
-            })
-        }
-      } else if (status === 'cancelled' || status === 'rejected') {
-        // PENDING → EXPIRED + release slot inside $transaction (per D-04)
-        await prisma.$transaction(async (tx) => {
-          await tx.booking.update({
-            where: { id: booking.id },
-            data: { status: 'EXPIRED' },
-          })
-
-          // Atomic decrement — avoids snapshot-read race condition
-          await tx.departureSlot.update({
-            where: { id: booking.slotId },
-            data: {
-              booked: { decrement: booking.pax },
-            },
-          })
-
-          // Re-read slot to recalculate status after atomic decrement
-          const updatedSlot = await tx.departureSlot.findUnique({ where: { id: booking.slotId } })
-          if (
-            updatedSlot &&
-            updatedSlot.status !== 'CANCELLED' &&
-            updatedSlot.status !== 'COMPLETED'
-          ) {
-            const correctedBooked = Math.max(0, updatedSlot.booked)
-            const newStatus = correctedBooked < updatedSlot.capacity ? 'OPEN' : 'FULL'
-            await tx.departureSlot.update({
-              where: { id: booking.slotId },
-              data: { booked: correctedBooked, status: newStatus },
-            })
-          }
-        })
-
-        void notifyBookingEvent(app.log, booking.id, 'expired').catch(() => {})
+        // Other statuses (pending, in_process) — no-op
       }
-      // Other statuses (pending, in_process) — no-op, acknowledge with 200
 
+      await markProcessed(dedupeKey)
       return reply.status(200).send({ message: 'ok' })
     },
   )

@@ -2,8 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../../../database', () => ({
   default: {
-    $queryRaw: vi.fn(),
     notification: { findMany: vi.fn(), updateMany: vi.fn() },
+  },
+}))
+
+// O lock é testado em shared/job-lock.test.ts; aqui só controlamos se foi obtido
+const lockObtained = { value: true }
+vi.mock('../../../shared/job-lock', () => ({
+  withAdvisoryXactLock: async (_id: number, fn: () => Promise<void>) => {
+    if (!lockObtained.value) return false
+    await fn()
+    return true
   },
 }))
 
@@ -34,7 +43,7 @@ const rows = [
 
 beforeEach(() => {
   vi.resetAllMocks()
-  mockPrisma.$queryRaw.mockResolvedValue([{ pg_try_advisory_lock: true }])
+  lockObtained.value = true
 })
 
 describe('createNotificationDigestJob', () => {
@@ -45,7 +54,7 @@ describe('createNotificationDigestJob', () => {
   })
 
   it('does nothing when the lock is not obtained', async () => {
-    mockPrisma.$queryRaw.mockResolvedValueOnce([{ pg_try_advisory_lock: false }])
+    lockObtained.value = false
     await createNotificationDigestJob(makeApp()).onTick()
     expect(mockPrisma.notification.findMany).not.toHaveBeenCalled()
   })

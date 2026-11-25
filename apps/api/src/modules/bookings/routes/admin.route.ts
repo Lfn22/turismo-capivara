@@ -9,6 +9,8 @@ import { AppError } from '../../../shared/errors/AppError'
 import { Sentry } from '../../../shared/sentry'
 import { notifyBookingEvent } from '../../notifications/booking-events'
 import { isPlatformStaff } from '../../../shared/auth/roles'
+import { cancelBooking } from '../cancel-booking'
+import { clientIp } from '../../../shared/utils/client-ip'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -20,10 +22,18 @@ const slugAndIdParamsSchema = z.object({
 })
 
 export async function adminBookingsRoute(app: FastifyInstance) {
+  // Público (sem JWT): usado pelo checkout, polling de status e confirmação do turista convidado.
+  // Autorização = id (cuid, não enumerável) + e-mail do cliente; 404 opaco para ambos (D-08).
   app.get(
     '/tenants/:slug/bookings/:id',
     {
-      preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN', 'CONDUTOR', 'SUPER_ADMIN'])],
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '15 minutes',
+          keyGenerator: (req) => `booking-get:ip:${clientIp(req)}`,
+        },
+      },
     },
     async (request, reply) => {
       const { data: params, error: paramsError } = parseParams(
@@ -65,13 +75,9 @@ export async function adminBookingsRoute(app: FastifyInstance) {
         throw new AppError('Reserva não encontrada', 404)
       }
 
-      // Tenant ownership check — non-platform staff can only view their own tenant's bookings
-      const user = request.user as { sub: string; role: string; tenantId: string }
-      if (!isPlatformStaff(user.role) && booking.tenantId !== user.tenantId) {
-        throw new AppError('Reserva não encontrada', 404)
-      }
-
-      const { customerCpfHash, customerPhone, ...safeBooking } = booking
+      // Rota pública: nunca devolver token de cancelamento nem dados sensíveis
+      const { customerCpfHash, customerPhone, cancelToken, idempotencyKey, ...safeBooking } =
+        booking
       return safeBooking
     },
   )
@@ -113,51 +119,36 @@ export async function adminBookingsRoute(app: FastifyInstance) {
 
       const user = request.user as { sub: string; role: string; tenantId: string }
       if (!isPlatformStaff(user.role) && booking.tenantId !== user.tenantId) {
-        throw new AppError('FORBIDDEN', 403)
+        throw new AppError('Acesso negado', 403)
       }
       if (user.role === 'CONDUTOR' && booking.slot?.package?.conductorId !== user.sub) {
         throw new AppError('Acesso negado', 403)
       }
 
       if (booking.status === 'CANCELLED') {
-        throw new AppError('BOOKING_ALREADY_CANCELLED', 400)
+        throw new AppError('Reserva já cancelada', 400)
       }
 
       if (!['PENDING', 'CONFIRMED'].includes(booking.status)) {
         throw new AppError('Reserva não pode ser cancelada neste status', 400)
       }
 
-      const updated = await prisma.$transaction(async (tx) => {
-        // Re-check status inside transaction to prevent race conditions
-        const freshBooking = await tx.booking.findUnique({
-          where: { id },
-          select: { status: true },
-        })
-        if (freshBooking?.status === 'CANCELLED') {
-          throw new AppError('BOOKING_ALREADY_CANCELLED', 400)
-        }
+      // Estorno (CONFIRMED) / cancelamento do PIX (PENDING) + cancelamento atômico
+      await cancelBooking(booking, request.log)
 
-        const currentSlot = await tx.departureSlot.findUnique({ where: { id: booking.slotId } })
-        const newBooked = Math.max(0, (currentSlot?.booked ?? 0) - booking.pax)
-        await tx.departureSlot.update({
-          where: { id: booking.slotId },
-          data: {
-            booked: newBooked,
-            // Restore to OPEN if slot was FULL — preserve CANCELLED/COMPLETED
-            ...(currentSlot?.status === 'FULL' ? { status: 'OPEN' } : {}),
-          },
-        })
+      void notifyBookingEvent(app.log, booking.id, 'cancelled').catch(() => {})
 
-        return tx.booking.update({
-          where: { id },
-          data: { status: 'CANCELLED' },
-        })
-      })
-
-      void notifyBookingEvent(app.log, updated.id, 'cancelled').catch(() => {})
-
-      const { customerCpfHash, customerPhone, ...safeBooking } = updated
-      return safeBooking
+      // Allowlist explícita — nunca CPF, telefone ou tokens
+      return {
+        id: booking.id,
+        code: booking.code,
+        tenantId: booking.tenantId,
+        slotId: booking.slotId,
+        customerName: booking.customerName,
+        customerEmail: booking.customerEmail,
+        pax: booking.pax,
+        status: 'CANCELLED',
+      }
     },
   )
 
@@ -198,7 +189,7 @@ export async function adminBookingsRoute(app: FastifyInstance) {
 
       const user = request.user as { sub: string; role: string; tenantId: string }
       if (!isPlatformStaff(user.role) && booking.tenantId !== user.tenantId) {
-        throw new AppError('FORBIDDEN', 403)
+        throw new AppError('Acesso negado', 403)
       }
       if (user.role === 'CONDUTOR' && booking.slot?.package?.conductorId !== user.sub) {
         throw new AppError('Acesso negado', 403)
@@ -228,7 +219,7 @@ export async function adminBookingsRoute(app: FastifyInstance) {
   app.get(
     '/tenants/:slug/bookings',
     {
-      preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN'])],
+      preHandler: [authenticate, authorize(['ADMIN', 'PLATFORM_ADMIN', 'SUPER_ADMIN'])],
     },
     async (request, reply) => {
       const { data: params, error: paramsError } = parseParams(

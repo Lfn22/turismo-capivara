@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import prisma from '../../../database'
 import { AppError } from '../../../shared/errors/AppError'
+import { BOOKING_CUTOFF_HOURS } from '../../bookings/booking-cutoff'
 import { parseParams, parseQuery } from '../../../shared/utils/zod-error'
 import { paginationQuerySchema, paginatedResponse } from '../../../shared/utils/pagination'
 
@@ -44,13 +45,57 @@ export async function publicPackagesRoute(app: FastifyInstance) {
 
     const { data: pagination, error: pgErr } = parseQuery(packageQuerySchema, request.query, reply)
     if (pgErr) return
-    const { conductorId, cursor, limit, minPrice, maxPrice, dateFrom, dateTo, minAvailable, search, sortBy } = pagination
+    const {
+      conductorId,
+      cursor,
+      limit,
+      minPrice,
+      maxPrice,
+      dateFrom,
+      dateTo,
+      minAvailable,
+      search,
+      sortBy,
+    } = pagination
 
     const orderBy: Record<string, string> =
-      sortBy === 'price_asc' ? { price: 'asc' }
-      : sortBy === 'price_desc' ? { price: 'desc' }
-      : sortBy === 'name' ? { name: 'asc' }
-      : { createdAt: 'desc' }
+      sortBy === 'price_asc'
+        ? { price: 'asc' }
+        : sortBy === 'price_desc'
+          ? { price: 'desc' }
+          : sortBy === 'name'
+            ? { name: 'asc' }
+            : { createdAt: 'desc' }
+
+    // Datas reserváveis começam no corte de 24h (createBooking recusa antes disso)
+    const bookableFrom = new Date(Date.now() + BOOKING_CUTOFF_HOURS * 3600_000)
+    const startsAtWindow = {
+      ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+      ...(dateTo ? { lte: new Date(dateTo) } : {}),
+    }
+
+    // minAvailable compara duas colunas (capacity - booked), o que o where do Prisma não
+    // expressa: resolve os roteiros elegíveis no SQL ANTES de paginar (filtrar a página
+    // em memória deixava páginas vazias e cursor/hasMore errados)
+    let availableIds: string[] | undefined
+    if (minAvailable !== undefined) {
+      const from = dateFrom && new Date(dateFrom) > bookableFrom ? new Date(dateFrom) : bookableFrom
+      const rows = dateTo
+        ? await prisma.$queryRaw<Array<{ packageId: string }>>`
+            SELECT DISTINCT "packageId" FROM "DepartureSlot"
+            WHERE status = 'OPEN'
+              AND "startsAt" >= ${from}
+              AND "startsAt" <= ${new Date(dateTo)}
+              AND capacity - booked >= ${minAvailable}
+          `
+        : await prisma.$queryRaw<Array<{ packageId: string }>>`
+            SELECT DISTINCT "packageId" FROM "DepartureSlot"
+            WHERE status = 'OPEN'
+              AND "startsAt" >= ${from}
+              AND capacity - booked >= ${minAvailable}
+          `
+      availableIds = rows.map((r) => r.packageId)
+    }
 
     const packages = await prisma.tourPackage.findMany({
       where: {
@@ -58,22 +103,25 @@ export async function publicPackagesRoute(app: FastifyInstance) {
         active: true,
         publishedAt: { not: null },
         ...(conductorId ? { conductorId } : {}),
+        ...(availableIds ? { id: { in: availableIds } } : {}),
         ...(minPrice !== undefined || maxPrice !== undefined
-          ? { price: { ...(minPrice !== undefined ? { gte: minPrice } : {}), ...(maxPrice !== undefined ? { lte: maxPrice } : {}) } }
-          : {}),
-        ...(dateFrom || dateTo
           ? {
-              departureSlots: {
-                some: {
-                  status: 'OPEN',
-                  ...(dateFrom ? { startsAt: { gte: new Date(dateFrom) } } : {}),
-                  ...(dateTo ? { startsAt: { lte: new Date(dateTo) } } : {}),
-                },
+              price: {
+                ...(minPrice !== undefined ? { gte: minPrice } : {}),
+                ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
               },
             }
           : {}),
+        ...(dateFrom || dateTo
+          ? { departureSlots: { some: { status: 'OPEN', startsAt: startsAtWindow } } }
+          : {}),
         ...(search
-          ? { OR: [{ name: { contains: search, mode: 'insensitive' } }, { description: { contains: search, mode: 'insensitive' } }] }
+          ? {
+              OR: [
+                { name: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
+              ],
+            }
           : {}),
       },
       take: limit + 1,
@@ -97,7 +145,7 @@ export async function publicPackagesRoute(app: FastifyInstance) {
         highlights: true,
         departureSlots: {
           where: {
-            startsAt: { gte: new Date() },
+            startsAt: { gte: bookableFrom },
             status: 'OPEN',
           },
           orderBy: { startsAt: 'asc' },
@@ -106,19 +154,13 @@ export async function publicPackagesRoute(app: FastifyInstance) {
       },
     })
 
-    const packagesWithMinReached = packages
-      .filter((pkg) =>
-        minAvailable === undefined
-          ? true
-          : pkg.departureSlots.some((s) => s.capacity - s.booked >= minAvailable),
-      )
-      .map((pkg) => ({
-        ...pkg,
-        departureSlots: pkg.departureSlots.map((slot) => ({
-          ...slot,
-          hasMinimumReached: slot.booked >= slot.minCapacity,
-        })),
-      }))
+    const packagesWithMinReached = packages.map((pkg) => ({
+      ...pkg,
+      departureSlots: pkg.departureSlots.map((slot) => ({
+        ...slot,
+        hasMinimumReached: slot.booked >= slot.minCapacity,
+      })),
+    }))
     return reply.status(200).send(paginatedResponse(packagesWithMinReached, limit))
   })
 
@@ -192,7 +234,7 @@ export async function publicPackagesRoute(app: FastifyInstance) {
             especialidades: true,
             regioes: true,
             user: {
-              select: { name: true },
+              select: { id: true, name: true },
             },
           },
         },
@@ -202,12 +244,14 @@ export async function publicPackagesRoute(app: FastifyInstance) {
     return reply.status(200).send(
       guides.map((pg) => ({
         guideId: pg.guide.id,
+        // TourPackage.conductorId é um User.id — permite achar o condutor nesta lista
+        userId: pg.guide.user.id,
         name: pg.guide.user.name,
         bio: pg.guide.bio,
         photoUrl: pg.guide.photoUrl,
         especialidades: pg.guide.especialidades,
         regioes: pg.guide.regioes,
-      }))
+      })),
     )
   })
 }

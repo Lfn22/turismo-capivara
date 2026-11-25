@@ -14,7 +14,7 @@ import { webhooksRoutes } from '../modules/webhooks/webhooks.routes'
 
 vi.mock('../database', () => ({
   default: {
-    processedWebhookEvent: { create: vi.fn() },
+    processedWebhookEvent: { create: vi.fn(), findUnique: vi.fn().mockResolvedValue(null) },
     booking: { findFirst: vi.fn(), updateMany: vi.fn() },
     departureSlot: { updateMany: vi.fn() },
     auditLog: { create: vi.fn() },
@@ -84,7 +84,7 @@ describe('POST /webhooks/mercadopago', () => {
     })
 
     expect(res.statusCode).toBe(400)
-    expect(res.json()).toEqual({ error: 'Missing x-signature header' })
+    expect(res.json()).toEqual({ message: 'Cabeçalho x-signature ausente' })
     await app.close()
   })
 
@@ -104,7 +104,7 @@ describe('POST /webhooks/mercadopago', () => {
     })
 
     expect(res.statusCode).toBe(500)
-    expect(res.json()).toEqual({ error: 'Signature verification failed' })
+    expect(res.json()).toEqual({ message: 'Assinatura do webhook inválida' })
     await app.close()
   })
 
@@ -127,7 +127,7 @@ describe('POST /webhooks/mercadopago', () => {
     })
 
     expect(res.statusCode).toBe(500)
-    expect(res.json()).toEqual({ error: 'Signature verification failed' })
+    expect(res.json()).toEqual({ message: 'Assinatura do webhook inválida' })
     await app.close()
   })
 
