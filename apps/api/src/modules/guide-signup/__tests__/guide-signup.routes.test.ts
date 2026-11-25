@@ -38,25 +38,39 @@ import { guidesRoutes } from '../../guides/guides.routes'
 const db = prisma as unknown as Record<string, Record<string, Mock>> & { $transaction: Mock }
 
 const app = buildApp(guideSignupRoutes, authRoutes, tenantsRoutes, guidesRoutes)
-beforeAll(async () => { await app.ready() })
-afterAll(async () => { await app.close() })
+beforeAll(async () => {
+  await app.ready()
+})
+afterAll(async () => {
+  await app.close()
+})
 
 process.env.CPF_SECRET = 'test-cpf-secret'
 
 const BOUNDARY = '----testboundary'
-function multipart(fields: Record<string, string>, file?: { name?: string; type: string; data: Buffer }) {
+function multipart(
+  fields: Record<string, string>,
+  file?: { name?: string; type: string; data: Buffer },
+) {
   const chunks: Buffer[] = []
   for (const [k, v] of Object.entries(fields)) {
-    chunks.push(Buffer.from(`--${BOUNDARY}\r\nContent-Disposition: form-data; name="${k}"\r\n\r\n${v}\r\n`))
+    chunks.push(
+      Buffer.from(`--${BOUNDARY}\r\nContent-Disposition: form-data; name="${k}"\r\n\r\n${v}\r\n`),
+    )
   }
   if (file) {
-    chunks.push(Buffer.from(
-      `--${BOUNDARY}\r\nContent-Disposition: form-data; name="file"; filename="${file.name ?? 'doc'}"\r\nContent-Type: ${file.type}\r\n\r\n`,
-    ))
+    chunks.push(
+      Buffer.from(
+        `--${BOUNDARY}\r\nContent-Disposition: form-data; name="file"; filename="${file.name ?? 'doc'}"\r\nContent-Type: ${file.type}\r\n\r\n`,
+      ),
+    )
     chunks.push(file.data, Buffer.from('\r\n'))
   }
   chunks.push(Buffer.from(`--${BOUNDARY}--\r\n`))
-  return { payload: Buffer.concat(chunks), headers: { 'content-type': `multipart/form-data; boundary=${BOUNDARY}` } }
+  return {
+    payload: Buffer.concat(chunks),
+    headers: { 'content-type': `multipart/form-data; boundary=${BOUNDARY}` },
+  }
 }
 
 const validFields = {
@@ -70,7 +84,10 @@ const validFields = {
 }
 const pdf = { type: 'application/pdf', data: Buffer.from('%PDF-1.4 fake') }
 
-function register(fields: Record<string, string>, file: { type: string; data: Buffer } | null = pdf) {
+function register(
+  fields: Record<string, string>,
+  file: { type: string; data: Buffer } | null = pdf,
+) {
   const { payload, headers } = multipart(fields, file ?? undefined)
   return app.inject({ method: 'POST', url: '/auth/register-guide', payload, headers })
 }
@@ -120,7 +137,12 @@ describe('POST /auth/register-guide', () => {
   })
 
   it('kind AGENCIA com tenant válido cria afiliação PENDING e avisa a agência', async () => {
-    db.tenant.findUnique.mockResolvedValue({ id: 't9', slug: 'agencia-x', type: 'AGENCIA', approvalStatus: 'APPROVED' })
+    db.tenant.findUnique.mockResolvedValue({
+      id: 't9',
+      slug: 'agencia-x',
+      type: 'AGENCIA',
+      approvalStatus: 'APPROVED',
+    })
     const res = await register({ ...validFields, kind: 'AGENCIA', tenantId: 't9' })
     expect(res.statusCode).toBe(201)
     expect(db.guideAffiliation.create).toHaveBeenCalledWith(
@@ -130,7 +152,12 @@ describe('POST /auth/register-guide', () => {
   })
 
   it('kind ASSOCIACAO com tenant do tipo AGENCIA -> 404', async () => {
-    db.tenant.findUnique.mockResolvedValue({ id: 't9', slug: 'agencia-x', type: 'AGENCIA', approvalStatus: 'APPROVED' })
+    db.tenant.findUnique.mockResolvedValue({
+      id: 't9',
+      slug: 'agencia-x',
+      type: 'AGENCIA',
+      approvalStatus: 'APPROVED',
+    })
     const res = await register({ ...validFields, kind: 'ASSOCIACAO', tenantId: 't9' })
     expect(res.statusCode).toBe(404)
     expect(res.json().message).toBe('Agência não encontrada')
@@ -138,10 +165,24 @@ describe('POST /auth/register-guide', () => {
   })
 
   it('tenant não aprovado ou independente -> 404', async () => {
-    db.tenant.findUnique.mockResolvedValue({ id: 't9', slug: 'x', type: 'AGENCIA', approvalStatus: 'PENDING' })
-    expect((await register({ ...validFields, kind: 'AGENCIA', tenantId: 't9' })).statusCode).toBe(404)
-    db.tenant.findUnique.mockResolvedValue({ id: 'ind', slug: 'independente', type: 'AGENCIA', approvalStatus: 'APPROVED' })
-    expect((await register({ ...validFields, kind: 'AGENCIA', tenantId: 'ind' })).statusCode).toBe(404)
+    db.tenant.findUnique.mockResolvedValue({
+      id: 't9',
+      slug: 'x',
+      type: 'AGENCIA',
+      approvalStatus: 'PENDING',
+    })
+    expect((await register({ ...validFields, kind: 'AGENCIA', tenantId: 't9' })).statusCode).toBe(
+      404,
+    )
+    db.tenant.findUnique.mockResolvedValue({
+      id: 'ind',
+      slug: 'independente',
+      type: 'AGENCIA',
+      approvalStatus: 'APPROVED',
+    })
+    expect((await register({ ...validFields, kind: 'AGENCIA', tenantId: 'ind' })).statusCode).toBe(
+      404,
+    )
   })
 
   it('kind AGENCIA sem tenantId -> 400', async () => {
@@ -169,24 +210,38 @@ describe('POST /auth/register-guide', () => {
     const samples = [
       { type: 'image/jpeg', data: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0]) },
       { type: 'image/png', data: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0]) },
-      { type: 'image/webp', data: Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBPVP8 ')]) },
+      {
+        type: 'image/webp',
+        data: Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBPVP8 ')]),
+      },
     ]
     for (const f of samples) expect((await register(validFields, f)).statusCode).toBe(201)
   })
 
   it('reenvio com assinatura divergente -> 400', async () => {
     db.user.findUnique.mockResolvedValue({ approvalStatus: 'REJECTED' })
-    const { payload, headers } = multipart({ credentialType: 'ICMBIO' }, { type: 'image/png', data: Buffer.from('%PDF-1.4') })
+    const { payload, headers } = multipart(
+      { credentialType: 'ICMBIO' },
+      { type: 'image/png', data: Buffer.from('%PDF-1.4') },
+    )
     const res = await app.inject({
-      method: 'POST', url: '/guides/me/credential', payload,
-      headers: { ...headers, authorization: `Bearer ${app.jwt.sign({ sub: 'u1', tenantId: 'ind', role: 'CONDUTOR', name: 'X', approvalStatus: 'REJECTED' })}` },
+      method: 'POST',
+      url: '/guides/me/credential',
+      payload,
+      headers: {
+        ...headers,
+        authorization: `Bearer ${app.jwt.sign({ sub: 'u1', tenantId: 'ind', role: 'CONDUTOR', name: 'X', approvalStatus: 'REJECTED' })}`,
+      },
     })
     expect(res.statusCode).toBe(400)
     expect(putCredential).not.toHaveBeenCalled()
   })
 
   it('arquivo acima de 10 MB -> 400', async () => {
-    const res = await register(validFields, { type: 'application/pdf', data: Buffer.concat([Buffer.from('%PDF-'), Buffer.alloc(10 * 1024 * 1024 + 10)]) })
+    const res = await register(validFields, {
+      type: 'application/pdf',
+      data: Buffer.concat([Buffer.from('%PDF-'), Buffer.alloc(10 * 1024 * 1024 + 10)]),
+    })
     expect(res.statusCode).toBe(400)
     expect(res.json().message).toBe('O comprovante deve ter até 10 MB')
     expect(putCredential).not.toHaveBeenCalled()
@@ -201,7 +256,11 @@ describe('POST /auth/register-guide', () => {
 
   it('e-mail duplicado (P2002) -> 409', async () => {
     db.$transaction.mockRejectedValue(
-      new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 'x', meta: { target: ['email'] } }),
+      new Prisma.PrismaClientKnownRequestError('dup', {
+        code: 'P2002',
+        clientVersion: 'x',
+        meta: { target: ['email'] },
+      }),
     )
     const res = await register(validFields)
     expect(res.statusCode).toBe(409)
@@ -210,7 +269,11 @@ describe('POST /auth/register-guide', () => {
 
   it('CPF duplicado (P2002) -> 409', async () => {
     db.$transaction.mockRejectedValue(
-      new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 'x', meta: { target: ['cpf'] } }),
+      new Prisma.PrismaClientKnownRequestError('dup', {
+        code: 'P2002',
+        clientVersion: 'x',
+        meta: { target: ['cpf'] },
+      }),
     )
     const res = await register(validFields)
     expect(res.statusCode).toBe(409)
@@ -230,7 +293,13 @@ describe('rotas antigas', () => {
     const condutor = await app.inject({
       method: 'POST',
       url: '/tenants/capivara/auth/register',
-      payload: { role: 'CONDUTOR', name: 'A', email: 'a@a.com', password: '12345678', cpf: '12345678901' },
+      payload: {
+        role: 'CONDUTOR',
+        name: 'A',
+        email: 'a@a.com',
+        password: '12345678',
+        cpf: '12345678901',
+      },
     })
     expect(condutor.statusCode).toBe(400)
     const cliente = await app.inject({
@@ -263,10 +332,21 @@ describe('GET /guides/me', () => {
         credentialNumber: '1',
         credentialSubmittedAt: new Date('2026-10-01'),
         credentialDocKey: 'credentials/secret.pdf',
-        affiliation: { id: 'aff1', status: 'PENDING', rejectionReason: null, tenant: { name: 'Agência X', type: 'AGENCIA' } },
+        affiliations: [
+          {
+            id: 'aff1',
+            status: 'PENDING',
+            rejectionReason: null,
+            tenant: { name: 'Agência X', type: 'AGENCIA' },
+          },
+        ],
       },
     })
-    const res = await app.inject({ method: 'GET', url: '/guides/me', headers: { authorization: `Bearer ${token()}` } })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/guides/me',
+      headers: { authorization: `Bearer ${token()}` },
+    })
     expect(res.statusCode).toBe(200)
     const body = res.json()
     expect(JSON.stringify(body)).not.toContain('credentialDocKey')
@@ -277,19 +357,32 @@ describe('GET /guides/me', () => {
       credentialType: 'CADASTUR',
       tenantSlug: 'independente',
       profile: { id: 'gp1', bio: 'b', especialidades: ['x'] },
-      affiliation: { id: 'aff1', tenantName: 'Agência X', tenantType: 'AGENCIA', status: 'PENDING', rejectionReason: null },
+      affiliation: {
+        id: 'aff1',
+        tenantName: 'Agência X',
+        tenantType: 'AGENCIA',
+        status: 'PENDING',
+        rejectionReason: null,
+      },
     })
   })
 
   it('não-condutor -> 403', async () => {
-    const res = await app.inject({ method: 'GET', url: '/guides/me', headers: { authorization: `Bearer ${token('CLIENTE')}` } })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/guides/me',
+      headers: { authorization: `Bearer ${token('CLIENTE')}` },
+    })
     expect(res.statusCode).toBe(403)
   })
 })
 
 describe('POST /guides/me/credential', () => {
   function resubmit() {
-    const { payload, headers } = multipart({ credentialType: 'ICMBIO', credentialNumber: '99' }, pdf)
+    const { payload, headers } = multipart(
+      { credentialType: 'ICMBIO', credentialNumber: '99' },
+      pdf,
+    )
     return app.inject({
       method: 'POST',
       url: '/guides/me/credential',
@@ -334,12 +427,20 @@ describe('POST /guides/me/credential', () => {
 
 describe('GET /tenants/search', () => {
   it('busca aprovados, exclui independente, no máximo 10', async () => {
-    db.tenant.findMany.mockResolvedValue([{ id: 't1', name: 'Capivara Tur', slug: 'capivara', type: 'AGENCIA' }])
+    db.tenant.findMany.mockResolvedValue([
+      { id: 't1', name: 'Capivara Tur', slug: 'capivara', type: 'AGENCIA' },
+    ])
     const res = await app.inject({ method: 'GET', url: '/tenants/search?q=ca' })
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ tenants: [{ id: 't1', name: 'Capivara Tur', slug: 'capivara', type: 'AGENCIA' }] })
+    expect(res.json()).toEqual({
+      tenants: [{ id: 't1', name: 'Capivara Tur', slug: 'capivara', type: 'AGENCIA' }],
+    })
     expect(db.tenant.findMany).toHaveBeenCalledWith({
-      where: { approvalStatus: 'APPROVED', slug: { notIn: ['independente', 'capi-platform'] }, name: { contains: 'ca', mode: 'insensitive' } },
+      where: {
+        approvalStatus: 'APPROVED',
+        slug: { notIn: ['independente', 'capi-platform'] },
+        name: { contains: 'ca', mode: 'insensitive' },
+      },
       select: { id: true, name: true, slug: true, type: true },
       orderBy: { name: 'asc' },
       take: 10,
@@ -356,7 +457,9 @@ describe('GET /tenants/search filtros extras', () => {
   it('exclui capi-platform e independente', async () => {
     db.tenant.findMany.mockResolvedValue([])
     await app.inject({ method: 'GET', url: '/tenants/search?q=ca' })
-    expect(db.tenant.findMany.mock.calls[0][0].where.slug).toEqual({ notIn: ['independente', 'capi-platform'] })
+    expect(db.tenant.findMany.mock.calls[0][0].where.slug).toEqual({
+      notIn: ['independente', 'capi-platform'],
+    })
   })
   it('type=ASSOCIACAO filtra por tipo', async () => {
     db.tenant.findMany.mockResolvedValue([])
@@ -373,8 +476,22 @@ describe('GET /tenants/search filtros extras', () => {
 describe('POST /tenants/signup tipo', () => {
   it('aceita type ASSOCIACAO e padrão AGENCIA', async () => {
     db.tenant.create.mockResolvedValue({ id: 'tn' })
-    const base = { name: 'Assoc', slug: 'assoc', email: 'a@a.com', password: '12345678', cnpj: '12345678000199' }
-    expect((await app.inject({ method: 'POST', url: '/tenants/signup', payload: { ...base, type: 'ASSOCIACAO' } })).statusCode).toBe(201)
+    const base = {
+      name: 'Assoc',
+      slug: 'assoc',
+      email: 'a@a.com',
+      password: '12345678',
+      cnpj: '12345678000199',
+    }
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/tenants/signup',
+          payload: { ...base, type: 'ASSOCIACAO' },
+        })
+      ).statusCode,
+    ).toBe(201)
     expect(db.tenant.create.mock.calls[0][0].data.type).toBe('ASSOCIACAO')
     await app.inject({ method: 'POST', url: '/tenants/signup', payload: base })
     expect(db.tenant.create.mock.calls[1][0].data.type).toBe('AGENCIA')

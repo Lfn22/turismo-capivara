@@ -6,12 +6,19 @@ import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { getResend, getEmailFrom } from '../../shared/email'
 import { notifyGuideDecision } from '../notifications/guide-events'
-import { guideApprovedEmailText, guideApprovedSubject } from '../bookings/emails/guide-approved-email'
-import { guideRejectedEmailText, guideRejectedSubject } from '../bookings/emails/guide-rejected-email'
+import {
+  guideApprovedEmailText,
+  guideApprovedSubject,
+} from '../bookings/emails/guide-approved-email'
+import {
+  guideRejectedEmailText,
+  guideRejectedSubject,
+} from '../bookings/emails/guide-rejected-email'
 import { getCredential } from './credential.storage'
 import { auditLog } from '../../shared/audit'
 import { imageUrlSchema } from '../../shared/utils/image-url'
 import { deleteReplacedPhoto } from '../uploads/replaced-photo'
+import { clientIp } from '../../shared/utils/client-ip'
 
 const REASON_LABELS = {
   ILEGIVEL: 'Documento ilegível',
@@ -36,7 +43,9 @@ const userIdParamsSchema = z.object({
 
 const rejectBodySchema = z
   .object({
-    reasonCode: z.enum(['ILEGIVEL', 'VENCIDO', 'NOME_DIFERENTE', 'OUTRO'], { message: 'Motivo inválido' }),
+    reasonCode: z.enum(['ILEGIVEL', 'VENCIDO', 'NOME_DIFERENTE', 'OUTRO'], {
+      message: 'Motivo inválido',
+    }),
     text: z
       .string()
       .trim()
@@ -57,7 +66,12 @@ const updateGuideBodySchema = z.object({
     .max(100, { message: 'Nome deve ter no máximo 100 caracteres' })
     .optional(),
   photoUrl: imageUrlSchema.nullable().optional(),
-  bio: z.string().trim().max(2000, { message: 'Bio deve ter no máximo 2000 caracteres' }).nullable().optional(),
+  bio: z
+    .string()
+    .trim()
+    .max(2000, { message: 'Bio deve ter no máximo 2000 caracteres' })
+    .nullable()
+    .optional(),
 })
 
 function zodError(err: ZodError) {
@@ -93,8 +107,21 @@ export async function platformGuidesRoutes(app: FastifyInstance) {
         credentialNumber: true,
         credentialSubmittedAt: true,
         credentialDocKey: true,
-        user: { select: { id: true, name: true, email: true, approvalStatus: true, rejectionReason: true } },
-        affiliation: { select: { status: true, tenant: { select: { name: true } } } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            approvalStatus: true,
+            rejectionReason: true,
+          },
+        },
+        // Relação 1:N desde 3ee0947 — o painel mostra a afiliação mais recente
+        affiliations: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { status: true, tenant: { select: { name: true } } },
+        },
       },
     })
 
@@ -111,8 +138,8 @@ export async function platformGuidesRoutes(app: FastifyInstance) {
         credentialNumber: p.credentialNumber,
         credentialSubmittedAt: p.credentialSubmittedAt,
         hasDocument: p.credentialDocKey != null,
-        affiliation: p.affiliation
-          ? { tenantName: p.affiliation.tenant.name, status: p.affiliation.status }
+        affiliation: p.affiliations[0]
+          ? { tenantName: p.affiliations[0].tenant.name, status: p.affiliations[0].status }
           : null,
       })),
     })
@@ -168,7 +195,10 @@ export async function platformGuidesRoutes(app: FastifyInstance) {
           from: getEmailFrom(),
           to: guide.email,
           subject: guideApprovedSubject,
-          text: guideApprovedEmailText({ guideName: guide.name ?? 'Guia', slug: guide.tenant.slug }),
+          text: guideApprovedEmailText({
+            guideName: guide.name ?? 'Guia',
+            slug: guide.tenant.slug,
+          }),
         })
         .catch((emailErr: unknown) => {
           app.log.warn({ err: emailErr, userId }, '[email] Failed to send guide-approved email')
@@ -209,7 +239,9 @@ export async function platformGuidesRoutes(app: FastifyInstance) {
         })
     }
 
-    void notifyGuideDecision(app.log, userId, { approved: false, reason }, decider.sub).catch(() => {})
+    void notifyGuideDecision(app.log, userId, { approved: false, reason }, decider.sub).catch(
+      () => {},
+    )
 
     return reply.status(200).send({ message: 'Guia rejeitado' })
   })
@@ -223,7 +255,8 @@ export async function platformGuidesRoutes(app: FastifyInstance) {
     await loadGuide(userId)
     const previousPhotoUrl =
       body.photoUrl !== undefined
-        ? (await prisma.guideProfile.findUnique({ where: { userId }, select: { photoUrl: true } }))?.photoUrl
+        ? (await prisma.guideProfile.findUnique({ where: { userId }, select: { photoUrl: true } }))
+            ?.photoUrl
         : undefined
 
     const profileData = {
@@ -233,7 +266,11 @@ export async function platformGuidesRoutes(app: FastifyInstance) {
 
     const guide = await prisma.$transaction(async (tx) => {
       if (body.name !== undefined) {
-        await tx.user.update({ where: { id: userId }, data: { name: body.name }, select: { id: true } })
+        await tx.user.update({
+          where: { id: userId },
+          data: { name: body.name },
+          select: { id: true },
+        })
       }
       if (Object.keys(profileData).length > 0) {
         await tx.guideProfile.upsert({
@@ -245,7 +282,12 @@ export async function platformGuidesRoutes(app: FastifyInstance) {
       }
       return tx.user.findUniqueOrThrow({
         where: { id: userId },
-        select: { id: true, name: true, email: true, guideProfile: { select: { photoUrl: true, bio: true } } },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          guideProfile: { select: { photoUrl: true, bio: true } },
+        },
       })
     })
 
@@ -259,7 +301,7 @@ export async function platformGuidesRoutes(app: FastifyInstance) {
       action: 'guide.updated',
       targetType: 'USER',
       targetId: userId,
-      ipAddress: request.ip,
+      ipAddress: clientIp(request),
       metadata: { actorUserId: actor.sub, fields: fields.join(',') },
     })
 
