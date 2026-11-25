@@ -8,6 +8,15 @@ RUN printf 'onlyBuiltDependencies:\n  - sharp\n  - unrs-resolver\nallowBuilds:\n
 RUN pnpm install --no-frozen-lockfile
 
 COPY . .
+# NEXT_PUBLIC_* são embutidas no JS do navegador durante o build. O Railway só repassa
+# as variáveis do serviço ao build do Docker quando declaradas como ARG — sem isto o
+# bundle saía com o fallback http://localhost:3333 e o navegador não alcançava a API.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_SENTRY_DSN
+ARG NEXT_PUBLIC_POSTHOG_KEY
+ARG NEXT_PUBLIC_POSTHOG_HOST
+ARG NEXT_PUBLIC_META_PIXEL_ID
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 RUN pnpm build
