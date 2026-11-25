@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { internalProxyHeaders } from '@/src/lib/internal-headers'
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -19,7 +20,7 @@ export async function POST(
   try {
     res = await fetch(`${API_URL}/tenants/${slug}/bookings/repay`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...internalProxyHeaders(request.headers) },
       body,
       cache: 'no-store',
     })

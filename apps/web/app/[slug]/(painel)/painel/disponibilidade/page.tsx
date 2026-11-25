@@ -107,7 +107,8 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
     setSlotsError(null)
     Promise.all(
       packages.map((pkg) =>
-        fetch(`/api/proxy?path=/tenants/${slug}/packages/${pkg.id}/slots`)
+        // Rota de gestão: inclui lotados, cancelados, rascunhos e datas dentro do corte de 24h
+        fetch(`/api/proxy?path=/tenants/${slug}/packages/${pkg.id}/slots/manage`)
           .then((r) => {
             if (!r.ok) throw new Error(`HTTP ${r.status}`)
             return r.json()
@@ -127,10 +128,12 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
       return
     }
     setGuidesLoading(true)
-    fetch(`/api/proxy?path=/tenants/${slug}/guides`)
+    // Padrão da API é 20 por página: guias além do 20º não apareciam no select
+    fetch(`/api/proxy?path=${encodeURIComponent(`/tenants/${slug}/guides?limit=100`)}`)
       .then((res) => res.json())
-      .then((data: { guides: Array<{ id: string; user: { id: string; name: string } }> }) => {
-        setGuides((data.guides ?? []).map((g) => ({ guideId: g.id, name: g.user.name })))
+      // Resposta paginada: { data, nextCursor, hasMore }
+      .then((data: { data?: Array<{ id: string; user: { id: string; name: string } }> }) => {
+        setGuides((data.data ?? []).map((g) => ({ guideId: g.id, name: g.user.name })))
       })
       .catch(() => setGuides([]))
       .finally(() => setGuidesLoading(false))
@@ -174,14 +177,19 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
         `/api/proxy?path=/tenants/${slug}/packages/${slot.packageId}/slots/${slot.id}`,
         { method: 'DELETE' },
       )
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        // Ex.: 409 "Esta data tem reservas confirmadas…" — mostra o motivo real
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.message ?? 'Erro ao cancelar slot. Tente novamente.')
+      }
       setAllSlots((prev) =>
         prev.map((s) => (s.id === slot.id ? { ...s, status: 'CANCELLED' as const } : s)),
       )
       toast.success('Slot fechado.')
-    } catch {
-      setCloseError('Erro ao cancelar slot. Tente novamente.')
-      toast.error('Erro ao fechar slot.')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao cancelar slot. Tente novamente.'
+      setCloseError(msg)
+      toast.error(msg)
     } finally {
       setClosingSlot(null)
     }

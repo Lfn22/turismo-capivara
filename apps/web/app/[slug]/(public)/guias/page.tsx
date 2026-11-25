@@ -16,23 +16,21 @@ interface ApiGuide {
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
 
-export default async function GuiasPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
+export default async function GuiasPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
 
   let guides: ApiGuide[] = []
   let loadError = false
 
   try {
-    const res = await fetch(`${API_URL}/tenants/${slug}/guides`, {
+    // limit=100: o padrão da API (20) cortava a lista pública de guias
+    const res = await fetch(`${API_URL}/tenants/${slug}/guides?limit=100`, {
       cache: 'no-store',
     })
     if (res.ok) {
       const data = await res.json()
-      guides = Array.isArray(data) ? data : (data.guides ?? [])
+      // Resposta paginada: { data, nextCursor, hasMore }
+      guides = Array.isArray(data) ? data : (data.data ?? [])
     } else {
       loadError = true
     }
@@ -50,7 +48,10 @@ export default async function GuiasPage({
           >
             Condutores credenciados
           </p>
-          <h1 className="font-display m-0 mb-4 text-4xl md:text-5xl" style={{ color: 'var(--text-on-brand)' }}>
+          <h1
+            className="font-display m-0 mb-4 text-4xl md:text-5xl"
+            style={{ color: 'var(--text-on-brand)' }}
+          >
             Guias disponíveis
           </h1>
           <p className="m-0 mx-auto max-w-md" style={{ color: 'var(--text-on-brand-secondary)' }}>

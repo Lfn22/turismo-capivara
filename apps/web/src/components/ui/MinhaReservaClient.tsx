@@ -46,39 +46,44 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [cancelLoading, setCancelLoading] = useState(false)
   const [copiedPix, setCopiedPix] = useState(false)
+  const [repayCpf, setRepayCpf] = useState('')
+  const [repayCpfError, setRepayCpfError] = useState('')
 
-  const handleLookup = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault()
-    setUiState('LOADING')
-    setErrorMsg('')
-    try {
-      const res = await fetch(`/api/${slug}/bookings/lookup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), code: code.trim().toLowerCase() }),
-      })
-      const data = await res.json()
-      if (res.status === 429) {
-        setErrorMsg('Muitas tentativas. Tente novamente em alguns minutos.')
+  const handleLookup = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      setUiState('LOADING')
+      setErrorMsg('')
+      try {
+        const res = await fetch(`/api/${slug}/bookings/lookup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), code: code.trim().toLowerCase() }),
+        })
+        const data = await res.json()
+        if (res.status === 429) {
+          setErrorMsg('Muitas tentativas. Tente novamente em alguns minutos.')
+          setUiState('ERROR')
+          return
+        }
+        if (!res.ok) {
+          setErrorMsg(
+            data.message ??
+              data.error ??
+              'Reserva não encontrada ou dados inválidos. Verifique o e-mail e o código e tente novamente.',
+          )
+          setUiState('ERROR')
+          return
+        }
+        setBooking(data)
+        setUiState('RESULT')
+      } catch {
+        setErrorMsg('Ocorreu um erro. Tente novamente ou entre em contato com a operadora.')
         setUiState('ERROR')
-        return
       }
-      if (!res.ok) {
-        setErrorMsg(
-          data.message ??
-          data.error ??
-          'Reserva não encontrada ou dados inválidos. Verifique o e-mail e o código e tente novamente.'
-        )
-        setUiState('ERROR')
-        return
-      }
-      setBooking(data)
-      setUiState('RESULT')
-    } catch {
-      setErrorMsg('Ocorreu um erro. Tente novamente ou entre em contato com a operadora.')
-      setUiState('ERROR')
-    }
-  }, [slug, email, code])
+    },
+    [slug, email, code],
+  )
 
   const handleCancelConfirm = useCallback(async () => {
     if (!booking) return
@@ -95,7 +100,7 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
         setShowCancelModal(false)
         setUiState('ERROR')
       } else {
-        setBooking((prev) => prev ? { ...prev, status: 'CANCELLED' } : prev)
+        setBooking((prev) => (prev ? { ...prev, status: 'CANCELLED' } : prev))
         setShowCancelModal(false)
       }
     } catch {
@@ -109,12 +114,19 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
 
   const handleRepay = useCallback(async () => {
     if (!booking) return
+    // A API exige o CPF do pagador (só o hash fica salvo na reserva)
+    const cpf = repayCpf.replace(/\D/g, '')
+    if (cpf.length !== 11) {
+      setRepayCpfError('CPF deve ter 11 dígitos')
+      return
+    }
+    setRepayCpfError('')
     setUiState('LOADING')
     try {
       const res = await fetch(`/api/${slug}/bookings/repay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code: code.trim().toLowerCase() }),
+        body: JSON.stringify({ email, code: code.trim().toLowerCase(), cpf }),
       })
       const data = await res.json()
       if (res.status === 429) {
@@ -129,22 +141,32 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
       }
       setBooking((prev) =>
         prev
-          ? { ...prev, status: 'PENDING', qrCode: data.qrCode ?? null, expiresAt: data.expiresAt ?? null }
-          : prev
+          ? {
+              ...prev,
+              status: 'PENDING',
+              qrCode: data.qrCode ?? null,
+              expiresAt: data.expiresAt ?? null,
+            }
+          : prev,
       )
       setUiState('RESULT')
     } catch {
       setErrorMsg('Ocorreu um erro. Tente novamente ou entre em contato com a operadora.')
       setUiState('ERROR')
     }
-  }, [slug, email, code, booking])
+  }, [slug, email, code, booking, repayCpf])
 
   const handleCopyPix = useCallback(() => {
     if (booking?.qrCode) {
-      navigator.clipboard.writeText(booking.qrCode).then(() => {
-        setCopiedPix(true)
-        setTimeout(() => setCopiedPix(false), 2000)
-      }).catch(() => {/* clipboard not available */})
+      navigator.clipboard
+        .writeText(booking.qrCode)
+        .then(() => {
+          setCopiedPix(true)
+          setTimeout(() => setCopiedPix(false), 2000)
+        })
+        .catch(() => {
+          /* clipboard not available */
+        })
     }
   }, [booking])
 
@@ -197,7 +219,9 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
   if (uiState === 'LOADING') {
     return (
       <div className="capi-container capi-container--form py-6 md:py-10" aria-busy="true">
-        <p className="sr-only-capi" role="status">Consultando sua reserva…</p>
+        <p className="sr-only-capi" role="status">
+          Consultando sua reserva…
+        </p>
         <div className="flex flex-col gap-4">
           <Skeleton height={120} radius={16} />
           <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5">
@@ -215,7 +239,9 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
     return (
       <div className="capi-container capi-container--form py-6 md:py-10">
         <h1 className="font-display m-0 mb-6 text-3xl">Minha reserva</h1>
-        <Alert tone="danger" className="mb-6">{errorMsg}</Alert>
+        <Alert tone="danger" className="mb-6">
+          {errorMsg}
+        </Alert>
         <Button size="lg" fullWidth iconLeft={RotateCcw} onClick={() => setUiState('LOOKUP')}>
           Tentar novamente
         </Button>
@@ -240,7 +266,10 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
     ? `https://wa.me/${booking.tenantWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá, tenho uma reserva: #${booking.id.slice(-6).toUpperCase()}`)}`
     : null
 
-  const calendarStamp = startsAt.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  const calendarStamp = startsAt
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '')
   const calendarUrl = `https://calendar.google.com/calendar/render?${new URLSearchParams({
     action: 'TEMPLATE',
     text: booking.slot.packageName,
@@ -251,7 +280,11 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
     { icon: MapIcon, label: 'Roteiro', value: booking.slot.packageName },
     { icon: CalendarDays, label: 'Data', value: formattedDate },
     { icon: Clock, label: 'Saída', value: formattedTime },
-    { icon: Users, label: 'Pessoas', value: `${booking.pax} ${booking.pax === 1 ? 'pessoa' : 'pessoas'}` },
+    {
+      icon: Users,
+      label: 'Pessoas',
+      value: `${booking.pax} ${booking.pax === 1 ? 'pessoa' : 'pessoas'}`,
+    },
   ]
 
   return (
@@ -284,25 +317,40 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
       >
         <div className="mb-4 flex items-start justify-between gap-3 border-b border-line pb-4">
           <div>
-            <p className="m-0 text-xs font-semibold uppercase tracking-wider text-fg-secondary">Código da reserva</p>
-            <p className="m-0 font-mono text-2xl font-bold tracking-widest text-fg">#{bookingCode}</p>
+            <p className="m-0 text-xs font-semibold uppercase tracking-wider text-fg-secondary">
+              Código da reserva
+            </p>
+            <p className="m-0 font-mono text-2xl font-bold tracking-widest text-fg">
+              #{bookingCode}
+            </p>
           </div>
           {booking.status === 'EXPIRED' ? (
-            <Badge tone="warning" dot>Tempo esgotado</Badge>
+            <Badge tone="warning" dot>
+              Tempo esgotado
+            </Badge>
           ) : booking.status === 'PENDING' ? (
-            <Badge tone="warning" dot>Aguardando pagamento</Badge>
+            <Badge tone="warning" dot>
+              Aguardando pagamento
+            </Badge>
           ) : (
-            <span role="status" aria-live="polite"><StatusBadge kind="booking" status={booking.status} /></span>
+            <span role="status" aria-live="polite">
+              <StatusBadge kind="booking" status={booking.status} />
+            </span>
           )}
         </div>
         <dl className="m-0 flex flex-col gap-3">
           {details.map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex items-start gap-3">
-              <dt className="flex shrink-0 items-center gap-2 text-sm text-fg-secondary" style={{ minWidth: 104 }}>
+              <dt
+                className="flex shrink-0 items-center gap-2 text-sm text-fg-secondary"
+                style={{ minWidth: 104 }}
+              >
                 <Icon size={18} strokeWidth={1.75} aria-hidden="true" />
                 {label}
               </dt>
-              <dd className="m-0 ml-auto text-right text-sm font-medium text-fg first-letter:uppercase">{value}</dd>
+              <dd className="m-0 ml-auto text-right text-sm font-medium text-fg first-letter:uppercase">
+                {value}
+              </dd>
             </div>
           ))}
         </dl>
@@ -314,7 +362,9 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
           aria-labelledby="mr-pix-title"
           className="flex flex-col items-center gap-4 rounded-2xl border border-line bg-surface p-5 text-center"
         >
-          <h2 id="mr-pix-title" className="m-0 text-lg">Pague via PIX</h2>
+          <h2 id="mr-pix-title" className="m-0 text-lg">
+            Pague via PIX
+          </h2>
           <p className="m-0 text-sm text-fg-secondary">
             Escaneie o QR code com o app do seu banco ou copie a chave PIX abaixo.
           </p>
@@ -322,14 +372,23 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
             <>
               <div
                 className="rounded-xl p-3"
-                style={{ background: 'var(--sand-0)', color: 'var(--sand-900)', border: '1px solid var(--border)' }}
+                style={{
+                  background: 'var(--sand-0)',
+                  color: 'var(--sand-900)',
+                  border: '1px solid var(--border)',
+                }}
               >
                 <QRCode
                   value={booking.qrCode}
                   size={200}
                   bgColor="transparent"
                   fgColor="currentColor"
-                  style={{ display: 'block', height: 'auto', maxWidth: '100%', width: 'min(200px, 60vw)' }}
+                  style={{
+                    display: 'block',
+                    height: 'auto',
+                    maxWidth: '100%',
+                    width: 'min(200px, 60vw)',
+                  }}
                   aria-label="QR code PIX para pagamento da reserva"
                 />
               </div>
@@ -342,7 +401,12 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
                   {booking.qrCode}
                 </div>
               </div>
-              <Button size="lg" fullWidth iconLeft={copiedPix ? Check : Copy} onClick={handleCopyPix}>
+              <Button
+                size="lg"
+                fullWidth
+                iconLeft={copiedPix ? Check : Copy}
+                onClick={handleCopyPix}
+              >
                 {copiedPix ? 'Copiado!' : 'Copiar código PIX'}
               </Button>
               <p className="m-0 inline-flex items-center gap-1.5 text-xs text-fg-tertiary">
@@ -360,7 +424,13 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
       {booking.status === 'CONFIRMED' && (
         <div className="flex flex-col gap-3">
           {whatsappUrl ? (
-            <Button href={whatsappUrl} target="_blank" variant="secondary" fullWidth iconLeft={MessageCircle}>
+            <Button
+              href={whatsappUrl}
+              target="_blank"
+              variant="secondary"
+              fullWidth
+              iconLeft={MessageCircle}
+            >
               Falar com o guia via WhatsApp
             </Button>
           ) : (
@@ -368,7 +438,13 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
               Precisa de ajuda? Entre em contato com a operadora.
             </p>
           )}
-          <Button href={calendarUrl} target="_blank" variant="secondary" fullWidth iconLeft={CalendarPlus}>
+          <Button
+            href={calendarUrl}
+            target="_blank"
+            variant="secondary"
+            fullWidth
+            iconLeft={CalendarPlus}
+          >
             Adicionar à agenda
           </Button>
         </div>
@@ -380,6 +456,20 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
           <Alert tone="warning" title="Prazo expirado">
             Seu prazo de pagamento expirou. Gere um novo QR code para concluir sua reserva.
           </Alert>
+          <Input
+            id="mr-repay-cpf"
+            label="CPF do pagador"
+            hint="Necessário para gerar o PIX"
+            error={repayCpfError || null}
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={14}
+            value={repayCpf}
+            onChange={(e) => setRepayCpf(e.target.value)}
+            placeholder="000.000.000-00"
+            leadingIcon={ShieldCheck}
+          />
           <Button size="lg" fullWidth iconLeft={RotateCcw} onClick={handleRepay}>
             Gerar novo pagamento
           </Button>
@@ -393,7 +483,13 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
             Dúvidas? Entre em contato:
           </Alert>
           {whatsappUrl ? (
-            <Button href={whatsappUrl} target="_blank" variant="secondary" fullWidth iconLeft={MessageCircle}>
+            <Button
+              href={whatsappUrl}
+              target="_blank"
+              variant="secondary"
+              fullWidth
+              iconLeft={MessageCircle}
+            >
               Suporte via WhatsApp
             </Button>
           ) : (
@@ -423,7 +519,10 @@ export default function MinhaReservaClient({ slug }: { slug: string }) {
           variant="ghost"
           size="sm"
           iconLeft={ArrowLeft}
-          onClick={() => { setUiState('LOOKUP'); setBooking(null) }}
+          onClick={() => {
+            setUiState('LOOKUP')
+            setBooking(null)
+          }}
         >
           Nova consulta
         </Button>

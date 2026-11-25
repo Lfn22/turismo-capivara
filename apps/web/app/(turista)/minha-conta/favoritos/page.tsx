@@ -19,6 +19,8 @@ type Favorite = {
   destinationTitle?: string
   destinationSlug?: string
   destinationImageUrl?: string
+  /** false = saiu do ar depois de favoritado (arquivado, despublicado…) */
+  available?: boolean
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
@@ -155,7 +157,10 @@ export default function FavoritosPage() {
                 )}
                 <div className="favoritos-card__body">
                   <p className="favoritos-card__name">{name(f)}</p>
-                  {f.type === 'package' && f.packagePrice != null && (
+                  {f.available === false && (
+                    <p className="favoritos-card__price">Indisponível no momento</p>
+                  )}
+                  {f.available !== false && f.type === 'package' && f.packagePrice != null && (
                     <p className="favoritos-card__price">
                       {f.packagePrice.toLocaleString('pt-BR', {
                         style: 'currency',

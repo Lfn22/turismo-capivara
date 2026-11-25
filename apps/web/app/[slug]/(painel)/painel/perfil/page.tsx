@@ -155,7 +155,7 @@ export default function PerfilPage({ params }: { params: Promise<{ slug: string 
     const text =
       p.state === 'PENDING'
         ? 'Deseja cancelar o pedido?'
-        : 'Deseja mesmo deixar de atuar neste roteiro?'
+        : 'Deseja mesmo deixar de atuar neste roteiro? Suas datas futuras nele serão canceladas e as reservas pagas, estornadas aos clientes.'
     if (!window.confirm(text)) return
     setLeavingId(p.id)
     setLeaveError(null)

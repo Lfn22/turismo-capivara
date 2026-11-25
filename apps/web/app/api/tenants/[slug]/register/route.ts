@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from 'next/server'
+import { internalProxyHeaders } from '@/src/lib/internal-headers'
 
-const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333"
+const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -9,18 +10,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   let res: Response
   try {
     res = await fetch(`${API_URL}/tenants/${slug}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...internalProxyHeaders(req.headers) },
       body,
-      cache: "no-store",
+      cache: 'no-store',
     })
   } catch {
-    return NextResponse.json({ message: "Serviço indisponível. Tente novamente." }, { status: 502 })
+    return NextResponse.json({ message: 'Serviço indisponível. Tente novamente.' }, { status: 502 })
   }
 
   const data = await res.text()
   return new NextResponse(data, {
     status: res.status,
-    headers: { "Content-Type": "application/json" },
+    headers: { 'Content-Type': 'application/json' },
   })
 }

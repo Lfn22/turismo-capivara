@@ -41,7 +41,9 @@ const DIFFICULTY_KEY: Record<string, 'EASY' | 'MODERATE' | 'HARD'> = {
 }
 
 function formatPriceBRL(price: number | string) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(price))
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+    Number(price),
+  )
 }
 
 export default async function GuideProfilePage({
@@ -56,10 +58,9 @@ export default async function GuideProfilePage({
   let loadError = false
 
   try {
-    const [guideRes, pkgRes] = await Promise.all([
-      fetch(`${API_URL}/tenants/${slug}/guides/${guideId}`, { cache: 'no-store' }),
-      fetch(`${API_URL}/tenants/${slug}/packages?conductorId=${guideId}`, { cache: 'no-store' }),
-    ])
+    const guideRes = await fetch(`${API_URL}/tenants/${slug}/guides/${guideId}`, {
+      cache: 'no-store',
+    })
 
     if (guideRes.ok) {
       const data = await guideRes.json()
@@ -68,9 +69,17 @@ export default async function GuideProfilePage({
       loadError = true
     }
 
-    if (pkgRes.ok) {
+    // TourPackage.conductorId é o User.id do guia — o guideId da URL é o GuideProfile.id
+    const pkgRes = guide
+      ? await fetch(`${API_URL}/tenants/${slug}/packages?conductorId=${guide.user.id}`, {
+          cache: 'no-store',
+        })
+      : null
+
+    if (pkgRes?.ok) {
       const data = await pkgRes.json()
-      packages = Array.isArray(data) ? data : (data.packages ?? [])
+      // Resposta paginada: { data, nextCursor, hasMore }
+      packages = Array.isArray(data) ? data : (data.data ?? [])
     }
   } catch {
     loadError = true
@@ -154,7 +163,7 @@ export default async function GuideProfilePage({
           <div className="flex flex-col gap-6">
             {packages.map((pkg) => {
               const openSlots = (pkg.departureSlots ?? []).filter(
-                (s) => s.status === 'OPEN' && s.booked < s.capacity
+                (s) => s.status === 'OPEN' && s.booked < s.capacity,
               )
               const difficulty = DIFFICULTY_KEY[pkg.difficulty]
               return (
@@ -165,7 +174,10 @@ export default async function GuideProfilePage({
                 >
                   <div className="mb-2 flex items-start justify-between gap-4">
                     <h3 className="m-0 text-lg">
-                      <a href={`/${slug}/roteiros/${pkg.id}`} className="text-fg no-underline hover:underline">
+                      <a
+                        href={`/${slug}/roteiros/${pkg.id}`}
+                        className="text-fg no-underline hover:underline"
+                      >
                         {pkg.name}
                       </a>
                     </h3>
@@ -175,7 +187,9 @@ export default async function GuideProfilePage({
                     </p>
                   </div>
 
-                  <p className="m-0 mb-3 text-sm leading-relaxed text-fg-secondary">{pkg.description}</p>
+                  <p className="m-0 mb-3 text-sm leading-relaxed text-fg-secondary">
+                    {pkg.description}
+                  </p>
 
                   <div className="mb-5 flex flex-wrap items-center gap-3 text-sm text-fg-secondary">
                     <span className="inline-flex items-center gap-1.5">
@@ -192,7 +206,9 @@ export default async function GuideProfilePage({
                   {openSlots.length > 0 ? (
                     <SlotPicker slots={openSlots} packageId={pkg.id} slug={slug} />
                   ) : (
-                    <p className="m-0 text-sm text-fg-secondary">Nenhuma data disponível no momento.</p>
+                    <p className="m-0 text-sm text-fg-secondary">
+                      Nenhuma data disponível no momento.
+                    </p>
                   )}
                 </article>
               )

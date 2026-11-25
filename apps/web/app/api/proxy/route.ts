@@ -1,6 +1,7 @@
 import { getToken } from 'next-auth/jwt'
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
+import { internalProxyHeaders } from '@/src/lib/internal-headers'
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
 
@@ -43,6 +44,7 @@ async function handler(req: NextRequest) {
 
   const upstream = `${API_URL}${path}${search}`
   const headers: Record<string, string> = {
+    ...internalProxyHeaders(req.headers),
     Authorization: `Bearer ${jwt.apiToken}`,
     'Content-Type': 'application/json',
   }

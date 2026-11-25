@@ -21,10 +21,12 @@ type BookingDetail = {
   durationHours?: number | null
   difficulty?: string | null
   meetingPointName?: string | null
-  guideName?: string | null
-  guidePhotoUrl?: string | null
+  // Formato da API (GET /me/bookings/:id)
+  conductor?: { name: string; photoUrl: string | null } | null
   tenantName: string
   qrCode?: string | null
+  paymentUrl?: string | null
+  expiresAt?: string | null
 }
 
 function formatDate(iso: string) {
@@ -75,7 +77,13 @@ export default function ViagemDetailPage() {
     )
   }
 
-  const showQR = booking.status === 'CONFIRMED' && booking.qrCode
+  // Check-in usa o código da reserva; o qrCode da API é o PIX (só serve para pagar)
+  const showCheckin = booking.status === 'CONFIRMED'
+  const showPix =
+    booking.status === 'PENDING' &&
+    !!booking.qrCode &&
+    (!booking.expiresAt || new Date(booking.expiresAt).getTime() > Date.now())
+  const guide = booking.conductor ?? null
   const showReview = booking.status === 'COMPLETED' && !booking.hasReview && !reviewed
 
   return (
@@ -273,14 +281,14 @@ export default function ViagemDetailPage() {
           </div>
         </div>
 
-        {booking.guideName && (
+        {guide && (
           <div>
             <h2 className="vd__section-title">Guia</h2>
             <div className="vd__guide">
-              {booking.guidePhotoUrl ? (
+              {guide.photoUrl ? (
                 <Image
-                  src={booking.guidePhotoUrl}
-                  alt={booking.guideName}
+                  src={guide.photoUrl}
+                  alt={guide.name}
                   width={48}
                   height={48}
                   className="vd__guide-avatar"
@@ -291,7 +299,7 @@ export default function ViagemDetailPage() {
                 </div>
               )}
               <div>
-                <div className="vd__guide-name">{booking.guideName}</div>
+                <div className="vd__guide-name">{guide.name}</div>
               </div>
             </div>
           </div>
@@ -307,12 +315,27 @@ export default function ViagemDetailPage() {
           </div>
         )}
 
-        {showQR && (
+        {showPix && (
+          <div className="vd__qr">
+            <h2 className="vd__section-title" style={{ margin: 0 }}>
+              Pague com PIX
+            </h2>
+            <QRCode value={booking.qrCode as string} size={160} />
+            <p className="vd__qr-label">Escaneie no app do banco para confirmar a reserva</p>
+            {booking.paymentUrl && (
+              <a href={booking.paymentUrl} target="_blank" rel="noopener noreferrer">
+                Pagar no Mercado Pago
+              </a>
+            )}
+          </div>
+        )}
+
+        {showCheckin && (
           <div className="vd__qr">
             <h2 className="vd__section-title" style={{ margin: 0 }}>
               QR Code de check-in
             </h2>
-            <QRCode value={booking.qrCode ?? booking.code} size={160} />
+            <QRCode value={booking.code} size={160} />
             <p className="vd__qr-label">Apresente ao guia no dia da atividade</p>
           </div>
         )}

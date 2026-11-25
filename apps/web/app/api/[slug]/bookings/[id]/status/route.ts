@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { internalProxyHeaders } from '@/src/lib/internal-headers'
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -24,7 +25,7 @@ export async function GET(
 
   let res: Response
   try {
-    res = await fetch(url, { cache: 'no-store' })
+    res = await fetch(url, { cache: 'no-store', headers: internalProxyHeaders(request.headers) })
   } catch {
     return NextResponse.json({ message: 'Serviço indisponível' }, { status: 502 })
   }

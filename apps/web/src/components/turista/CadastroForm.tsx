@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { Input, Button } from '@/src/components/ui/capi'
+import { errorText } from '@/lib/edit-client'
 
 const PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
 
@@ -40,7 +41,8 @@ export default function CadastroForm() {
       }
 
       if (!res.ok) {
-        setError('Não foi possível criar a conta. Tente novamente.')
+        const data = await res.json().catch(() => null)
+        setError(errorText(data, 'Não foi possível criar a conta. Tente novamente.'))
         return
       }
 

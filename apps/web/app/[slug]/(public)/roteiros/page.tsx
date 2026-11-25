@@ -40,7 +40,7 @@ function toCents(price: number | string) {
 }
 
 function countOpenSlots(slots: Slot[]) {
-  return slots.filter(s => s.status === 'OPEN' && s.booked < s.capacity).length
+  return slots.filter((s) => s.status === 'OPEN' && s.booked < s.capacity).length
 }
 
 /** Duração cadastrada em horas no painel → minutos (PackageCard). */
@@ -49,16 +49,15 @@ function durationToMinutes(duration: string | number) {
   return isNaN(h) ? 0 : h * 60
 }
 
-export default async function RoteirosPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
+export default async function RoteirosPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
 
   let packages: TourPackage[] = []
   try {
-    const res = await fetch(`${API_URL}/tenants/${slug}/packages`, { next: { revalidate: 3600 } })
+    // limit=100: o padrão da API (20) cortava a lista pública de roteiros
+    const res = await fetch(`${API_URL}/tenants/${slug}/packages?limit=100`, {
+      next: { revalidate: 3600 },
+    })
     // Resposta paginada: { data, nextCursor, hasMore }
     if (res.ok) packages = (await res.json()).data ?? []
   } catch {

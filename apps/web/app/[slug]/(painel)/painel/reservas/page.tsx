@@ -81,17 +81,21 @@ export default function ReservasPage({ params }: { params: Promise<{ slug: strin
   const [detailId, setDetailId] = useState<string | null>(null)
 
   const bookingsEndpoint =
-    role === 'CONDUTOR' ? `/tenants/${slug}/guides/me/bookings` : `/tenants/${slug}/bookings`
+    // Agência pagina (padrão 20): pede o máximo da API para as abas/contagens não truncarem
+    role === 'CONDUTOR'
+      ? `/tenants/${slug}/guides/me/bookings`
+      : `/tenants/${slug}/bookings?limit=100`
 
   const loadBookings = useCallback(() => {
     setLoading(true)
     setError(null)
-    fetch(`/api/proxy?path=${bookingsEndpoint}`)
+    fetch(`/api/proxy?path=${encodeURIComponent(bookingsEndpoint)}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
       })
-      .then((data) => setBookings(data.bookings ?? []))
+      // Agência: resposta paginada { data }; guia (guides/me/bookings): { bookings }
+      .then((data) => setBookings(data.data ?? data.bookings ?? []))
       .catch(() => setError('Erro ao carregar dados. Tente novamente.'))
       .finally(() => setLoading(false))
   }, [bookingsEndpoint])

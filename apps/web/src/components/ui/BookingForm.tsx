@@ -1,14 +1,15 @@
-'use client';
+'use client'
 
-import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowRight, Minus, Plus } from 'lucide-react';
-import { Alert, Button, IconButton, Input } from '@/src/components/ui/capi';
-import '@/src/styles/animations.css';
-import { posthog } from '@/src/lib/posthog';
+import { useState, FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
+import { ArrowRight, Minus, Plus } from 'lucide-react'
+import { Alert, Button, IconButton, Input } from '@/src/components/ui/capi'
+import '@/src/styles/animations.css'
+import { posthog } from '@/src/lib/posthog'
+import { errorText } from '@/lib/edit-client'
 
-const PAX_MIN = 1;
-const PAX_MAX = 20;
+const PAX_MIN = 1
+const PAX_MAX = 20
 
 function isValidCPF(cpf: string): boolean {
   if (/^(\d)\1{10}$/.test(cpf)) return false
@@ -26,55 +27,54 @@ function isValidCPF(cpf: string): boolean {
 }
 
 interface BookingFormProps {
-  slotId: string;
-  packageId: string;
-  slug: string;
+  slotId: string
+  packageId: string
+  slug: string
 }
 
 interface FormState {
-  guestName: string;
-  email: string;
-  phone: string;
-  cpf: string;
-  pax: number;
+  guestName: string
+  email: string
+  phone: string
+  cpf: string
+  pax: number
 }
 
-
 export default function BookingForm({ slotId, packageId, slug }: BookingFormProps) {
-  const router = useRouter();
+  const router = useRouter()
   const [form, setForm] = useState<FormState>({
     guestName: '',
     email: '',
     phone: '',
     cpf: '',
     pax: 1,
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [cpfError, setCpfError] = useState<string | null>(null);
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [cpfError, setCpfError] = useState<string | null>(null)
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const { name, value, type } = e.target;
+    const { name, value, type } = e.target
     setForm((prev) => ({
       ...prev,
       [name]: type === 'number' ? parseInt(value, 10) || 1 : value,
-    }));
+    }))
   }
 
   async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
 
-    const rawCpf = form.cpf.replace(/\D/g, '');
+    const rawCpf = form.cpf.replace(/\D/g, '')
     if (rawCpf.length !== 11 || !isValidCPF(rawCpf)) {
-      setCpfError(rawCpf.length !== 11 ? 'CPF deve ter 11 dígitos' : 'CPF inválido');
-      setLoading(false);
-      return;
+      setCpfError(rawCpf.length !== 11 ? 'CPF deve ter 11 dígitos' : 'CPF inválido')
+      setLoading(false)
+      return
     }
-    setCpfError(null);
+    setCpfError(null)
 
-    posthog.capture('booking_started', { packageId, pax: form.pax });
+    posthog.capture('booking_started', { packageId, pax: form.pax })
 
     try {
       const res = await fetch(`/api/${slug}/bookings`, {
@@ -88,24 +88,26 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           customerCpf: form.cpf.replace(/\D/g, ''),
           pax: form.pax,
         }),
-      });
+      })
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.message || 'Erro ao realizar reserva. Tente novamente.');
+        const data = await res.json().catch(() => ({}))
+        throw new Error(errorText(data, 'Erro ao realizar reserva. Tente novamente.'))
       }
 
-      const data = await res.json();
-      const bookingId: string = data?.id ?? data?.data?.id ?? '';
+      const data = await res.json()
+      const bookingId: string = data?.id ?? data?.data?.id ?? ''
       // CR-01: validate bookingId is a non-empty alphanumeric ID (cuid, uuid, cuid2, nanoid)
-      const ID_RE = /^[a-zA-Z0-9_-]{10,}$/;
+      const ID_RE = /^[a-zA-Z0-9_-]{10,}$/
       if (!ID_RE.test(bookingId)) {
-        throw new Error('Resposta inválida do servidor. Tente novamente.');
+        throw new Error('Resposta inválida do servidor. Tente novamente.')
       }
-      router.push(`/${slug}/checkout?bookingId=${bookingId}&email=${encodeURIComponent(form.email)}`);
+      router.push(
+        `/${slug}/checkout?bookingId=${bookingId}&email=${encodeURIComponent(form.email)}`,
+      )
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado.');
-      setLoading(false);
+      setError(err instanceof Error ? err.message : 'Erro inesperado.')
+      setLoading(false)
     }
   }
 
@@ -113,16 +115,21 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
     setForm((prev) => ({
       ...prev,
       pax: Math.min(PAX_MAX, Math.max(PAX_MIN, prev.pax + delta)),
-    }));
+    }))
   }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       {/* Pessoas */}
-      <section aria-labelledby="pax-label" className="rounded-2xl border border-line bg-surface p-4">
+      <section
+        aria-labelledby="pax-label"
+        className="rounded-2xl border border-line bg-surface p-4"
+      >
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p id="pax-label" className="m-0 font-semibold text-fg">Número de pessoas</p>
+            <p id="pax-label" className="m-0 font-semibold text-fg">
+              Número de pessoas
+            </p>
             <p className="m-0 text-sm text-fg-secondary">Até {PAX_MAX} por reserva</p>
           </div>
           <div className="flex items-center gap-2" role="group" aria-labelledby="pax-label">
@@ -154,7 +161,9 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
 
       {/* Dados do responsável */}
       <section aria-labelledby="guest-title" className="flex flex-col gap-4">
-        <h2 id="guest-title" className="m-0 text-lg">Quem vai na reserva</h2>
+        <h2 id="guest-title" className="m-0 text-lg">
+          Quem vai na reserva
+        </h2>
         <Input
           id="guestName"
           name="guestName"
@@ -203,15 +212,15 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           value={form.cpf}
           onChange={handleChange}
           onBlur={(e) => {
-            const val = e.target.value.replace(/\D/g, '');
+            const val = e.target.value.replace(/\D/g, '')
             if (val.length === 0) {
-              setCpfError(null);
+              setCpfError(null)
             } else if (val.length !== 11) {
-              setCpfError('CPF deve ter 11 dígitos');
+              setCpfError('CPF deve ter 11 dígitos')
             } else if (!isValidCPF(val)) {
-              setCpfError('CPF inválido');
+              setCpfError('CPF inválido')
             } else {
-              setCpfError(null);
+              setCpfError(null)
             }
           }}
           error={cpfError}
@@ -227,15 +236,19 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
       )}
 
       {/* CTA: fixo no rodapé no mobile, no fluxo do formulário a partir de 1024px */}
-      <div
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0"
-      >
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0">
         <div className="mx-auto" style={{ maxWidth: 'var(--container-form)' }}>
-          <Button type="submit" size="lg" fullWidth loading={loading} iconRight={loading ? undefined : ArrowRight}>
+          <Button
+            type="submit"
+            size="lg"
+            fullWidth
+            loading={loading}
+            iconRight={loading ? undefined : ArrowRight}
+          >
             {loading ? 'Processando…' : 'Ir para pagamento'}
           </Button>
         </div>
       </div>
     </form>
-  );
+  )
 }

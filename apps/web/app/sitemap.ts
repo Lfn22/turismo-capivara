@@ -36,7 +36,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const res = await fetch(`${API_URL}/destinations`, { next: { revalidate: 3600 } })
     if (res.ok) {
       const data = await res.json()
-      const destinations = (data.items ?? data ?? []) as Array<{ slug: string; updatedAt?: string }>
+      // Resposta paginada: { data, nextCursor, hasMore }
+      const destinations = (data.data ?? []) as Array<{ slug: string; updatedAt?: string }>
       const destinationRoutes: MetadataRoute.Sitemap = destinations.map((d) => ({
         url: `${BASE_URL}/destinos/${d.slug}`,
         lastModified: d.updatedAt ? new Date(d.updatedAt) : new Date(),

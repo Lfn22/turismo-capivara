@@ -44,28 +44,32 @@ interface TourPackage {
 
 interface ApiGuide {
   guideId: string
+  userId: string
   name: string
   photoUrl: string | null
   especialidades: string[]
 }
 
-async function fetchPackageGuides(id: string): Promise<GuideCardGuide[]> {
+async function fetchPackageGuides(id: string): Promise<ApiGuide[]> {
   try {
     const res = await fetch(`${API_URL}/packages/${id}/guides`, { next: { revalidate: 300 } })
     if (!res.ok) return []
     const raw: ApiGuide[] = await res.json()
-    if (!Array.isArray(raw)) return []
-    return raw.map((g) => ({
-      id: g.guideId,
-      name: g.name,
-      photoUrl: g.photoUrl ?? null,
-      specialties: g.especialidades ?? [],
-      packageCount: 0,
-      rating: null,
-      reviewCount: null,
-    }))
+    return Array.isArray(raw) ? raw : []
   } catch {
     return []
+  }
+}
+
+function toGuideCard(g: ApiGuide): GuideCardGuide {
+  return {
+    id: g.guideId,
+    name: g.name,
+    photoUrl: g.photoUrl ?? null,
+    specialties: g.especialidades ?? [],
+    packageCount: 0,
+    rating: null,
+    reviewCount: null,
   }
 }
 
@@ -118,7 +122,6 @@ export default async function RoteirDetalhe({
   const { slug, packageId } = await params
 
   let pkg: TourPackage | null = null
-  let guide: Guide | null = null
 
   try {
     const res = await fetch(`${API_URL}/tenants/${slug}/packages/${packageId}`, {
@@ -146,24 +149,27 @@ export default async function RoteirDetalhe({
     )
   }
 
-  // Try to fetch guide info
-  if (pkg.conductorId) {
-    try {
-      const res = await fetch(`${API_URL}/tenants/${slug}/guides/${pkg.conductorId}`, {
-        next: { revalidate: 300 },
-      })
-      if (res.ok) guide = await res.json()
-    } catch {
-      // guide info optional
-    }
-  }
-
   const difficulty = DIFFICULTY_KEY[pkg.difficulty]
 
-  const [guides, destinationSlug] = await Promise.all([
+  const [packageGuides, destinationSlug] = await Promise.all([
     fetchPackageGuides(packageId),
     fetchDestinationSlug(slug),
   ])
+  const guides = packageGuides.map(toGuideCard)
+
+  // Condutor = guia aceito cujo User.id é o conductorId (a lista só tem guias aprovados).
+  // Antes buscava /guides/{User.id}, rota que espera o GuideProfile.id → sempre 404.
+  const conductor = pkg.conductorId
+    ? packageGuides.find((g) => g.userId === pkg.conductorId)
+    : undefined
+  const guide: Guide | null = conductor
+    ? {
+        id: conductor.guideId,
+        name: conductor.name,
+        photo: conductor.photoUrl ?? undefined,
+        approvalStatus: 'APPROVED',
+      }
+    : null
 
   const openSlots = (pkg.departureSlots ?? []).filter(
     (s) => s.status === 'OPEN' && s.booked < s.capacity,

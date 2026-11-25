@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { Button, TopNav } from '@/src/components/ui/capi'
 import PublicLayout from '@/src/components/layout/PublicLayout'
 import ExplorarClient from './ExplorarClient'
-import type { SearchPackage } from './components/PackageListPanel'
+import { parseSearchResponse, priceFilterParam, type SearchPage } from './search-response'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,23 +25,25 @@ async function fetchInitialPackages(params: {
   minPrice?: string
   maxPrice?: string
   difficulty?: string
-}): Promise<SearchPackage[]> {
+}): Promise<SearchPage> {
+  const empty: SearchPage = { packages: [], nextCursor: null, hasMore: false }
   try {
     const qp = new URLSearchParams()
     if (params.q) qp.set('search', params.q)
-    if (params.minPrice) qp.set('min_price', String(Number(params.minPrice) * 100))
-    if (params.maxPrice) qp.set('max_price', String(Number(params.maxPrice) * 100))
+    const min = params.minPrice ? priceFilterParam(params.minPrice) : undefined
+    const max = params.maxPrice ? priceFilterParam(params.maxPrice) : undefined
+    if (min) qp.set('min_price', min)
+    if (max) qp.set('max_price', max)
     if (params.difficulty) qp.set('difficulty', params.difficulty)
     qp.set('limit', '20')
 
     const url = `${API_URL}/packages/search?${qp.toString()}`
     const res = await fetch(url, { cache: 'no-store' })
-    if (!res.ok) return []
+    if (!res.ok) return empty
 
-    const data = await res.json()
-    return Array.isArray(data) ? data : (data.packages ?? [])
+    return parseSearchResponse(await res.json())
   } catch {
-    return []
+    return empty
   }
 }
 
@@ -61,7 +63,7 @@ export default async function ExplorarPage({
   const maxPrice = first(params.maxPrice)
   const difficulty = first(params.difficulty)
 
-  const initialPackages = await fetchInitialPackages({ q, minPrice, maxPrice, difficulty })
+  const initialPage = await fetchInitialPackages({ q, minPrice, maxPrice, difficulty })
 
   return (
     <PublicLayout>
@@ -96,7 +98,9 @@ export default async function ExplorarPage({
         />
 
         <ExplorarClient
-          initialPackages={initialPackages}
+          initialPackages={initialPage.packages}
+          initialNextCursor={initialPage.nextCursor}
+          initialHasMore={initialPage.hasMore}
           initialParams={{
             q,
             minPrice,

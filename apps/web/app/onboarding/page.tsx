@@ -1,16 +1,25 @@
-"use client"
-import { useState, useEffect, useRef, type ReactNode } from "react"
-import { useRouter } from "next/navigation"
-import Image from "next/image"
-import Link from "next/link"
-import { ArrowLeft, Building2, CalendarCheck, Check, Compass, ShieldCheck, UserRound } from "lucide-react"
-import { Alert, Button, Input, ListGroup, ListRow, Select, Stepper } from "@/src/components/ui/capi"
+'use client'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import Link from 'next/link'
+import {
+  ArrowLeft,
+  Building2,
+  CalendarCheck,
+  Check,
+  Compass,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-react'
+import { Alert, Button, Input, ListGroup, ListRow, Select, Stepper } from '@/src/components/ui/capi'
+import { errorText } from '@/lib/edit-client'
 
 /* ── Layout de acesso (local; candidato a componente do DS) ── */
 const BENEFITS = [
-  { icon: Compass, text: "Roteiros e guias locais num só lugar" },
-  { icon: CalendarCheck, text: "Reservas, agenda e check-in organizados" },
-  { icon: ShieldCheck, text: "Guias e operadoras aprovados pela equipe CAPI" },
+  { icon: Compass, text: 'Roteiros e guias locais num só lugar' },
+  { icon: CalendarCheck, text: 'Reservas, agenda e check-in organizados' },
+  { icon: ShieldCheck, text: 'Guias e operadoras aprovados pela equipe CAPI' },
 ]
 
 function AuthLayout({ children }: { children: ReactNode }) {
@@ -18,14 +27,29 @@ function AuthLayout({ children }: { children: ReactNode }) {
     <div className="grid min-h-dvh bg-page lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
       <aside className="sticky top-0 hidden h-dvh flex-col justify-between gap-12 bg-surface-brand p-12 text-on-brand lg:flex">
         <Link href="/" className="inline-block self-start rounded-sm">
-          <Image src="/images/logo.png" alt="CAPI" width={120} height={108} className="block brightness-0 invert" />
+          <Image
+            src="/images/logo.png"
+            alt="CAPI"
+            width={120}
+            height={108}
+            className="block brightness-0 invert"
+          />
         </Link>
         <div>
-          <p className="font-display text-4xl leading-tight xl:text-5xl">Caminho entre quem explora e quem opera</p>
+          <p className="font-display text-4xl leading-tight xl:text-5xl">
+            Caminho entre quem explora e quem opera
+          </p>
           <ul className="mt-10 flex flex-col gap-5">
             {BENEFITS.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3" style={{ color: "var(--text-on-brand-secondary)" }}>
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full text-on-brand" style={{ background: "var(--terra-700)" }}>
+              <li
+                key={text}
+                className="flex items-center gap-3"
+                style={{ color: 'var(--text-on-brand-secondary)' }}
+              >
+                <span
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full text-on-brand"
+                  style={{ background: 'var(--terra-700)' }}
+                >
                   <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
                 </span>
                 {text}
@@ -37,7 +61,14 @@ function AuthLayout({ children }: { children: ReactNode }) {
       <main className="flex min-w-0 items-center justify-center py-10 lg:py-16">
         <div className="capi-container capi-container--form">
           <Link href="/" className="mb-8 inline-block rounded-sm lg:hidden">
-            <Image src="/images/logo.png" alt="CAPI" width={120} height={108} priority className="block in-data-[theme=dark]:brightness-0 in-data-[theme=dark]:invert" />
+            <Image
+              src="/images/logo.png"
+              alt="CAPI"
+              width={120}
+              height={108}
+              priority
+              className="block in-data-[theme=dark]:brightness-0 in-data-[theme=dark]:invert"
+            />
           </Link>
           {children}
         </div>
@@ -58,27 +89,27 @@ function FormSection({ title, children }: { title: string; children: ReactNode }
 function slugify(str: string): string {
   return str
     .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
 }
 
-type Step = "choose" | "operator"
-type SlugStatus = "idle" | "checking" | "available" | "unavailable" | "invalid-format"
+type Step = 'choose' | 'operator'
+type SlugStatus = 'idle' | 'checking' | 'available' | 'unavailable' | 'invalid-format'
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const [step, setStep] = useState<Step>("choose")
+  const [step, setStep] = useState<Step>('choose')
 
   // Operator form state
-  const [name, setName] = useState("")
-  const [slug, setSlug] = useState("")
-  const [email, setEmail] = useState("")
-  const [cnpj, setCnpj] = useState("")
-  const [tenantType, setTenantType] = useState<"AGENCIA" | "ASSOCIACAO">("AGENCIA")
-  const [password, setPassword] = useState("")
-  const [slugStatus, setSlugStatus] = useState<SlugStatus>("idle")
+  const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
+  const [email, setEmail] = useState('')
+  const [cnpj, setCnpj] = useState('')
+  const [tenantType, setTenantType] = useState<'AGENCIA' | 'ASSOCIACAO'>('AGENCIA')
+  const [password, setPassword] = useState('')
+  const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle')
   const slugAutoGenerated = useRef(true)
 
   const [error, setError] = useState<string | null>(null)
@@ -88,27 +119,33 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (slugAutoGenerated.current && name) {
       setSlug(slugify(name))
-      setSlugStatus("idle")
+      setSlugStatus('idle')
     }
   }, [name])
 
   // Debounced operator slug availability check
   useEffect(() => {
-    if (step !== "operator") return
-    if (!slug) { setSlugStatus("idle"); return }
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) { setSlugStatus("invalid-format"); return }
-    setSlugStatus("checking")
+    if (step !== 'operator') return
+    if (!slug) {
+      setSlugStatus('idle')
+      return
+    }
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+      setSlugStatus('invalid-format')
+      return
+    }
+    setSlugStatus('checking')
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/tenants/check-slug?slug=${encodeURIComponent(slug)}`)
         if (res.ok) {
           const data = await res.json()
-          setSlugStatus(data.available ? "available" : "unavailable")
+          setSlugStatus(data.available ? 'available' : 'unavailable')
         } else {
-          setSlugStatus("idle")
+          setSlugStatus('idle')
         }
       } catch {
-        setSlugStatus("idle")
+        setSlugStatus('idle')
       }
     }, 500)
     return () => clearTimeout(timer)
@@ -121,26 +158,30 @@ export default function OnboardingPage() {
 
   async function handleOperatorSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (slugStatus === "unavailable" || slugStatus === "invalid-format" || slugStatus === "checking") {
-      setError("Corrija o slug antes de enviar.")
+    if (
+      slugStatus === 'unavailable' ||
+      slugStatus === 'invalid-format' ||
+      slugStatus === 'checking'
+    ) {
+      setError('Corrija o slug antes de enviar.')
       return
     }
     setError(null)
     setLoading(true)
     try {
       const res = await fetch(`/api/tenants/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, slug, email, password, cnpj, type: tenantType }),
       })
       if (res.ok) {
-        router.push("/onboarding/aguardando")
+        router.push('/onboarding/aguardando')
       } else {
-        const data = await res.json()
-        setError(data.message ?? "Erro ao cadastrar operadora. Tente novamente.")
+        const data = await res.json().catch(() => null)
+        setError(errorText(data, 'Erro ao cadastrar operadora. Tente novamente.'))
       }
     } catch {
-      setError("Erro de conexão. Verifique sua internet e tente novamente.")
+      setError('Erro de conexão. Verifique sua internet e tente novamente.')
     } finally {
       setLoading(false)
     }
@@ -148,34 +189,34 @@ export default function OnboardingPage() {
 
   // Status do slug vira dica/erro do campo (só apresentação; a verificação é a mesma).
   const slugError =
-    slugStatus === "unavailable"
-      ? "Esse código já está em uso. Escolha outro."
-      : slugStatus === "invalid-format"
-        ? "Formato inválido: use letras minúsculas, números e hífens."
+    slugStatus === 'unavailable'
+      ? 'Esse código já está em uso. Escolha outro.'
+      : slugStatus === 'invalid-format'
+        ? 'Formato inválido: use letras minúsculas, números e hífens.'
         : null
   const slugHint =
-    slugStatus === "available" ? (
+    slugStatus === 'available' ? (
       <span className="inline-flex items-center gap-1 text-success" aria-live="polite">
         <Check size={16} strokeWidth={1.75} aria-hidden="true" /> Disponível
       </span>
-    ) : slugStatus === "checking" ? (
+    ) : slugStatus === 'checking' ? (
       <span aria-live="polite">Verificando disponibilidade…</span>
     ) : (
-      "Use letras minúsculas, números e hífens. Os guias usam esse código para se cadastrar."
+      'Use letras minúsculas, números e hífens. Os guias usam esse código para se cadastrar.'
     )
 
   // ── Step: choose ──────────────────────────────────────────────────────────
-  if (step === "choose") {
+  if (step === 'choose') {
     return (
       <AuthLayout>
-        <Stepper steps={["Tipo de conta", "Seus dados", "Aprovação"]} current={0} />
+        <Stepper steps={['Tipo de conta', 'Seus dados', 'Aprovação']} current={0} />
         <h1 className="mt-8 text-2xl font-bold">Criar conta</h1>
         <p className="mt-2 text-fg-secondary">Como você quer usar o CAPI?</p>
 
         <div className="mt-8">
           <ListGroup>
             <ListRow
-              onClick={() => setStep("operator")}
+              onClick={() => setStep('operator')}
               leading={
                 <span className="flex size-10 items-center justify-center rounded-full bg-subtle text-fg-primary">
                   <Building2 size={20} strokeWidth={1.75} aria-hidden="true" />
@@ -185,7 +226,7 @@ export default function OnboardingPage() {
               subtitle="Cadastre sua empresa e gerencie guias e roteiros"
             />
             <ListRow
-              onClick={() => router.push("/cadastro/guia")}
+              onClick={() => router.push('/cadastro/guia')}
               leading={
                 <span className="flex size-10 items-center justify-center rounded-full bg-subtle text-fg-primary">
                   <UserRound size={20} strokeWidth={1.75} aria-hidden="true" />
@@ -198,8 +239,11 @@ export default function OnboardingPage() {
         </div>
 
         <p className="mt-6 text-center text-sm text-fg-secondary">
-          Já tem conta?{" "}
-          <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-fg-primary underline-offset-4 hover:underline">
+          Já tem conta?{' '}
+          <Link
+            href="/login"
+            className="inline-flex min-h-11 items-center font-semibold text-fg-primary underline-offset-4 hover:underline"
+          >
             Entrar
           </Link>
         </p>
@@ -215,13 +259,18 @@ export default function OnboardingPage() {
         size="sm"
         iconLeft={ArrowLeft}
         className="mb-4 -ml-2"
-        onClick={() => { setStep("choose"); setError(null) }}
+        onClick={() => {
+          setStep('choose')
+          setError(null)
+        }}
       >
         Voltar
       </Button>
-      <Stepper steps={["Tipo de conta", "Dados da operadora", "Aprovação"]} current={1} />
+      <Stepper steps={['Tipo de conta', 'Dados da operadora', 'Aprovação']} current={1} />
       <h1 className="mt-8 text-2xl font-bold">Cadastre sua operadora</h1>
-      <p className="mt-2 text-fg-secondary">Depois do envio, a equipe CAPI analisa e libera o acesso ao painel.</p>
+      <p className="mt-2 text-fg-secondary">
+        Depois do envio, a equipe CAPI analisa e libera o acesso ao painel.
+      </p>
 
       <form onSubmit={handleOperatorSubmit} noValidate className="mt-8 flex flex-col gap-8">
         <FormSection title="Sua operadora">
@@ -229,10 +278,10 @@ export default function OnboardingPage() {
             id="tenantType"
             label="Tipo"
             value={tenantType}
-            onChange={(e) => setTenantType(e.target.value as "AGENCIA" | "ASSOCIACAO")}
+            onChange={(e) => setTenantType(e.target.value as 'AGENCIA' | 'ASSOCIACAO')}
             options={[
-              { value: "AGENCIA", label: "Agência" },
-              { value: "ASSOCIACAO", label: "Associação" },
+              { value: 'AGENCIA', label: 'Agência' },
+              { value: 'ASSOCIACAO', label: 'Associação' },
             ]}
           />
           <Input
@@ -242,7 +291,10 @@ export default function OnboardingPage() {
             required
             autoComplete="organization"
             value={name}
-            onChange={(e) => { setName(e.target.value); slugAutoGenerated.current = true }}
+            onChange={(e) => {
+              setName(e.target.value)
+              slugAutoGenerated.current = true
+            }}
           />
           <Input
             id="slug"
@@ -307,8 +359,11 @@ export default function OnboardingPage() {
       </form>
 
       <p className="mt-6 text-center text-sm text-fg-secondary">
-        Já tem conta?{" "}
-        <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-fg-primary underline-offset-4 hover:underline">
+        Já tem conta?{' '}
+        <Link
+          href="/login"
+          className="inline-flex min-h-11 items-center font-semibold text-fg-primary underline-offset-4 hover:underline"
+        >
           Acesse o painel da sua operadora
         </Link>
       </p>

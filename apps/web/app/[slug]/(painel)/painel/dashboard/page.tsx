@@ -1,8 +1,8 @@
-import { redirect } from "next/navigation"
-import { getToken } from "next-auth/jwt"
-import { painelEyebrow } from "@/lib/painel"
-import { cookies } from "next/headers"
-import { apiFetch } from "@/lib/api/client"
+import { redirect } from 'next/navigation'
+import { getToken } from 'next-auth/jwt'
+import { painelEyebrow } from '@/lib/painel'
+import { cookies } from 'next/headers'
+import { apiFetch } from '@/lib/api/client'
 import {
   ArrowRight,
   CalendarCheck,
@@ -13,7 +13,7 @@ import {
   Route,
   Ticket,
   Wallet,
-} from "lucide-react"
+} from 'lucide-react'
 import {
   Alert,
   Avatar,
@@ -25,7 +25,7 @@ import {
   PageHeader,
   StatCard,
   StatusBadge,
-} from "@/src/components/ui/capi"
+} from '@/src/components/ui/capi'
 
 interface Booking {
   id: string
@@ -43,37 +43,51 @@ interface Package {
   id: string
   name: string
   active: boolean
-  status: "PUBLISHED" | "DRAFT" | "HIDDEN"
+  status: 'PUBLISHED' | 'DRAFT' | 'HIDDEN'
 }
 
 type DashboardMetrics = {
-  bookings: { pending: number; confirmed: number; cancelled: number; completed: number; expired: number }
+  bookings: {
+    pending: number
+    confirmed: number
+    cancelled: number
+    completed: number
+    expired: number
+    today?: number
+    total?: number
+  }
   revenue: { confirmed: number }
-  upcomingSlots: Array<{ id: string; startsAt: string; booked: number; capacity: number; package: { name: string } }>
+  upcomingSlots: Array<{
+    id: string
+    startsAt: string
+    booked: number
+    capacity: number
+    package: { name: string }
+  }>
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+  return new Date(iso).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
 function formatSlotDate(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
+  return new Date(iso).toLocaleDateString('pt-BR', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
 function formatBRL(n: number) {
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
 function bookingValue(b: Booking) {
@@ -82,15 +96,24 @@ function bookingValue(b: Booking) {
 }
 
 function pessoas(n: number) {
-  return `${n} ${n === 1 ? "pessoa" : "pessoas"}`
+  return `${n} ${n === 1 ? 'pessoa' : 'pessoas'}`
 }
 
-const statGrid = "grid grid-cols-2 gap-3 sm:[grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] sm:gap-4"
+const statGrid =
+  'grid grid-cols-2 gap-3 sm:[grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] sm:gap-4'
 
-function SectionTitle({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+function SectionTitle({
+  children,
+  action,
+}: {
+  children: React.ReactNode
+  action?: React.ReactNode
+}) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-fg" style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.35 }}>{children}</h2>
+      <h2 className="text-fg" style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.35 }}>
+        {children}
+      </h2>
       {action}
     </div>
   )
@@ -106,19 +129,15 @@ function isToday(iso: string) {
   )
 }
 
-export default async function DashboardPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
+export default async function DashboardPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const cookieStore = await cookies()
   const jwt = await getToken({
     req: { cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])) } as any,
     secret: process.env.NEXTAUTH_SECRET,
   })
-  const token = (jwt?.apiToken as string) ?? ""
-  const jwtRole = (jwt?.role as string) ?? ""
+  const token = (jwt?.apiToken as string) ?? ''
+  const jwtRole = (jwt?.role as string) ?? ''
 
   if (!token) {
     redirect(`/login?callbackUrl=/${slug}/painel/dashboard`)
@@ -137,36 +156,38 @@ export default async function DashboardPage({
   }
 
   const bookingsPath =
-    jwtRole === "CONDUTOR"
-      ? `/tenants/${slug}/guides/me/bookings`
-      : `/tenants/${slug}/bookings`
+    jwtRole === 'CONDUTOR' ? `/tenants/${slug}/guides/me/bookings` : `/tenants/${slug}/bookings`
 
   try {
     const [bookingsData, packagesData] = await Promise.all([
-      apiFetch<{ bookings: Booking[] }>(bookingsPath, token),
+      // Agência: resposta paginada { data }; guia (guides/me/bookings): { bookings }
+      apiFetch<{ data?: Booking[]; bookings?: Booking[] }>(bookingsPath, token),
       apiFetch<{ packages: Package[] } | Package[]>(`/tenants/${slug}/manage/packages`, token),
     ])
-    bookings = bookingsData.bookings ?? []
+    bookings = bookingsData.data ?? bookingsData.bookings ?? []
     packages = Array.isArray(packagesData)
       ? packagesData
-      : (packagesData as { packages: Package[] }).packages ?? []
+      : ((packagesData as { packages: Package[] }).packages ?? [])
   } catch {
     loadError = true
   }
 
   const todayBookings = bookings.filter((b) => isToday(b.slot?.startsAt))
-  const pending = bookings.filter((b) => b.status === "PENDING")
-  const activePackages = packages.filter((p) => p.status === "PUBLISHED")
+  const pending = bookings.filter((b) => b.status === 'PENDING')
+  const activePackages = packages.filter((p) => p.status === 'PUBLISHED')
   const recentBookings = bookings.slice(0, 5)
 
+  // A lista de reservas é só a 1ª página: os totais vêm das contagens do /dashboard
+  const counts = dashboardMetrics?.bookings
+  const pendingCount = counts?.pending ?? pending.length
   const stats = [
-    { label: "Reservas hoje", value: todayBookings.length, icon: CalendarCheck },
-    { label: "Pendentes de confirmação", value: pending.length, icon: Clock },
-    { label: "Roteiros ativos", value: activePackages.length, icon: Route },
-    { label: "Total de reservas", value: bookings.length, icon: Ticket },
+    { label: 'Reservas hoje', value: counts?.today ?? todayBookings.length, icon: CalendarCheck },
+    { label: 'Pendentes de confirmação', value: pendingCount, icon: Clock },
+    { label: 'Roteiros ativos', value: activePackages.length, icon: Route },
+    { label: 'Total de reservas', value: counts?.total ?? bookings.length, icon: Ticket },
   ]
 
-  const firstName = typeof jwt?.name === "string" ? jwt.name.split(" ")[0] : ""
+  const firstName = typeof jwt?.name === 'string' ? jwt.name.split(' ')[0] : ''
   const header = (
     <PageHeader
       eyebrow={firstName ? `Olá, ${firstName}` : painelEyebrow(jwtRole)}
@@ -204,10 +225,10 @@ export default async function DashboardPage({
       {header}
 
       <div className="mb-8 flex flex-col gap-3">
-        {pending.length > 0 && (
+        {pendingCount > 0 && (
           <Alert
             tone="warning"
-            title={`${pending.length} ${pending.length === 1 ? "reserva aguarda" : "reservas aguardam"} sua confirmação`}
+            title={`${pendingCount} ${pendingCount === 1 ? 'reserva aguarda' : 'reservas aguardam'} sua confirmação`}
             action={
               <Button href={`/${slug}/painel/reservas`} size="sm">
                 Revisar pendentes
@@ -235,7 +256,9 @@ export default async function DashboardPage({
       </div>
 
       <section className="mb-8" aria-labelledby="dash-hoje">
-        <SectionTitle><span id="dash-hoje">Resumo</span></SectionTitle>
+        <SectionTitle>
+          <span id="dash-hoje">Resumo</span>
+        </SectionTitle>
         <div className={statGrid}>
           {stats.map((stat) => (
             <StatCard key={stat.label} label={stat.label} value={stat.value} icon={stat.icon} />
@@ -245,13 +268,19 @@ export default async function DashboardPage({
 
       {dashboardMetrics && (
         <section className="mb-8" aria-labelledby="dash-geral">
-          <SectionTitle><span id="dash-geral">Desempenho</span></SectionTitle>
+          <SectionTitle>
+            <span id="dash-geral">Desempenho</span>
+          </SectionTitle>
           <div className={statGrid}>
             <StatCard label="Pendentes" value={dashboardMetrics.bookings.pending} icon={Clock} />
-            <StatCard label="Confirmadas" value={dashboardMetrics.bookings.confirmed} icon={CircleCheck} />
+            <StatCard
+              label="Confirmadas"
+              value={dashboardMetrics.bookings.confirmed}
+              icon={CircleCheck}
+            />
             <StatCard
               label="Faturamento"
-              value={`R$ ${dashboardMetrics.revenue.confirmed.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              value={`R$ ${dashboardMetrics.revenue.confirmed.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
               icon={Wallet}
             />
           </div>
@@ -278,7 +307,7 @@ export default async function DashboardPage({
                   leading={
                     <span
                       className="inline-flex items-center justify-center bg-primary-subtle text-fg-primary"
-                      style={{ width: 40, height: 40, borderRadius: "var(--radius-md)" }}
+                      style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)' }}
                     >
                       <CalendarDays size={20} strokeWidth={1.75} aria-hidden="true" />
                     </span>
@@ -286,7 +315,7 @@ export default async function DashboardPage({
                   title={s.package?.name}
                   subtitle={formatSlotDate(s.startsAt)}
                   trailing={
-                    <Badge tone={s.booked >= s.capacity ? "danger" : "neutral"}>
+                    <Badge tone={s.booked >= s.capacity ? 'danger' : 'neutral'}>
                       {s.booked}/{s.capacity} vagas
                     </Badge>
                   }
@@ -330,7 +359,7 @@ export default async function DashboardPage({
                   key={b.id}
                   leading={<Avatar name={b.customerName} size={40} />}
                   title={`${b.customerName} · ${pessoas(b.pax)}`}
-                  subtitle={`${b.slot?.package?.name ?? ""} · ${formatDate(b.slot?.startsAt)}`}
+                  subtitle={`${b.slot?.package?.name ?? ''} · ${formatDate(b.slot?.startsAt)}`}
                   trailing={<StatusBadge status={b.status} />}
                   meta={bookingValue(b)}
                 />
@@ -342,5 +371,3 @@ export default async function DashboardPage({
     </>
   )
 }
-
-

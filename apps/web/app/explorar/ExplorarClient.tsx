@@ -7,6 +7,7 @@ import FilterBar, { type Filters } from './components/FilterBar'
 import PackageListPanel, { type SearchPackage } from './components/PackageListPanel'
 import MapToggleFab from './components/MapToggleFab'
 import type { MapBounds } from './components/SearchMap'
+import { parseSearchResponse, priceFilterParam } from './search-response'
 
 const SearchMap = dynamic(() => import('./components/SearchMap'), {
   ssr: false,
@@ -40,6 +41,8 @@ const SearchMap = dynamic(() => import('./components/SearchMap'), {
 
 export interface ExplorarClientProps {
   initialPackages: SearchPackage[]
+  initialNextCursor?: string | null
+  initialHasMore?: boolean
   initialParams: {
     q?: string
     minPrice?: string
@@ -61,8 +64,11 @@ function buildPublicSearchUrl(
   const qp = new URLSearchParams()
 
   if (filters.q) qp.set('search', filters.q)
-  if (filters.minPrice) qp.set('min_price', String(Number(filters.minPrice) * 100))
-  if (filters.maxPrice) qp.set('max_price', String(Number(filters.maxPrice) * 100))
+  // A API compara preço em reais
+  const min = filters.minPrice ? priceFilterParam(filters.minPrice) : undefined
+  const max = filters.maxPrice ? priceFilterParam(filters.maxPrice) : undefined
+  if (min) qp.set('min_price', min)
+  if (max) qp.set('max_price', max)
   if (filters.difficulty.length > 0) qp.set('difficulty', filters.difficulty.join(','))
   if (bounds) {
     qp.set('sw_lat', String(bounds.sw_lat))
@@ -77,11 +83,17 @@ function buildPublicSearchUrl(
   return `${PUBLIC_API_URL}/packages/search${qs ? `?${qs}` : ''}`
 }
 
-export default function ExplorarClient({ initialPackages, initialParams }: ExplorarClientProps) {
+export default function ExplorarClient({
+  initialPackages,
+  initialNextCursor = null,
+  initialHasMore = false,
+  initialParams,
+}: ExplorarClientProps) {
   const [packages, setPackages] = useState<SearchPackage[]>(initialPackages)
   const [loading, setLoading] = useState(false)
-  const [hasMore, setHasMore] = useState(initialPackages.length >= PAGE_SIZE)
-  const [nextCursor, setNextCursor] = useState<string | null>(null)
+  // Cursor do SSR: "carregar mais" continua da 2ª página em vez de repetir a 1ª
+  const [hasMore, setHasMore] = useState(initialHasMore)
+  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor)
   const [hoveredPackageId, setHoveredPackageId] = useState<string | null>(null)
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null)
   const [showMap, setShowMap] = useState(false)
@@ -106,9 +118,11 @@ export default function ExplorarClient({ initialPackages, initialParams }: Explo
         const res = await fetch(url)
         if (!res.ok) throw new Error('fetch failed')
 
-        const data = await res.json()
-        const list: SearchPackage[] = Array.isArray(data) ? data : (data.data ?? [])
-        const cursorNext: string | null = data.nextCursor ?? null
+        const {
+          packages: list,
+          nextCursor: cursorNext,
+          hasMore: more,
+        } = parseSearchResponse(await res.json())
 
         if (id !== fetchRef.current) return // stale
 
@@ -118,7 +132,7 @@ export default function ExplorarClient({ initialPackages, initialParams }: Explo
           setPackages(list)
         }
         setNextCursor(cursorNext)
-        setHasMore(data.hasMore ?? list.length >= PAGE_SIZE)
+        setHasMore(more)
       } catch {
         // Keep existing packages on error
         if (id === fetchRef.current) setHasMore(false)

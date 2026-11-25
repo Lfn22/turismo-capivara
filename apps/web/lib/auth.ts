@@ -1,4 +1,5 @@
 import { NextAuthOptions } from 'next-auth'
+import { internalProxyHeaders } from '@/src/lib/internal-headers'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { apiTokenExpiresAt, ensureFreshApiToken } from '@/src/lib/api-token'
 
@@ -42,16 +43,21 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Senha', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         validateSecret()
         if (!credentials?.email || !credentials?.password) {
           return null
         }
         const apiUrl = API_URL
+        // Rate limit do login por visitante, não pelo IP do servidor Next
+        const xff = req?.headers?.['x-forwarded-for']
+        const clientHeaders = internalProxyHeaders(
+          new Headers(typeof xff === 'string' ? { 'x-forwarded-for': xff } : {}),
+        )
         try {
           const res = await fetch(`${apiUrl}/auth/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...clientHeaders },
             body: JSON.stringify({
               email: credentials.email,
               password: credentials.password,
