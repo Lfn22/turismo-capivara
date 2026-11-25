@@ -51,7 +51,7 @@ import { createBookingExpiryJob } from './modules/bookings/expiry.job'
 import { createTokenCleanupJob } from './modules/auth/token.service'
 import { createNotificationDigestJob } from './modules/notifications/digest.job'
 import { AppError } from './shared/errors/AppError'
-import { clientIp, isInternalWithoutClient, trustProxyHops } from './shared/utils/client-ip'
+import { clientIp, isInternalWithoutClient, trustProxyFn } from './shared/utils/client-ip'
 import { pathOnly } from './shared/utils/log-url'
 import { healthResponse } from './shared/utils/health'
 
@@ -77,7 +77,7 @@ const app = Fastify({
   },
   // Só os saltos reais (borda do Railway): `true` aceitava X-Forwarded-For forjado
   // pelo cliente e anulava todo rate limit por IP
-  trustProxy: trustProxyHops(),
+  trustProxy: trustProxyFn(),
   genReqId: () => crypto.randomUUID(),
   connectionTimeout: 30000,
 })

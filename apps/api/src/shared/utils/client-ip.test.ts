@@ -45,11 +45,11 @@ describe('isInternalWithoutClient', () => {
   })
 })
 
-describe('trustProxy com número de saltos (app.ts)', () => {
+describe('trustProxy com saltos confiáveis (app.ts)', () => {
   it('X-Forwarded-For forjado pelo cliente não vira o IP (só o salto do Railway conta)', async () => {
     const Fastify = (await import('fastify')).default
-    const { trustProxyHops } = await import('./client-ip')
-    const app = Fastify({ trustProxy: trustProxyHops() })
+    const { trustProxyFn } = await import('./client-ip')
+    const app = Fastify({ trustProxy: trustProxyFn() })
     app.get('/ip', async (r) => ({ ip: r.ip }))
     // Cliente forja "6.6.6.6"; a borda do Railway acrescenta o IP real (7.7.7.7)
     const res = await app.inject({

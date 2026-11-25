@@ -44,3 +44,11 @@ export function trustProxyHops(): number {
   const n = Number(process.env.TRUST_PROXY_HOPS ?? 1)
   return Number.isInteger(n) && n >= 0 ? n : 1
 }
+
+/**
+ * `trustProxy` como função (equivale ao número de saltos: confia nos `hops` mais
+ * próximos). O Fastify 5.12 deixou de tipar `number` aqui; a função funciona em todas.
+ */
+export function trustProxyFn(hops = trustProxyHops()): (address: string, hop: number) => boolean {
+  return (_address, hop) => hop < hops
+}
