@@ -22,6 +22,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/.next ./.next
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/public ./public
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
+# `next start` lê o next.config em runtime (images.remotePatterns): sem ele, todo
+# next/image remoto responde 400 "url parameter is not allowed"
+COPY --from=builder --chown=nodejs:nodejs /app/next.config.ts ./
 
 USER nodejs
 EXPOSE 8080
