@@ -1,16 +1,17 @@
-'use client';
+'use client'
 
-import { useEffect, useRef } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { Button } from '@/src/components/ui/capi';
+import { useEffect, useRef } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { Button } from '@/src/components/ui/capi'
+import { AccountMenu } from './AccountMenu'
 
 export interface StickyDestinationNavProps {
-  destinationName: string;
-  destinationSlug: string;
-  guidesHref?: string;    // deprecated — kept for backwards compatibility
-  activeTab?: 'roteiros' | 'guias';
+  destinationName: string
+  destinationSlug: string
+  guidesHref?: string // deprecated — kept for backwards compatibility
+  activeTab?: 'roteiros' | 'guias'
 }
 
 /**
@@ -31,72 +32,72 @@ export default function StickyDestinationNav({
   destinationSlug,
   activeTab,
 }: StickyDestinationNavProps) {
-  const navRef = useRef<HTMLElement>(null);
-  const lastScrollY = useRef(0);
-  const heroVisible = useRef(true);
+  const navRef = useRef<HTMLElement>(null)
+  const lastScrollY = useRef(0)
+  const heroVisible = useRef(true)
 
   useEffect(() => {
-    const nav = navRef.current;
-    if (!nav) return;
+    const nav = navRef.current
+    if (!nav) return
 
     const setOpaque = (opaque: boolean) => {
-      nav.classList.toggle('dest-nav--opaque', opaque);
-      nav.classList.toggle('dest-nav--transparent', !opaque);
-    };
+      nav.classList.toggle('dest-nav--opaque', opaque)
+      nav.classList.toggle('dest-nav--transparent', !opaque)
+    }
 
     // ── 1. Observa o hero para alternar transparente ↔ opaco ──
-    const hero = document.getElementById('hero');
+    const hero = document.getElementById('hero')
     const observer = hero
       ? new IntersectionObserver(
           ([entry]) => {
-            heroVisible.current = entry.isIntersecting;
-            setOpaque(!entry.isIntersecting);
+            heroVisible.current = entry.isIntersecting
+            setOpaque(!entry.isIntersecting)
           },
-          { threshold: 0.1 }
+          { threshold: 0.1 },
         )
-      : null;
+      : null
 
-    if (hero && observer) observer.observe(hero);
+    if (hero && observer) observer.observe(hero)
     // Sem hero na página: a nav já começa sólida para manter o contraste.
     else {
-      heroVisible.current = false;
-      setOpaque(true);
+      heroVisible.current = false
+      setOpaque(true)
     }
 
     // ── 2. Detecta direção de scroll para mostrar/ocultar ────
-    const THRESHOLD = 6; // px mínimos para considerar mudança de direção
+    const THRESHOLD = 6 // px mínimos para considerar mudança de direção
 
     const onScroll = () => {
-      const currentY = window.scrollY;
-      const delta = currentY - lastScrollY.current;
+      const currentY = window.scrollY
+      const delta = currentY - lastScrollY.current
 
-      if (Math.abs(delta) < THRESHOLD) return;
+      if (Math.abs(delta) < THRESHOLD) return
 
       if (delta > 0) {
         // Scroll down → hide nav
         if (!heroVisible.current) {
-          nav.classList.add('dest-nav--hidden');
+          nav.classList.add('dest-nav--hidden')
         }
       } else {
         // Scroll up → show nav
-        nav.classList.remove('dest-nav--hidden');
+        nav.classList.remove('dest-nav--hidden')
       }
 
-      lastScrollY.current = currentY;
-    };
+      lastScrollY.current = currentY
+    }
 
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true })
 
     return () => {
-      observer?.disconnect();
-      window.removeEventListener('scroll', onScroll);
-    };
-  }, []);
+      observer?.disconnect()
+      window.removeEventListener('scroll', onScroll)
+    }
+  }, [])
 
   const tabs = [
     { key: 'roteiros', label: 'Roteiros', href: `/destinos/${destinationSlug}/roteiros` },
     { key: 'guias', label: 'Guias', href: `/destinos/${destinationSlug}/guias` },
-  ] as const;
+  ] as const
 
   return (
     <>
@@ -168,7 +169,10 @@ export default function StickyDestinationNav({
         .snav__tab:hover { color: var(--text); }
         .snav__tab[aria-current="page"] { color: var(--text); font-weight: 600; border-bottom-color: var(--brand); }
 
-        @media (max-width: 380px) {
+        .snav__end { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; color: var(--text); }
+        .dest-nav--transparent .snav__end { color: var(--text-on-brand); }
+
+        @media (max-width: 639px) {
           .snav__cta { display: none; }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -208,16 +212,19 @@ export default function StickyDestinationNav({
             ))}
           </div>
 
-          <Button
-            href={`/destinos/${destinationSlug}/roteiros`}
-            size="sm"
-            iconRight={ArrowRight}
-            className="snav__cta"
-          >
-            Ver roteiros
-          </Button>
+          <div className="snav__end">
+            <Button
+              href={`/destinos/${destinationSlug}/roteiros`}
+              size="sm"
+              iconRight={ArrowRight}
+              className="snav__cta"
+            >
+              Ver roteiros
+            </Button>
+            <AccountMenu />
+          </div>
         </div>
       </nav>
     </>
-  );
+  )
 }

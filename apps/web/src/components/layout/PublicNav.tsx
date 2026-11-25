@@ -1,14 +1,14 @@
-import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowLeft } from 'lucide-react';
-import { Button, TopNav } from '@/src/components/ui/capi';
-import PublicNavLogin from './PublicNavLogin';
+import Link from 'next/link'
+import Image from 'next/image'
+import { ArrowLeft } from 'lucide-react'
+import { Button, TopNav } from '@/src/components/ui/capi'
+import { AccountMenu } from './AccountMenu'
 
 interface PublicNavProps {
-  tenantName: string;
-  tenantLogoUrl?: string | null;
-  slug: string;
-  backHref?: string;
+  tenantName: string
+  tenantLogoUrl?: string | null
+  slug: string
+  backHref?: string
 }
 
 /** Barra superior das páginas públicas da operadora: vidro claro, logo compacta e nome da operadora. */
@@ -40,7 +40,13 @@ export default function PublicNav({ tenantName, tenantLogoUrl, backHref }: Publi
               alt=""
               width={32}
               height={32}
-              style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flex: 'none' }}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                flex: 'none',
+              }}
             />
           ) : null}
         </>
@@ -52,9 +58,9 @@ export default function PublicNav({ tenantName, tenantLogoUrl, backHref }: Publi
               Voltar
             </Button>
           ) : null}
-          <PublicNavLogin />
+          <AccountMenu />
         </>
       }
     />
-  );
+  )
 }

@@ -1,10 +1,11 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { ArrowLeft, Clock, MapPin, Route } from 'lucide-react';
-import SlotPicker from '@/src/components/ui/SlotPicker';
-import PublicLayout from '@/src/components/layout/PublicLayout';
+import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
+import Image from 'next/image'
+import Link from 'next/link'
+import { ArrowLeft, Clock, MapPin, Route } from 'lucide-react'
+import SlotPicker from '@/src/components/ui/SlotPicker'
+import PublicLayout from '@/src/components/layout/PublicLayout'
+import { AccountMenu } from '@/src/components/layout/AccountMenu'
 import {
   Avatar,
   Badge,
@@ -14,40 +15,40 @@ import {
   TopNav,
   formatDuration,
   formatPrice,
-} from '@/src/components/ui/capi';
+} from '@/src/components/ui/capi'
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 
-const API_URL = process.env.API_URL ?? 'http://localhost:3333';
+const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 
 interface DepartureSlot {
-  id: string;
-  startsAt: string;
-  capacity: number;
-  booked: number;
-  status: string;
+  id: string
+  startsAt: string
+  capacity: number
+  booked: number
+  status: string
 }
 
 interface GuidePackage {
-  id: string;
-  name: string;
-  description: string;
-  duration: number;
-  price: number;
-  difficulty: string;
-  departureSlots: DepartureSlot[];
+  id: string
+  name: string
+  description: string
+  duration: number
+  price: number
+  difficulty: string
+  departureSlots: DepartureSlot[]
 }
 
 interface GuideProfile {
-  id: string;
-  name: string;
-  photoUrl: string | null;
-  bio: string | null;
-  specialties: string[];
-  regions: string[];
-  portfolioPhotos: string[];
-  tenantSlug: string;
-  packages: GuidePackage[];
+  id: string
+  name: string
+  photoUrl: string | null
+  bio: string | null
+  specialties: string[]
+  regions: string[]
+  portfolioPhotos: string[]
+  tenantSlug: string
+  packages: GuidePackage[]
 }
 
 async function fetchGuideProfile(
@@ -55,15 +56,14 @@ async function fetchGuideProfile(
   guideId: string,
 ): Promise<GuideProfile | null> {
   try {
-    const res = await fetch(
-      `${API_URL}/destinations/${destinationSlug}/guides/${guideId}`,
-      { next: { revalidate: 3600 } },
-    );
-    if (res.status === 404) return null;
-    if (!res.ok) return null;
-    return res.json();
+    const res = await fetch(`${API_URL}/destinations/${destinationSlug}/guides/${guideId}`, {
+      next: { revalidate: 3600 },
+    })
+    if (res.status === 404) return null
+    if (!res.ok) return null
+    return res.json()
   } catch {
-    return null;
+    return null
   }
 }
 
@@ -72,17 +72,17 @@ async function fetchGuideProfile(
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ 'destination-slug': string; 'guide-id': string }>;
+  params: Promise<{ 'destination-slug': string; 'guide-id': string }>
 }): Promise<Metadata> {
-  const { 'destination-slug': dSlug, 'guide-id': gId } = await params;
-  const guide = await fetchGuideProfile(dSlug, gId);
-  if (!guide) return { title: 'Guia não encontrado' };
+  const { 'destination-slug': dSlug, 'guide-id': gId } = await params
+  const guide = await fetchGuideProfile(dSlug, gId)
+  if (!guide) return { title: 'Guia não encontrado' }
   return {
     title: guide.name,
     description:
       guide.bio ??
       `Conheça ${guide.name} — guia certificado. ${guide.specialties.slice(0, 3).join(', ')}.`,
-  };
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -96,21 +96,20 @@ const DIFFICULTY_KEY: Record<string, string> = {
   MODERADO: 'MODERATE',
   HARD: 'HARD',
   DIFICIL: 'HARD',
-};
-
+}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 interface Props {
-  params: Promise<{ 'destination-slug': string; 'guide-id': string }>;
+  params: Promise<{ 'destination-slug': string; 'guide-id': string }>
 }
 
 export default async function GuideProfilePage({ params }: Props) {
-  const { 'destination-slug': dSlug, 'guide-id': gId } = await params;
-  const guide = await fetchGuideProfile(dSlug, gId);
-  if (!guide) notFound();
+  const { 'destination-slug': dSlug, 'guide-id': gId } = await params
+  const guide = await fetchGuideProfile(dSlug, gId)
+  if (!guide) notFound()
 
-  const roteiroBase = `/destinos/${dSlug}/roteiros`;
+  const roteiroBase = `/destinos/${dSlug}/roteiros`
 
   return (
     <PublicLayout>
@@ -189,9 +188,17 @@ export default async function GuideProfilePage({ params }: Props) {
             </Link>
           }
           actions={
-            <Button href={`/destinos/${dSlug}/guias`} variant="ghost" size="sm" iconLeft={ArrowLeft}>
-              Guias
-            </Button>
+            <>
+              <Button
+                href={`/destinos/${dSlug}/guias`}
+                variant="ghost"
+                size="sm"
+                iconLeft={ArrowLeft}
+              >
+                Guias
+              </Button>
+              <AccountMenu />
+            </>
           }
         />
 
@@ -206,7 +213,9 @@ export default async function GuideProfilePage({ params }: Props) {
                 {guide.specialties.length > 0 && (
                   <div className="gprofile__tags" aria-label="Especialidades">
                     {guide.specialties.map((s) => (
-                      <Badge key={s} tone="brand">{s}</Badge>
+                      <Badge key={s} tone="brand">
+                        {s}
+                      </Badge>
                     ))}
                   </div>
                 )}
@@ -218,14 +227,18 @@ export default async function GuideProfilePage({ params }: Props) {
           {(guide.bio || guide.regions.length > 0) && (
             <section className="gprofile__section" aria-labelledby="about-heading">
               <div className="capi-container capi-container--content">
-                <h2 className="gprofile__h2 mb-4" id="about-heading">Sobre</h2>
+                <h2 className="gprofile__h2 mb-4" id="about-heading">
+                  Sobre
+                </h2>
                 {guide.bio && <p className="gprofile__bio">{guide.bio}</p>}
                 {guide.regions.length > 0 && (
                   <>
                     <p className="gprofile__label">Regiões atendidas</p>
                     <div className="gprofile__tags" aria-label="Regiões">
                       {guide.regions.map((r) => (
-                        <Badge key={r} icon={MapPin}>{r}</Badge>
+                        <Badge key={r} icon={MapPin}>
+                          {r}
+                        </Badge>
                       ))}
                     </div>
                   </>
@@ -240,26 +253,24 @@ export default async function GuideProfilePage({ params }: Props) {
               <h2 className="gprofile__h2" id="packages-heading">
                 Roteiros deste guia
               </h2>
-              <p className="gprofile__sub">
-                Escolha um roteiro e reserve sua experiência.
-              </p>
+              <p className="gprofile__sub">Escolha um roteiro e reserve sua experiência.</p>
 
               {guide.packages.length > 0 ? (
                 <div className="gprofile__pkgs">
                   {guide.packages.map((pkg) => {
                     const openSlots = (pkg.departureSlots ?? []).filter(
-                      (s) => s.status === 'OPEN' && s.booked < s.capacity
+                      (s) => s.status === 'OPEN' && s.booked < s.capacity,
                     )
                     const difficulty = DIFFICULTY_KEY[pkg.difficulty] ?? pkg.difficulty
                     return (
                       <article key={pkg.id} className="gprofile__pkg">
                         <div className="gprofile__pkg-top">
                           <h3 className="gprofile__pkg-title">{pkg.name}</h3>
-                          {pkg.difficulty ? <StatusBadge kind="difficulty" status={difficulty} /> : null}
+                          {pkg.difficulty ? (
+                            <StatusBadge kind="difficulty" status={difficulty} />
+                          ) : null}
                         </div>
-                        {pkg.description && (
-                          <p className="gprofile__pkg-desc">{pkg.description}</p>
-                        )}
+                        {pkg.description && <p className="gprofile__pkg-desc">{pkg.description}</p>}
                         <p className="gprofile__pkg-meta">
                           <span>
                             <Clock size={16} strokeWidth={1.75} aria-hidden="true" />
@@ -273,12 +284,14 @@ export default async function GuideProfilePage({ params }: Props) {
                           {openSlots.length > 0 ? (
                             <>
                               <p className="gprofile__slots-label">Datas disponíveis</p>
-                              <SlotPicker slots={openSlots} packageId={pkg.id} slug={guide.tenantSlug} />
+                              <SlotPicker
+                                slots={openSlots}
+                                packageId={pkg.id}
+                                slug={guide.tenantSlug}
+                              />
                             </>
                           ) : (
-                            <p className="gprofile__noslots">
-                              Nenhuma data disponível no momento.
-                            </p>
+                            <p className="gprofile__noslots">Nenhuma data disponível no momento.</p>
                           )}
                         </div>
                       </article>
@@ -301,9 +314,7 @@ export default async function GuideProfilePage({ params }: Props) {
             <section className="pb-16" aria-label="Reserva geral">
               <div className="capi-container capi-container--content">
                 <div className="gprofile__cta">
-                  <p className="gprofile__cta-text">
-                    Escolha um roteiro acima e faça sua reserva.
-                  </p>
+                  <p className="gprofile__cta-text">Escolha um roteiro acima e faça sua reserva.</p>
                   <Button href="#roteiros" variant="secondary">
                     Reservar com {guide.name}
                   </Button>
@@ -314,5 +325,5 @@ export default async function GuideProfilePage({ params }: Props) {
         </main>
       </div>
     </PublicLayout>
-  );
+  )
 }

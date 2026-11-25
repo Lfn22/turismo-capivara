@@ -1,10 +1,10 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { signOut } from "next-auth/react"
+import { useState } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 import {
   Building2,
   CalendarDays,
@@ -17,7 +17,7 @@ import {
   User,
   Users,
   type LucideIcon,
-} from "lucide-react"
+} from 'lucide-react'
 import {
   Avatar,
   Button,
@@ -28,8 +28,9 @@ import {
   SidebarLinks,
   cx,
   type NavItem,
-} from "@/src/components/ui/capi"
-import { painelEyebrow } from "@/lib/painel"
+} from '@/src/components/ui/capi'
+import { painelEyebrow } from '@/lib/painel'
+import { NotificationBell } from '@/src/components/layout/NotificationBell'
 
 // ── Itens do painel (rotas reais) ─────────────────────────────────────────────
 // `primary` = aparece na bottom nav do celular; o resto vai para "Mais".
@@ -38,31 +39,99 @@ type PainelItem = NavItem & { labelShort: string; title: string; primary: boolea
 
 function navItems(slug: string): PainelItem[] {
   return [
-    { label: "Visão geral", labelShort: "Início",   title: "Visão geral", href: `/${slug}/painel/dashboard`,       icon: LayoutDashboard, primary: true  },
-    { label: "Reservas",    labelShort: "Reservas", title: "Reservas",    href: `/${slug}/painel/reservas`,        icon: Ticket,          primary: true  },
-    { label: "Agenda",      labelShort: "Agenda",   title: "Agenda",      href: `/${slug}/painel/disponibilidade`, icon: CalendarDays,    primary: true  },
-    { label: "Roteiros",    labelShort: "Roteiros", title: "Roteiros",    href: `/${slug}/painel/roteiros`,        icon: Route,           primary: true  },
-    { label: "Destinos",    labelShort: "Destinos", title: "Destinos",      href: `/${slug}/painel/destinos`,        icon: MapPin,          primary: false },
-    { label: "Perfil",      labelShort: "Perfil",   title: "Perfil",      href: `/${slug}/painel/perfil`,          icon: User,            primary: false },
-    { label: "Guias",       labelShort: "Guias",    title: "Guias",       href: `/${slug}/admin/guias`,            icon: Users,           primary: false },
-    { label: "Agência",     labelShort: "Agência",  title: "Agência",     href: `/${slug}/painel/agencia`,         icon: Building2,       primary: false },
+    {
+      label: 'Visão geral',
+      labelShort: 'Início',
+      title: 'Visão geral',
+      href: `/${slug}/painel/dashboard`,
+      icon: LayoutDashboard,
+      primary: true,
+    },
+    {
+      label: 'Reservas',
+      labelShort: 'Reservas',
+      title: 'Reservas',
+      href: `/${slug}/painel/reservas`,
+      icon: Ticket,
+      primary: true,
+    },
+    {
+      label: 'Agenda',
+      labelShort: 'Agenda',
+      title: 'Agenda',
+      href: `/${slug}/painel/disponibilidade`,
+      icon: CalendarDays,
+      primary: true,
+    },
+    {
+      label: 'Roteiros',
+      labelShort: 'Roteiros',
+      title: 'Roteiros',
+      href: `/${slug}/painel/roteiros`,
+      icon: Route,
+      primary: true,
+    },
+    {
+      label: 'Destinos',
+      labelShort: 'Destinos',
+      title: 'Destinos',
+      href: `/${slug}/painel/destinos`,
+      icon: MapPin,
+      primary: false,
+    },
+    {
+      label: 'Perfil',
+      labelShort: 'Perfil',
+      title: 'Perfil',
+      href: `/${slug}/painel/perfil`,
+      icon: User,
+      primary: false,
+    },
+    {
+      label: 'Guias',
+      labelShort: 'Guias',
+      title: 'Guias',
+      href: `/${slug}/admin/guias`,
+      icon: Users,
+      primary: false,
+    },
+    {
+      label: 'Agência',
+      labelShort: 'Agência',
+      title: 'Agência',
+      href: `/${slug}/painel/agencia`,
+      icon: Building2,
+      primary: false,
+    },
   ]
 }
 
 const ROLE_LABEL: Record<string, string> = {
-  CONDUTOR: "Condutor",
-  ADMIN: "Administrador",
-  ATENDENTE: "Atendente",
+  CONDUTOR: 'Condutor',
+  ADMIN: 'Administrador',
+  ATENDENTE: 'Atendente',
 }
 
 function isActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(href + "/")
+  return pathname === href || pathname.startsWith(href + '/')
 }
 
 function Logo({ slug }: { slug: string }) {
   return (
-    <Link href="/" className="capi-logo" aria-label="CAPI — página inicial" style={{ minHeight: "var(--touch-target)" }}>
-      <Image src="/images/logo.png" alt="CAPI" width={40} height={36} priority style={{ width: "auto" }} />
+    <Link
+      href="/"
+      className="capi-logo"
+      aria-label="CAPI — página inicial"
+      style={{ minHeight: 'var(--touch-target)' }}
+    >
+      <Image
+        src="/images/logo.png"
+        alt="CAPI"
+        width={40}
+        height={36}
+        priority
+        style={{ width: 'auto' }}
+      />
       <span className="sr-only-capi">Painel de {slug}</span>
     </Link>
   )
@@ -85,14 +154,14 @@ export function SidebarNav({
   userImage?: string | null
   role?: string | null
 }) {
-  const pathname = usePathname() ?? ""
+  const pathname = usePathname() ?? ''
   // Guia (CONDUTOR) não gerencia destinos; guias e dados da agência são só do ADMIN,
   // que não tem perfil de guia (os dados dele ficam em /conta).
-  const ADMIN_ONLY = ["Guias", "Agência"]
+  const ADMIN_ONLY = ['Guias', 'Agência']
   const items = navItems(slug).filter((i) =>
-    role === "ADMIN"
-      ? i.label !== "Perfil"
-      : !ADMIN_ONLY.includes(i.label) && !(role === "CONDUTOR" && i.label === "Destinos"),
+    role === 'ADMIN'
+      ? i.label !== 'Perfil'
+      : !ADMIN_ONLY.includes(i.label) && !(role === 'CONDUTOR' && i.label === 'Destinos'),
   )
   const primary = items.filter((i) => i.primary)
   const more = items.filter((i) => !i.primary)
@@ -100,8 +169,8 @@ export function SidebarNav({
 
   const current = items.find((i) => isActive(pathname, i.href))
   const moreActive = more.some((i) => isActive(pathname, i.href))
-  const who = userName || userEmail || "Minha conta"
-  const whoSub = (role && ROLE_LABEL[role]) || userEmail || ""
+  const who = userName || userEmail || 'Minha conta'
+  const whoSub = (role && ROLE_LABEL[role]) || userEmail || ''
 
   function handleSignOut() {
     signOut({ callbackUrl: `/${slug}/login` })
@@ -150,6 +219,13 @@ export function SidebarNav({
         .painel-topbar__avatar { display: inline-flex; align-items: center; justify-content: center; width: var(--touch-target); height: var(--touch-target); border-radius: 50%; }
         @media (min-width: 768px) { .painel-topbar { display: none; } }
 
+        /* Sino logo acima do usuário; o painel de notificações abre para cima-direita */
+        .painel-sidebar__bell { margin-top: auto; color: var(--text-secondary); }
+        /* A sidebar rola (overflow): o painel fica fixo ao lado dela para não ser cortado */
+        .painel-sidebar__bell .notif-panel { position: fixed; top: auto; bottom: var(--space-4); left: calc(var(--sidebar-width) + 8px); }
+        @media (max-width: 1023px) { .painel-sidebar__bell .notif-panel { left: calc(var(--sidebar-collapsed) + 8px); } }
+        .painel-topbar { color: var(--text); }
+
         /* "Mais" é um botão dentro da bottom nav */
         .painel-bottomnav__more { appearance: none; border: 0; background: none; font: inherit; cursor: pointer; }
       `}</style>
@@ -164,6 +240,10 @@ export function SidebarNav({
 
         <SidebarLinks items={items} />
 
+        <div className="painel-sidebar__bell">
+          <NotificationBell role={role ?? undefined} align="left" />
+        </div>
+
         <div className="capi-sidebar__user">
           <Avatar name={who} src={userImage} size={36} />
           <div className="capi-sidebar__who">
@@ -177,11 +257,12 @@ export function SidebarNav({
       {/* ── Top bar (<768px) ─────────────────────────────────────────────── */}
       <header className="painel-topbar">
         <Logo slug={slug} />
-        <p className="painel-topbar__title">{current?.title ?? "Painel"}</p>
+        <p className="painel-topbar__title">{current?.title ?? 'Painel'}</p>
+        <NotificationBell role={role ?? undefined} />
         <Link
-          href={role === "ADMIN" ? "/conta" : `/${slug}/painel/perfil`}
+          href={role === 'ADMIN' ? '/conta' : `/${slug}/painel/perfil`}
           className="painel-topbar__avatar"
-          aria-label={role === "ADMIN" ? "Minha conta" : "Meu perfil"}
+          aria-label={role === 'ADMIN' ? 'Minha conta' : 'Meu perfil'}
         >
           <Avatar name={who} src={userImage} size={32} />
         </Link>
@@ -196,8 +277,8 @@ export function SidebarNav({
             <Link
               key={it.href}
               href={it.href}
-              className={cx("capi-bottomnav__item", act && "is-active")}
-              aria-current={act ? "page" : undefined}
+              className={cx('capi-bottomnav__item', act && 'is-active')}
+              aria-current={act ? 'page' : undefined}
             >
               <span className="capi-bottomnav__pill">
                 <Icon size={22} strokeWidth={act ? 2 : 1.75} aria-hidden="true" />
@@ -208,7 +289,7 @@ export function SidebarNav({
         })}
         <button
           type="button"
-          className={cx("capi-bottomnav__item painel-bottomnav__more", moreActive && "is-active")}
+          className={cx('capi-bottomnav__item painel-bottomnav__more', moreActive && 'is-active')}
           aria-haspopup="dialog"
           aria-expanded={moreOpen}
           onClick={() => setMoreOpen(true)}

@@ -18,7 +18,7 @@ function validateSecret() {
   }
 }
 
-// Nome e foto exibidos no UserBar/painel. Melhor esforço: falha não impede o login.
+// Nome e foto exibidos no menu da conta/painel. Melhor esforço: falha não impede o login.
 async function fetchAccount(
   apiToken: string,
 ): Promise<{ name?: string; photoUrl?: string | null } | null> {

@@ -1,12 +1,7 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import TuristaTopNav from '@/src/components/turista/TuristaTopNav'
 import TuristaBottomNav from '@/src/components/turista/TuristaBottomNav'
 
-export default async function MinhaContaLayout({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession(authOptions)
-  const user = session?.user
-
+export default function MinhaContaLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <style>{`
@@ -55,7 +50,7 @@ export default async function MinhaContaLayout({ children }: { children: React.R
         }
       `}</style>
       <div className="minhaconta-shell">
-        <TuristaTopNav userName={user?.name} userPhotoUrl={user?.photoUrl} />
+        <TuristaTopNav />
         <div className="minhaconta-body">
           <aside className="minhaconta-sidebar">
             <TuristaBottomNav />

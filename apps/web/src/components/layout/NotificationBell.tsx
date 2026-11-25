@@ -1,31 +1,42 @@
-"use client"
-import { useCallback, useEffect, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
-import { NotificationActions } from "@/src/components/notifications/NotificationActions"
+'use client'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Bell } from 'lucide-react'
+import { NotificationActions } from '@/src/components/notifications/NotificationActions'
 import {
   fetchNotifications,
   fetchSummary,
   markAllRead,
   markRead,
   type NotificationDTO,
-} from "@/lib/notifications-client"
+} from '@/lib/notifications-client'
 
 const POLL_MS = 60_000
 
 const badgeStyle = (bg: string): React.CSSProperties => ({
-  minWidth: "16px",
-  height: "16px",
-  padding: "0 4px",
-  borderRadius: "8px",
+  minWidth: '16px',
+  height: '16px',
+  padding: '0 4px',
+  borderRadius: '8px',
   background: bg,
-  color: "white",
-  fontSize: "11px",
+  color: 'white',
+  fontSize: '11px',
   fontWeight: 700,
-  lineHeight: "16px",
-  textAlign: "center",
+  lineHeight: '16px',
+  textAlign: 'center',
 })
 
-export function NotificationBell({ role }: { role?: string }) {
+/**
+ * Sino de notificações. Herda a cor do cabeçalho onde está (currentColor).
+ * `align`: lado em que o painel abre (direita no cabeçalho, esquerda na sidebar).
+ */
+export function NotificationBell({
+  role,
+  align = 'right',
+}: {
+  role?: string
+  align?: 'left' | 'right'
+}) {
   const router = useRouter()
   const [summary, setSummary] = useState({ unread: 0, pending: 0 })
   const [open, setOpen] = useState(false)
@@ -35,6 +46,8 @@ export function NotificationBell({ role }: { role?: string }) {
   const [error, setError] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  // Celular: painel fixo logo abaixo do botão, na largura da tela
+  const [panelTop, setPanelTop] = useState(56)
 
   const refreshSummary = useCallback(() => {
     // mantém o último valor conhecido em caso de falha
@@ -53,21 +66,21 @@ export function NotificationBell({ role }: { role?: string }) {
       timer = null
     }
     function onVisibility() {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === 'visible') {
         refreshSummary()
         start()
       } else {
         stop()
       }
     }
-    if (document.visibilityState === "visible") {
+    if (document.visibilityState === 'visible') {
       refreshSummary()
       start()
     }
-    document.addEventListener("visibilitychange", onVisibility)
+    document.addEventListener('visibilitychange', onVisibility)
     return () => {
       stop()
-      document.removeEventListener("visibilitychange", onVisibility)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [refreshSummary])
 
@@ -94,16 +107,16 @@ export function NotificationBell({ role }: { role?: string }) {
       }
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         setOpen(false)
         setNotice(null)
       }
     }
-    document.addEventListener("mousedown", onDown)
-    document.addEventListener("keydown", onKey)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
     return () => {
-      document.removeEventListener("mousedown", onDown)
-      document.removeEventListener("keydown", onKey)
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
     }
   }, [open])
 
@@ -111,8 +124,8 @@ export function NotificationBell({ role }: { role?: string }) {
     function onChanged() {
       refreshSummary()
     }
-    window.addEventListener("notifications:changed", onChanged)
-    return () => window.removeEventListener("notifications:changed", onChanged)
+    window.addEventListener('notifications:changed', onChanged)
+    return () => window.removeEventListener('notifications:changed', onChanged)
   }, [refreshSummary])
 
   async function onItemClick(n: NotificationDTO) {
@@ -122,7 +135,9 @@ export function NotificationBell({ role }: { role?: string }) {
       // navegação segue mesmo se falhar
     }
     setItems((prev) =>
-      prev.map((i) => (i.id === n.id && !i.readAt ? { ...i, readAt: new Date().toISOString() } : i)),
+      prev.map((i) =>
+        i.id === n.id && !i.readAt ? { ...i, readAt: new Date().toISOString() } : i,
+      ),
     )
     refreshSummary()
     if (n.link) {
@@ -144,83 +159,91 @@ export function NotificationBell({ role }: { role?: string }) {
   }
 
   const emptyText =
-    role === "CONDUTOR"
-      ? "Nenhuma novidade. Complete seu perfil para ser encontrado"
-      : "Nenhuma novidade"
+    role === 'CONDUTOR'
+      ? 'Nenhuma novidade. Complete seu perfil para ser encontrado'
+      : 'Nenhuma novidade'
 
   return (
-    <div ref={rootRef} style={{ position: "relative" }}>
+    <div ref={rootRef} style={{ position: 'relative' }}>
       <style>{`
-        .notif-panel { position: absolute; right: 0; top: 40px; width: 360px; }
+        .notif-panel { position: absolute; top: calc(100% + 8px); width: 360px; }
+        .notif-panel--right { right: 0; }
+        .notif-panel--left { left: 0; }
         @media (max-width: 767px) {
-          .notif-panel { position: fixed; left: 0; right: 0; top: var(--userbar-h, 40px); width: auto; }
+          .notif-panel { position: fixed; left: 0; right: 0; top: var(--notif-top); width: auto; }
         }
       `}</style>
       <button
         type="button"
         aria-label="Notificações"
         aria-expanded={open}
-        onClick={() => {
+        onClick={(e) => {
+          setPanelTop(Math.round(e.currentTarget.getBoundingClientRect().bottom + 8))
           if (!open) loadPage()
           setNotice(null)
           setOpen((v) => !v)
         }}
         style={{
-          background: "transparent",
-          border: "none",
-          color: "var(--stone-50)",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-          minHeight: "40px",
-          padding: "0 4px",
-          fontSize: "16px",
+          background: 'transparent',
+          border: 'none',
+          color: 'inherit',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '4px',
+          minHeight: 'var(--touch-target)',
+          minWidth: 'var(--touch-target)',
+          padding: '0 4px',
+          borderRadius: 'var(--radius-pill)',
         }}
       >
-        <span aria-hidden="true">🔔</span>
+        <Bell size={20} strokeWidth={1.75} aria-hidden="true" />
         {summary.unread > 0 && (
-          <span style={badgeStyle("var(--ochre)")}>{summary.unread > 9 ? "9+" : summary.unread}</span>
+          <span style={badgeStyle('var(--ochre)')}>
+            {summary.unread > 9 ? '9+' : summary.unread}
+          </span>
         )}
         {summary.pending > 0 && (
-          <span title="Pendências" style={badgeStyle("#DC2626")}>
-            {summary.pending > 9 ? "9+" : summary.pending}
+          <span title="Pendências" style={badgeStyle('#DC2626')}>
+            {summary.pending > 9 ? '9+' : summary.pending}
           </span>
         )}
       </button>
       {open && (
         <div
-          className="notif-panel"
+          className={`notif-panel notif-panel--${align}`}
           style={{
-            background: "var(--stone-50)",
-            color: "var(--stone-900)",
-            border: "1px solid var(--stone-200)",
-            borderRadius: "4px",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
-            maxHeight: "70vh",
-            overflowY: "auto",
+            ['--notif-top' as string]: `${panelTop}px`,
+            background: 'var(--stone-50)',
+            color: 'var(--stone-900)',
+            border: '1px solid var(--stone-200)',
+            borderRadius: '4px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+            maxHeight: '70vh',
+            overflowY: 'auto',
             zIndex: 70,
           }}
         >
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "10px 14px",
-              borderBottom: "1px solid var(--stone-200)",
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '10px 14px',
+              borderBottom: '1px solid var(--stone-200)',
             }}
           >
-            <strong style={{ fontSize: "14px" }}>Notificações</strong>
+            <strong style={{ fontSize: '14px' }}>Notificações</strong>
             <button
               type="button"
               onClick={onMarkAll}
               style={{
-                background: "transparent",
-                border: "none",
-                color: "var(--ochre)",
-                cursor: "pointer",
-                fontSize: "13px",
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--ochre)',
+                cursor: 'pointer',
+                fontSize: '13px',
                 fontWeight: 600,
               }}
             >
@@ -228,67 +251,85 @@ export function NotificationBell({ role }: { role?: string }) {
             </button>
           </div>
           {notice && (
-            <p role="alert" style={{ padding: "8px 14px", fontSize: "13px", color: "#DC2626", margin: 0 }}>
+            <p
+              role="alert"
+              style={{ padding: '8px 14px', fontSize: '13px', color: '#DC2626', margin: 0 }}
+            >
               {notice}
             </p>
           )}
           {error && (
-            <p style={{ padding: "14px", fontSize: "14px", color: "#DC2626" }}>
+            <p style={{ padding: '14px', fontSize: '14px', color: '#DC2626' }}>
               Não foi possível carregar as notificações.
             </p>
           )}
           {!error && !loading && items.length === 0 && (
-            <p style={{ padding: "14px", fontSize: "14px", color: "var(--stone-500)" }}>{emptyText}</p>
+            <p style={{ padding: '14px', fontSize: '14px', color: 'var(--stone-500)' }}>
+              {emptyText}
+            </p>
           )}
           {items.map((n) => (
-            <div key={n.id} style={{ borderBottom: "1px solid var(--stone-200)" }}>
-            <button
-              type="button"
-              onClick={() => onItemClick(n)}
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                padding: "10px 14px",
-                border: "none",
-                background: n.readAt ? "transparent" : "white",
-                borderLeft: n.readAt ? "3px solid transparent" : "3px solid var(--ochre)",
-                cursor: "pointer",
-                fontFamily: "var(--font-body)",
-                color: "var(--stone-900)",
-              }}
-            >
-              <span style={{ display: "block", fontSize: "14px", fontWeight: n.readAt ? 400 : 700 }}>
-                {n.title}
-                {n.count > 1 ? ` (${n.count})` : ""}
-              </span>
-              <span style={{ display: "block", fontSize: "13px", color: "var(--stone-500)" }}>{n.body}</span>
-              {n.resolvedAt && (
-                <span style={{ display: "block", fontSize: "12px", color: "var(--stone-500)", marginTop: "2px" }}>
-                  Resolvido por {n.resolvedByName}
+            <div key={n.id} style={{ borderBottom: '1px solid var(--stone-200)' }}>
+              <button
+                type="button"
+                onClick={() => onItemClick(n)}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '10px 14px',
+                  border: 'none',
+                  background: n.readAt ? 'transparent' : 'white',
+                  borderLeft: n.readAt ? '3px solid transparent' : '3px solid var(--ochre)',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-body)',
+                  color: 'var(--stone-900)',
+                }}
+              >
+                <span
+                  style={{ display: 'block', fontSize: '14px', fontWeight: n.readAt ? 400 : 700 }}
+                >
+                  {n.title}
+                  {n.count > 1 ? ` (${n.count})` : ''}
                 </span>
-              )}
-            </button>
-            <NotificationActions n={n} onDone={() => loadPage()} onNotice={setNotice} />
+                <span style={{ display: 'block', fontSize: '13px', color: 'var(--stone-500)' }}>
+                  {n.body}
+                </span>
+                {n.resolvedAt && (
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: '12px',
+                      color: 'var(--stone-500)',
+                      marginTop: '2px',
+                    }}
+                  >
+                    Resolvido por {n.resolvedByName}
+                  </span>
+                )}
+              </button>
+              <NotificationActions n={n} onDone={() => loadPage()} onNotice={setNotice} />
             </div>
           ))}
           {loading && (
-            <p style={{ padding: "14px", fontSize: "14px", color: "var(--stone-500)" }}>Carregando…</p>
+            <p style={{ padding: '14px', fontSize: '14px', color: 'var(--stone-500)' }}>
+              Carregando…
+            </p>
           )}
           {nextCursor && !loading && (
             <button
               type="button"
               onClick={() => loadPage(nextCursor)}
               style={{
-                display: "block",
-                width: "100%",
-                padding: "10px",
-                background: "transparent",
-                border: "none",
-                color: "var(--ochre)",
+                display: 'block',
+                width: '100%',
+                padding: '10px',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--ochre)',
                 fontWeight: 600,
-                cursor: "pointer",
-                fontSize: "14px",
+                cursor: 'pointer',
+                fontSize: '14px',
               }}
             >
               Carregar mais

@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Button, TopNav } from '@/src/components/ui/capi'
+import { TopNav } from '@/src/components/ui/capi'
 import PublicLayout from '@/src/components/layout/PublicLayout'
 import ExplorarClient from './ExplorarClient'
 import { parseSearchResponse, priceFilterParam, type SearchPage } from './search-response'
+import { AccountMenu } from '@/src/components/layout/AccountMenu'
 
 export const dynamic = 'force-dynamic'
 
@@ -90,11 +91,7 @@ export default async function ExplorarPage({
               <Image src="/images/logo.png" alt="CAPI" width={40} height={36} priority />
             </Link>
           }
-          actions={
-            <Button href="/login" variant="secondary" size="sm">
-              Entrar
-            </Button>
-          }
+          actions={<AccountMenu />}
         />
 
         <ExplorarClient

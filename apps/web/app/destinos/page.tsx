@@ -1,37 +1,38 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import Image from 'next/image';
-import { MapPin, RotateCw } from 'lucide-react';
-import DestinationCard from '@/src/components/ui/DestinationCard';
-import { NewDestinationButton } from '@/src/components/edit-mode/NewDestinationButton';
-import PublicLayout from '@/src/components/layout/PublicLayout';
-import { Alert, Button, EmptyState, TopNav } from '@/src/components/ui/capi';
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import Image from 'next/image'
+import { MapPin, RotateCw } from 'lucide-react'
+import DestinationCard from '@/src/components/ui/DestinationCard'
+import { NewDestinationButton } from '@/src/components/edit-mode/NewDestinationButton'
+import PublicLayout from '@/src/components/layout/PublicLayout'
+import { Alert, Button, EmptyState, TopNav } from '@/src/components/ui/capi'
+import { AccountMenu } from '@/src/components/layout/AccountMenu'
 
 // Force SSR — build container cannot reach the API at build time
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 
-const API_URL = process.env.API_URL ?? 'http://localhost:3333';
+const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 
 interface DestinationSummary {
-  id: string;
-  slug: string;
-  title: string;
-  subtitle: string | null;
-  state: string;
-  heroImageUrl: string | null;
-  heroImageBlurDataUrl: string | null;
+  id: string
+  slug: string
+  title: string
+  subtitle: string | null
+  state: string
+  heroImageUrl: string | null
+  heroImageBlurDataUrl: string | null
 }
 
 async function fetchDestinations(): Promise<DestinationSummary[] | null> {
   try {
-    const res = await fetch(`${API_URL}/destinations`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const body = await res.json();
-    return Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : null;
+    const res = await fetch(`${API_URL}/destinations`, { cache: 'no-store' })
+    if (!res.ok) return null
+    const body = await res.json()
+    return Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : null
   } catch {
-    return null; // rede inacessível
+    return null // rede inacessível
   }
 }
 
@@ -41,12 +42,12 @@ export const metadata: Metadata = {
   title: 'Destinos',
   description:
     'Explore destinos com guias certificados. Arte rupestre, patrimônio mundial e natureza preservada.',
-};
+}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function DestinosPage() {
-  const destinations = await fetchDestinations();
+  const destinations = await fetchDestinations()
 
   return (
     <PublicLayout>
@@ -96,19 +97,14 @@ export default async function DestinosPage() {
               <Image src="/images/logo.png" alt="CAPI" width={40} height={36} priority />
             </Link>
           }
-          actions={
-            <Button href="/login" variant="secondary" size="sm">
-              Entrar
-            </Button>
-          }
+          actions={<AccountMenu />}
         />
 
         <header className="capi-container destinos__header">
           <p className="destinos__overline">Destinos</p>
           <h1 className="destinos__title">Onde você quer explorar?</h1>
           <p className="destinos__lead">
-            Destinos com guias certificados, roteiros únicos e experiências que
-            só existem aqui.
+            Destinos com guias certificados, roteiros únicos e experiências que só existem aqui.
           </p>
         </header>
 
@@ -150,21 +146,21 @@ export default async function DestinosPage() {
             </>
           ) : (
             <>
-            <EmptyState
-              icon={MapPin}
-              title="Nenhum destino cadastrado"
-              description="Novos destinos serão adicionados em breve. Enquanto isso, conheça os guias da plataforma."
-              action={
-                <Button href="/explorar" variant="secondary">
-                  Explorar guias
-                </Button>
-              }
-            />
-            <NewDestinationButton publicSlugs={[]} standalone />
+              <EmptyState
+                icon={MapPin}
+                title="Nenhum destino cadastrado"
+                description="Novos destinos serão adicionados em breve. Enquanto isso, conheça os guias da plataforma."
+                action={
+                  <Button href="/explorar" variant="secondary">
+                    Explorar guias
+                  </Button>
+                }
+              />
+              <NewDestinationButton publicSlugs={[]} standalone />
             </>
           )}
         </main>
       </div>
     </PublicLayout>
-  );
+  )
 }

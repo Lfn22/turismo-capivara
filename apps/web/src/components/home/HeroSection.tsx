@@ -1,28 +1,29 @@
-import Image from 'next/image';
-import Link from 'next/link';
-import { MapPin, Search } from 'lucide-react';
-import { Button, Input, TopNav } from '@/src/components/ui/capi';
-import CapiLogoAnimated from './CapiLogoAnimated';
-import DustParticles from './DustParticles';
-import HeroSlideshow, { type HeroSlide } from './HeroSlideshow';
-import '@/src/styles/rupestre.css';
+import Image from 'next/image'
+import Link from 'next/link'
+import { MapPin, Search } from 'lucide-react'
+import { Button, Input, TopNav } from '@/src/components/ui/capi'
+import CapiLogoAnimated from './CapiLogoAnimated'
+import DustParticles from './DustParticles'
+import HeroSlideshow, { type HeroSlide } from './HeroSlideshow'
+import '@/src/styles/rupestre.css'
+import { AccountMenu } from '@/src/components/layout/AccountMenu'
 
 interface QuickLink {
-  href: string;
-  label: string;
+  href: string
+  label: string
 }
 
 interface Props {
   /** Fotos de destinos e roteiros que passam no fundo do hero. Sem fotos, usa `surface-brand`. */
-  slides?: HeroSlide[];
+  slides?: HeroSlide[]
   /** Atalhos em chips logo abaixo da busca. */
-  quickLinks?: QuickLink[];
+  quickLinks?: QuickLink[]
 }
 
 const NAV_LINKS = [
   { href: '/destinos', label: 'Destinos' },
   { href: '/explorar', label: 'Explorar' },
-];
+]
 
 export default function HeroSection({ slides = [], quickLinks = [] }: Props) {
   return (
@@ -126,11 +127,7 @@ export default function HeroSection({ slides = [], quickLinks = [] }: Props) {
               <Image src="/images/logo.png" alt="CAPI" width={40} height={36} priority />
             </Link>
           }
-          actions={
-            <Button href="/login" variant="secondary" size="sm">
-              Entrar
-            </Button>
-          }
+          actions={<AccountMenu />}
         />
 
         <div className="capi-container home-hero__content">
@@ -174,5 +171,5 @@ export default function HeroSection({ slides = [], quickLinks = [] }: Props) {
         ) : null}
       </div>
     </>
-  );
+  )
 }

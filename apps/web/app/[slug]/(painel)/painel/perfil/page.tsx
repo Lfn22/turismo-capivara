@@ -224,7 +224,7 @@ export default function PerfilPage({ params }: { params: Promise<{ slug: string 
     setPortfolioPhotos((prev) => [...prev, url])
   }
 
-  // Foto do guia = GuideProfile.photoUrl; /account/me grava nela e a sessão reflete no UserBar/sidebar
+  // Foto do guia = GuideProfile.photoUrl; /account/me grava nela e a sessão reflete no menu da conta/sidebar
   async function handleAvatarChange(photoUrl: string | null) {
     const res = await fetch(`/api/proxy?path=${encodeURIComponent('/account/me')}`, {
       method: 'PATCH',

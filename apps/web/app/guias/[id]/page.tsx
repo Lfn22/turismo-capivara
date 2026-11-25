@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, Clock, MapPin, MessageSquareQuote, Star, UserRound } from 'lucide-react'
 import { PortfolioLightbox } from './PortfolioLightbox'
 import PublicLayout from '@/src/components/layout/PublicLayout'
+import { AccountMenu } from '@/src/components/layout/AccountMenu'
 import {
   Avatar,
   Badge,
@@ -80,7 +81,11 @@ async function fetchTestimonials(id: string): Promise<Testimonial[]> {
   }
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
   const { id } = await params
   const guide = await fetchGuide(id)
   if (!guide) return { title: 'Guia não encontrado' }
@@ -184,9 +189,12 @@ export default async function GuiaProfilePage({ params }: { params: Promise<{ id
             </Link>
           }
           actions={
-            <Button href="/explorar" variant="ghost" size="sm" iconLeft={ArrowLeft}>
-              Explorar guias
-            </Button>
+            <>
+              <Button href="/explorar" variant="ghost" size="sm" iconLeft={ArrowLeft}>
+                Explorar guias
+              </Button>
+              <AccountMenu />
+            </>
           }
         />
 
@@ -200,7 +208,9 @@ export default async function GuiaProfilePage({ params }: { params: Promise<{ id
                 {testimonials.length > 0 && (
                   <div className="mt-2">
                     <Rating
-                      value={testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length}
+                      value={
+                        testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length
+                      }
                       count={testimonials.length}
                     />
                   </div>
@@ -208,7 +218,9 @@ export default async function GuiaProfilePage({ params }: { params: Promise<{ id
                 {guide.specialties?.length > 0 && (
                   <div className="guia__tags" aria-label="Especialidades">
                     {guide.specialties.map((s) => (
-                      <Badge key={s} tone="brand">{s}</Badge>
+                      <Badge key={s} tone="brand">
+                        {s}
+                      </Badge>
                     ))}
                   </div>
                 )}
@@ -219,7 +231,9 @@ export default async function GuiaProfilePage({ params }: { params: Promise<{ id
           {guide.bio && (
             <section className="guia__section" aria-labelledby="guia-sobre">
               <div className="capi-container capi-container--content">
-                <h2 id="guia-sobre" className="guia__section-title">Sobre</h2>
+                <h2 id="guia-sobre" className="guia__section-title">
+                  Sobre
+                </h2>
                 <p className="guia__bio">{guide.bio}</p>
               </div>
             </section>
@@ -228,10 +242,14 @@ export default async function GuiaProfilePage({ params }: { params: Promise<{ id
           {guide.regions?.length > 0 && (
             <section className="guia__section" aria-labelledby="guia-regioes">
               <div className="capi-container capi-container--content">
-                <h2 id="guia-regioes" className="guia__section-title">Regiões atendidas</h2>
+                <h2 id="guia-regioes" className="guia__section-title">
+                  Regiões atendidas
+                </h2>
                 <div className="guia__tags">
                   {guide.regions.map((r) => (
-                    <Badge key={r} icon={MapPin}>{r}</Badge>
+                    <Badge key={r} icon={MapPin}>
+                      {r}
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -241,7 +259,9 @@ export default async function GuiaProfilePage({ params }: { params: Promise<{ id
           {packages.length > 0 && (
             <section className="guia__section" aria-labelledby="guia-roteiros">
               <div className="capi-container capi-container--content">
-                <h2 id="guia-roteiros" className="guia__section-title">Experiências</h2>
+                <h2 id="guia-roteiros" className="guia__section-title">
+                  Experiências
+                </h2>
                 <div className="capi-grid-cards">
                   {packages.map((pkg) => {
                     const hours = formatHours(pkg)
@@ -279,7 +299,9 @@ export default async function GuiaProfilePage({ params }: { params: Promise<{ id
           {guide.portfolioPhotos?.length > 0 && (
             <section className="guia__section" aria-labelledby="guia-portfolio">
               <div className="capi-container capi-container--content">
-                <h2 id="guia-portfolio" className="guia__section-title">Portfólio</h2>
+                <h2 id="guia-portfolio" className="guia__section-title">
+                  Portfólio
+                </h2>
                 <PortfolioLightbox photos={guide.portfolioPhotos} guideName={guide.name} />
               </div>
             </section>
@@ -287,12 +309,18 @@ export default async function GuiaProfilePage({ params }: { params: Promise<{ id
 
           <section className="guia__section pb-16" aria-labelledby="guia-depoimentos">
             <div className="capi-container capi-container--content">
-              <h2 id="guia-depoimentos" className="guia__section-title">Depoimentos</h2>
+              <h2 id="guia-depoimentos" className="guia__section-title">
+                Depoimentos
+              </h2>
               {testimonials.length > 0 ? (
                 <div className="guia__testimonials">
                   {testimonials.map((t) => (
                     <figure key={t.id} className="guia__testimonial">
-                      <div className="guia__stars" role="img" aria-label={`${t.rating} de 5 estrelas`}>
+                      <div
+                        className="guia__stars"
+                        role="img"
+                        aria-label={`${t.rating} de 5 estrelas`}
+                      >
                         {[1, 2, 3, 4, 5].map((n) => (
                           <Star
                             key={n}
