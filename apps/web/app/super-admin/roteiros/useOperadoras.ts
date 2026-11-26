@@ -7,6 +7,9 @@ export interface Operadora {
   slug: string
 }
 
+// Tenants de sistema: equipe CAPI, contas de turista e guias autônomos — não são operadoras
+const SYSTEM_TENANT_SLUGS = new Set(['capi-platform', 'capi', 'independente'])
+
 /** Operadoras aprovadas, em ordem alfabética: só nelas a equipe cadastra roteiros. */
 export function useOperadoras() {
   const [operadoras, setOperadoras] = useState<Operadora[]>([])
@@ -21,7 +24,9 @@ export function useOperadoras() {
         return r.json()
       })
       .then((data: { tenants?: Operadora[] }) => {
-        const list = (data.tenants ?? []).map(({ id, name, slug }) => ({ id, name, slug }))
+        const list = (data.tenants ?? [])
+          .filter((t) => !SYSTEM_TENANT_SLUGS.has(t.slug))
+          .map(({ id, name, slug }) => ({ id, name, slug }))
         setOperadoras(list.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')))
       })
       .catch(() => setError(true))
