@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import Image from 'next/image'
 import { LayoutDashboard } from 'lucide-react'
 import { Button } from '@/src/components/ui/capi'
@@ -238,17 +237,6 @@ export default async function HomePage() {
               <Button href="/login" variant="secondary" iconLeft={LayoutDashboard}>
                 Acessar painel
               </Button>
-              <Link
-                href="/onboarding"
-                className="inline-flex items-center text-sm font-semibold underline-offset-4 hover:underline"
-                style={{
-                  color: 'var(--text-on-brand)',
-                  minHeight: 'var(--touch-target)',
-                  paddingInline: 'var(--space-3)',
-                }}
-              >
-                Cadastre sua operadora
-              </Link>
             </div>
             <p className="text-xs" style={{ color: 'var(--text-on-brand-secondary)' }}>
               &copy; {new Date().getFullYear()} CAPI
