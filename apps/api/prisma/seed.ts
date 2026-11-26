@@ -133,6 +133,16 @@ async function createTenantData(
       },
     })
 
+    // O responsável também é guia aceito do roteiro (como na criação pelo painel)
+    await prisma.packageGuide.create({
+      data: {
+        packageId: pkg.id,
+        guideId: perfilAprovado.id,
+        status: 'ACCEPTED',
+        decidedAt: new Date(),
+      },
+    })
+
     for (let i = 1; i <= 5; i++) {
       const data = new Date(hoje)
       data.setDate(hoje.getDate() + i * 3)
