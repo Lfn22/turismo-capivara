@@ -3,6 +3,7 @@
 import { useRef, useEffect } from 'react'
 import { SearchX } from 'lucide-react'
 import { PackageCard, Skeleton, EmptyState, Button } from '@/src/components/ui/capi'
+import PackageJoinButton from '@/src/components/membership/PackageJoinButton'
 import type { PackageCardData } from '@/src/components/ui/capi'
 
 export interface SearchPackage {
@@ -141,6 +142,7 @@ export default function PackageListPanel({
               onMouseLeave={() => onHover(null)}
             >
               <PackageCard package={cardData} href={href} />
+              <PackageJoinButton packageId={pkg.id} />
             </div>
           )
         })}
