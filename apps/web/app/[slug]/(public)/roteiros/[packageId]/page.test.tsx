@@ -16,7 +16,7 @@ function json(body: unknown) {
   return new Response(JSON.stringify(body), { status: 200 })
 }
 
-describe('Roteiro (público) — bloco "Seu condutor"', () => {
+describe('Roteiro (público) — bloco "Seu guia"', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it('mostra o condutor achado pelo User.id na lista de guias do roteiro', async () => {
@@ -54,9 +54,9 @@ describe('Roteiro (público) — bloco "Seu condutor"', () => {
 
     render(await RoteiroPage({ params: Promise.resolve({ slug: 'agencia-x', packageId: 'p1' }) }))
 
-    expect(screen.getByText('Seu condutor')).toBeInTheDocument()
+    expect(screen.getByText('Seu guia')).toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: /Ana Condutora[\s\S]*Condutor verificado/ }),
+      screen.getByRole('link', { name: /Ana Condutora[\s\S]*Guia verificado/ }),
     ).toHaveAttribute('href', '/agencia-x/guias/gp1')
   })
 })

@@ -107,9 +107,8 @@ function navItems(slug: string): PainelItem[] {
 }
 
 const ROLE_LABEL: Record<string, string> = {
-  CONDUTOR: 'Condutor',
+  CONDUTOR: 'Guia',
   ADMIN: 'Administrador',
-  ATENDENTE: 'Atendente',
 }
 
 function isActive(pathname: string, href: string) {

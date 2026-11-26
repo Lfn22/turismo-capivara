@@ -1,18 +1,18 @@
-import type { Metadata } from 'next';
-import { Users } from 'lucide-react';
-import PublicLayout from '@/src/components/layout/PublicLayout';
-import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav';
-import { DestinationSubheader, DestinationTabs } from '@/src/components/ui/DestinationHero';
-import { Button, EmptyState } from '@/src/components/ui/capi';
-import GuideCard, { GuideCardGuide } from '@/src/components/ui/GuideCard';
+import type { Metadata } from 'next'
+import { Users } from 'lucide-react'
+import PublicLayout from '@/src/components/layout/PublicLayout'
+import StickyDestinationNav from '@/src/components/layout/StickyDestinationNav'
+import { DestinationSubheader, DestinationTabs } from '@/src/components/ui/DestinationHero'
+import { Button, EmptyState } from '@/src/components/ui/capi'
+import GuideCard, { GuideCardGuide } from '@/src/components/ui/GuideCard'
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 
 interface DestinationGuides {
-  destinationTitle: string;
-  guides: GuideCardGuide[];
+  destinationTitle: string
+  guides: GuideCardGuide[]
 }
 
 async function fetchDestinationGuides(slug: string): Promise<DestinationGuides> {
@@ -37,25 +37,25 @@ async function fetchDestinationGuides(slug: string): Promise<DestinationGuides> 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ 'destination-slug': string }>;
+  params: Promise<{ 'destination-slug': string }>
 }): Promise<Metadata> {
-  const { 'destination-slug': slug } = await params;
-  const { destinationTitle } = await fetchDestinationGuides(slug);
+  const { 'destination-slug': slug } = await params
+  const { destinationTitle } = await fetchDestinationGuides(slug)
   return {
     title: 'Guias',
     description: `Guias certificados disponíveis em ${destinationTitle}. Compare especialidades, avaliações e roteiros.`,
-  };
+  }
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 interface Props {
-  params: Promise<{ 'destination-slug': string }>;
+  params: Promise<{ 'destination-slug': string }>
 }
 
 export default async function DestinationGuiasPage({ params }: Props) {
-  const { 'destination-slug': slug } = await params;
-  const { destinationTitle, guides } = await fetchDestinationGuides(slug);
+  const { 'destination-slug': slug } = await params
+  const { destinationTitle, guides } = await fetchDestinationGuides(slug)
 
   return (
     <PublicLayout>
@@ -113,7 +113,7 @@ export default async function DestinationGuiasPage({ params }: Props) {
             <EmptyState
               icon={Users}
               title={`Nenhum guia cadastrado em ${destinationTitle} ainda`}
-              description="Em breve novos condutores estarão disponíveis neste destino."
+              description="Em breve novos guias estarão disponíveis neste destino."
               action={
                 <Button href={`/destinos/${slug}/roteiros`} variant="secondary">
                   Ver roteiros
@@ -124,5 +124,5 @@ export default async function DestinationGuiasPage({ params }: Props) {
         </main>
       </div>
     </PublicLayout>
-  );
+  )
 }

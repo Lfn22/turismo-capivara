@@ -46,7 +46,7 @@ export default async function GuiasPage({ params }: { params: Promise<{ slug: st
             className="m-0 mb-3 text-xs font-semibold uppercase tracking-widest"
             style={{ color: 'var(--text-on-brand-secondary)' }}
           >
-            Condutores credenciados
+            Guias credenciados
           </p>
           <h1
             className="font-display m-0 mb-4 text-4xl md:text-5xl"
@@ -55,7 +55,7 @@ export default async function GuiasPage({ params }: { params: Promise<{ slug: st
             Guias disponíveis
           </h1>
           <p className="m-0 mx-auto max-w-md" style={{ color: 'var(--text-on-brand-secondary)' }}>
-            Escolha um condutor e explore os roteiros disponíveis.
+            Escolha um guia e explore os roteiros disponíveis.
           </p>
         </div>
       </section>
