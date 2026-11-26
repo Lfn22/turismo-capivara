@@ -15,7 +15,13 @@ vi.mock('../../../database', () => ({
 }))
 
 import prisma from '../../../database'
-import { notify, resolveAction, platformStaffIds, tenantAdminIds } from '../notifications.service'
+import {
+  notify,
+  resolveAction,
+  platformStaffIds,
+  tenantAdminIds,
+  destinationAdminIds,
+} from '../notifications.service'
 
 const db = prisma as any
 
@@ -23,10 +29,21 @@ beforeEach(() => vi.clearAllMocks())
 
 describe('notifications.service', () => {
   it('cria uma notificação por usuário, sem duplicar ids', async () => {
-    await notify({ userIds: ['u1', 'u1', 'u2'], type: 'booking.created', title: 'Nova reserva', body: 'x' })
+    await notify({
+      userIds: ['u1', 'u1', 'u2'],
+      type: 'booking.created',
+      title: 'Nova reserva',
+      body: 'x',
+    })
     expect(db.notification.createMany).toHaveBeenCalledWith({
       data: [
-        expect.objectContaining({ userId: 'u1', type: 'booking.created', title: 'Nova reserva', body: 'x', link: null }),
+        expect.objectContaining({
+          userId: 'u1',
+          type: 'booking.created',
+          title: 'Nova reserva',
+          body: 'x',
+          link: null,
+        }),
         expect.objectContaining({ userId: 'u2' }),
       ],
     })
@@ -39,20 +56,39 @@ describe('notifications.service', () => {
 
   it('com groupKey, incrementa a não lida existente em vez de criar', async () => {
     db.notification.findFirst.mockResolvedValueOnce({ id: 'n1' })
-    await notify({ userIds: ['u1'], type: 'guide.registered', title: 'T2', body: 'B2', groupKey: 'guide.registered' })
-    expect(db.notification.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-      where: { userId: 'u1', groupKey: 'guide.registered', readAt: null },
-    }))
+    await notify({
+      userIds: ['u1'],
+      type: 'guide.registered',
+      title: 'T2',
+      body: 'B2',
+      groupKey: 'guide.registered',
+    })
+    expect(db.notification.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: 'u1', groupKey: 'guide.registered', readAt: null },
+      }),
+    )
     expect(db.notification.update).toHaveBeenCalledWith({
       where: { id: 'n1' },
-      data: expect.objectContaining({ count: { increment: 1 }, title: 'T2', body: 'B2', digestedAt: null }),
+      data: expect.objectContaining({
+        count: { increment: 1 },
+        title: 'T2',
+        body: 'B2',
+        digestedAt: null,
+      }),
     })
     expect(db.notification.create).not.toHaveBeenCalled()
   })
 
   it('com groupKey e sem não lida, cria', async () => {
     db.notification.findFirst.mockResolvedValueOnce(null)
-    await notify({ userIds: ['u1'], type: 'guide.registered', title: 'T', body: 'B', groupKey: 'g' })
+    await notify({
+      userIds: ['u1'],
+      type: 'guide.registered',
+      title: 'T',
+      body: 'B',
+      groupKey: 'g',
+    })
     expect(db.notification.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ userId: 'u1', groupKey: 'g' }),
     })
@@ -60,7 +96,14 @@ describe('notifications.service', () => {
 
   it('com actionKey, nunca agrupa: sempre cria uma nova linha', async () => {
     db.notification.findFirst.mockResolvedValueOnce({ id: 'n1' })
-    await notify({ userIds: ['u1'], type: 'guide.registered', title: 'T', body: 'B', groupKey: 'g', actionKey: 'a:2' })
+    await notify({
+      userIds: ['u1'],
+      type: 'guide.registered',
+      title: 'T',
+      body: 'B',
+      groupKey: 'g',
+      actionKey: 'a:2',
+    })
     expect(db.notification.findFirst).not.toHaveBeenCalled()
     expect(db.notification.update).not.toHaveBeenCalled()
     expect(db.notification.createMany).toHaveBeenCalledWith({
@@ -86,13 +129,26 @@ describe('notifications.service', () => {
     db.user.findMany.mockResolvedValueOnce([{ id: 's1' }, { id: 'p1' }])
     expect(await platformStaffIds()).toEqual(['s1', 'p1'])
     expect(db.user.findMany).toHaveBeenCalledWith({
-      where: { role: { in: ['SUPER_ADMIN', 'PLATFORM_ADMIN'] } }, select: { id: true },
+      where: { role: { in: ['SUPER_ADMIN', 'PLATFORM_ADMIN'] } },
+      select: { id: true },
+    })
+  })
+
+  it('destinationAdminIds busca ADMIN dos tenants ligados ao destino', async () => {
+    db.user.findMany.mockResolvedValueOnce([{ id: 'a1' }])
+    expect(await destinationAdminIds('d1')).toEqual(['a1'])
+    expect(db.user.findMany).toHaveBeenCalledWith({
+      where: { role: 'ADMIN', tenant: { destinationId: 'd1' } },
+      select: { id: true },
     })
   })
 
   it('tenantAdminIds busca ADMIN do tenant', async () => {
     db.user.findMany.mockResolvedValueOnce([{ id: 'a1' }])
     expect(await tenantAdminIds('t1')).toEqual(['a1'])
-    expect(db.user.findMany).toHaveBeenCalledWith({ where: { tenantId: 't1', role: 'ADMIN' }, select: { id: true } })
+    expect(db.user.findMany).toHaveBeenCalledWith({
+      where: { tenantId: 't1', role: 'ADMIN' },
+      select: { id: true },
+    })
   })
 })

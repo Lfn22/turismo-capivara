@@ -121,19 +121,19 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
       .finally(() => setLoading(false))
   }, [packages, slug])
 
-  // Fetch all tenant guides when a package is selected
+  // Guias que podem receber datas deste roteiro: aceitos nele, de qualquer associação
   useEffect(() => {
     if (!formPackageId || !slug) {
       setGuides([])
       return
     }
     setGuidesLoading(true)
-    // Padrão da API é 20 por página: guias além do 20º não apareciam no select
-    fetch(`/api/proxy?path=${encodeURIComponent(`/tenants/${slug}/guides?limit=100`)}`)
+    fetch(
+      `/api/proxy?path=${encodeURIComponent(`/tenants/${slug}/packages/${formPackageId}/assignable-guides`)}`,
+    )
       .then((res) => res.json())
-      // Resposta paginada: { data, nextCursor, hasMore }
-      .then((data: { data?: Array<{ id: string; user: { id: string; name: string } }> }) => {
-        setGuides((data.data ?? []).map((g) => ({ guideId: g.id, name: g.user.name })))
+      .then((data: { guides?: Array<{ guideId: string; name: string }> }) => {
+        setGuides(data.guides ?? [])
       })
       .catch(() => setGuides([]))
       .finally(() => setGuidesLoading(false))

@@ -379,17 +379,22 @@ describe('POST /tenants/:slug/packages/:id/slots/batch', () => {
     expect(res.json()).toEqual({ created: 1 })
   })
 
-  it('guideId de guia de outra agência → 403 sem criar datas', async () => {
+  it('guideId de guia de outra agência fora do roteiro → 422 sem criar datas', async () => {
     db.tourPackage.findFirst.mockResolvedValue(pkg)
     const headers = auth('ADMIN', 'tenant-a')
-    db.guideProfile.findUnique.mockResolvedValue({ user: { tenantId: 'tenant-b' } })
+    db.guideProfile.findUnique.mockResolvedValue({
+      userId: 'u-b',
+      user: { tenantId: 'tenant-b', approvalStatus: 'APPROVED' },
+    })
+    db.packageGuide.findFirst.mockResolvedValue(null)
     const res = await app.inject({
       method: 'POST',
       url: '/tenants/agencia-a/packages/p1/slots/batch',
       headers,
       payload: { ...batchBody, guideId: 'gp-outra-agencia' },
     })
-    expect(res.statusCode).toBe(403)
+    expect(res.statusCode).toBe(422)
+    expect(res.json().message).toBe('Guia não faz parte deste roteiro')
     expect(db.departureSlot.createMany).not.toHaveBeenCalled()
   })
 })
@@ -843,6 +848,53 @@ describe('GET /tenants/:slug/manage/packages', () => {
 
   it('sem token → 401', async () => {
     const res = await app.inject({ method: 'GET', url: '/tenants/agencia-a/manage/packages' })
+    expect(res.statusCode).toBe(401)
+  })
+})
+
+describe('GET /tenants/:slug/packages/:id/assignable-guides', () => {
+  const url = '/tenants/agencia-a/packages/p1/assignable-guides'
+
+  it('ADMIN do dono lista os guias aceitos e aprovados, de qualquer tenant, inclusive em rascunho', async () => {
+    db.tourPackage.findFirst.mockResolvedValue({ ...pkg, publishedAt: null })
+    db.packageGuide.findMany.mockResolvedValue([
+      { guide: { id: 'gp-a', user: { name: 'Ana' } } },
+      { guide: { id: 'gp-b', user: { name: 'Bia (outra associação)' } } },
+    ])
+    const res = await app.inject({ method: 'GET', url, headers: auth('ADMIN') })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({
+      guides: [
+        { guideId: 'gp-a', name: 'Ana' },
+        { guideId: 'gp-b', name: 'Bia (outra associação)' },
+      ],
+    })
+    expect(db.packageGuide.findMany.mock.calls[0][0].where).toEqual({
+      packageId: 'p1',
+      status: 'ACCEPTED',
+      guide: { user: { approvalStatus: 'APPROVED' } },
+    })
+  })
+
+  it('CONDUTOR que não é o condutor do roteiro → 403', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(pkg)
+    const res = await app.inject({
+      method: 'GET',
+      url,
+      headers: auth('CONDUTOR', 'tenant-a', 'outro'),
+    })
+    expect(res.statusCode).toBe(403)
+    expect(db.packageGuide.findMany).not.toHaveBeenCalled()
+  })
+
+  it('roteiro de outro tenant → 404', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(null)
+    const res = await app.inject({ method: 'GET', url, headers: auth('ADMIN') })
+    expect(res.statusCode).toBe(404)
+  })
+
+  it('sem token → 401', async () => {
+    const res = await app.inject({ method: 'GET', url })
     expect(res.statusCode).toBe(401)
   })
 })

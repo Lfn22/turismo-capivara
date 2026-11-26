@@ -132,23 +132,21 @@ export async function assertGuideFree(
 }
 
 /**
- * Quem pode receber uma data deste roteiro: guia do mesmo tenant, aprovado e que faz
- * parte do roteiro (condutor ou membro ACCEPTED). CONDUTOR só agenda a si mesmo.
+ * Quem pode receber uma data deste roteiro: guia aprovado que faz parte do roteiro
+ * (condutor ou membro ACCEPTED), de qualquer tenant — um guia atua em vários circuitos.
+ * O isolamento vem do aceite no roteiro, decidido pelo dono ou pela equipe.
+ * CONDUTOR só agenda a si mesmo.
  */
 export async function assertGuideAssignable(
   user: EditUser,
   guideId: string,
-  tenantId: string,
   pkg: { id: string; conductorId: string | null },
 ): Promise<void> {
   const guide = await prisma.guideProfile.findUnique({
     where: { id: guideId },
-    select: { userId: true, user: { select: { tenantId: true, approvalStatus: true } } },
+    select: { userId: true, user: { select: { approvalStatus: true } } },
   })
-  // CR-004: isolamento entre tenants
-  if (!guide || guide.user.tenantId !== tenantId) {
-    throw new AppError('Guia não pertence a este tenant', 403)
-  }
+  if (!guide) throw new AppError('Guia não encontrado', 404)
   if (user.role === 'CONDUTOR' && guide.userId !== user.sub) {
     throw new AppError('Guia só pode abrir datas na própria agenda', 403)
   }

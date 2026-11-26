@@ -3,6 +3,7 @@ import { z, ZodError } from 'zod'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { isPlatformStaff } from '../../shared/auth/roles'
+import { canEditDestination } from '../../shared/auth/edit-permissions'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { resolveAction } from '../notifications/notifications.service'
@@ -48,17 +49,28 @@ function toMembershipBookings(
   }))
 }
 
-/** Quem decide pedido de roteiro: equipe, ADMIN do tenant dono, ou o condutor se o tenant for `independente`. */
-export function canDecidePackageRequest(
+/**
+ * Quem decide pedido de roteiro: a equipe sempre. Roteiro criado por guia (o condutor é
+ * CONDUTOR) → ADMIN do destino do roteiro. Criado por ADMIN ou pela equipe → ADMIN do
+ * tenant dono. `conductorId` só é gravado na criação, então ele indica quem criou.
+ * O destino do roteiro é o do tenant dono (`TourPackage.destinationId` não é gravado
+ * pelos fluxos atuais), salvo se o roteiro tiver um próprio.
+ */
+export async function canDecidePackageRequest(
   user: { sub: string; role: string; tenantId: string },
-  pkg: { tenantId: string; conductorId: string | null; tenant: { slug: string } },
-): boolean {
+  pkg: {
+    tenantId: string
+    destinationId: string | null
+    tenant: { destinationId: string | null }
+    conductor: { role: string } | null
+  },
+): Promise<boolean> {
   if (isPlatformStaff(user.role)) return true
-  if (user.role === 'ADMIN') return user.tenantId === pkg.tenantId
-  if (user.role === 'CONDUTOR') {
-    return pkg.tenant.slug === 'independente' && pkg.conductorId === user.sub
+  if (pkg.conductor?.role === 'CONDUTOR') {
+    const destinationId = pkg.destinationId ?? pkg.tenant.destinationId
+    return destinationId !== null && canEditDestination(user, destinationId)
   }
-  return false
+  return user.role === 'ADMIN' && user.tenantId === pkg.tenantId
 }
 
 async function findPackage(id: string) {
@@ -70,8 +82,9 @@ async function findPackage(id: string) {
       conductorId: true,
       active: true,
       publishedAt: true,
-      tenant: { select: { slug: true, name: true } },
-      conductor: { select: { name: true } },
+      destinationId: true,
+      tenant: { select: { slug: true, name: true, destinationId: true } },
+      conductor: { select: { name: true, role: true } },
     },
   })
   if (!pkg) throw new AppError('Roteiro não encontrado', 404)
@@ -248,7 +261,7 @@ export async function packageMembershipRoutes(app: FastifyInstance) {
     const user = request.user as { sub: string; role: string; tenantId: string }
 
     const pkg = await findPackage(id)
-    if (!canDecidePackageRequest(user, pkg)) throw new AppError('Acesso negado', 403)
+    if (!(await canDecidePackageRequest(user, pkg))) throw new AppError('Acesso negado', 403)
 
     const pg = await prisma.packageGuide.findUnique({
       where: { id: packageGuideId },

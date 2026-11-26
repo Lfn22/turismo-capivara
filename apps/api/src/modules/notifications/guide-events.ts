@@ -1,11 +1,20 @@
 import type { FastifyBaseLogger } from 'fastify'
 import prisma from '../../database'
-import { notify, platformStaffIds, resolveAction, tenantAdminIds } from './notifications.service'
+import {
+  destinationAdminIds,
+  notify,
+  platformStaffIds,
+  resolveAction,
+  tenantAdminIds,
+} from './notifications.service'
 
 const FAIL_MSG = '[notif] Falha ao notificar evento de guia'
 
 /** Avisa a equipe da plataforma que há guia aguardando verificação. Nunca lança. */
-export async function notifyGuideRegistered(log: FastifyBaseLogger, guideUserId: string): Promise<void> {
+export async function notifyGuideRegistered(
+  log: FastifyBaseLogger,
+  guideUserId: string,
+): Promise<void> {
   try {
     const guide = await prisma.user.findUnique({
       where: { id: guideUserId },
@@ -28,7 +37,10 @@ export async function notifyGuideRegistered(log: FastifyBaseLogger, guideUserId:
 }
 
 /** Avisa os ADMINs da agência/associação declarada que um guia quer se vincular. Nunca lança. */
-export async function notifyAffiliationRequested(log: FastifyBaseLogger, affiliationId: string): Promise<void> {
+export async function notifyAffiliationRequested(
+  log: FastifyBaseLogger,
+  affiliationId: string,
+): Promise<void> {
   try {
     const affiliation = await prisma.guideAffiliation.findUnique({
       where: { id: affiliationId },
@@ -201,8 +213,15 @@ export async function notifyDestinationMembership(
   }
 }
 
-/** Avisa quem decide (ADMINs do tenant do roteiro, ou o condutor se `independente`) e a equipe que um guia pediu para atuar. Nunca lança. */
-export async function notifyPackageRequest(log: FastifyBaseLogger, packageGuideId: string): Promise<void> {
+/**
+ * Avisa quem decide e a equipe que um guia pediu para atuar. Quem decide segue
+ * `canDecidePackageRequest`: roteiro criado por guia → ADMINs do destino; senão → ADMINs
+ * do tenant dono. Nunca lança.
+ */
+export async function notifyPackageRequest(
+  log: FastifyBaseLogger,
+  packageGuideId: string,
+): Promise<void> {
   try {
     const pg = await prisma.packageGuide.findUnique({
       where: { id: packageGuideId },
@@ -211,18 +230,26 @@ export async function notifyPackageRequest(log: FastifyBaseLogger, packageGuideI
         packageId: true,
         guide: { select: { userId: true, user: { select: { name: true } } } },
         package: {
-          select: { name: true, tenantId: true, conductorId: true, tenant: { select: { slug: true } } },
+          select: {
+            name: true,
+            tenantId: true,
+            destinationId: true,
+            tenant: { select: { destinationId: true } },
+            conductor: { select: { role: true } },
+          },
         },
       },
     })
     if (!pg) return
 
+    const { package: pkg } = pg
+    const destinationId = pkg.destinationId ?? pkg.tenant.destinationId
     const deciderIds =
-      pg.package.tenant.slug === 'independente'
-        ? pg.package.conductorId
-          ? [pg.package.conductorId]
+      pkg.conductor?.role === 'CONDUTOR'
+        ? destinationId
+          ? await destinationAdminIds(destinationId)
           : []
-        : await tenantAdminIds(pg.package.tenantId)
+        : await tenantAdminIds(pkg.tenantId)
     const userIds = [...new Set([...deciderIds, ...(await platformStaffIds())])].filter(
       (id) => id !== pg.guide.userId,
     )
@@ -255,7 +282,9 @@ export async function notifyPackageDecision(
           status: true,
           rejectionReason: true,
           package: { select: { name: true } },
-          guide: { select: { userId: true, user: { select: { tenant: { select: { slug: true } } } } } },
+          guide: {
+            select: { userId: true, user: { select: { tenant: { select: { slug: true } } } } },
+          },
         },
       }),
       prisma.user.findUnique({ where: { id: deciderUserId }, select: { name: true } }),
@@ -287,7 +316,10 @@ export async function notifyPackageDecision(
 }
 
 /** Avisa ADMINs do tenant do roteiro (exceto o próprio guia) que o guia saiu. Nunca lança. */
-export async function notifyPackageLeft(log: FastifyBaseLogger, packageGuideId: string): Promise<void> {
+export async function notifyPackageLeft(
+  log: FastifyBaseLogger,
+  packageGuideId: string,
+): Promise<void> {
   try {
     const pg = await prisma.packageGuide.findUnique({
       where: { id: packageGuideId },
@@ -299,7 +331,9 @@ export async function notifyPackageLeft(log: FastifyBaseLogger, packageGuideId: 
     })
     if (!pg) return
 
-    const adminIds = (await tenantAdminIds(pg.package.tenantId)).filter((id) => id !== pg.guide.userId)
+    const adminIds = (await tenantAdminIds(pg.package.tenantId)).filter(
+      (id) => id !== pg.guide.userId,
+    )
     await notify({
       userIds: adminIds,
       type: 'package.guide-left',

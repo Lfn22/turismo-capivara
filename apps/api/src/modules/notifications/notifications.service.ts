@@ -66,6 +66,15 @@ export async function platformStaffIds(): Promise<string[]> {
   return users.map((u) => u.id)
 }
 
+/** ADMINs dos tenants ligados ao destino — o mesmo critério de `canEditDestination`. */
+export async function destinationAdminIds(destinationId: string): Promise<string[]> {
+  const users = await prisma.user.findMany({
+    where: { role: 'ADMIN', tenant: { destinationId } },
+    select: { id: true },
+  })
+  return users.map((u) => u.id)
+}
+
 export async function tenantAdminIds(tenantId: string): Promise<string[]> {
   const users = await prisma.user.findMany({
     where: { tenantId, role: 'ADMIN' },

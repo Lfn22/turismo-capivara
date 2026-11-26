@@ -6,6 +6,7 @@ vi.mock('../../../database', () => ({
   default: {
     user: { findUnique: vi.fn() },
     tourPackage: { findUnique: vi.fn() },
+    tenant: { findFirst: vi.fn() },
     packageGuide: { findUnique: vi.fn(), upsert: vi.fn(), updateMany: vi.fn() },
   },
 }))
@@ -53,8 +54,9 @@ const agencyPkg = {
   conductorId: 'c1',
   active: true,
   publishedAt: new Date('2026-01-01'),
-  tenant: { slug: 'capivara', name: 'Capivara Tur' },
-  conductor: { name: 'Cond' },
+  destinationId: null,
+  tenant: { slug: 'capivara', name: 'Capivara Tur', destinationId: 'd1' },
+  conductor: { name: 'Cond', role: 'ADMIN' },
 }
 
 beforeEach(() => {
@@ -81,28 +83,85 @@ beforeEach(() => {
 })
 
 describe('canDecidePackageRequest', () => {
-  const indep = { tenantId: 't9', conductorId: 'u1', tenant: { slug: 'independente' } }
-  const agency = { tenantId: 't1', conductorId: 'u1', tenant: { slug: 'capivara' } }
-  it('ADMIN do mesmo tenant', () => {
-    expect(canDecidePackageRequest({ sub: 'a', role: 'ADMIN', tenantId: 't1' }, agency)).toBe(true)
+  // Criado por ADMIN (conductor é o próprio ADMIN) ou pela equipe (sem conductor)
+  const byAdmin = {
+    tenantId: 't1',
+    destinationId: null,
+    tenant: { destinationId: 't1-dest' },
+    conductor: { role: 'ADMIN' },
+  }
+  const byStaff = {
+    tenantId: 't1',
+    destinationId: null,
+    tenant: { destinationId: 't1-dest' },
+    conductor: null,
+  }
+  // Criado por guia: quem decide é o "dono" do destino
+  const byGuide = {
+    tenantId: 't9',
+    destinationId: null,
+    tenant: { destinationId: 'd1' },
+    conductor: { role: 'CONDUTOR' },
+  }
+
+  it('roteiro de ADMIN/equipe: ADMIN do tenant dono decide', async () => {
+    expect(
+      await canDecidePackageRequest({ sub: 'a', role: 'ADMIN', tenantId: 't1' }, byAdmin),
+    ).toBe(true)
+    expect(
+      await canDecidePackageRequest({ sub: 'a', role: 'ADMIN', tenantId: 't1' }, byStaff),
+    ).toBe(true)
   })
-  it('ADMIN de outro tenant', () => {
-    expect(canDecidePackageRequest({ sub: 'a', role: 'ADMIN', tenantId: 't2' }, agency)).toBe(false)
+  it('roteiro de ADMIN: ADMIN de outro tenant não decide, nem sendo dono do destino', async () => {
+    db.tenant.findFirst.mockResolvedValue({ id: 't2' })
+    expect(
+      await canDecidePackageRequest({ sub: 'a', role: 'ADMIN', tenantId: 't2' }, byAdmin),
+    ).toBe(false)
   })
-  it('CONDUTOR condutor de roteiro independente', () => {
-    expect(canDecidePackageRequest({ sub: 'u1', role: 'CONDUTOR', tenantId: 't9' }, indep)).toBe(
+  it('roteiro de guia: ADMIN do destino decide', async () => {
+    db.tenant.findFirst.mockResolvedValue({ id: 't2' })
+    expect(
+      await canDecidePackageRequest({ sub: 'a', role: 'ADMIN', tenantId: 't2' }, byGuide),
+    ).toBe(true)
+    expect(db.tenant.findFirst).toHaveBeenCalledWith({
+      where: { id: 't2', destinationId: 'd1' },
+      select: { id: true },
+    })
+  })
+  it('roteiro de guia: ADMIN sem relação com o destino não decide', async () => {
+    db.tenant.findFirst.mockResolvedValue(null)
+    expect(
+      await canDecidePackageRequest({ sub: 'a', role: 'ADMIN', tenantId: 't3' }, byGuide),
+    ).toBe(false)
+  })
+  it('roteiro de guia: o próprio guia criador não decide', async () => {
+    expect(
+      await canDecidePackageRequest({ sub: 'u1', role: 'CONDUTOR', tenantId: 't9' }, byGuide),
+    ).toBe(false)
+  })
+  it('roteiro de guia com destino próprio: vale o destino do roteiro, não o do tenant', async () => {
+    db.tenant.findFirst.mockResolvedValue({ id: 't2' })
+    const own = { ...byGuide, destinationId: 'd-own' }
+    expect(await canDecidePackageRequest({ sub: 'a', role: 'ADMIN', tenantId: 't2' }, own)).toBe(
       true,
     )
+    expect(db.tenant.findFirst.mock.calls[0][0].where).toEqual({ id: 't2', destinationId: 'd-own' })
   })
-  it('CONDUTOR condutor de roteiro de agência', () => {
-    expect(canDecidePackageRequest({ sub: 'u1', role: 'CONDUTOR', tenantId: 't1' }, agency)).toBe(
+  it('roteiro de guia sem destino: só a equipe', async () => {
+    const noDest = { ...byGuide, tenant: { destinationId: null } }
+    expect(await canDecidePackageRequest({ sub: 'a', role: 'ADMIN', tenantId: 't9' }, noDest)).toBe(
       false,
     )
-  })
-  it('PLATFORM_ADMIN', () => {
     expect(
-      canDecidePackageRequest({ sub: 'x', role: 'PLATFORM_ADMIN', tenantId: 'tx' }, agency),
+      await canDecidePackageRequest({ sub: 'x', role: 'PLATFORM_ADMIN', tenantId: 'tx' }, noDest),
     ).toBe(true)
+  })
+  it('equipe CAPI decide sempre', async () => {
+    for (const pkg of [byAdmin, byStaff, byGuide]) {
+      expect(
+        await canDecidePackageRequest({ sub: 'x', role: 'PLATFORM_ADMIN', tenantId: 'tx' }, pkg),
+      ).toBe(true)
+    }
   })
 })
 
@@ -308,6 +367,29 @@ describe('PATCH guide-requests', () => {
     expect(arg.data.decidedAt).toBeInstanceOf(Date)
     expect(notifyPackageDecision).toHaveBeenCalledWith(expect.anything(), 'pg1', 'u1')
     expect(notifyGuideJoinedPackage).toHaveBeenCalledWith(expect.anything(), 'g1', 'p1')
+  })
+  it('roteiro criado por guia: ADMIN do destino (outro tenant) aceita', async () => {
+    db.tourPackage.findUnique.mockResolvedValue({
+      ...agencyPkg,
+      tenantId: 't9',
+      conductor: { name: 'Cond', role: 'CONDUTOR' },
+    })
+    db.tenant.findFirst.mockResolvedValue({ id: 't2' })
+    const res = await accept(auth('ADMIN', { tenantId: 't2' }))
+    expect(res.statusCode).toBe(200)
+    expect(db.packageGuide.updateMany).toHaveBeenCalled()
+  })
+  it('roteiro criado por guia: o próprio guia criador -> 403', async () => {
+    db.tourPackage.findUnique.mockResolvedValue({
+      ...agencyPkg,
+      tenantId: 't9',
+      conductorId: 'u1',
+      tenant: { slug: 'independente', name: 'Independente' },
+      conductor: { name: 'Cond', role: 'CONDUTOR' },
+    })
+    const res = await accept(auth('CONDUTOR', { tenantId: 't9' }))
+    expect(res.statusCode).toBe(403)
+    expect(db.packageGuide.updateMany).not.toHaveBeenCalled()
   })
   it('já decidido -> 409 sem notificar', async () => {
     db.packageGuide.updateMany.mockResolvedValue({ count: 0 })

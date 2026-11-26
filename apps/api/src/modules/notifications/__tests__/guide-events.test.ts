@@ -13,11 +13,28 @@ vi.mock('../notifications.service', () => ({
   resolveAction: vi.fn(),
   platformStaffIds: vi.fn(),
   tenantAdminIds: vi.fn(),
+  destinationAdminIds: vi.fn(),
 }))
 
 import prisma from '../../../database'
-import { notify, resolveAction, platformStaffIds, tenantAdminIds } from '../notifications.service'
-import { notifyGuideRegistered, notifyAffiliationRequested, notifyGuideDecision, notifyAffiliationDecision, notifyGuideJoinedPackage, notifyDestinationMembership, notifyPackageRequest, notifyPackageDecision, notifyPackageLeft } from '../guide-events'
+import {
+  notify,
+  resolveAction,
+  platformStaffIds,
+  tenantAdminIds,
+  destinationAdminIds,
+} from '../notifications.service'
+import {
+  notifyGuideRegistered,
+  notifyAffiliationRequested,
+  notifyGuideDecision,
+  notifyAffiliationDecision,
+  notifyGuideJoinedPackage,
+  notifyDestinationMembership,
+  notifyPackageRequest,
+  notifyPackageDecision,
+  notifyPackageLeft,
+} from '../guide-events'
 
 const db = prisma as any
 const log = { warn: vi.fn() } as any
@@ -135,7 +152,9 @@ describe('notifyGuideDecision', () => {
 
   it('não lança e registra warn quando falha', async () => {
     ;(resolveAction as any).mockRejectedValue(new Error('db'))
-    await expect(notifyGuideDecision(log, 'g1', { approved: true }, 'adm1')).resolves.toBeUndefined()
+    await expect(
+      notifyGuideDecision(log, 'g1', { approved: true }, 'adm1'),
+    ).resolves.toBeUndefined()
     expect(log.warn).toHaveBeenCalled()
   })
 })
@@ -201,7 +220,10 @@ describe('notifyAffiliationDecision', () => {
     db.user.findUnique.mockResolvedValue({ name: 'Dono' })
     await notifyAffiliationDecision(log, 'aff1', 'adm1')
     expect(notify).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'guide.affiliation-rejected', body: 'Agência X: Não conhecemos' }),
+      expect.objectContaining({
+        type: 'guide.affiliation-rejected',
+        body: 'Agência X: Não conhecemos',
+      }),
     )
   })
 
@@ -214,8 +236,14 @@ describe('notifyAffiliationDecision', () => {
 
 describe('notifyDestinationMembership', () => {
   beforeEach(() => {
-    db.destination = { findUnique: vi.fn().mockResolvedValue({ title: 'Serra Azul', slug: 'serra-azul' }) }
-    db.user.findUnique.mockResolvedValue({ name: 'Rui', tenantId: 't1', tenant: { slug: 'capivara' } })
+    db.destination = {
+      findUnique: vi.fn().mockResolvedValue({ title: 'Serra Azul', slug: 'serra-azul' }),
+    }
+    db.user.findUnique.mockResolvedValue({
+      name: 'Rui',
+      tenantId: 't1',
+      tenant: { slug: 'capivara' },
+    })
   })
 
   it('joined: avisa ADMINs do tenant do guia', async () => {
@@ -231,14 +259,20 @@ describe('notifyDestinationMembership', () => {
 
   it('left: texto de saída', async () => {
     await notifyDestinationMembership(log, 'g1', 'd1', 'left')
-    expect(notify).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'destination.guide-left',
-      title: 'Guia deixou de atuar em Serra Azul',
-    }))
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'destination.guide-left',
+        title: 'Guia deixou de atuar em Serra Azul',
+      }),
+    )
   })
 
   it('não notifica quando o tenant do guia é independente', async () => {
-    db.user.findUnique.mockResolvedValue({ name: 'Rui', tenantId: 't0', tenant: { slug: 'independente' } })
+    db.user.findUnique.mockResolvedValue({
+      name: 'Rui',
+      tenantId: 't0',
+      tenant: { slug: 'independente' },
+    })
     await notifyDestinationMembership(log, 'g1', 'd1', 'joined')
     expect(notify).not.toHaveBeenCalled()
   })
@@ -251,32 +285,50 @@ describe('notifyDestinationMembership', () => {
 })
 
 describe('eventos de pedido de roteiro', () => {
-  const pgReq = (slug: string) => ({
+  const pgReq = (conductorRole: string | null, destinationId: string | null = 'd1') => ({
     id: 'pg1',
     packageId: 'p1',
     guide: { userId: 'g1', user: { name: 'Rui' } },
-    package: { name: 'Trilha', tenantId: 't1', conductorId: 'c1', tenant: { slug } },
+    // Roteiro não grava destinationId na prática: o destino vem do tenant dono
+    package: {
+      name: 'Trilha',
+      tenantId: 't1',
+      destinationId: null,
+      tenant: { destinationId },
+      conductor: conductorRole ? { role: conductorRole } : null,
+    },
   })
 
   it('notifyPackageRequest: ADMINs do tenant + equipe, sem o guia', async () => {
-    db.packageGuide.findUnique.mockResolvedValue(pgReq('capivara'))
+    db.packageGuide.findUnique.mockResolvedValue(pgReq('ADMIN'))
     ;(tenantAdminIds as any).mockResolvedValue(['a1', 'g1'])
     await notifyPackageRequest(log, 'pg1')
-    expect(notify).toHaveBeenCalledWith(expect.objectContaining({
-      userIds: ['a1', 's1'],
-      type: 'package.guide-requested',
-      title: 'Pedido para atuar em roteiro',
-      body: 'Rui · Trilha',
-      actionKey: 'package-request:pg1',
-      link: '/pendencias?package=p1',
-    }))
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userIds: ['a1', 's1'],
+        type: 'package.guide-requested',
+        title: 'Pedido para atuar em roteiro',
+        body: 'Rui · Trilha',
+        actionKey: 'package-request:pg1',
+        link: '/pendencias?package=p1',
+      }),
+    )
   })
 
-  it('notifyPackageRequest: tenant independente avisa o condutor', async () => {
-    db.packageGuide.findUnique.mockResolvedValue(pgReq('independente'))
+  it('notifyPackageRequest: roteiro criado por guia avisa os ADMINs do destino + equipe', async () => {
+    db.packageGuide.findUnique.mockResolvedValue(pgReq('CONDUTOR'))
+    ;(destinationAdminIds as any).mockResolvedValue(['d-adm', 'g1'])
     await notifyPackageRequest(log, 'pg1')
+    expect(destinationAdminIds).toHaveBeenCalledWith('d1')
     expect(tenantAdminIds).not.toHaveBeenCalled()
-    expect((notify as any).mock.calls[0][0].userIds).toEqual(['c1', 's1'])
+    expect((notify as any).mock.calls[0][0].userIds).toEqual(['d-adm', 's1'])
+  })
+
+  it('notifyPackageRequest: roteiro de guia sem destino avisa só a equipe', async () => {
+    db.packageGuide.findUnique.mockResolvedValue(pgReq('CONDUTOR', null))
+    await notifyPackageRequest(log, 'pg1')
+    expect(destinationAdminIds).not.toHaveBeenCalled()
+    expect((notify as any).mock.calls[0][0].userIds).toEqual(['s1'])
   })
 
   it('notifyPackageRequest: não lança e registra warn', async () => {
@@ -297,22 +349,26 @@ describe('eventos de pedido de roteiro', () => {
     db.user.findUnique.mockResolvedValue({ name: 'Dono' })
     await notifyPackageDecision(log, 'pg1', 'a1')
     expect(resolveAction).toHaveBeenCalledWith('package-request:pg1', 'Dono')
-    expect(notify).toHaveBeenCalledWith(expect.objectContaining({
-      userIds: ['g1'],
-      type: 'package.request-accepted',
-      body: 'Você agora atua em Trilha',
-      link: '/capivara/painel/perfil',
-    }))
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userIds: ['g1'],
+        type: 'package.request-accepted',
+        body: 'Você agora atua em Trilha',
+        link: '/capivara/painel/perfil',
+      }),
+    )
   })
 
   it('notifyPackageDecision: recusado inclui o motivo', async () => {
     db.packageGuide.findUnique.mockResolvedValue(decided('REJECTED'))
     db.user.findUnique.mockResolvedValue({ name: 'Dono' })
     await notifyPackageDecision(log, 'pg1', 'a1')
-    expect(notify).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'package.request-rejected',
-      body: 'Trilha: Sem vaga',
-    }))
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'package.request-rejected',
+        body: 'Trilha: Sem vaga',
+      }),
+    )
   })
 
   it('notifyPackageDecision: ainda PENDING não faz nada', async () => {
@@ -330,13 +386,15 @@ describe('eventos de pedido de roteiro', () => {
     })
     ;(tenantAdminIds as any).mockResolvedValue(['a1', 'g1'])
     await notifyPackageLeft(log, 'pg1')
-    expect(notify).toHaveBeenCalledWith(expect.objectContaining({
-      userIds: ['a1'],
-      type: 'package.guide-left',
-      title: 'Guia saiu do roteiro',
-      body: 'Rui · Trilha',
-      link: '/capivara/painel/roteiros/p1',
-    }))
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userIds: ['a1'],
+        type: 'package.guide-left',
+        title: 'Guia saiu do roteiro',
+        body: 'Rui · Trilha',
+        link: '/capivara/painel/roteiros/p1',
+      }),
+    )
   })
 
   it('notifyPackageLeft: não lança', async () => {

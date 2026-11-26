@@ -112,19 +112,35 @@ describe('assertGuideAssignable', () => {
     return { userId: 'u-g', user: { tenantId: 't1', approvalStatus: 'APPROVED' }, ...over }
   }
 
-  it('guia de outro tenant → 403', async () => {
+  it('guia inexistente → 404', async () => {
+    db.guideProfile.findUnique.mockResolvedValue(null)
+    await expect(assertGuideAssignable(admin, 'gp', pkg)).rejects.toMatchObject({
+      statusCode: 404,
+    })
+  })
+
+  it('guia de outro tenant aceito no roteiro → ok (atua em vários circuitos)', async () => {
     db.guideProfile.findUnique.mockResolvedValue(
       guide({ user: { tenantId: 't2', approvalStatus: 'APPROVED' } }),
     )
-    await expect(assertGuideAssignable(admin, 'gp', 't1', pkg)).rejects.toMatchObject({
-      statusCode: 403,
+    db.packageGuide.findFirst.mockResolvedValue({ id: 'pg' })
+    await expect(assertGuideAssignable(admin, 'gp', pkg)).resolves.toBeUndefined()
+  })
+
+  it('guia de outro tenant fora do roteiro → 422', async () => {
+    db.guideProfile.findUnique.mockResolvedValue(
+      guide({ user: { tenantId: 't2', approvalStatus: 'APPROVED' } }),
+    )
+    db.packageGuide.findFirst.mockResolvedValue(null)
+    await expect(assertGuideAssignable(admin, 'gp', pkg)).rejects.toMatchObject({
+      statusCode: 422,
     })
   })
 
   it('CONDUTOR agendando outro guia → 403', async () => {
     db.guideProfile.findUnique.mockResolvedValue(guide())
     const cond = { sub: 'u-cond', role: 'CONDUTOR', tenantId: 't1' }
-    await expect(assertGuideAssignable(cond, 'gp', 't1', pkg)).rejects.toMatchObject({
+    await expect(assertGuideAssignable(cond, 'gp', pkg)).rejects.toMatchObject({
       statusCode: 403,
     })
   })
@@ -133,7 +149,7 @@ describe('assertGuideAssignable', () => {
     db.guideProfile.findUnique.mockResolvedValue(
       guide({ user: { tenantId: 't1', approvalStatus: 'PENDING' } }),
     )
-    await expect(assertGuideAssignable(admin, 'gp', 't1', pkg)).rejects.toMatchObject({
+    await expect(assertGuideAssignable(admin, 'gp', pkg)).rejects.toMatchObject({
       statusCode: 422,
     })
   })
@@ -141,7 +157,7 @@ describe('assertGuideAssignable', () => {
   it('guia que não faz parte do roteiro → 422', async () => {
     db.guideProfile.findUnique.mockResolvedValue(guide())
     db.packageGuide.findFirst.mockResolvedValue(null)
-    await expect(assertGuideAssignable(admin, 'gp', 't1', pkg)).rejects.toMatchObject({
+    await expect(assertGuideAssignable(admin, 'gp', pkg)).rejects.toMatchObject({
       statusCode: 422,
     })
   })
@@ -149,9 +165,9 @@ describe('assertGuideAssignable', () => {
   it('membro ACCEPTED ou condutor do roteiro → ok', async () => {
     db.guideProfile.findUnique.mockResolvedValue(guide())
     db.packageGuide.findFirst.mockResolvedValue({ id: 'pg' })
-    await expect(assertGuideAssignable(admin, 'gp', 't1', pkg)).resolves.toBeUndefined()
+    await expect(assertGuideAssignable(admin, 'gp', pkg)).resolves.toBeUndefined()
 
     db.guideProfile.findUnique.mockResolvedValue(guide({ userId: 'u-cond' }))
-    await expect(assertGuideAssignable(admin, 'gp', 't1', pkg)).resolves.toBeUndefined()
+    await expect(assertGuideAssignable(admin, 'gp', pkg)).resolves.toBeUndefined()
   })
 })

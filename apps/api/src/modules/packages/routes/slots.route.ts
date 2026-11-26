@@ -182,8 +182,8 @@ export async function slotsRoute(app: FastifyInstance) {
       if (await isUnverifiedGuide(user))
         throw new AppError('Guia não aprovado para criar slots', 403)
 
-      // Guia do tenant, aprovado, parte do roteiro; CONDUTOR só agenda a si mesmo
-      await assertGuideAssignable(user, body!.guideId, tenant.id, pkg)
+      // Guia aprovado e parte do roteiro (de qualquer tenant); CONDUTOR só agenda a si mesmo
+      await assertGuideAssignable(user, body!.guideId, pkg)
 
       // Transação: conflito de agenda (duração + buffer) + criação
       let slot
@@ -360,7 +360,7 @@ export async function slotsRoute(app: FastifyInstance) {
         })
         guideId = own?.id
       }
-      if (guideId) await assertGuideAssignable(user, guideId, tenant.id, pkg)
+      if (guideId) await assertGuideAssignable(user, guideId, pkg)
 
       if (body!.startDate > body!.endDate) {
         return reply.status(400).send({ message: 'Data inicial deve ser anterior à data final' })
@@ -506,6 +506,44 @@ export async function slotsRoute(app: FastifyInstance) {
       return prisma.departureSlot.findMany({
         where: { packageId: params!.id, startsAt: { gte: new Date() } },
         orderBy: { startsAt: 'asc' },
+      })
+    },
+  )
+
+  // GET /tenants/:slug/packages/:id/assignable-guides — guias que podem receber datas
+  // deste roteiro (aceitos e aprovados, de qualquer tenant), inclusive em rascunho
+  app.get(
+    '/tenants/:slug/packages/:id/assignable-guides',
+    {
+      preHandler: [authenticate, authorize([Role.CONDUTOR, Role.ADMIN, Role.SUPER_ADMIN])],
+    },
+    async (request, reply) => {
+      const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
+      if (error) return
+
+      const tenant = await prisma.tenant.findUnique({ where: { slug: params!.slug } })
+      if (!tenant) throw new AppError('Tenant não encontrado', 404)
+
+      const pkg = await prisma.tourPackage.findFirst({
+        where: { id: params!.id, tenantId: tenant.id },
+      })
+      if (!pkg) throw new AppError('Roteiro não encontrado', 404)
+
+      const user = request.user as EditUser
+      if (!canEditPackage(user, pkg)) throw new AppError('Acesso negado', 403)
+
+      const members = await prisma.packageGuide.findMany({
+        where: {
+          packageId: params!.id,
+          status: 'ACCEPTED',
+          guide: { user: { approvalStatus: 'APPROVED' } },
+        },
+        orderBy: { guide: { user: { name: 'asc' } } },
+        select: { guide: { select: { id: true, user: { select: { name: true } } } } },
+      })
+
+      return reply.send({
+        guides: members.map((m) => ({ guideId: m.guide.id, name: m.guide.user.name })),
       })
     },
   )
