@@ -6,7 +6,6 @@ import { Button } from '@/src/components/ui/capi'
 import HeroSection from '@/src/components/home/HeroSection'
 import type { HeroSlide } from '@/src/components/home/HeroSlideshow'
 import DestinationsSection from '@/src/components/home/DestinationsSection'
-import HowItWorksSection from '@/src/components/home/HowItWorksSection'
 import GuidesSection from '@/src/components/home/GuidesSection'
 import PackagesSection from '@/src/components/home/PackagesSection'
 import StatsBar from '@/src/components/home/StatsBar'
@@ -48,11 +47,11 @@ interface GuideSummary {
 interface PackageSummary {
   id: string
   name: string
-  price: number
+  priceFrom: number // reais
   difficulty: string
-  guideName: string
-  guideId: string
-  photos?: string[]
+  durationMinutes: number
+  coverImageUrl: string | null
+  tenantSlug: string | null
 }
 
 /** Máximo de fotos no hero: acima disso o visitante raramente vê e só gasta dados. */
@@ -83,8 +82,13 @@ function buildHeroSlides(
     for (const src of d.photos ?? []) push(destSlides, { ...base, src })
   }
   for (const p of packages) {
-    for (const src of p.photos ?? [])
-      push(pkgSlides, { src, label: p.name, kind: 'Roteiro', href: `/guias/${p.guideId}` })
+    if (p.coverImageUrl)
+      push(pkgSlides, {
+        src: p.coverImageUrl,
+        label: p.name,
+        kind: 'Roteiro',
+        href: p.tenantSlug ? `/${p.tenantSlug}/roteiros/${p.id}` : '/explorar',
+      })
   }
 
   // Intercala destino e roteiro para o hero não mostrar 5 fotos do mesmo lugar seguidas.
@@ -110,29 +114,13 @@ async function fetchGuides(): Promise<GuideSummary[] | null> {
   }
 }
 
-async function fetchPackages(guides: GuideSummary[]): Promise<PackageSummary[]> {
+/** Todos os roteiros publicados (mesma fonte do /explorar), não só os vinculados a um guia. */
+async function fetchPackages(): Promise<PackageSummary[]> {
   try {
-    const results = await Promise.all(
-      guides.map(async (g) => {
-        const res = await fetch(`${API_URL}/guides/${g.id}/packages`, { cache: 'no-store' })
-        if (!res.ok) return []
-        const pkgs = await res.json()
-        return pkgs.map(
-          (p: {
-            id: string
-            name: string
-            price: number
-            difficulty: string
-            photos?: string[]
-          }) => ({
-            ...p,
-            guideName: g.name,
-            guideId: g.id,
-          }),
-        )
-      }),
-    )
-    return results.flat()
+    const res = await fetch(`${API_URL}/packages/search?limit=100`, { cache: 'no-store' })
+    if (!res.ok) return []
+    const body = await res.json()
+    return Array.isArray(body?.data) ? body.data : []
   } catch {
     return []
   }
@@ -153,9 +141,9 @@ async function fetchDestinations(): Promise<DestinationSummary[] | null> {
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
 export const metadata: Metadata = {
-  title: 'CAPI — caminho entre quem explora e quem opera',
+  title: { absolute: 'CAPI' },
   description:
-    'Encontre guias certificados, compare roteiros e reserve com PIX. O marketplace de turismo que conecta viajantes e condutores locais.',
+    'Encontre guias certificados, compare roteiros e reserve com PIX. O marketplace de turismo que conecta viajantes e guias locais.',
   openGraph: {
     title: 'CAPI',
     locale: 'pt_BR',
@@ -165,7 +153,11 @@ export const metadata: Metadata = {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function HomePage() {
-  const [destinations, guides] = await Promise.all([fetchDestinations(), fetchGuides()])
+  const [destinations, guides, packages] = await Promise.all([
+    fetchDestinations(),
+    fetchGuides(),
+    fetchPackages(),
+  ])
   const previewDestinations = destinations?.slice(0, 6) ?? []
   const destinationPins: DestinationPin[] = (destinations ?? [])
     .filter(
@@ -182,7 +174,6 @@ export default async function HomePage() {
       tourCount: d._count?.tenantDestinations ?? 0,
     }))
   const previewGuides = guides ?? []
-  const packages = previewGuides.length > 0 ? await fetchPackages(previewGuides) : []
   const stats = {
     destinations: destinations?.length ?? 0,
     guides: previewGuides.length,
@@ -215,13 +206,10 @@ export default async function HomePage() {
             <DestinationsSection destinations={previewDestinations} />
           </div>
           <div className="home-reveal">
-            <HowItWorksSection />
+            <PackagesSection packages={packages} />
           </div>
           <div className="home-reveal">
             <GuidesSection guides={previewGuides} />
-          </div>
-          <div className="home-reveal">
-            <PackagesSection packages={packages} />
           </div>
           <div className="home-reveal">
             <DestinationsMapSection destinations={destinationPins} />

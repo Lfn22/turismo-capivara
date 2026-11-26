@@ -8,6 +8,7 @@ import DestinationMembershipButton from '@/src/components/membership/Destination
 import PublicLayout from '@/src/components/layout/PublicLayout'
 import { Button } from '@/src/components/ui/capi'
 import PackageCard, { type PackageCardPackage } from '@/src/components/ui/PackageCard'
+import PackageJoinButton from '@/src/components/membership/PackageJoinButton'
 import { LeadForm } from '@/src/components/leads/LeadForm'
 import { TrackView } from '@/src/components/tracking/TrackView'
 import {
@@ -335,11 +336,10 @@ export default async function DestinationPage({ params }: Props) {
                 </h2>
                 <div className="capi-grid-cards">
                   {packages.map((pkg) => (
-                    <PackageCard
-                      key={pkg.id}
-                      package={pkg}
-                      href={`/${pkg.tenantSlug}/roteiros/${pkg.id}`}
-                    />
+                    <div key={pkg.id}>
+                      <PackageCard package={pkg} href={`/${pkg.tenantSlug}/roteiros/${pkg.id}`} />
+                      <PackageJoinButton packageId={pkg.id} />
+                    </div>
                   ))}
                 </div>
                 <div style={{ marginTop: 'var(--space-6)', textAlign: 'center' }}>

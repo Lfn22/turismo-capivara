@@ -1,5 +1,6 @@
 import { Map as MapIcon } from 'lucide-react'
 import { EmptyState, PackageCard } from '@/src/components/ui/capi'
+import PackageJoinButton from '@/src/components/membership/PackageJoinButton'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:3333'
 
@@ -89,22 +90,24 @@ export default async function RoteirosPage({ params }: { params: Promise<{ slug:
           {packages.map((pkg) => {
             const openSlots = countOpenSlots(pkg.departureSlots ?? [])
             return (
-              <PackageCard
-                key={pkg.id}
-                href={`/${slug}/roteiros/${pkg.id}`}
-                package={{
-                  name: pkg.name,
-                  durationMinutes: durationToMinutes(pkg.duration),
-                  priceFrom: toCents(pkg.price),
-                  difficulty: DIFFICULTY_KEY[pkg.difficulty] ?? null,
-                  coverImageUrl: pkg.photos?.[0] ?? null,
-                  tags: [
-                    openSlots > 0
-                      ? `${openSlots} data${openSlots !== 1 ? 's' : ''} disponíve${openSlots !== 1 ? 'is' : 'l'}`
-                      : 'Sem vagas',
-                  ],
-                }}
-              />
+              <div key={pkg.id}>
+                <PackageCard
+                  href={`/${slug}/roteiros/${pkg.id}`}
+                  package={{
+                    name: pkg.name,
+                    durationMinutes: durationToMinutes(pkg.duration),
+                    priceFrom: toCents(pkg.price),
+                    difficulty: DIFFICULTY_KEY[pkg.difficulty] ?? null,
+                    coverImageUrl: pkg.photos?.[0] ?? null,
+                    tags: [
+                      openSlots > 0
+                        ? `${openSlots} data${openSlots !== 1 ? 's' : ''} disponíve${openSlots !== 1 ? 'is' : 'l'}`
+                        : 'Sem vagas',
+                    ],
+                  }}
+                />
+                <PackageJoinButton packageId={pkg.id} />
+              </div>
             )
           })}
         </div>

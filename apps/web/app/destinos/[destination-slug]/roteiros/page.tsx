@@ -5,6 +5,7 @@ import { DestinationSubheader, DestinationTabs } from '@/src/components/ui/Desti
 import { Button, EmptyState } from '@/src/components/ui/capi'
 import { PackageListEdit } from '@/src/components/edit-mode/PackageEditControls'
 import PackageCard, { PackageCardPackage } from '@/src/components/ui/PackageCard'
+import PackageJoinButton from '@/src/components/membership/PackageJoinButton'
 
 // ── Data layer ────────────────────────────────────────────────────────────────
 
@@ -137,11 +138,10 @@ export default async function DestinationRoteirosPage({ params }: Props) {
                 </p>
                 <div className="capi-grid-cards" id="roteiros">
                   {packages.map((pkg) => (
-                    <PackageCard
-                      key={pkg.id}
-                      package={pkg}
-                      href={`/${pkg.tenantSlug}/roteiros/${pkg.id}`}
-                    />
+                    <div key={pkg.id}>
+                      <PackageCard package={pkg} href={`/${pkg.tenantSlug}/roteiros/${pkg.id}`} />
+                      <PackageJoinButton packageId={pkg.id} />
+                    </div>
                   ))}
                 </div>
               </>
