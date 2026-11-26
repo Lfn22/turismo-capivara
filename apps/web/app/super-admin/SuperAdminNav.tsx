@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import { BadgeCheck, Building2, LogOut, Map as MapIcon, Menu, Users } from 'lucide-react'
+import { BadgeCheck, Building2, LogOut, Map as MapIcon, Menu, Route, Users } from 'lucide-react'
 import {
   Avatar,
   Button,
@@ -19,6 +19,7 @@ import { NotificationBell } from '@/src/components/layout/NotificationBell'
 const baseNavItems: NavItem[] = [
   { label: 'Operadoras', href: '/super-admin/operadoras', icon: Building2 },
   { label: 'Destinos', href: '/super-admin/destinos', icon: MapIcon },
+  { label: 'Roteiros', href: '/super-admin/roteiros', icon: Route },
   { label: 'Guias', href: '/super-admin/guias', icon: BadgeCheck },
 ]
 
