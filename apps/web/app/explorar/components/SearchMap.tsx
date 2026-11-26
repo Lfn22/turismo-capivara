@@ -137,7 +137,7 @@ export default function SearchMap({
           {...viewState}
           onMove={handleMove}
           onMoveEnd={handleMoveEnd}
-          mapStyle="/api/tiles/styles/basic-v2/style.json"
+          mapStyle="/api/tiles/maps/basic-v2/style.json"
           style={{ width: '100%', height: '100%' }}
           cooperativeGestures={false}
           attributionControl={false}

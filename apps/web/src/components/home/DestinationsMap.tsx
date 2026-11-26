@@ -95,7 +95,7 @@ export default function DestinationsMap({ destinations }: DestinationsMapProps) 
           ref={mapRef}
           {...viewState}
           onMove={handleMove}
-          mapStyle="/api/tiles/styles/basic-v2/style.json"
+          mapStyle="/api/tiles/maps/basic-v2/style.json"
           style={{ width: '100%', height: '100%' }}
           cooperativeGestures
           attributionControl={false}
