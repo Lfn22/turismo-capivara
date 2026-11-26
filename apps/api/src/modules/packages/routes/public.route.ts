@@ -5,6 +5,7 @@ import { AppError } from '../../../shared/errors/AppError'
 import { BOOKING_CUTOFF_HOURS } from '../../bookings/booking-cutoff'
 import { parseParams, parseQuery } from '../../../shared/utils/zod-error'
 import { paginationQuerySchema, paginatedResponse } from '../../../shared/utils/pagination'
+import { destinationNotArchived } from '../package-visibility'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -102,6 +103,7 @@ export async function publicPackagesRoute(app: FastifyInstance) {
         tenantId: tenant.id,
         active: true,
         publishedAt: { not: null },
+        AND: [destinationNotArchived],
         ...(conductorId ? { conductorId } : {}),
         ...(availableIds ? { id: { in: availableIds } } : {}),
         ...(minPrice !== undefined || maxPrice !== undefined
@@ -182,6 +184,7 @@ export async function publicPackagesRoute(app: FastifyInstance) {
         tenantId: tenant.id,
         active: true,
         publishedAt: { not: null },
+        AND: [destinationNotArchived],
       },
       include: {
         departureSlots: {
@@ -214,7 +217,12 @@ export async function publicPackagesRoute(app: FastifyInstance) {
     if (error) return
 
     const published = await prisma.tourPackage.findFirst({
-      where: { id: params!.id, active: true, publishedAt: { not: null } },
+      where: {
+        id: params!.id,
+        active: true,
+        publishedAt: { not: null },
+        AND: [destinationNotArchived],
+      },
       select: { id: true },
     })
     if (!published) throw new AppError('Roteiro não encontrado', 404)

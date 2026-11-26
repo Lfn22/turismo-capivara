@@ -8,6 +8,7 @@ import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { imageUrlSchema, httpsUrlSchema } from '../../shared/utils/image-url'
+import { destinationNotArchived } from '../packages/package-visibility'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -333,7 +334,7 @@ export async function guidesRoutes(app: FastifyInstance) {
       where: {
         guideId: params.id,
         status: 'ACCEPTED',
-        package: { active: true, publishedAt: { not: null } },
+        package: { active: true, publishedAt: { not: null }, AND: [destinationNotArchived] },
       },
       include: {
         package: {

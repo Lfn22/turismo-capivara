@@ -18,6 +18,7 @@ import { authenticate } from '../../../shared/middlewares/authenticate'
 import { authorize } from '../../../shared/middlewares/authorize'
 import { Role, type Prisma } from '@prisma/client'
 import { parseBody, parseParams, parseQuery } from '../../../shared/utils/zod-error'
+import { destinationNotArchived } from '../package-visibility'
 import {
   canEditPackage,
   isUnverifiedGuide,
@@ -108,7 +109,13 @@ export async function slotsRoute(app: FastifyInstance) {
 
     // Leitura pública: só roteiro publicado (rascunho não expõe datas/vagas)
     const tourPackage = await prisma.tourPackage.findFirst({
-      where: { id: params!.id, tenantId: tenant.id, active: true, publishedAt: { not: null } },
+      where: {
+        id: params!.id,
+        tenantId: tenant.id,
+        active: true,
+        publishedAt: { not: null },
+        AND: [destinationNotArchived],
+      },
     })
 
     if (!tourPackage) {

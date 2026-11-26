@@ -93,14 +93,19 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
             tenantId: string
             active: boolean
             publishedAt: Date | null
+            destinationActive: boolean
             startsAt: Date
           }>
         >`
-          SELECT ds.id, ds.booked, ds.capacity, ds.status, ds."packageId", ds."startsAt", tp."tenantId", tp.active, tp."publishedAt"
+          SELECT ds.id, ds.booked, ds.capacity, ds.status, ds."packageId", ds."startsAt", tp."tenantId", tp.active, tp."publishedAt",
+                 (COALESCE(pd.active, true) AND COALESCE(td.active, true)) AS "destinationActive"
           FROM "DepartureSlot" ds
           JOIN "TourPackage" tp ON tp.id = ds."packageId"
+          JOIN "Tenant" t ON t.id = tp."tenantId"
+          LEFT JOIN "Destination" pd ON pd.id = tp."destinationId"
+          LEFT JOIN "Destination" td ON td.id = t."destinationId"
           WHERE ds.id = ${slotId}
-          FOR UPDATE
+          FOR UPDATE OF ds, tp
         `
 
         if (!slot) {
@@ -111,8 +116,13 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
           throw new AppError('Slot não encontrado', 404)
         }
 
-        // Roteiro em rascunho (publishedAt null) ou arquivado não aceita reserva
-        if (slot.status !== 'OPEN' || !slot.active || slot.publishedAt === null) {
+        // Roteiro em rascunho (publishedAt null), arquivado ou de destino arquivado não aceita reserva
+        if (
+          slot.status !== 'OPEN' ||
+          !slot.active ||
+          slot.publishedAt === null ||
+          slot.destinationActive === false
+        ) {
           throw new AppError('Slot indisponível', 400)
         }
 

@@ -361,6 +361,7 @@ describe('POST /tenants/:slug/bookings', () => {
     it.each([
       ['rascunho', { publishedAt: null }],
       ['arquivado', { active: false }],
+      ['de destino arquivado', { destinationActive: false }],
     ])('retorna 400 sem reservar quando o roteiro está %s', async (_label, pkgState) => {
       const slotUpdate = vi.fn()
       const bookingCreate = vi.fn()

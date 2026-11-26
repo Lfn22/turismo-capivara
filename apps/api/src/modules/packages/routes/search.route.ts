@@ -4,6 +4,7 @@ import { Difficulty, Prisma } from '@prisma/client'
 import prisma from '../../../database'
 import { parseQuery } from '../../../shared/utils/zod-error'
 import { paginationQuerySchema, paginatedResponse } from '../../../shared/utils/pagination'
+import { destinationNotArchived } from '../package-visibility'
 
 const searchQuerySchema = paginationQuerySchema.extend({
   sw_lat: z.coerce.number().min(-90).max(90).optional(),
@@ -152,7 +153,7 @@ export async function searchPackagesRoute(app: FastifyInstance) {
             : { createdAt: 'desc' }
 
     const packages = await prisma.tourPackage.findMany({
-      where: finalWhere,
+      where: { AND: [finalWhere, destinationNotArchived] },
       take: limit + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       orderBy,
