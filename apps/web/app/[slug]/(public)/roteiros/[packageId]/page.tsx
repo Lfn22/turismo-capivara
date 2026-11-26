@@ -262,7 +262,7 @@ export default async function RoteirDetalhe({
                 {/* Guia */}
                 {guide && (
                   <section className="mb-8">
-                    <h2 className="m-0 mb-3 text-lg">Seu condutor</h2>
+                    <h2 className="m-0 mb-3 text-lg">Seu guia</h2>
                     <ListGroup>
                       <ListRow
                         href={`/${slug}/guias/${guide.id}`}
@@ -278,7 +278,7 @@ export default async function RoteirDetalhe({
                         }
                         title={guide.name}
                         subtitle={
-                          guide.approvalStatus === 'APPROVED' ? 'Condutor verificado' : 'Condutor'
+                          guide.approvalStatus === 'APPROVED' ? 'Guia verificado' : 'Guia'
                         }
                       />
                     </ListGroup>
@@ -326,7 +326,7 @@ export default async function RoteirDetalhe({
                   compact
                   icon={Users}
                   title="Nenhum guia vinculado a este roteiro ainda"
-                  description="Em breve condutores estarão disponíveis para este roteiro."
+                  description="Em breve guias estarão disponíveis para este roteiro."
                 />
               )}
             </section>

@@ -5,6 +5,8 @@ import { buildApp } from '../../../__tests__/helpers/build-app'
 vi.mock('../../../database', () => ({
   default: {
     tenant: { findUnique: vi.fn() },
+    user: { findUnique: vi.fn() },
+    tourPackage: { findMany: vi.fn() },
     guideProfile: { findUnique: vi.fn() },
     guideDestination: { findMany: vi.fn() },
     packageGuide: { findMany: vi.fn() },
@@ -21,8 +23,12 @@ const app = buildApp(async (instance) => {
   await instance.register(guidesRoutes)
   await instance.register(myMembershipsRoutes)
 })
-beforeAll(async () => { await app.ready() })
-afterAll(async () => { await app.close() })
+beforeAll(async () => {
+  await app.ready()
+})
+afterAll(async () => {
+  await app.close()
+})
 
 const auth = (role: string) => ({
   authorization: `Bearer ${app.jwt.sign({ sub: 'u1', tenantId: 't1', role, name: 'X', approvalStatus: 'APPROVED' })}`,
@@ -33,28 +39,67 @@ beforeEach(() => {
   db.guideProfile.findUnique.mockResolvedValue({ id: 'gp1' })
   db.guideDestination.findMany.mockResolvedValue([])
   db.packageGuide.findMany.mockResolvedValue([])
+  db.user.findUnique.mockResolvedValue({ approvalStatus: 'APPROVED' })
+  db.tourPackage.findMany.mockResolvedValue([])
 })
 
 describe('GET /guides/me/memberships', () => {
   it('sem token -> 401; CLIENTE -> 403', async () => {
-    expect((await app.inject({ method: 'GET', url: '/guides/me/memberships' })).statusCode).toBe(401)
-    expect((await app.inject({ method: 'GET', url: '/guides/me/memberships', headers: auth('CLIENTE') })).statusCode).toBe(403)
+    expect((await app.inject({ method: 'GET', url: '/guides/me/memberships' })).statusCode).toBe(
+      401,
+    )
+    expect(
+      (await app.inject({ method: 'GET', url: '/guides/me/memberships', headers: auth('CLIENTE') }))
+        .statusCode,
+    ).toBe(403)
   })
 
   it('não é engolida por /guides/:id/... e devolve destinos e roteiros mapeados', async () => {
-    db.guideDestination.findMany.mockResolvedValue([{ destination: { slug: 'serra-azul', title: 'Serra Azul' } }])
-    db.packageGuide.findMany.mockResolvedValue([
-      { status: 'PENDING', rejectionReason: null, package: { id: 'p1', name: 'A', tenant: { destination: { slug: 'serra-azul' } } } },
-      { status: 'REJECTED', rejectionReason: 'Sem vaga', package: { id: 'p2', name: 'B', tenant: { destination: null } } },
-      { status: 'ACCEPTED', rejectionReason: null, package: { id: 'p3', name: 'C', tenant: { destination: { slug: 'x' } } } },
+    db.guideDestination.findMany.mockResolvedValue([
+      { destination: { slug: 'serra-azul', title: 'Serra Azul' } },
     ])
-    const res = await app.inject({ method: 'GET', url: '/guides/me/memberships', headers: auth('CONDUTOR') })
+    db.packageGuide.findMany.mockResolvedValue([
+      {
+        status: 'PENDING',
+        rejectionReason: null,
+        package: { id: 'p1', name: 'A', tenant: { destination: { slug: 'serra-azul' } } },
+      },
+      {
+        status: 'REJECTED',
+        rejectionReason: 'Sem vaga',
+        package: { id: 'p2', name: 'B', tenant: { destination: null } },
+      },
+      {
+        status: 'ACCEPTED',
+        rejectionReason: null,
+        package: { id: 'p3', name: 'C', tenant: { destination: { slug: 'x' } } },
+      },
+    ])
+    const res = await app.inject({
+      method: 'GET',
+      url: '/guides/me/memberships',
+      headers: auth('CONDUTOR'),
+    })
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({
+      approved: true,
+      conductorPackageIds: [],
       destinations: [{ slug: 'serra-azul', title: 'Serra Azul' }],
       packages: [
-        { id: 'p1', name: 'A', destinationSlug: 'serra-azul', state: 'PENDING', rejectionReason: null },
-        { id: 'p2', name: 'B', destinationSlug: null, state: 'REJECTED', rejectionReason: 'Sem vaga' },
+        {
+          id: 'p1',
+          name: 'A',
+          destinationSlug: 'serra-azul',
+          state: 'PENDING',
+          rejectionReason: null,
+        },
+        {
+          id: 'p2',
+          name: 'B',
+          destinationSlug: null,
+          state: 'REJECTED',
+          rejectionReason: 'Sem vaga',
+        },
         { id: 'p3', name: 'C', destinationSlug: 'x', state: 'IN', rejectionReason: null },
       ],
     })
@@ -64,9 +109,25 @@ describe('GET /guides/me/memberships', () => {
     })
   })
 
+  it('informa aprovação e roteiros em que o guia é o responsável', async () => {
+    db.user.findUnique.mockResolvedValue({ approvalStatus: 'PENDING' })
+    db.tourPackage.findMany.mockResolvedValue([{ id: 'own1' }])
+    const res = await app.inject({
+      method: 'GET',
+      url: '/guides/me/memberships',
+      headers: auth('CONDUTOR'),
+    })
+    expect(res.json()).toMatchObject({ approved: false, conductorPackageIds: ['own1'] })
+    expect(db.tourPackage.findMany.mock.calls[0][0].where).toEqual({ conductorId: 'u1' })
+  })
+
   it('sem perfil de guia -> 404', async () => {
     db.guideProfile.findUnique.mockResolvedValue(null)
-    const res = await app.inject({ method: 'GET', url: '/guides/me/memberships', headers: auth('CONDUTOR') })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/guides/me/memberships',
+      headers: auth('CONDUTOR'),
+    })
     expect(res.statusCode).toBe(404)
   })
 })
