@@ -4,6 +4,7 @@ import { apiFetch } from '@/lib/api/client'
 import { painelEyebrow } from '@/lib/painel'
 import { CalendarDays, ExternalLink, Images, Plus, Users } from 'lucide-react'
 import EmptyState from '@/src/components/ui/EmptyState'
+import JoinableRoteiros from '@/src/components/painel/JoinableRoteiros'
 import { Alert, Badge, Button, Media, PageHeader, StatusBadge } from '@/src/components/ui/capi'
 
 interface Package {
@@ -183,6 +184,8 @@ export default async function RoteirosPage({ params }: { params: Promise<{ slug:
           ))}
         </div>
       )}
+
+      {jwt?.role === 'CONDUTOR' ? <JoinableRoteiros /> : null}
     </>
   )
 }
