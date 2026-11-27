@@ -18,7 +18,7 @@ vi.mock('../package-requests.service', () => ({
 }))
 
 import prisma from '../../../database'
-import { cancelRequest } from '../package-requests.service'
+import { approveRequest, cancelRequest } from '../package-requests.service'
 const db = prisma as unknown as {
   packageChangeRequest: { findMany: Mock }
   user: { findUnique: Mock }
@@ -60,6 +60,7 @@ describe('package-requests (equipe)', () => {
         type: 'UPDATE',
         status: 'PENDING',
         createdAt: new Date(),
+        updatedAt: new Date('2026-11-27T10:00:00.000Z'),
         changes: { price: { from: 600, to: 700 } },
         package: {
           id: 'p1',
@@ -87,6 +88,35 @@ describe('package-requests (equipe)', () => {
     expect(r.package.destinationTitle).toBe('Bonito')
     expect(r.package.active).toBe(true)
     expect(r.package.publishedAt).toBe('2026-01-01T00:00:00.000Z')
+    expect(r.updatedAt).toBe('2026-11-27T10:00:00.000Z')
+  })
+
+  it('approve sem updatedAt → 400 e não aprova', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/package-requests/r1/approve',
+      headers: { authorization: `Bearer ${superToken}` },
+      payload: {},
+    })
+    expect(res.statusCode).toBe(400)
+    expect(approveRequest).not.toHaveBeenCalled()
+  })
+
+  it('approve repassa o updatedAt revisado ao serviço', async () => {
+    ;(approveRequest as Mock).mockResolvedValue({ id: 'r1', status: 'APPROVED' })
+    const res = await app.inject({
+      method: 'POST',
+      url: '/admin/package-requests/r1/approve',
+      headers: { authorization: `Bearer ${superToken}` },
+      payload: { updatedAt: '2026-11-27T10:00:00.000Z' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(approveRequest).toHaveBeenCalledWith(
+      'r1',
+      's1',
+      expect.anything(),
+      new Date('2026-11-27T10:00:00.000Z'),
+    )
   })
 
   it('reject com motivo curto → 400 em português', async () => {

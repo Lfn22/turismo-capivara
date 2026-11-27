@@ -4,7 +4,7 @@ import prisma from '../../../database'
 import { AppError } from '../../../shared/errors/AppError'
 import { authenticate } from '../../../shared/middlewares/authenticate'
 import { authorize } from '../../../shared/middlewares/authorize'
-import { Role } from '@prisma/client'
+import { Prisma, Role } from '@prisma/client'
 import { parseBody, parseParams } from '../../../shared/utils/zod-error'
 import {
   canEditPackage,
@@ -72,6 +72,9 @@ const patchPackageBodySchema = z
   })
 
 const WRITERS = [Role.CONDUTOR, Role.ADMIN, Role.SUPER_ADMIN]
+
+const PENDING_PUBLISH_LOCK =
+  'Este roteiro está aguardando aprovação para entrar no ar. Cancele o pedido para editar nome, descrição ou valores.'
 
 const isGuide = (user: EditUser) => user.role === 'CONDUTOR'
 const isLive = (pkg: { active: boolean; publishedAt: Date | null }) =>
@@ -289,9 +292,21 @@ export async function crudPackagesRoute(app: FastifyInstance) {
         })
       }
 
+      let data: Prisma.TourPackageUpdateInput = body
+      if (isGuide(user) && Object.keys(diffImportant(pkg, body)).length > 0) {
+        // Equipe vai aprovar a publicação com o conteúdo que viu: nada importante muda até decidir
+        const pendingPublish = await prisma.packageChangeRequest.findFirst({
+          where: { packageId: pkg.id, status: 'PENDING', type: 'PUBLISH' },
+          select: { id: true },
+        })
+        if (pendingPublish) throw new AppError(PENDING_PUBLISH_LOCK, 409)
+        // Arquivado já publicado: com conteúdo novo, volta como rascunho e precisa de nova aprovação
+        if (pkg.publishedAt !== null) data = { ...body, publishedAt: null }
+      }
+
       const updated = await prisma.tourPackage.update({
         where: { id: params!.id },
-        data: body,
+        data,
       })
 
       return reply.status(200).send({ ...updated, pendingRequest: null })

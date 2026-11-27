@@ -10,6 +10,7 @@ function pedido(over: Record<string, unknown> = {}) {
     type: 'UPDATE',
     status: 'PENDING',
     createdAt: '2026-11-20T12:00:00.000Z',
+    updatedAt: '2026-11-21T09:30:00.000Z',
     changes: { price: { from: 600, to: 700 } },
     package: {
       id: 'p1',
@@ -97,6 +98,44 @@ describe('PedidosClient', () => {
       proxy('/admin/package-requests/r1/approve'),
       expect.objectContaining({ method: 'POST' }),
     )
+  })
+
+  it('Aprovar envia o updatedAt da versão revisada', async () => {
+    const fn = mockFetch([pedido()])
+    render(<PedidosClient />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Aprovar' }))
+    await waitFor(() => expect(screen.getByText('Nenhum pedido pendente.')).toBeInTheDocument())
+    const post = fn.mock.calls.find(([, init]) => init?.method === 'POST')!
+    expect(post[1]!.headers).toEqual({ 'Content-Type': 'application/json' })
+    expect(JSON.parse(post[1]!.body as string)).toEqual({ updatedAt: '2026-11-21T09:30:00.000Z' })
+  })
+
+  it('409 "pedido mudou" mostra a mensagem e recarrega a lista com a nova versão', async () => {
+    const changed =
+      'O pedido mudou desde que você abriu a revisão. Recarregue a lista e revise de novo.'
+    let gets = 0
+    const fn = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') return Response.json({ message: changed }, { status: 409 })
+      gets += 1
+      return Response.json({
+        requests: [
+          gets === 1
+            ? pedido()
+            : pedido({
+                updatedAt: '2026-11-21T10:00:00.000Z',
+                changes: { price: { from: 600, to: 900 } },
+              }),
+        ],
+      })
+    })
+    vi.stubGlobal('fetch', fn)
+    render(<PedidosClient />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Aprovar' }))
+    expect(await screen.findByText(changed)).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByText('Valor do grupo').closest('tr')).toHaveTextContent('R$ 900,00'),
+    )
+    expect(gets).toBe(2)
   })
 
   it('erro 409 mostra mensagem e mantém o item', async () => {

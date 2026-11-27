@@ -49,6 +49,7 @@ export async function packageRequestsRoutes(app: FastifyInstance) {
           type: r.type,
           status: r.status,
           createdAt: r.createdAt,
+          updatedAt: r.updatedAt.toISOString(),
           changes: r.changes,
           package: {
             id: r.package.id,
@@ -76,7 +77,22 @@ export async function packageRequestsRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { data: params, error } = parseParams(idParams, request.params, reply)
       if (error) return
-      const approved = await approveRequest(params.id, request.user.sub, request.log)
+      const { data: body, error: bodyError } = parseBody(
+        z.object({
+          updatedAt: z.string({ error: 'Versão do pedido obrigatória' }).datetime({
+            message: 'Versão do pedido inválida',
+          }),
+        }),
+        request.body,
+        reply,
+      )
+      if (bodyError) return
+      const approved = await approveRequest(
+        params.id,
+        request.user.sub,
+        request.log,
+        new Date(body.updatedAt),
+      )
       return reply.send({ id: approved.id, status: approved.status })
     },
   )

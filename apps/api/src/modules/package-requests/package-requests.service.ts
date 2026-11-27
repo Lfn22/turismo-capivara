@@ -18,6 +18,8 @@ type Changes = Record<string, { from: unknown; to: unknown }>
 const PENDING_CONFLICT =
   'Já existe um pedido pendente para este roteiro. Cancele-o para fazer outro.'
 const ALREADY_DECIDED = 'Este pedido já foi decidido.'
+const REQUEST_CHANGED =
+  'O pedido mudou desde que você abriu a revisão. Recarregue a lista e revise de novo.'
 const NUMERIC_FIELDS: readonly string[] = ['price', 'extraGuidePrice']
 
 function normalize(field: string, value: unknown): unknown {
@@ -168,16 +170,28 @@ export async function approveRequest(
   id: string,
   staffId: string,
   log: FastifyBaseLogger,
+  expectedUpdatedAt: Date,
 ): Promise<PackageChangeRequest> {
   const request = await loadPending(id)
   const packageId = request.packageId
+  // Só aprova a versão que a equipe revisou: um merge do guia depois disso muda o updatedAt.
+  if (request.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
+    throw new AppError(REQUEST_CHANGED, 409)
+  }
 
   // Reivindica o pedido antes de qualquer efeito: decisões concorrentes não rodam estorno à toa.
+  // O updatedAt na condição garante que o changes lido acima ainda é o atual.
   const claim = await prisma.packageChangeRequest.updateMany({
-    where: { id, status: 'PENDING' },
+    where: { id, status: 'PENDING', updatedAt: expectedUpdatedAt },
     data: { status: 'APPROVED', decidedById: staffId, decidedAt: new Date() },
   })
-  if (claim.count === 0) throw new AppError(ALREADY_DECIDED, 409)
+  if (claim.count === 0) {
+    const now = await prisma.packageChangeRequest.findUnique({
+      where: { id },
+      select: { status: true },
+    })
+    throw new AppError(now?.status === 'PENDING' ? REQUEST_CHANGED : ALREADY_DECIDED, 409)
+  }
 
   try {
     if (request.type === 'UNPUBLISH' || request.type === 'ARCHIVE') {
@@ -189,15 +203,8 @@ export async function approveRequest(
     else if (request.type === 'UNPUBLISH') data = { publishedAt: null }
     else if (request.type === 'ARCHIVE') data = { active: false }
     else {
-      // Relê depois da reivindicação: um merge do guia entre a carga inicial e o claim não se perde.
-      const fresh = await prisma.packageChangeRequest.findUnique({
-        where: { id },
-        select: { changes: true },
-      })
       data = {}
-      for (const [field, change] of Object.entries(
-        (fresh?.changes ?? request.changes ?? {}) as Changes,
-      )) {
+      for (const [field, change] of Object.entries((request.changes ?? {}) as Changes)) {
         ;(data as Record<string, unknown>)[field] = normalize(field, change.to)
       }
     }

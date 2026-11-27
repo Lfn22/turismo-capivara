@@ -184,6 +184,7 @@ describe('submitRequest', () => {
   })
 })
 
+const V = new Date('2026-11-27T10:00:00.000Z')
 const pendingReq = (type: string, changes: unknown = null) => ({
   id: 'r1',
   packageId: 'p1',
@@ -191,6 +192,7 @@ const pendingReq = (type: string, changes: unknown = null) => ({
   type,
   changes,
   status: 'PENDING',
+  updatedAt: V,
   package: { id: 'p1', name: 'Trilha', tenant: { slug: 'acme' } },
 })
 
@@ -199,7 +201,7 @@ describe('approveRequest', () => {
     db.packageChangeRequest.findUnique.mockResolvedValue(
       pendingReq('UPDATE', { price: { from: 600, to: 700 } }),
     )
-    await approveRequest('r1', 's1', log)
+    await approveRequest('r1', 's1', log, V)
     expect(db.tourPackage.update).toHaveBeenCalledWith({
       where: { id: 'p1' },
       data: { price: 700 },
@@ -212,13 +214,13 @@ describe('approveRequest', () => {
 
   it('PUBLISH grava publishedAt', async () => {
     db.packageChangeRequest.findUnique.mockResolvedValue(pendingReq('PUBLISH'))
-    await approveRequest('r1', 's1', log)
+    await approveRequest('r1', 's1', log, V)
     expect(db.tourPackage.update.mock.calls[0][0].data.publishedAt).toBeInstanceOf(Date)
   })
 
   it('ARCHIVE estorna antes de desativar', async () => {
     db.packageChangeRequest.findUnique.mockResolvedValue(pendingReq('ARCHIVE'))
-    await approveRequest('r1', 's1', log)
+    await approveRequest('r1', 's1', log, V)
     expect(cancelFutureSlots).toHaveBeenCalledWith({ packageId: 'p1' }, log)
     expect((cancelFutureSlots as Mock).mock.invocationCallOrder[0]).toBeLessThan(
       db.tourPackage.update.mock.invocationCallOrder[0],
@@ -231,7 +233,7 @@ describe('approveRequest', () => {
 
   it('UNPUBLISH estorna e depois zera publishedAt', async () => {
     db.packageChangeRequest.findUnique.mockResolvedValue(pendingReq('UNPUBLISH'))
-    await approveRequest('r1', 's1', log)
+    await approveRequest('r1', 's1', log, V)
     expect((cancelFutureSlots as Mock).mock.invocationCallOrder[0]).toBeLessThan(
       db.tourPackage.update.mock.invocationCallOrder[0],
     )
@@ -244,7 +246,7 @@ describe('approveRequest', () => {
   it('estorno falhou: pedido volta a PENDING e roteiro fica intacto', async () => {
     db.packageChangeRequest.findUnique.mockResolvedValue(pendingReq('ARCHIVE'))
     ;(cancelFutureSlots as Mock).mockRejectedValueOnce(new Error('falhou'))
-    await expect(approveRequest('r1', 's1', log)).rejects.toThrow('falhou')
+    await expect(approveRequest('r1', 's1', log, V)).rejects.toThrow('falhou')
     expect(db.packageChangeRequest.updateMany).toHaveBeenLastCalledWith({
       where: { id: 'r1', status: 'APPROVED' },
       data: { status: 'PENDING', decidedById: null, decidedAt: null },
@@ -255,22 +257,56 @@ describe('approveRequest', () => {
   it('gravação do roteiro falhou: pedido volta a PENDING e o erro sobe', async () => {
     db.packageChangeRequest.findUnique.mockResolvedValue(pendingReq('PUBLISH'))
     db.tourPackage.update.mockRejectedValueOnce(new Error('db caiu'))
-    await expect(approveRequest('r1', 's1', log)).rejects.toThrow('db caiu')
+    await expect(approveRequest('r1', 's1', log, V)).rejects.toThrow('db caiu')
     expect(db.packageChangeRequest.updateMany).toHaveBeenLastCalledWith({
       where: { id: 'r1', status: 'APPROVED' },
       data: { status: 'PENDING', decidedById: null, decidedAt: null },
     })
   })
 
-  it('UPDATE aplica o changes relido após a reivindicação', async () => {
-    db.packageChangeRequest.findUnique
-      .mockResolvedValueOnce(pendingReq('UPDATE', { price: { from: 600, to: 700 } }))
-      .mockResolvedValueOnce({ changes: { price: { from: 600, to: 650 } } })
-    await approveRequest('r1', 's1', log)
+  it('reivindica só a versão revisada (updatedAt) e aplica o changes dela', async () => {
+    db.packageChangeRequest.findUnique.mockResolvedValue(
+      pendingReq('UPDATE', { price: { from: 600, to: 700 } }),
+    )
+    await approveRequest('r1', 's1', log, V)
+    expect(db.packageChangeRequest.updateMany.mock.calls[0][0].where).toEqual({
+      id: 'r1',
+      status: 'PENDING',
+      updatedAt: V,
+    })
     expect(db.tourPackage.update).toHaveBeenCalledWith({
       where: { id: 'p1' },
-      data: { price: 650 },
+      data: { price: 700 },
     })
+  })
+
+  it('pedido mudou desde a revisão (updatedAt diferente) → 409 sem aplicar nem estornar', async () => {
+    db.packageChangeRequest.findUnique.mockResolvedValue({
+      ...pendingReq('UPDATE', { price: { from: 600, to: 650 } }),
+      updatedAt: new Date('2026-11-27T10:05:00.000Z'),
+    })
+    await expect(approveRequest('r1', 's1', log, V)).rejects.toMatchObject({
+      statusCode: 409,
+      message:
+        'O pedido mudou desde que você abriu a revisão. Recarregue a lista e revise de novo.',
+    })
+    expect(db.packageChangeRequest.updateMany).not.toHaveBeenCalled()
+    expect(db.tourPackage.update).not.toHaveBeenCalled()
+    expect(cancelFutureSlots).not.toHaveBeenCalled()
+  })
+
+  it('merge entre a leitura e a reivindicação (count 0, ainda PENDING) → 409 "mudou"', async () => {
+    db.packageChangeRequest.findUnique
+      .mockResolvedValueOnce(pendingReq('ARCHIVE'))
+      .mockResolvedValueOnce({ status: 'PENDING' })
+    db.packageChangeRequest.updateMany.mockResolvedValue({ count: 0 })
+    await expect(approveRequest('r1', 's1', log, V)).rejects.toMatchObject({
+      statusCode: 409,
+      message:
+        'O pedido mudou desde que você abriu a revisão. Recarregue a lista e revise de novo.',
+    })
+    expect(cancelFutureSlots).not.toHaveBeenCalled()
+    expect(db.tourPackage.update).not.toHaveBeenCalled()
   })
 
   it('pedido já decidido → 409', async () => {
@@ -278,16 +314,21 @@ describe('approveRequest', () => {
       ...pendingReq('PUBLISH'),
       status: 'APPROVED',
     })
-    await expect(approveRequest('r1', 's1', log)).rejects.toMatchObject({
+    await expect(approveRequest('r1', 's1', log, V)).rejects.toMatchObject({
       statusCode: 409,
       message: 'Este pedido já foi decidido.',
     })
   })
 
-  it('corrida (count 0) → 409', async () => {
-    db.packageChangeRequest.findUnique.mockResolvedValue(pendingReq('ARCHIVE'))
+  it('corrida (count 0, já decidido) → 409', async () => {
+    db.packageChangeRequest.findUnique
+      .mockResolvedValueOnce(pendingReq('ARCHIVE'))
+      .mockResolvedValueOnce({ status: 'APPROVED' })
     db.packageChangeRequest.updateMany.mockResolvedValue({ count: 0 })
-    await expect(approveRequest('r1', 's1', log)).rejects.toMatchObject({ statusCode: 409 })
+    await expect(approveRequest('r1', 's1', log, V)).rejects.toMatchObject({
+      statusCode: 409,
+      message: 'Este pedido já foi decidido.',
+    })
     expect(cancelFutureSlots).not.toHaveBeenCalled()
     expect(db.tourPackage.update).not.toHaveBeenCalled()
   })

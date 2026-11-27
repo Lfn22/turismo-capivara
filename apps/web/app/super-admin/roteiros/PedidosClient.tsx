@@ -19,6 +19,7 @@ interface PackageRequest {
   id: string
   type: RequestType
   createdAt: string
+  updatedAt: string
   changes: Partial<Record<Field, { from: Value; to: Value }>> | null
   package: {
     id: string
@@ -67,30 +68,46 @@ function staleNote(type: RequestType, pkg: PackageRequest['package']) {
   return pkg.publishedAt ? null : 'Roteiro fora do ar'
 }
 
+const REQUEST_CHANGED =
+  'O pedido mudou desde que você abriu a revisão. Recarregue a lista e revise de novo.'
+
 async function errorMessage(res: Response, fallback: string) {
   const data = (await res.json().catch(() => null)) as { message?: string } | null
   return data?.message ?? fallback
 }
 
-function PedidoCard({ req, onDecided }: { req: PackageRequest; onDecided: (id: string) => void }) {
+function PedidoCard({
+  req,
+  onDecided,
+  onStale,
+}: {
+  req: PackageRequest
+  onDecided: (id: string) => void
+  onStale: () => void
+}) {
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState('')
   const [reasonError, setReasonError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  async function decide(action: 'approve' | 'reject', body?: { reason: string }) {
+  async function decide(
+    action: 'approve' | 'reject',
+    body: { reason: string } | { updatedAt: string },
+  ) {
     setBusy(true)
     setError(null)
     try {
       const res = await fetch(proxy(`/admin/package-requests/${req.id}/${action}`), {
         method: 'POST',
-        ...(body
-          ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-          : {}),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       })
       if (!res.ok) {
-        setError(await errorMessage(res, 'Não foi possível concluir. Tente de novo.'))
+        const message = await errorMessage(res, 'Não foi possível concluir. Tente de novo.')
+        setError(message)
+        // O guia mudou o pedido depois que a lista carregou: traz a versão nova para revisar
+        if (res.status === 409 && message === REQUEST_CHANGED) onStale()
         return
       }
       onDecided(req.id)
@@ -214,7 +231,11 @@ function PedidoCard({ req, onDecided }: { req: PackageRequest; onDecided: (id: s
         </div>
       ) : (
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => void decide('approve')} disabled={busy}>
+          <Button
+            size="sm"
+            onClick={() => void decide('approve', { updatedAt: req.updatedAt })}
+            disabled={busy}
+          >
             Aprovar
           </Button>
           <Button size="sm" variant="secondary" onClick={() => setRejecting(true)} disabled={busy}>
@@ -294,6 +315,7 @@ export default function PedidosClient() {
               key={req.id}
               req={req}
               onDecided={(id) => setRequests((rs) => rs.filter((r) => r.id !== id))}
+              onStale={load}
             />
           ))}
         </ListGroup>

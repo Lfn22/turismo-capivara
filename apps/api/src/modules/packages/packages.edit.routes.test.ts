@@ -1225,6 +1225,59 @@ describe('aprovação: guia (CONDUTOR) em roteiro publicado', () => {
     expect(res.json().pendingRequest).toBeNull()
   })
 
+  it('PUT importante em rascunho com PUBLISH pendente → 409 e nada gravado', async () => {
+    db.tourPackage.findFirst.mockResolvedValue({ ...live, publishedAt: null })
+    db.packageChangeRequest.findFirst.mockResolvedValue({ id: 'req-p' })
+    const res = await call('PUT', '', { price: 700, duration: 5 })
+    expect(res.statusCode).toBe(409)
+    expect(res.json().message).toBe(
+      'Este roteiro está aguardando aprovação para entrar no ar. Cancele o pedido para editar nome, descrição ou valores.',
+    )
+    expect(db.packageChangeRequest.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { packageId: 'p1', status: 'PENDING', type: 'PUBLISH' },
+      }),
+    )
+    expect(db.tourPackage.update).not.toHaveBeenCalled()
+  })
+
+  it('PUT só com campos livres (ou importantes iguais) em rascunho com PUBLISH pendente → 200', async () => {
+    db.tourPackage.findFirst.mockResolvedValue({ ...live, publishedAt: null })
+    db.packageChangeRequest.findFirst.mockResolvedValue({ id: 'req-p' })
+    db.tourPackage.update.mockResolvedValue({ ...live, publishedAt: null, duration: 5 })
+    const res = await call('PUT', '', { name: 'Antigo', duration: 5, photos: [] })
+    expect(res.statusCode).toBe(200)
+    expect(db.tourPackage.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: { name: 'Antigo', duration: 5, photos: [] },
+    })
+  })
+
+  it('PUT importante em arquivado publicado → aplica e volta a rascunho (publishedAt null)', async () => {
+    db.tourPackage.findFirst.mockResolvedValue({ ...live, active: false })
+    db.packageChangeRequest.findFirst.mockResolvedValue(null)
+    db.tourPackage.update.mockResolvedValue({ ...live, active: false, publishedAt: null })
+    const res = await call('PUT', '', { price: 700, duration: 5 })
+    expect(res.statusCode).toBe(200)
+    expect(submitRequest).not.toHaveBeenCalled()
+    expect(db.tourPackage.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: { price: 700, duration: 5, publishedAt: null },
+    })
+  })
+
+  it('PUT só com campos livres em arquivado publicado → não toca publishedAt', async () => {
+    db.tourPackage.findFirst.mockResolvedValue({ ...live, active: false })
+    db.packageChangeRequest.findFirst.mockResolvedValue(null)
+    db.tourPackage.update.mockResolvedValue({ ...live, active: false })
+    const res = await call('PUT', '', { duration: 5, price: 500 })
+    expect(res.statusCode).toBe(200)
+    expect(db.tourPackage.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: { duration: 5, price: 500 },
+    })
+  })
+
   it('unpublish e DELETE em publicado → 202, sem cancelar datas nem escrever', async () => {
     db.tourPackage.findFirst.mockResolvedValue(live)
     ;(submitRequest as any).mockResolvedValue({ id: 'req-2' })
