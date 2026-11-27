@@ -3,6 +3,7 @@ import { Plus, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { uploadPackagePhoto } from '@/lib/upload-package-photo'
 import { Alert, Button, IconButton, Input, Select, Textarea } from '@/src/components/ui/capi'
 import { PhotoUploadArea } from '@/src/components/ui/PhotoUploadArea'
@@ -62,7 +63,22 @@ const toForm = (p: EditablePackage | null): Form =>
       }
     : EMPTY
 
+// Formato enviado à API (sem validação)
+const toPayload = (f: Form) => ({
+  name: f.name.trim(),
+  description: f.description.trim(),
+  price: Number(f.price),
+  extraGuidePrice: f.extraGuidePrice.trim() === '' ? null : Number(f.extraGuidePrice),
+  duration: Number(f.duration),
+  difficulty: f.difficulty,
+  photos: f.photos,
+  highlights: f.highlights.map((h) => h.trim()).filter(Boolean),
+})
+
 const LEAVE_MESSAGE = 'Você tem alterações não salvas. Sair mesmo assim?'
+const SENT_MESSAGE = 'Enviado para aprovação da equipe'
+const GUIDE_NOTICE =
+  'Alterações em nome, descrição e valores passam pela aprovação da equipe. O roteiro continua no ar com a versão atual até lá.'
 // A API cancela as datas futuras e estorna as reservas pagas ao despublicar/arquivar
 const CANCEL_DATES_MESSAGE =
   'Todas as datas futuras deste roteiro serão canceladas e as reservas pagas serão estornadas aos clientes. Continuar?'
@@ -91,6 +107,9 @@ export function PackageEditor({
 }: PackageEditorProps) {
   const router = useRouter()
   const { registerDirty } = useEditMode()
+  const { data: session } = useSession()
+  // Guia (CONDUTOR): publicar, despublicar, arquivar e mudar campos importantes passam por aprovação
+  const isGuide = session?.user?.role === 'CONDUTOR'
   const dirtyId = `package-editor-${pkg?.id ?? 'new'}`
   // Base do "dirty": começa no roteiro recebido e passa a ser o que foi salvo, para o formulário
   // ficar limpo depois de salvar (no painel o editor continua aberto) e novas edições voltarem a contar.
@@ -130,8 +149,12 @@ export function PackageEditor({
   const fail = (res: Awaited<ReturnType<typeof call>>, fallback: string) =>
     setError(res ? errorText(res.data, fallback) : 'Falha de conexão. Tente novamente.')
 
-  /** Valida e grava o formulário. Devolve o id salvo ou null (o erro já foi mostrado). */
-  async function persist(): Promise<string | null> {
+  // 202 (pedido criado) ou PUT com pendingRequest: a mudança não foi aplicada, aguarda a equipe
+  const awaitsApproval = (res: NonNullable<Awaited<ReturnType<typeof call>>>) =>
+    res.status === 202 || !!res.data?.pendingRequest
+
+  /** Valida e grava o formulário. Devolve o id salvo e se ficou aguardando aprovação, ou null (o erro já foi mostrado). */
+  async function persist(): Promise<{ id: string; pending: boolean } | null> {
     const name = form.name.trim()
     const description = form.description.trim()
     const price = Number(form.price)
@@ -154,17 +177,18 @@ export function PackageEditor({
     }
     setSaving(true)
     setError(null)
-    const highlights = form.highlights.map((h) => h.trim()).filter(Boolean)
-    const res = await call(pkg ? 'update' : 'create', {
-      name,
-      description,
-      price,
-      extraGuidePrice,
-      duration,
-      difficulty: form.difficulty,
-      photos: form.photos,
-      highlights,
-    })
+    const payload = toPayload(form)
+    const highlights = payload.highlights
+    // Na edição vai só o que mudou: campo importante reenviado igual ao atual cancelaria o pedido pendente do guia
+    const before = toPayload(baseline)
+    const data = pkg
+      ? Object.fromEntries(
+          Object.entries(payload).filter(
+            ([k, v]) => JSON.stringify(v) !== JSON.stringify(before[k as keyof typeof before]),
+          ),
+        )
+      : payload
+    const res = await call(pkg ? 'update' : 'create', data)
     setSaving(false)
     if (!res?.ok) {
       fail(res, 'Não foi possível salvar.')
@@ -182,7 +206,7 @@ export function PackageEditor({
     }
     setBaseline(saved)
     setForm(saved)
-    return pkg ? pkg.id : res.data.id
+    return { id: pkg ? pkg.id : res.data.id, pending: awaitsApproval(res) }
   }
 
   function done(id: string, created = false, leavesPublic = false) {
@@ -193,10 +217,10 @@ export function PackageEditor({
   }
 
   async function save() {
-    const id = await persist()
-    if (!id) return
-    toast.success('Roteiro salvo')
-    done(id, !pkg)
+    const saved = await persist()
+    if (!saved) return
+    toast.success(saved.pending ? SENT_MESSAGE : 'Roteiro salvo')
+    done(saved.id, !pkg)
   }
 
   async function publish() {
@@ -206,7 +230,7 @@ export function PackageEditor({
     const res = await call('publish')
     setSaving(false)
     if (!res?.ok) return fail(res, 'Não foi possível publicar.')
-    toast.success('Roteiro publicado')
+    toast.success(awaitsApproval(res) ? SENT_MESSAGE : 'Roteiro publicado')
     done(pkg.id)
   }
 
@@ -218,8 +242,9 @@ export function PackageEditor({
     const res = await call('unpublish')
     setSaving(false)
     if (!res?.ok) return fail(res, 'Não foi possível voltar para rascunho.')
-    toast.success('Roteiro voltou para rascunho')
-    done(pkg.id, false, true)
+    const pending = awaitsApproval(res)
+    toast.success(pending ? SENT_MESSAGE : 'Roteiro voltou para rascunho')
+    done(pkg.id, false, !pending)
   }
 
   async function archive() {
@@ -229,6 +254,10 @@ export function PackageEditor({
     const id = pkg.id
     const res = await call('archive')
     if (!res?.ok) return fail(res, 'Não foi possível arquivar.')
+    if (awaitsApproval(res)) {
+      toast.success(SENT_MESSAGE)
+      return done(id)
+    }
     toast('Roteiro arquivado', {
       action: {
         label: 'Desfazer',
@@ -276,7 +305,7 @@ export function PackageEditor({
           </Button>
           {pkg?.status === 'DRAFT' ? (
             <Button variant="secondary" onClick={publish} disabled={saving}>
-              Publicar
+              {isGuide ? 'Enviar para aprovação' : 'Publicar'}
             </Button>
           ) : null}
           {pkg?.status === 'PUBLISHED' ? (
@@ -292,6 +321,7 @@ export function PackageEditor({
     >
       <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
         {error ? <Alert tone="danger">{error}</Alert> : null}
+        {isGuide && pkg?.status === 'PUBLISHED' ? <Alert tone="info">{GUIDE_NOTICE}</Alert> : null}
         <Input label="Nome" value={form.name} onChange={(e) => set('name', e.target.value)} />
         <Textarea
           label="Descrição"

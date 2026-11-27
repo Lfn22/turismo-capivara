@@ -5,6 +5,9 @@ import { painelEyebrow } from '@/lib/painel'
 import { CalendarDays, ExternalLink, Images, Plus, Users } from 'lucide-react'
 import EmptyState from '@/src/components/ui/EmptyState'
 import JoinableRoteiros from '@/src/components/painel/JoinableRoteiros'
+import PackageRequestBadge, {
+  type PackageRequestSummary,
+} from '@/src/components/painel/PackageRequestBadge'
 import { Alert, Badge, Button, Media, PageHeader, StatusBadge } from '@/src/components/ui/capi'
 
 interface Package {
@@ -16,6 +19,7 @@ interface Package {
   status: 'PUBLISHED' | 'DRAFT' | 'HIDDEN'
   capacity: number
   photos?: string[]
+  request?: PackageRequestSummary | null
 }
 
 function DifficultyBadge({ difficulty }: { difficulty: Package['difficulty'] }) {
@@ -137,6 +141,13 @@ export default async function RoteirosPage({ params }: { params: Promise<{ slug:
                   </div>
                 </div>
               </div>
+
+              <PackageRequestBadge
+                slug={slug}
+                packageId={pkg.id}
+                request={pkg.request ?? null}
+                isGuide={jwt?.role === 'CONDUTOR'}
+              />
 
               {pkg.description ? <p className="roteiro-card__desc">{pkg.description}</p> : null}
 

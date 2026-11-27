@@ -37,7 +37,7 @@ async function handler(req: NextRequest) {
   }
 
   const ALLOWED_PATH =
-    /^\/(tenants\/[^/\s]+\/|notifications(\/|$)|guides\/me(\/|$)|platform\/guides$|platform\/guides\/[^/]+(\/(approve|reject))?$|account\/(me|password|email|email\/confirm)$|affiliations\/[^/]+\/(accept|reject)$|packages\/[^/]+\/(membership|guides\/me|guide-requests\/[^/]+\/(accept|reject))$|destinations\/[^/]+\/(membership|guides\/me)$|edit\/(scope|destinations(\/[^/]+(\/packages)?)?)$|me\/(bookings(\/[^/]+)?|favorites(\/[^/]+)?|reviews|profile)$)/
+    /^\/(tenants\/[^/\s]+\/|notifications(\/|$)|guides\/me(\/|$)|platform\/guides$|platform\/guides\/[^/]+(\/(approve|reject))?$|account\/(me|password|email|email\/confirm)$|affiliations\/[^/]+\/(accept|reject)$|packages\/[^/]+\/(membership|guides\/me|guide-requests\/[^/]+\/(accept|reject))$|destinations\/[^/]+\/(membership|guides\/me)$|edit\/(scope|destinations(\/[^/]+(\/packages)?)?)$|admin\/package-requests(\/[^/]+\/(approve|reject))?$|me\/(bookings(\/[^/]+)?|favorites(\/[^/]+)?|reviews|profile)$)/
   if (!rawPath || !ALLOWED_PATH.test(path)) {
     return NextResponse.json({ message: "Parâmetro 'path' inválido" }, { status: 400 })
   }
@@ -85,6 +85,11 @@ async function handler(req: NextRequest) {
     ) {
       revalidatePath('/destinos/[destination-slug]', 'layout')
       revalidatePath('/[slug]', 'layout')
+    }
+    // Pedido de guia aprovado: publicação/alteração/saída do ar muda as mesmas páginas que /api/edit/packages
+    if (req.method === 'POST' && /^\/admin\/package-requests\/[^/]+\/approve$/.test(path)) {
+      revalidatePath('/[slug]', 'layout')
+      revalidatePath('/destinos/[destination-slug]', 'layout')
     }
     // Nome/logo da operadora: roteiros públicos da operadora e cards nos destinos
     if (/^\/tenants\/[^/]+\/(settings|admin-settings)$/.test(path)) {
