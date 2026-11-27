@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyReply } from 'fastify'
 import { z } from 'zod'
 import prisma from '../../../database'
 import { AppError } from '../../../shared/errors/AppError'
@@ -16,6 +16,12 @@ import { isPlatformStaff } from '../../../shared/auth/roles'
 import { cancelFutureSlots } from '../../bookings/cancel-future-slots'
 import { httpsUrlSchema } from '../../../shared/utils/image-url'
 import { GROUP_SIZE_PER_GUIDE } from '../../../shared/utils/money'
+import {
+  IMPORTANT_FIELDS,
+  diffImportant,
+  latestRequestsByPackage,
+  submitRequest,
+} from '../../package-requests/package-requests.service'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -67,6 +73,26 @@ const patchPackageBodySchema = z
 
 const WRITERS = [Role.CONDUTOR, Role.ADMIN, Role.SUPER_ADMIN]
 
+const isGuide = (user: EditUser) => user.role === 'CONDUTOR'
+const isLive = (pkg: { active: boolean; publishedAt: Date | null }) =>
+  pkg.publishedAt !== null && pkg.active
+
+// Guia em roteiro no ar: o pedido vai para a equipe aprovar; nada muda no roteiro agora
+async function requestApproval(
+  reply: FastifyReply,
+  pkgId: string,
+  user: EditUser,
+  type: 'PUBLISH' | 'UNPUBLISH' | 'ARCHIVE',
+) {
+  const created = await submitRequest({ packageId: pkgId, requestedById: user.sub, type })
+  return reply.status(202).send({
+    requestId: created?.id,
+    type,
+    status: 'PENDING',
+    message: 'Enviado para aprovação da equipe',
+  })
+}
+
 // Carrega o roteiro do tenant da URL e exige que o usuário possa editá-lo
 async function loadEditablePackage(slug: string, id: string, user: EditUser) {
   const tenant = await prisma.tenant.findUnique({ where: { slug } })
@@ -99,25 +125,27 @@ export async function crudPackagesRoute(app: FastifyInstance) {
         orderBy: { createdAt: 'desc' },
       })
 
-      const result = packages
-        .filter((p) => canEditPackage(user, p))
-        .map((p) => ({
-          id: p.id,
-          tenantSlug: tenant.slug,
-          name: p.name,
-          description: p.description,
-          price: Number(p.price),
-          duration: p.duration,
-          capacity: p.capacity,
-          extraGuidePrice: p.extraGuidePrice === null ? null : Number(p.extraGuidePrice),
-          difficulty: p.difficulty,
-          photos: p.photos,
-          highlights: p.highlights,
-          active: p.active,
-          publishedAt: p.publishedAt,
-          conductorId: p.conductorId,
-          status: !p.active ? 'HIDDEN' : p.publishedAt === null ? 'DRAFT' : 'PUBLISHED',
-        }))
+      const editable = packages.filter((p) => canEditPackage(user, p))
+      const requests = await latestRequestsByPackage(editable.map((p) => p.id))
+
+      const result = editable.map((p) => ({
+        id: p.id,
+        tenantSlug: tenant.slug,
+        name: p.name,
+        description: p.description,
+        price: Number(p.price),
+        duration: p.duration,
+        capacity: p.capacity,
+        extraGuidePrice: p.extraGuidePrice === null ? null : Number(p.extraGuidePrice),
+        difficulty: p.difficulty,
+        photos: p.photos,
+        highlights: p.highlights,
+        active: p.active,
+        publishedAt: p.publishedAt,
+        conductorId: p.conductorId,
+        status: !p.active ? 'HIDDEN' : p.publishedAt === null ? 'DRAFT' : 'PUBLISHED',
+        request: requests.get(p.id) ?? null,
+      }))
 
       return reply.status(200).send({ packages: result })
     },
@@ -208,14 +236,65 @@ export async function crudPackagesRoute(app: FastifyInstance) {
       )
       if (bodyError) return
 
-      await loadEditablePackage(params!.slug, params!.id, request.user as EditUser)
+      const user = request.user as EditUser
+      const pkg = await loadEditablePackage(params!.slug, params!.id, user)
+
+      if (isGuide(user) && isLive(pkg)) {
+        // Campos importantes viram pedido; os demais valem na hora
+        const free: Record<string, unknown> = { ...body }
+        for (const field of IMPORTANT_FIELDS) delete free[field]
+        const changes: Record<string, { from: unknown; to: unknown }> = diffImportant(pkg, body)
+
+        // Campo já em pedido pendente entra mesmo igual ao atual: é assim que o guia desfaz a mudança
+        const pending = await prisma.packageChangeRequest.findFirst({
+          where: { packageId: pkg.id, status: 'PENDING', type: 'UPDATE' },
+          select: { changes: true },
+        })
+        const pendingFields = Object.keys((pending?.changes ?? {}) as Record<string, unknown>)
+        for (const field of IMPORTANT_FIELDS) {
+          if (changes[field] || body[field] === undefined || !pendingFields.includes(field))
+            continue
+          const current = pkg[field]
+          changes[field] = {
+            from:
+              field === 'price' || field === 'extraGuidePrice'
+                ? current === null
+                  ? null
+                  : Number(current)
+                : current,
+            to: body[field],
+          }
+        }
+
+        // Pedido primeiro: se der 409, nada é gravado
+        const created =
+          Object.keys(changes).length > 0
+            ? await submitRequest({
+                packageId: pkg.id,
+                requestedById: user.sub,
+                type: 'UPDATE',
+                changes,
+              })
+            : null
+        const updated =
+          Object.keys(free).length > 0
+            ? await prisma.tourPackage.update({ where: { id: pkg.id }, data: free })
+            : pkg
+
+        return reply.status(200).send({
+          ...updated,
+          pendingRequest: created
+            ? { id: created.id, type: created.type, changes: created.changes }
+            : null,
+        })
+      }
 
       const updated = await prisma.tourPackage.update({
         where: { id: params!.id },
         data: body,
       })
 
-      return reply.status(200).send(updated)
+      return reply.status(200).send({ ...updated, pendingRequest: null })
     },
   )
 
@@ -228,7 +307,10 @@ export async function crudPackagesRoute(app: FastifyInstance) {
       const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
       if (error) return
 
-      await loadEditablePackage(params!.slug, params!.id, request.user as EditUser)
+      const user = request.user as EditUser
+      const pkg = await loadEditablePackage(params!.slug, params!.id, user)
+
+      if (isGuide(user) && isLive(pkg)) return requestApproval(reply, pkg.id, user, 'ARCHIVE')
 
       // Regra de negócio: arquivar cancela as datas futuras e estorna as reservas.
       // Primeiro o dinheiro: se um estorno falhar, o roteiro não é arquivado.
@@ -282,14 +364,16 @@ export async function crudPackagesRoute(app: FastifyInstance) {
       const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
       if (error) return
 
-      const pkg = await loadEditablePackage(params!.slug, params!.id, request.user as EditUser)
+      const user = request.user as EditUser
+      const pkg = await loadEditablePackage(params!.slug, params!.id, user)
 
       if (pkg.publishedAt) {
         return reply.status(200).send({ id: pkg.id, publishedAt: pkg.publishedAt })
       }
-      if (await isUnverifiedGuide(request.user as EditUser)) {
+      if (await isUnverifiedGuide(user)) {
         throw new AppError('Guia não aprovado para publicar roteiros', 403)
       }
+      if (isGuide(user)) return requestApproval(reply, pkg.id, user, 'PUBLISH')
 
       const publishedAt = new Date()
       await prisma.tourPackage.update({ where: { id: pkg.id }, data: { publishedAt } })
@@ -306,7 +390,10 @@ export async function crudPackagesRoute(app: FastifyInstance) {
       const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
       if (error) return
 
-      const pkg = await loadEditablePackage(params!.slug, params!.id, request.user as EditUser)
+      const user = request.user as EditUser
+      const pkg = await loadEditablePackage(params!.slug, params!.id, user)
+
+      if (isGuide(user) && isLive(pkg)) return requestApproval(reply, pkg.id, user, 'UNPUBLISH')
 
       // Regra de negócio: despublicar cancela as datas futuras e estorna as reservas
       const cancelled = await cancelFutureSlots({ packageId: pkg.id }, request.log)
@@ -327,12 +414,22 @@ export async function crudPackagesRoute(app: FastifyInstance) {
       const { data: params, error } = parseParams(slugAndIdParamsSchema, request.params, reply)
       if (error) return
 
-      const pkg = await loadEditablePackage(params!.slug, params!.id, request.user as EditUser)
+      const user = request.user as EditUser
+      const pkg = await loadEditablePackage(params!.slug, params!.id, user)
+
+      if (isGuide(user)) {
+        // Guia volta sempre como rascunho: para ir ao ar, precisa pedir publicação
+        if (!pkg.active) {
+          await prisma.tourPackage.update({
+            where: { id: pkg.id },
+            data: { active: true, publishedAt: null },
+          })
+          return reply.status(200).send({ id: pkg.id, active: true, publishedAt: null })
+        }
+        return reply.status(200).send({ id: pkg.id, active: true })
+      }
 
       if (!pkg.active) {
-        if (pkg.publishedAt && (await isUnverifiedGuide(request.user as EditUser))) {
-          throw new AppError('Guia não aprovado para publicar roteiros', 403)
-        }
         await prisma.tourPackage.update({ where: { id: pkg.id }, data: { active: true } })
       }
       return reply.status(200).send({ id: pkg.id, active: true })

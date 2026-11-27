@@ -147,6 +147,8 @@ model User {
   notifications             Notification[]
   bookings                  Booking[]
   favorites                 Favorite[]
+  packageRequestsMade       PackageChangeRequest[] @relation("PackageRequestRequester")
+  packageRequestsDecided    PackageChangeRequest[] @relation("PackageRequestDecider")
 
   @@index([tenantId])
 }
@@ -207,9 +209,47 @@ model TourPackage {
   departureSlots DepartureSlot[]
   packageGuides  PackageGuide[]
   favorites      Favorite[]
+  changeRequests PackageChangeRequest[]
 
   @@index([destinationId])
   @@index([tenantId, active])
+}
+
+enum PackageRequestType {
+  PUBLISH
+  UPDATE
+  UNPUBLISH
+  ARCHIVE
+}
+
+enum PackageRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// O índice único parcial "PackageChangeRequest_one_pending_per_package" (um PENDING por roteiro) foi
+// escrito à mão e existe só na migration 20261127100000_package_change_requests: as próximas migrations devem preservá-lo.
+model PackageChangeRequest {
+  id              String               @id @default(cuid())
+  packageId       String
+  requestedById   String
+  type            PackageRequestType
+  changes         Json?
+  status          PackageRequestStatus @default(PENDING)
+  decidedById     String?
+  decidedAt       DateTime?
+  rejectionReason String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  package     TourPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  requestedBy User        @relation("PackageRequestRequester", fields: [requestedById], references: [id])
+  decidedBy   User?       @relation("PackageRequestDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([packageId, status])
 }
 
 model DepartureSlot {

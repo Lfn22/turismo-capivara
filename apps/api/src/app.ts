@@ -47,6 +47,7 @@ import { accountRoutes } from './modules/account/account.routes'
 import { tenantSettingsRoutes } from './modules/tenants/tenant-settings.routes'
 import { leadsRoutes } from './modules/leads/leads.routes'
 import { meRoutes } from './modules/me/me.routes'
+import { packageRequestsRoutes } from './modules/package-requests/package-requests.routes'
 import { createBookingExpiryJob } from './modules/bookings/expiry.job'
 import { createTokenCleanupJob } from './modules/auth/token.service'
 import { createNotificationDigestJob } from './modules/notifications/digest.job'
@@ -212,6 +213,7 @@ app.register(accountRoutes)
 app.register(tenantSettingsRoutes)
 app.register(leadsRoutes)
 app.register(meRoutes)
+app.register(packageRequestsRoutes)
 
 app.addHook('onSend', async (request, reply) => {
   reply.header('X-Request-Id', request.id)

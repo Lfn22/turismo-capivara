@@ -13,6 +13,7 @@ vi.mock('../../database', () => {
       create: vi.fn(),
       update: vi.fn(),
     },
+    packageChangeRequest: { findFirst: vi.fn() },
     packageGuide: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn() },
     departureSlot: {
       create: vi.fn(),
@@ -36,14 +37,26 @@ vi.mock('../bookings/cancel-future-slots', () => ({
   cancelFutureSlots: vi.fn().mockResolvedValue({ slotsCancelled: 0, bookingsCancelled: 0 }),
 }))
 
+vi.mock('../package-requests/package-requests.service', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../package-requests/package-requests.service')>()),
+  submitRequest: vi.fn(),
+  latestRequestsByPackage: vi.fn(),
+}))
+
 import { buildApp } from '../../__tests__/helpers/build-app'
 import { cancelFutureSlots } from '../bookings/cancel-future-slots'
+import {
+  submitRequest,
+  latestRequestsByPackage,
+} from '../package-requests/package-requests.service'
 import { cancelBooking } from '../bookings/cancel-booking'
 import { packagesRoutes } from './packages.routes'
 import { destinationsRoutes } from '../destinations/destinations.routes'
 import { guidesRoutes } from '../guides/guides.routes'
 import { packageMembershipRoutes } from '../memberships/package-membership.routes'
 import prisma from '../../database'
+import { Prisma } from '@prisma/client'
+import { AppError } from '../../shared/errors/AppError'
 
 const db = prisma as any
 const app = buildApp(packagesRoutes, destinationsRoutes, guidesRoutes, packageMembershipRoutes)
@@ -58,6 +71,8 @@ beforeEach(() => {
   db.$transaction.mockImplementation(async (fn: any) => fn(db))
   db.auditLog.create.mockResolvedValue({})
   db.tenant.findUnique.mockResolvedValue(TENANT_A)
+  ;(latestRequestsByPackage as any).mockResolvedValue(new Map())
+  ;(submitRequest as any).mockResolvedValue({ id: 'req-1', type: 'UPDATE', changes: {} })
 })
 
 function auth(role: string, tenantId = 'tenant-a', sub = 'user-1') {
@@ -300,16 +315,22 @@ describe('publish / unpublish / restore', () => {
     expect(db.tourPackage.update).not.toHaveBeenCalled()
   })
 
-  it('publish por guia verificado e dono do roteiro → 200', async () => {
+  it('publish por guia verificado e dono do roteiro → 202 (pedido), sem publicar', async () => {
     db.tourPackage.findFirst.mockResolvedValue({ ...pkg, publishedAt: null })
-    db.tourPackage.update.mockResolvedValue({})
+    ;(submitRequest as any).mockResolvedValue({ id: 'req-1', type: 'PUBLISH' })
     const res = await app.inject({
       method: 'POST',
       url: '/tenants/agencia-a/packages/p1/publish',
       headers: auth('CONDUTOR', 'tenant-a', 'cond-1'),
     })
-    expect(res.statusCode).toBe(200)
-    expect(db.tourPackage.update).toHaveBeenCalled()
+    expect(res.statusCode).toBe(202)
+    expect(res.json()).toEqual({
+      requestId: 'req-1',
+      type: 'PUBLISH',
+      status: 'PENDING',
+      message: 'Enviado para aprovação da equipe',
+    })
+    expect(db.tourPackage.update).not.toHaveBeenCalled()
   })
 
   it('unpublish volta para rascunho', async () => {
@@ -1124,5 +1145,235 @@ describe('GET /tenants/:slug/packages/:id/assignable-guides', () => {
   it('sem token → 401', async () => {
     const res = await app.inject({ method: 'GET', url })
     expect(res.statusCode).toBe(401)
+  })
+})
+
+describe('aprovação: guia (CONDUTOR) em roteiro publicado', () => {
+  const guide = () => auth('CONDUTOR', 'tenant-a', 'cond-1')
+  const live = {
+    ...pkg,
+    name: 'Antigo',
+    description: 'Desc',
+    price: '500',
+    extraGuidePrice: null,
+    duration: 3,
+  }
+  const call = (method: string, url: string, payload?: unknown, headers = guide()) =>
+    app.inject({
+      method: method as any,
+      url: `/tenants/agencia-a/packages/p1${url}`,
+      headers,
+      payload: payload as any,
+    })
+
+  const writtenKeys = () =>
+    db.tourPackage.update.mock.calls.flatMap((c: any[]) => Object.keys(c[0].data))
+  const PROTECTED = ['name', 'description', 'price', 'extraGuidePrice', 'publishedAt', 'active']
+
+  it('PUT: só campos livres vão direto; importantes viram pedido UPDATE', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(live)
+    db.tourPackage.update.mockResolvedValue({ ...live, duration: 5 })
+    ;(submitRequest as any).mockResolvedValue({
+      id: 'req-9',
+      type: 'UPDATE',
+      changes: { name: { from: 'Antigo', to: 'Novo' } },
+    })
+    const res = await call('PUT', '', { name: 'Novo', duration: 5 })
+    expect(res.statusCode).toBe(200)
+    expect(db.tourPackage.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: { duration: 5 },
+    })
+    expect(submitRequest).toHaveBeenCalledWith({
+      packageId: 'p1',
+      requestedById: 'cond-1',
+      type: 'UPDATE',
+      changes: { name: { from: 'Antigo', to: 'Novo' } },
+    })
+    expect(res.json().pendingRequest.id).toBe('req-9')
+    expect(res.json().duration).toBe(5)
+  })
+
+  it('PUT com valores iguais aos atuais → sem pedido e pendingRequest null', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(live)
+    db.tourPackage.findFirst.mockResolvedValue({ ...live, price: new Prisma.Decimal('500.00') })
+    const res = await call('PUT', '', { name: 'Antigo', price: 500 })
+    expect(res.statusCode).toBe(200)
+    expect(submitRequest).not.toHaveBeenCalled()
+    expect(db.tourPackage.update).not.toHaveBeenCalled()
+    expect(res.json().pendingRequest).toBeNull()
+  })
+
+  it('PUT quando o merge esvazia o pedido → pendingRequest null', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(live)
+    ;(submitRequest as any).mockResolvedValue(null)
+    const res = await call('PUT', '', { name: 'Voltou' })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().pendingRequest).toBeNull()
+  })
+
+  it('PUT em rascunho: aplica direto, sem pedido', async () => {
+    db.tourPackage.findFirst.mockResolvedValue({ ...live, publishedAt: null })
+    db.tourPackage.update.mockResolvedValue({ ...live, price: 700 })
+    const res = await call('PUT', '', { price: 700 })
+    expect(res.statusCode).toBe(200)
+    expect(db.tourPackage.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: { price: 700 },
+    })
+    expect(submitRequest).not.toHaveBeenCalled()
+    expect(res.json().pendingRequest).toBeNull()
+  })
+
+  it('unpublish e DELETE em publicado → 202, sem cancelar datas nem escrever', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(live)
+    ;(submitRequest as any).mockResolvedValue({ id: 'req-2' })
+    const un = await call('POST', '/unpublish')
+    const del = await call('DELETE', '')
+    expect(un.statusCode).toBe(202)
+    expect(del.statusCode).toBe(202)
+    expect(un.json().type).toBe('UNPUBLISH')
+    expect(del.json().type).toBe('ARCHIVE')
+    expect(cancelFutureSlots).not.toHaveBeenCalled()
+    expect(db.tourPackage.update).not.toHaveBeenCalled()
+  })
+
+  it('PUT: submitRequest recusa com 409 → 409 e nenhum campo livre gravado', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(live)
+    ;(submitRequest as any).mockRejectedValue(new AppError('Já existe um pedido pendente', 409))
+    const res = await call('PUT', '', { name: 'Novo', duration: 5 })
+    expect(res.statusCode).toBe(409)
+    expect(db.tourPackage.update).not.toHaveBeenCalled()
+  })
+
+  it('PUT desfazendo campo pendente (name volta ao atual) → submitRequest recebe o campo', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(live)
+    db.packageChangeRequest.findFirst.mockResolvedValue({
+      changes: { name: { from: 'Antigo', to: 'Novo' } },
+    })
+    ;(submitRequest as any).mockResolvedValue(null)
+    const res = await call('PUT', '', { name: 'Antigo' })
+    expect(res.statusCode).toBe(200)
+    expect(submitRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ changes: { name: { from: 'Antigo', to: 'Antigo' } } }),
+    )
+    expect(res.json().pendingRequest).toBeNull()
+  })
+
+  it('PUT só com campos livres e UPDATE pendente → não mexe no pedido', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(live)
+    db.tourPackage.update.mockResolvedValue({ ...live, duration: 5 })
+    db.packageChangeRequest.findFirst.mockResolvedValue({
+      changes: { name: { from: 'Antigo', to: 'Novo' } },
+    })
+    const res = await call('PUT', '', { duration: 5, difficulty: 'HARD' })
+    expect(res.statusCode).toBe(200)
+    expect(submitRequest).not.toHaveBeenCalled()
+    expect(db.tourPackage.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: { duration: 5, difficulty: 'HARD' },
+    })
+  })
+
+  it('unpublish de arquivado publicado pelo guia → direto, sem pedido', async () => {
+    db.tourPackage.findFirst.mockResolvedValue({ ...live, active: false })
+    db.tourPackage.update.mockResolvedValue({})
+    const res = await call('POST', '/unpublish')
+    expect(res.statusCode).toBe(200)
+    expect(submitRequest).not.toHaveBeenCalled()
+    expect(db.tourPackage.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: { publishedAt: null },
+    })
+  })
+
+  it('DELETE em rascunho arquiva direto', async () => {
+    db.tourPackage.findFirst.mockResolvedValue({ ...live, publishedAt: null })
+    db.tourPackage.update.mockResolvedValue({})
+    const res = await call('DELETE', '')
+    expect(res.statusCode).toBe(200)
+    expect(submitRequest).not.toHaveBeenCalled()
+    expect(db.tourPackage.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: { active: false },
+    })
+  })
+
+  it('restore de arquivado publicado → active true e publishedAt null', async () => {
+    db.tourPackage.findFirst.mockResolvedValue({ ...live, active: false })
+    db.tourPackage.update.mockResolvedValue({})
+    const res = await call('POST', '/restore')
+    expect(res.statusCode).toBe(200)
+    expect(db.tourPackage.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: { active: true, publishedAt: null },
+    })
+    expect(res.json()).toEqual({ id: 'p1', active: true, publishedAt: null })
+  })
+
+  it('GUARDA: nenhuma rota do guia grava campo protegido em roteiro publicado e ativo', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(live)
+    db.tourPackage.update.mockResolvedValue(live)
+    await call('PUT', '', {
+      name: 'X',
+      description: 'Y',
+      price: 1,
+      extraGuidePrice: 2,
+      duration: 4,
+    })
+    await call('PATCH', '', { photos: ['https://x.com/a.jpg'] })
+    await call('POST', '/publish')
+    await call('POST', '/unpublish')
+    await call('POST', '/restore')
+    await call('DELETE', '')
+    expect(db.tourPackage.update).toHaveBeenCalledTimes(2)
+    for (const key of writtenKeys()) expect(PROTECTED).not.toContain(key)
+  })
+
+  it('GET público segue com o preço antigo depois do PUT do guia', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(live)
+    await call('PUT', '', { price: 700 })
+    expect(db.tourPackage.update).not.toHaveBeenCalled()
+    db.tourPackage.findFirst.mockResolvedValue({ ...live, departureSlots: [] })
+    const res = await app.inject({ method: 'GET', url: '/tenants/agencia-a/packages/p1' })
+    expect(res.statusCode).toBe(200)
+    expect(Number(res.json().price)).toBe(500)
+  })
+
+  it('ADMIN: PUT importante e publish aplicam direto, sem pedido', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(live)
+    db.tourPackage.update.mockResolvedValue(live)
+    const put = await call('PUT', '', { name: 'Novo' }, auth('ADMIN'))
+    expect(put.statusCode).toBe(200)
+    expect(db.tourPackage.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: { name: 'Novo' },
+    })
+    expect(put.json().pendingRequest).toBeNull()
+
+    db.tourPackage.findFirst.mockResolvedValue({ ...live, publishedAt: null })
+    const pub = await call('POST', '/publish', undefined, auth('ADMIN'))
+    expect(pub.statusCode).toBe(200)
+    expect(submitRequest).not.toHaveBeenCalled()
+  })
+
+  it('manage list inclui request do mapa', async () => {
+    const request = {
+      id: 'r1',
+      type: 'PUBLISH',
+      status: 'PENDING',
+      rejectionReason: null,
+      changes: null,
+    }
+    ;(latestRequestsByPackage as any).mockResolvedValue(new Map([['p1', request]]))
+    db.tourPackage.findMany.mockResolvedValue([
+      { ...live, capacity: 8, difficulty: 'EASY', photos: [], highlights: [] },
+    ])
+    const res = await app.inject({
+      method: 'GET',
+      url: '/tenants/agencia-a/manage/packages',
+      headers: guide(),
+    })
+    expect(res.json().packages[0].request).toEqual(request)
   })
 })
