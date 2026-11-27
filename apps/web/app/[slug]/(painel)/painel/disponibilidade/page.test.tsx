@@ -69,11 +69,6 @@ async function renderPage() {
   return container
 }
 
-// No celular a agenda abre na lista; "Adicionar horário" fica no painel do calendário
-function showCalendar() {
-  fireEvent.click(screen.getByText('Calendário'))
-}
-
 function pickToday(container: HTMLElement) {
   fireEvent.click(container.querySelector('.react-calendar__tile--now') as HTMLElement)
 }
@@ -89,24 +84,13 @@ describe('DisponibilidadePage', () => {
     const container = await renderPage()
 
     // Escolhe um dia no calendário e abre o formulário de novo horário
-    showCalendar()
     fireEvent.click(container.querySelector('.react-calendar__tile') as HTMLElement)
-    fireEvent.click(screen.getByRole('button', { name: 'Adicionar horário' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Adicionar horário' })[0])
 
     expect(await screen.findByRole('option', { name: 'Ana Guia' })).toBeInTheDocument()
     // Painel usa a rota de gestão (lotados, rascunhos, dentro do corte), não a pública
     const urls = fetchMock.mock.calls.map((c) => c[0])
     expect(urls).toContain('/api/proxy?path=/tenants/agencia-x/packages/p1/slots/manage')
-  })
-
-  it('mostra um único botão "Adicionar horário" com o dia escolhido', async () => {
-    stubApi()
-    const container = await renderPage()
-
-    showCalendar()
-    fireEvent.click(container.querySelector('.react-calendar__tile') as HTMLElement)
-
-    expect(await screen.findAllByRole('button', { name: 'Adicionar horário' })).toHaveLength(1)
   })
 
   it('envia maxGuides e não envia capacity/minCapacity ao salvar', async () => {
@@ -117,9 +101,8 @@ describe('DisponibilidadePage', () => {
     stubApi([], (b) => (body = b))
     const container = await renderPage()
 
-    showCalendar()
     pickToday(container)
-    fireEvent.click(screen.getByRole('button', { name: 'Adicionar horário' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Adicionar horário' })[0])
     await screen.findByRole('option', { name: 'Ana Guia' })
 
     expect(screen.queryByLabelText(/Vagas/)).not.toBeInTheDocument()

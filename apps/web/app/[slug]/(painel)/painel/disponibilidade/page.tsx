@@ -448,6 +448,13 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
         eyebrow={painelEyebrow(session?.user?.role)}
         title="Agenda"
         description="Abra horários para seus roteiros e acompanhe os horários reservados."
+        actions={
+          selectedDate ? (
+            <Button iconLeft={Plus} onClick={() => setModalOpen(true)}>
+              Adicionar horário
+            </Button>
+          ) : undefined
+        }
       />
 
       {(slotsError || closeError) && (
