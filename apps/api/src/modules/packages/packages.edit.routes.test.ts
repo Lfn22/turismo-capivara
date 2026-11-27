@@ -14,7 +14,13 @@ vi.mock('../../database', () => {
       update: vi.fn(),
     },
     packageGuide: { create: vi.fn(), findMany: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn() },
-    departureSlot: { createMany: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+    departureSlot: {
+      create: vi.fn(),
+      createMany: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+    },
     booking: { count: vi.fn(), updateMany: vi.fn(), findMany: vi.fn() },
     auditLog: { create: vi.fn().mockResolvedValue({}) },
   }
@@ -177,6 +183,67 @@ describe('POST /tenants/:slug/packages', () => {
     const data = db.tourPackage.create.mock.calls[0][0].data
     expect(data.photos).toEqual(['https://x.com/a.jpg'])
     expect(data.highlights).toEqual(['Vista incrível'])
+  })
+})
+
+describe('POST /tenants/:slug/packages — valor do grupo', () => {
+  const { capacity: _ignored, ...bodyNoCapacity } = newBody
+
+  it('sem capacity, com extraGuidePrice → 201, grava capacity 8 e extraGuidePrice', async () => {
+    db.guideProfile.findUnique.mockResolvedValue(null)
+    db.tourPackage.create.mockResolvedValue({ id: 'p9' })
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/agencia-a/packages',
+      headers: auth('ADMIN'),
+      payload: { ...bodyNoCapacity, price: 600, extraGuidePrice: 400 },
+    })
+    expect(res.statusCode).toBe(201)
+    const data = db.tourPackage.create.mock.calls[0][0].data
+    expect(data.capacity).toBe(8)
+    expect(data.extraGuidePrice).toBe(400)
+    expect(data.price).toBe(600)
+  })
+
+  it('capacity enviada por cliente antigo é ignorada (grava 8)', async () => {
+    db.guideProfile.findUnique.mockResolvedValue(null)
+    db.tourPackage.create.mockResolvedValue({ id: 'p9' })
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/agencia-a/packages',
+      headers: auth('ADMIN'),
+      payload: { ...bodyNoCapacity, capacity: 30 },
+    })
+    expect(res.statusCode).toBe(201)
+    expect(db.tourPackage.create.mock.calls[0][0].data.capacity).toBe(8)
+  })
+
+  it('extraGuidePrice negativo → 400 com mensagem em português', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/agencia-a/packages',
+      headers: auth('ADMIN'),
+      payload: { ...bodyNoCapacity, extraGuidePrice: -1 },
+    })
+    expect(res.statusCode).toBe(400)
+    expect(JSON.stringify(res.json())).toContain('Valor do guia extra')
+    expect(db.tourPackage.create).not.toHaveBeenCalled()
+  })
+
+  it('PUT permite alterar extraGuidePrice e não toca capacity', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(pkg)
+    db.tourPackage.update.mockResolvedValue(pkg)
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/tenants/agencia-a/packages/p1',
+      headers: auth('ADMIN'),
+      payload: { extraGuidePrice: null, capacity: 30 },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(db.tourPackage.update).toHaveBeenCalledWith({
+      where: { id: 'p1' },
+      data: { extraGuidePrice: null },
+    })
   })
 })
 
@@ -348,7 +415,7 @@ describe('POST /tenants/:slug/packages/:id/slots/batch', () => {
     startDate: '2027-01-04',
     endDate: '2027-01-10',
     timeOfDay: '08:00',
-    capacity: 10,
+    maxGuides: 1,
     daysOfWeek: [1],
   }
 
@@ -379,6 +446,34 @@ describe('POST /tenants/:slug/packages/:id/slots/batch', () => {
     expect(res.json()).toEqual({ created: 1 })
   })
 
+  it('sem maxGuides grava 1 guia e capacidade 8; capacity de cliente antigo é ignorada', async () => {
+    db.tourPackage.findFirst.mockResolvedValue(pkg)
+    db.departureSlot.createMany.mockResolvedValue({ count: 1 })
+    const { maxGuides: _m, ...semGuias } = batchBody
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/agencia-a/packages/p1/slots/batch',
+      headers: auth('CONDUTOR', 'tenant-a', 'cond-1'),
+      payload: { ...semGuias, capacity: 30 },
+    })
+    expect(res.statusCode).toBe(201)
+    expect(db.departureSlot.createMany.mock.calls[0][0].data[0]).toMatchObject({
+      capacity: 8,
+      maxGuides: 1,
+    })
+  })
+
+  it('maxGuides 6 → 400', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/agencia-a/packages/p1/slots/batch',
+      headers: auth('ADMIN'),
+      payload: { ...batchBody, maxGuides: 6 },
+    })
+    expect(res.statusCode).toBe(400)
+    expect(res.json().errors[0].message).toBe('Máximo de 5 guias por horário')
+  })
+
   it('guideId de guia de outra agência fora do roteiro → 422 sem criar datas', async () => {
     db.tourPackage.findFirst.mockResolvedValue(pkg)
     const headers = auth('ADMIN', 'tenant-a')
@@ -404,7 +499,7 @@ describe('POST slots/batch — guia, fuso e conflito', () => {
     startDate: '2027-01-04',
     endDate: '2027-01-10',
     timeOfDay: '08:00',
-    capacity: 10,
+    maxGuides: 2,
     daysOfWeek: [1],
   }
 
@@ -436,6 +531,7 @@ describe('POST slots/batch — guia, fuso e conflito', () => {
     const data = db.departureSlot.createMany.mock.calls[0][0].data
     expect(data).toHaveLength(1)
     expect(data[0].guideId).toBe('gp-cond')
+    expect(data[0]).toMatchObject({ capacity: 16, maxGuides: 2 })
     expect(data[0].startsAt.toISOString()).toBe('2027-01-04T11:00:00.000Z')
   })
 
@@ -461,13 +557,61 @@ describe('POST slots/batch — guia, fuso e conflito', () => {
   })
 })
 
+describe('POST /tenants/:slug/packages/:id/slots', () => {
+  const create = (payload: Record<string, unknown>) =>
+    app.inject({
+      method: 'POST',
+      url: '/tenants/agencia-a/packages/p1/slots',
+      headers: auth('ADMIN'),
+      payload: { startsAt: new Date(Date.now() + 5 * 24 * 3600_000).toISOString(), ...payload },
+    })
+
+  beforeEach(() => {
+    db.tourPackage.findFirst.mockResolvedValue({ ...pkg, durationMaxHours: 2, bufferMinutes: 0 })
+    db.guideProfile.findUnique.mockResolvedValue({
+      id: 'gp1',
+      userId: 'u1',
+      user: { tenantId: 'tenant-a', approvalStatus: 'APPROVED' },
+    })
+    db.packageGuide.findFirst.mockResolvedValue({ id: 'pg1' })
+    db.departureSlot.findMany.mockResolvedValue([])
+    db.departureSlot.create.mockImplementation(async ({ data }: any) => ({ id: 's1', ...data }))
+  })
+
+  it('maxGuides 2 → capacity 16', async () => {
+    const res = await create({ guideId: 'gp1', maxGuides: 2 })
+    expect(res.statusCode).toBe(201)
+    expect(db.departureSlot.create.mock.calls[0][0].data).toMatchObject({
+      capacity: 16,
+      maxGuides: 2,
+    })
+    expect(res.json()).toMatchObject({ capacity: 16, maxGuides: 2 })
+  })
+
+  it('sem maxGuides → 1 guia e capacity 8 (capacity/minCapacity antigos ignorados)', async () => {
+    const res = await create({ guideId: 'gp1', capacity: 30, minCapacity: 5 })
+    expect(res.statusCode).toBe(201)
+    expect(db.departureSlot.create.mock.calls[0][0].data).toMatchObject({
+      capacity: 8,
+      maxGuides: 1,
+    })
+  })
+
+  it('maxGuides 6 → 400', async () => {
+    const res = await create({ guideId: 'gp1', maxGuides: 6 })
+    expect(res.statusCode).toBe(400)
+    expect(res.json().errors[0].message).toBe('Máximo de 5 guias por horário')
+    expect(db.departureSlot.create).not.toHaveBeenCalled()
+  })
+})
+
 describe('PATCH /tenants/:slug/packages/:id/slots/:slotId', () => {
   const slotRow = (over: Record<string, unknown> = {}) => ({
     id: 's1',
     status: 'OPEN',
     booked: 3,
-    capacity: 5,
-    minCapacity: 1,
+    capacity: 8,
+    maxGuides: 1,
     guideId: null,
     startsAt: new Date(Date.now() + 5 * 24 * 3600_000),
     ...over,
@@ -488,17 +632,18 @@ describe('PATCH /tenants/:slug/packages/:id/slots/:slotId', () => {
     db.departureSlot.update.mockImplementation(async ({ data }: any) => ({ id: 's1', ...data }))
   })
 
-  it('capacidade abaixo do número de reservados → 422', async () => {
-    db.$queryRaw.mockResolvedValue([slotRow({ booked: 3 })])
-    const res = await patch({ capacity: 2 })
+  it('reduzir guias abaixo do que a reserva exige → 422', async () => {
+    db.$queryRaw.mockResolvedValue([slotRow({ booked: 12, capacity: 16, maxGuides: 2 })])
+    const res = await patch({ maxGuides: 1 })
     expect(res.statusCode).toBe(422)
+    expect(res.json().message).toBe('Este horário já tem uma reserva que precisa de 2 guias')
     expect(db.departureSlot.update).not.toHaveBeenCalled()
   })
 
-  it('mínimo maior que a capacidade atual (sem enviar capacity) → 422', async () => {
-    db.$queryRaw.mockResolvedValue([slotRow({ capacity: 5 })])
-    const res = await patch({ minCapacity: 6 })
-    expect(res.statusCode).toBe(422)
+  it('maxGuides 6 → 400', async () => {
+    const res = await patch({ maxGuides: 6 })
+    expect(res.statusCode).toBe(400)
+    expect(res.json().errors[0].message).toBe('Máximo de 5 guias por horário')
   })
 
   it('mudar o horário de data com reservas → 409', async () => {
@@ -509,26 +654,54 @@ describe('PATCH /tenants/:slug/packages/:id/slots/:slotId', () => {
 
   it('data cancelada não é editável → 422', async () => {
     db.$queryRaw.mockResolvedValue([slotRow({ status: 'CANCELLED' })])
-    const res = await patch({ capacity: 8 })
+    const res = await patch({ maxGuides: 2 })
     expect(res.statusCode).toBe(422)
   })
 
-  it('aumentar a capacidade de uma data lotada reabre (FULL → OPEN)', async () => {
-    db.$queryRaw.mockResolvedValue([slotRow({ status: 'FULL', booked: 5, capacity: 5 })])
-    const res = await patch({ capacity: 8 })
+  it('aumentar os guias de uma data reservada não reabre (reserva ocupa o horário inteiro)', async () => {
+    db.$queryRaw.mockResolvedValue([slotRow({ status: 'FULL', booked: 4, capacity: 8 })])
+    const res = await patch({ maxGuides: 2 })
     expect(res.statusCode).toBe(200)
     expect(db.departureSlot.update.mock.calls[0][0].data).toMatchObject({
-      capacity: 8,
-      status: 'OPEN',
+      capacity: 16,
+      maxGuides: 2,
+      status: 'FULL',
     })
   })
 
-  it('reduzir a capacidade até o número de reservados lota (OPEN → FULL)', async () => {
-    db.$queryRaw.mockResolvedValue([slotRow({ status: 'OPEN', booked: 3, capacity: 5 })])
-    await patch({ capacity: 3 })
+  it('editar data reservada mantendo o mesmo horário continua FULL', async () => {
+    const row = slotRow({ status: 'FULL', booked: 4, capacity: 8 })
+    db.$queryRaw.mockResolvedValue([row])
+    const res = await patch({ startsAt: row.startsAt.toISOString() })
+    expect(res.statusCode).toBe(200)
+    expect(db.departureSlot.update.mock.calls[0][0].data).toMatchObject({ status: 'FULL' })
+  })
+
+  it('data sem reservas fica OPEN', async () => {
+    db.$queryRaw.mockResolvedValue([slotRow({ status: 'OPEN', booked: 0 })])
+    await patch({ maxGuides: 2 })
+    expect(db.departureSlot.update.mock.calls[0][0].data).toMatchObject({ status: 'OPEN' })
+  })
+
+  it('reduzir guias até lotar (OPEN → FULL)', async () => {
+    db.$queryRaw.mockResolvedValue([
+      slotRow({ status: 'OPEN', booked: 8, capacity: 16, maxGuides: 2 }),
+    ])
+    await patch({ maxGuides: 1 })
     expect(db.departureSlot.update.mock.calls[0][0].data).toMatchObject({
-      capacity: 3,
+      capacity: 8,
+      maxGuides: 1,
       status: 'FULL',
+    })
+  })
+
+  it('capacity/minCapacity de cliente antigo são ignorados', async () => {
+    db.$queryRaw.mockResolvedValue([slotRow({ booked: 3 })])
+    const res = await patch({ capacity: 2, minCapacity: 6 })
+    expect(res.statusCode).toBe(200)
+    expect(db.departureSlot.update.mock.calls[0][0].data).toMatchObject({
+      capacity: 8,
+      maxGuides: 1,
     })
   })
 
@@ -695,6 +868,20 @@ describe('leituras públicas só mostram publicados', () => {
     expect(db.tourPackage.findMany.mock.calls[0][0].where.id).toEqual({ in: ['p1', 'p2'] })
   })
 
+  it('GET /tenants/:slug/packages?minAvailable exige horário livre e pessoas <= guias x 8', async () => {
+    db.$queryRaw.mockResolvedValue([])
+    db.tourPackage.findMany.mockResolvedValue([])
+    await app.inject({ method: 'GET', url: '/tenants/agencia-a/packages?minAvailable=12' })
+    const [strings, ...values] = db.$queryRaw.mock.calls[0] as [string[], ...unknown[]]
+    const sql = strings.join('?')
+    expect(sql).toContain('JOIN "TourPackage"')
+    expect(sql).toContain('ds.booked = 0')
+    expect(sql).toContain('"extraGuidePrice" IS NULL')
+    expect(sql).toContain('ds."maxGuides"')
+    expect(values).toContain(12)
+    expect(values).toContain(8)
+  })
+
   it('GET /tenants/:slug/packages/:id', async () => {
     db.tourPackage.findFirst.mockResolvedValue(null)
     const res = await app.inject({ method: 'GET', url: '/tenants/agencia-a/packages/p1' })
@@ -704,6 +891,38 @@ describe('leituras públicas só mostram publicados', () => {
       active: true,
       ...published,
     })
+  })
+
+  it('GET /tenants/:slug/packages/:id devolve extraGuidePrice e slots com maxGuides/maxPax/available', async () => {
+    db.tourPackage.findFirst.mockResolvedValue({
+      ...pkg,
+      price: { toString: () => '600' },
+      extraGuidePrice: null,
+      departureSlots: [
+        { id: 's1', booked: 0, status: 'OPEN', minCapacity: 1, maxGuides: 3 },
+        { id: 's2', booked: 2, status: 'OPEN', minCapacity: 1, maxGuides: 1 },
+      ],
+    })
+    const res = await app.inject({ method: 'GET', url: '/tenants/agencia-a/packages/p1' })
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body.extraGuidePrice).toBeNull()
+    expect(typeof body.price).toBe('number')
+    expect(body.departureSlots[0]).toMatchObject({ maxGuides: 3, maxPax: 8, available: true })
+    expect(body.departureSlots[1]).toMatchObject({ available: false })
+  })
+
+  it('GET /tenants/:slug/packages/:id com extraGuidePrice: maxPax = maxGuides x 8', async () => {
+    db.tourPackage.findFirst.mockResolvedValue({
+      ...pkg,
+      price: 600,
+      extraGuidePrice: { toString: () => '400' },
+      departureSlots: [{ id: 's1', booked: 0, status: 'OPEN', minCapacity: 1, maxGuides: 3 }],
+    })
+    const res = await app.inject({ method: 'GET', url: '/tenants/agencia-a/packages/p1' })
+    const body = res.json()
+    expect(body.extraGuidePrice).toBe(400)
+    expect(body.departureSlots[0].maxPax).toBe(24)
   })
 
   it('GET /tenants/:slug/packages/:id/slots: rascunho → 404; só datas além do corte de 24h', async () => {
@@ -718,6 +937,15 @@ describe('leituras públicas só mostram publicados', () => {
     })
     const minStart = db.departureSlot.findMany.mock.calls[0][0].where.startsAt.gte as Date
     expect(minStart.getTime()).toBeGreaterThan(Date.now() + 23.9 * 3600_000)
+  })
+
+  it('GET /tenants/:slug/packages/:id/slots traz available e maxPax do modelo de grupo', async () => {
+    db.tourPackage.findFirst.mockResolvedValue({ ...pkg, extraGuidePrice: null })
+    db.departureSlot.findMany.mockResolvedValue([
+      { id: 's1', booked: 0, status: 'OPEN', minCapacity: 1, maxGuides: 3 },
+    ])
+    const res = await app.inject({ method: 'GET', url: '/tenants/agencia-a/packages/p1/slots' })
+    expect(res.json()[0]).toMatchObject({ id: 's1', available: true, maxPax: 8 })
   })
 
   it('GET /destinations/:slug/packages', async () => {

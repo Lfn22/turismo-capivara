@@ -32,6 +32,7 @@ const createBookingBodySchema = z.object({
     .int()
     .positive({ message: 'Número de participantes deve ser inteiro positivo' })
     .max(100, { message: 'Número de participantes não pode exceder 100' }),
+  isPrivate: z.boolean().default(false),
 })
 
 const slugParamsSchema = z.object({
@@ -46,6 +47,9 @@ function bookingResponse(b: {
   customerName: string
   customerEmail: string
   pax: number
+  guides: number
+  isPrivate: boolean
+  amount: unknown
   status: string
   paymentId: string | null
   paymentUrl: string | null
@@ -60,6 +64,9 @@ function bookingResponse(b: {
     customerName: b.customerName,
     customerEmail: b.customerEmail,
     pax: b.pax,
+    guides: b.guides,
+    isPrivate: b.isPrivate,
+    amount: b.amount == null ? null : Number(b.amount),
     status: b.status,
     paymentId: b.paymentId,
     paymentUrl: b.paymentUrl,
@@ -94,7 +101,8 @@ export async function createBookingRoute(app: FastifyInstance) {
       Sentry.setTag('tenant', slug)
       Sentry.setTag('action', 'create')
 
-      const { slotId, customerName, customerEmail, customerPhone, customerCpf, pax } = body
+      const { slotId, customerName, customerEmail, customerPhone, customerCpf, pax, isPrivate } =
+        body
 
       const expiryMinutes = Number(process.env.BOOKING_EXPIRY_MINUTES ?? '30')
 
@@ -174,6 +182,7 @@ export async function createBookingRoute(app: FastifyInstance) {
           customerPhone,
           cpf: customerCpf,
           pax,
+          isPrivate,
           expiryMinutes,
           idempotencyKey,
           userId,

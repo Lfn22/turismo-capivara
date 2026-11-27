@@ -12,6 +12,7 @@ import {
 import { auditLog } from '../../shared/audit.js'
 import { bookingsConfirmedCounter } from '../../shared/metrics.js'
 import { refundPayment } from '../../services/payment.service'
+import { guidesFor } from '../../shared/utils/money'
 import { z } from 'zod'
 
 const webhookBodySchema = z.object({
@@ -148,22 +149,24 @@ function onConfirmed(app: FastifyInstance, booking: WebhookBooking, paymentId: s
 }
 
 /**
- * Reserva EXPIRED paga tarde: reocupa a vaga se o slot ainda estiver aberto, com
- * capacidade e no futuro. Retorna false se não couber (o chamador estorna).
+ * Reserva EXPIRED paga tarde: reocupa o horário inteiro se ele ainda estiver livre
+ * (booked 0, OPEN), no futuro e com guias suficientes para o grupo. Retorna false
+ * se não couber (o chamador estorna).
  */
 async function reactivateExpired(booking: WebhookBooking, paymentId: string): Promise<boolean> {
   return prisma.$transaction(async (tx) => {
     const [slot] = await tx.$queryRaw<
-      Array<{ status: string; booked: number; capacity: number; startsAt: Date }>
+      Array<{ status: string; booked: number; maxGuides: number; startsAt: Date }>
     >`
-      SELECT status, booked, capacity, "startsAt" FROM "DepartureSlot"
+      SELECT status, booked, "maxGuides", "startsAt" FROM "DepartureSlot"
       WHERE id = ${booking.slotId}
       FOR UPDATE
     `
     if (
       !slot ||
       slot.status !== 'OPEN' ||
-      slot.booked + booking.pax > slot.capacity ||
+      slot.booked !== 0 ||
+      guidesFor(booking.pax) > slot.maxGuides ||
       new Date(slot.startsAt).getTime() <= Date.now()
     ) {
       return false
@@ -173,10 +176,9 @@ async function reactivateExpired(booking: WebhookBooking, paymentId: string): Pr
       data: { status: 'CONFIRMED', paymentId },
     })
     if (res.count === 0) return false
-    const newBooked = slot.booked + booking.pax
     await tx.departureSlot.update({
       where: { id: booking.slotId },
-      data: { booked: newBooked, status: newBooked >= slot.capacity ? 'FULL' : 'OPEN' },
+      data: { booked: booking.pax, status: 'FULL' },
     })
     return true
   })

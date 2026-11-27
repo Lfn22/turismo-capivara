@@ -4,6 +4,7 @@ import { parseParams, parseQuery } from '../../../shared/utils/zod-error'
 import { paginationQuerySchema, paginatedResponse } from '../../../shared/utils/pagination'
 import prisma from '../../../database'
 import { AppError } from '../../../shared/errors/AppError'
+import { groupSlotFields } from '../../packages/routes/public.route'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -200,6 +201,7 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
                 description: true,
                 duration: true,
                 price: true,
+                extraGuidePrice: true,
                 difficulty: true,
                 departureSlots: {
                   where: {
@@ -212,6 +214,8 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
                     capacity: true,
                     booked: true,
                     status: true,
+                    minCapacity: true,
+                    maxGuides: true,
                   },
                   orderBy: { startsAt: 'asc' },
                   take: 5,
@@ -235,21 +239,29 @@ export async function publicDestinationsRoute(app: FastifyInstance) {
       regions: guide.regioes,
       portfolioPhotos: guide.portfolioPhotos,
       tenantSlug: guide.user.tenant.slug,
-      packages: guide.user.tourPackages.map((p) => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        duration: p.duration,
-        price: Number(p.price),
-        difficulty: p.difficulty,
-        departureSlots: p.departureSlots.map((s) => ({
-          id: s.id,
-          startsAt: s.startsAt,
-          capacity: s.capacity,
-          booked: s.booked,
-          status: s.status,
-        })),
-      })),
+      packages: guide.user.tourPackages.map((p) => {
+        const extraGuidePrice = p.extraGuidePrice === null ? null : Number(p.extraGuidePrice)
+        return {
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          duration: p.duration,
+          price: Number(p.price),
+          difficulty: p.difficulty,
+          departureSlots: p.departureSlots.map((s) => {
+            const { available, maxPax } = groupSlotFields(s, extraGuidePrice)
+            return {
+              id: s.id,
+              startsAt: s.startsAt,
+              capacity: s.capacity,
+              booked: s.booked,
+              status: s.status,
+              available,
+              maxPax,
+            }
+          }),
+        }
+      }),
     })
   })
 

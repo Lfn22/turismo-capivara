@@ -72,6 +72,9 @@ const OPEN_SLOT = {
   active: true,
   publishedAt: new Date('2026-01-01'),
   startsAt: FUTURE_DATE,
+  maxGuides: 1,
+  price: '150.00',
+  extraGuidePrice: null as string | null,
 }
 
 const BOOKING_PENDING = {
@@ -218,6 +221,95 @@ describe('POST /tenants/:slug/bookings', () => {
       expect(
         selfServiceBodySchema.safeParse({ email: VALID_BODY.customerEmail, code }).success,
       ).toBe(true)
+    })
+  })
+
+  describe('preço por grupo', () => {
+    async function postWith(slot: Record<string, unknown>, body: Record<string, unknown>) {
+      const slotUpdate = vi.fn().mockResolvedValue({})
+      const bookingCreate = vi.fn().mockResolvedValue(BOOKING_PENDING)
+      db.$transaction.mockImplementation(async (fn: Function) =>
+        fn({
+          $queryRaw: vi.fn().mockResolvedValue([{ ...OPEN_SLOT, ...slot }]),
+          departureSlot: { update: slotUpdate },
+          booking: { create: bookingCreate },
+        }),
+      )
+      db.tourPackage.findFirst.mockResolvedValue(PKG)
+      mockCreatePixPayment.mockResolvedValue(PAYMENT_RESULT)
+      db.booking.update.mockResolvedValue(BOOKING_WITH_PAYMENT)
+      const res = await app.inject({
+        method: 'POST',
+        url: `/tenants/${TENANT.slug}/bookings`,
+        payload: { ...VALID_BODY, ...body },
+      })
+      return { res, slotUpdate, bookingCreate }
+    }
+
+    it('4 pessoas: cobra o preço do grupo, 1 guia, ocupa o horário inteiro', async () => {
+      const { res, slotUpdate, bookingCreate } = await postWith({ price: '600.00' }, { pax: 4 })
+
+      expect(res.statusCode).toBe(201)
+      expect(mockCreatePixPayment).toHaveBeenCalledWith(
+        expect.objectContaining({ transactionAmount: 600 }),
+      )
+      expect(bookingCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({ guides: 1, amount: 600, isPrivate: false, pax: 4 }),
+      })
+      expect(slotUpdate).toHaveBeenCalledWith({
+        where: { id: SLOT_ID },
+        data: { booked: 4, status: 'FULL' },
+      })
+    })
+
+    it('12 pessoas, 2 guias: preço do grupo + guia extra', async () => {
+      const { res, bookingCreate } = await postWith(
+        { price: '600.00', maxGuides: 2, extraGuidePrice: '400.00' },
+        { pax: 12 },
+      )
+
+      expect(res.statusCode).toBe(201)
+      expect(mockCreatePixPayment).toHaveBeenCalledWith(
+        expect.objectContaining({ transactionAmount: 1000 }),
+      )
+      expect(bookingCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({ guides: 2, amount: 1000 }),
+      })
+    })
+
+    it('isPrivate: true é gravado', async () => {
+      const { res, bookingCreate } = await postWith({}, { pax: 2, isPrivate: true })
+
+      expect(res.statusCode).toBe(201)
+      expect(bookingCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({ isPrivate: true }),
+      })
+    })
+
+    it('resposta inclui guides, isPrivate e amount (número)', async () => {
+      db.$transaction.mockImplementation(async (fn: Function) =>
+        fn({
+          $queryRaw: vi.fn().mockResolvedValue([OPEN_SLOT]),
+          departureSlot: { update: vi.fn() },
+          booking: { create: vi.fn().mockResolvedValue(BOOKING_PENDING) },
+        }),
+      )
+      db.tourPackage.findFirst.mockResolvedValue(PKG)
+      mockCreatePixPayment.mockResolvedValue(PAYMENT_RESULT)
+      db.booking.update.mockResolvedValue({
+        ...BOOKING_WITH_PAYMENT,
+        guides: 2,
+        isPrivate: true,
+        amount: '1000.00',
+      })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/tenants/${TENANT.slug}/bookings`,
+        payload: VALID_BODY,
+      })
+
+      expect(res.json()).toMatchObject({ guides: 2, isPrivate: true, amount: 1000 })
     })
   })
 
@@ -387,12 +479,14 @@ describe('POST /tenants/:slug/bookings', () => {
       expect(mockCreatePixPayment).not.toHaveBeenCalled()
     })
 
-    it('retorna 400 quando capacidade é insuficiente', async () => {
+    it('retorna 400 "Slot indisponível" quando o horário já tem reserva (booked > 0, legado)', async () => {
+      const slotUpdate = vi.fn()
+      const bookingCreate = vi.fn()
       db.$transaction.mockImplementation(async (fn: Function) => {
         const tx = {
-          $queryRaw: vi.fn().mockResolvedValue([{ ...OPEN_SLOT, booked: 4, capacity: 5 }]),
-          departureSlot: { update: vi.fn() },
-          booking: { create: vi.fn() },
+          $queryRaw: vi.fn().mockResolvedValue([{ ...OPEN_SLOT, booked: 3 }]),
+          departureSlot: { update: slotUpdate },
+          booking: { create: bookingCreate },
         }
         return fn(tx)
       })
@@ -400,10 +494,58 @@ describe('POST /tenants/:slug/bookings', () => {
       const res = await app.inject({
         method: 'POST',
         url: `/tenants/${TENANT.slug}/bookings`,
-        payload: { ...VALID_BODY, pax: 3 }, // 4 + 3 > 5
+        payload: VALID_BODY,
       })
 
       expect(res.statusCode).toBe(400)
+      expect(res.json().message).toBe('Slot indisponível')
+      expect(slotUpdate).not.toHaveBeenCalled()
+      expect(bookingCreate).not.toHaveBeenCalled()
+    })
+
+    it('retorna 400 (grupo grande demais) com mais de 8 pessoas e sem guia extra no roteiro', async () => {
+      const bookingCreate = vi.fn()
+      db.$transaction.mockImplementation(async (fn: Function) =>
+        fn({
+          $queryRaw: vi.fn().mockResolvedValue([{ ...OPEN_SLOT, maxGuides: 2 }]),
+          departureSlot: { update: vi.fn() },
+          booking: { create: bookingCreate },
+        }),
+      )
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/tenants/${TENANT.slug}/bookings`,
+        payload: { ...VALID_BODY, pax: 9 },
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toBe('Este roteiro atende grupos de até 8 pessoas')
+      expect(bookingCreate).not.toHaveBeenCalled()
+    })
+
+    it('retorna 400 (guias insuficientes) quando o horário tem menos guias que o necessário', async () => {
+      const bookingCreate = vi.fn()
+      db.$transaction.mockImplementation(async (fn: Function) =>
+        fn({
+          $queryRaw: vi
+            .fn()
+            .mockResolvedValue([{ ...OPEN_SLOT, maxGuides: 2, extraGuidePrice: '400.00' }]),
+          departureSlot: { update: vi.fn() },
+          booking: { create: bookingCreate },
+        }),
+      )
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/tenants/${TENANT.slug}/bookings`,
+        payload: { ...VALID_BODY, pax: 17 }, // 3 guias > maxGuides 2
+      })
+
+      expect(res.statusCode).toBe(400)
+      expect(res.json().message).toBe('Este horário não tem guias suficientes para 17 pessoas')
+      expect(bookingCreate).not.toHaveBeenCalled()
+      expect(mockCreatePixPayment).not.toHaveBeenCalled()
     })
 
     it('retorna 400 quando faltam menos de 24h para o início (corte de reserva)', async () => {

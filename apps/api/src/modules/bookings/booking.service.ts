@@ -3,7 +3,7 @@ import { createId } from '@paralleldrive/cuid2'
 import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { assertBeforeBookingCutoff } from './booking-cutoff'
-import { lineTotal } from '../../shared/utils/money'
+import { groupTotal, guidesFor } from '../../shared/utils/money'
 import { hashCpf } from '../../shared/utils/hash'
 import * as paymentService from '../../services/payment.service'
 
@@ -16,6 +16,7 @@ export interface CreateBookingInput {
   customerPhone: string
   cpf: string
   pax: number
+  isPrivate: boolean
   expiryMinutes: number
   idempotencyKey?: string | null
   userId: string | null
@@ -30,6 +31,9 @@ export interface CreateBookingResult {
     customerEmail: string
     customerPhone: string | null
     pax: number
+    guides: number
+    isPrivate: boolean
+    amount: unknown
     status: string
     expiresAt: Date | null
     createdAt: Date
@@ -60,6 +64,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     customerPhone,
     cpf,
     pax,
+    isPrivate,
     expiryMinutes,
     idempotencyKey,
     userId,
@@ -69,6 +74,8 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   // can be written durably up front. BOOKING_EXPIRY_MINUTES is actually honoured (A-4).
   const expiresAt = new Date(Date.now() + expiryMinutes * 60_000)
   let bookingId = createId()
+  // Calculado dentro da transação (preço lido sob o mesmo lock) e reusado na cobrança PIX
+  let amount = 0
   const cancelToken = randomBytes(32).toString('hex')
 
   // Single transaction: lock the slot, validate, increment seats AND persist the booking.
@@ -95,9 +102,12 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
             publishedAt: Date | null
             destinationActive: boolean
             startsAt: Date
+            maxGuides: number
+            price: unknown
+            extraGuidePrice: unknown | null
           }>
         >`
-          SELECT ds.id, ds.booked, ds.capacity, ds.status, ds."packageId", ds."startsAt", tp."tenantId", tp.active, tp."publishedAt",
+          SELECT ds.id, ds.booked, ds.capacity, ds.status, ds."packageId", ds."startsAt", ds."maxGuides", tp.price, tp."extraGuidePrice", tp."tenantId", tp.active, tp."publishedAt",
                  (COALESCE(pd.active, true) AND COALESCE(td.active, true)) AS "destinationActive"
           FROM "DepartureSlot" ds
           JOIN "TourPackage" tp ON tp.id = ds."packageId"
@@ -126,17 +136,28 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
           throw new AppError('Slot indisponível', 400)
         }
 
-        if (slot.booked + pax > slot.capacity) {
-          throw new AppError('Capacidade insuficiente', 400)
+        // Reserva ocupa o horário inteiro: qualquer reserva existente (inclusive legado) bloqueia
+        if (slot.booked > 0) {
+          throw new AppError('Slot indisponível', 400)
+        }
+
+        const guides = guidesFor(pax)
+        if (guides > 1 && slot.extraGuidePrice == null) {
+          throw new AppError('Este roteiro atende grupos de até 8 pessoas', 400)
+        }
+        if (guides > slot.maxGuides) {
+          throw new AppError(`Este horário não tem guias suficientes para ${pax} pessoas`, 400)
         }
 
         assertBeforeBookingCutoff(slot.startsAt)
 
+        amount = groupTotal(slot.price, slot.extraGuidePrice, pax)
+
         await tx.departureSlot.update({
           where: { id: slotId },
           data: {
-            booked: { increment: pax },
-            status: slot.booked + pax >= slot.capacity ? 'FULL' : 'OPEN',
+            booked: pax,
+            status: 'FULL',
           },
         })
 
@@ -152,6 +173,9 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
             customerPhone,
             customerCpfHash: hashCpf(cpf),
             pax,
+            guides,
+            isPrivate,
+            amount,
             status: 'PENDING',
             expiresAt,
             idempotencyKey: idempotencyKey ?? null,
@@ -197,7 +221,6 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   const pkg = await prisma.tourPackage.findFirst({
     where: { departureSlots: { some: { id: slotId } } },
     select: {
-      price: true,
       name: true,
       conductor: { select: { email: true } },
       departureSlots: { where: { id: slotId }, select: { startsAt: true }, take: 1 },
@@ -215,7 +238,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
   try {
     paymentResult = await paymentService.createPixPayment({
       bookingId,
-      transactionAmount: lineTotal(pkg.price, pax),
+      transactionAmount: amount,
       description: `Reserva — ${pkg.name}`,
       customerEmail,
       customerCpf: cpf,

@@ -5,8 +5,9 @@ import prisma from '../../database'
 import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
-import { toCents, fromCents } from '../../shared/utils/money'
+import { fromCents, bookingRevenueCents } from '../../shared/utils/money'
 import { tourDateKey, tourDayRange } from '../packages/slot-rules'
+import { groupSlotFields } from '../packages/routes/public.route'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -59,7 +60,11 @@ export async function dashboardRoutes(app: FastifyInstance) {
             status: { in: ['CONFIRMED', 'COMPLETED'] },
             ...bookingScope,
           },
-          select: { pax: true, slot: { select: { package: { select: { price: true } } } } },
+          select: {
+            amount: true,
+            pax: true,
+            slot: { select: { package: { select: { price: true } } } },
+          },
         }),
         prisma.departureSlot.findMany({
           where: {
@@ -75,7 +80,10 @@ export async function dashboardRoutes(app: FastifyInstance) {
             startsAt: true,
             booked: true,
             capacity: true,
-            package: { select: { name: true } },
+            maxGuides: true,
+            minCapacity: true,
+            status: true,
+            package: { select: { name: true, extraGuidePrice: true } },
           },
         }),
         prisma.booking.count({
@@ -93,10 +101,10 @@ export async function dashboardRoutes(app: FastifyInstance) {
         counts[row.status.toLowerCase()] = row._count.id
       }
 
-      const confirmedRevenueCents = confirmedBookings.reduce((sum, b) => {
-        const price = b.slot?.package?.price
-        return sum + (price ? toCents(price) : 0) * b.pax
-      }, 0)
+      const confirmedRevenueCents = confirmedBookings.reduce(
+        (sum, b) => sum + bookingRevenueCents(b),
+        0,
+      )
       const confirmedRevenue = fromCents(confirmedRevenueCents)
 
       return reply.status(200).send({
@@ -113,7 +121,14 @@ export async function dashboardRoutes(app: FastifyInstance) {
         revenue: {
           confirmed: confirmedRevenue,
         },
-        upcomingSlots,
+        upcomingSlots: upcomingSlots.map(({ package: pkg, ...slot }) => ({
+          ...slot,
+          maxPax: groupSlotFields(
+            slot,
+            pkg.extraGuidePrice === null ? null : Number(pkg.extraGuidePrice),
+          ).maxPax,
+          package: { name: pkg.name },
+        })),
       })
     },
   )

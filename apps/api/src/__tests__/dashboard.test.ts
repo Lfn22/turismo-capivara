@@ -96,6 +96,46 @@ describe('GET /tenants/:slug/dashboard', () => {
     expect(body.upcomingSlots[0].package.name).toBe('Trilha')
   })
 
+  it('próximas saídas trazem maxPax do modelo de grupo', async () => {
+    const slot = { startsAt: new Date('2026-07-01'), booked: 0, minCapacity: 1, status: 'OPEN' }
+    db.departureSlot.findMany.mockResolvedValue([
+      {
+        ...slot,
+        id: 's1',
+        capacity: 16,
+        maxGuides: 2,
+        package: { name: 'A', extraGuidePrice: '400.00' },
+      },
+      {
+        ...slot,
+        id: 's2',
+        capacity: 16,
+        maxGuides: 2,
+        package: { name: 'B', extraGuidePrice: null },
+      },
+    ])
+    const res = await app.inject({
+      method: 'GET',
+      url: '/tenants/capivara/dashboard',
+      headers: { authorization: `Bearer ${adminToken}` },
+    })
+    const [a, b] = res.json().upcomingSlots
+    expect(a).toMatchObject({ id: 's1', maxPax: 16, package: { name: 'A' } })
+    expect(b).toMatchObject({ id: 's2', maxPax: 8 })
+  })
+
+  it('receita de reserva nova usa o valor gravado, não preço × pax', async () => {
+    db.booking.findMany.mockResolvedValue([
+      { amount: '600.00', pax: 4, slot: { package: { price: '600.00' } } },
+    ])
+    const res = await app.inject({
+      method: 'GET',
+      url: '/tenants/capivara/dashboard',
+      headers: { authorization: `Bearer ${adminToken}` },
+    })
+    expect(res.json().revenue.confirmed).toBe(600)
+  })
+
   it('CONDUTOR vê só os números das próprias datas, não os do tenant inteiro', async () => {
     db.guideProfile.findUnique.mockResolvedValue({ id: 'gp1' })
     const token = app.jwt.sign({ sub: 'cond-1', role: 'CONDUTOR', tenantId: TENANT.id, name: 'G' })

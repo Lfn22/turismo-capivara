@@ -6,7 +6,7 @@ import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { Role } from '@prisma/client'
 import { parseParams, parseQuery } from '../../shared/utils/zod-error'
-import { toCents, fromCents } from '../../shared/utils/money'
+import { fromCents, bookingRevenueCents } from '../../shared/utils/money'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -67,10 +67,7 @@ export async function reportsRoutes(app: FastifyInstance) {
       const expired = bookings.filter((b) => b.status === 'EXPIRED')
 
       // Somas em centavos inteiros (exatas); reais só na saída
-      const totalRevenueCents = confirmed.reduce(
-        (sum, b) => sum + toCents(b.slot.package.price) * b.pax,
-        0,
-      )
+      const totalRevenueCents = confirmed.reduce((sum, b) => sum + bookingRevenueCents(b), 0)
       const totalRevenue = fromCents(totalRevenueCents)
 
       const averageTicket =
@@ -90,7 +87,7 @@ export async function reportsRoutes(app: FastifyInstance) {
           revenue: 0,
         }
         entry.bookings += 1
-        entry.revenue += toCents(pkg.price) * b.pax
+        entry.revenue += bookingRevenueCents(b)
         byPackageMap.set(pkg.id, entry)
       }
 
@@ -109,7 +106,7 @@ export async function reportsRoutes(app: FastifyInstance) {
           revenue: 0,
         }
         entry.bookings += 1
-        entry.revenue += toCents(b.slot.package.price) * b.pax
+        entry.revenue += bookingRevenueCents(b)
         byGuideMap.set(guide.id, entry)
       }
 

@@ -18,7 +18,9 @@ import { authenticate } from '../../../shared/middlewares/authenticate'
 import { authorize } from '../../../shared/middlewares/authorize'
 import { Role, type Prisma } from '@prisma/client'
 import { parseBody, parseParams, parseQuery } from '../../../shared/utils/zod-error'
+import { GROUP_SIZE_PER_GUIDE, guidesFor } from '../../../shared/utils/money'
 import { destinationNotArchived } from '../package-visibility'
+import { groupSlotFields } from './public.route'
 import {
   canEditPackage,
   isUnverifiedGuide,
@@ -36,22 +38,26 @@ const slugIdAndSlotIdParamsSchema = z.object({
   slotId: z.string().min(1, { message: 'slotId obrigatório' }),
 })
 
-const createSlotBodySchema = z
-  .object({
-    startsAt: z
-      .string()
-      .datetime({ message: 'Data inválida' })
-      .refine((val) => new Date(val) > new Date(), {
-        message: 'A data do slot deve ser no futuro',
-      }),
-    capacity: z.number().int().min(1, { message: 'Capacidade mínima é 1' }),
-    minCapacity: z.number().int().min(1, { message: 'Mínimo de participantes é 1' }),
-    guideId: z.string().min(1, { message: 'guideId obrigatório' }),
-  })
-  .refine((d) => d.minCapacity <= d.capacity, {
-    message: 'Mínimo não pode exceder capacidade máxima',
-    path: ['minCapacity'],
-  })
+const MAX_GUIDES_PER_SLOT = 5
+
+// Guias por horário; a capacidade é sempre maxGuides × GROUP_SIZE_PER_GUIDE.
+// capacity/minCapacity de clientes antigos são aceitos e ignorados (zod descarta chaves extras).
+const maxGuidesSchema = z
+  .number()
+  .int({ message: 'Número de guias inválido' })
+  .min(1, { message: 'Mínimo de 1 guia por horário' })
+  .max(MAX_GUIDES_PER_SLOT, { message: `Máximo de ${MAX_GUIDES_PER_SLOT} guias por horário` })
+
+const createSlotBodySchema = z.object({
+  startsAt: z
+    .string()
+    .datetime({ message: 'Data inválida' })
+    .refine((val) => new Date(val) > new Date(), {
+      message: 'A data do slot deve ser no futuro',
+    }),
+  maxGuides: maxGuidesSchema.default(1),
+  guideId: z.string().min(1, { message: 'guideId obrigatório' }),
+})
 
 const batchSlotBodySchema = z.object({
   startDate: z
@@ -62,7 +68,12 @@ const batchSlotBodySchema = z.object({
     }),
   endDate: z.string().date('Data final inválida'),
   timeOfDay: z.string().regex(/^\d{2}:\d{2}$/, 'Formato de hora inválido (HH:MM)'),
-  capacity: z.coerce.number().int().positive('Capacidade deve ser positiva'),
+  maxGuides: z.coerce
+    .number()
+    .int({ message: 'Número de guias inválido' })
+    .min(1, { message: 'Mínimo de 1 guia por horário' })
+    .max(MAX_GUIDES_PER_SLOT, { message: `Máximo de ${MAX_GUIDES_PER_SLOT} guias por horário` })
+    .default(1),
   daysOfWeek: z.array(z.number().int().min(0).max(6)).min(1, 'Selecione ao menos um dia da semana'),
   guideId: z.string().min(1, { message: 'guideId obrigatório' }).optional(),
 })
@@ -79,20 +90,10 @@ const calendarQuerySchema = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/, 'Formato inválido (YYYY-MM)'),
 })
 
-const updateSlotBodySchema = z
-  .object({
-    startsAt: z.string().datetime({ message: 'Data inválida' }).optional(),
-    capacity: z.number().int().min(1, { message: 'Capacidade mínima é 1' }).optional(),
-    minCapacity: z.number().int().min(1, { message: 'Mínimo de participantes é 1' }).optional(),
-  })
-  .refine(
-    (d) => {
-      if (d.minCapacity !== undefined && d.capacity !== undefined)
-        return d.minCapacity <= d.capacity
-      return true
-    },
-    { message: 'Mínimo não pode exceder capacidade máxima', path: ['minCapacity'] },
-  )
+const updateSlotBodySchema = z.object({
+  startsAt: z.string().datetime({ message: 'Data inválida' }).optional(),
+  maxGuides: maxGuidesSchema.optional(),
+})
 
 export async function slotsRoute(app: FastifyInstance) {
   app.get('/tenants/:slug/packages/:id/slots', async (request, reply) => {
@@ -132,9 +133,11 @@ export async function slotsRoute(app: FastifyInstance) {
       orderBy: { startsAt: 'asc' },
     })
 
+    const extraGuidePrice =
+      tourPackage.extraGuidePrice === null ? null : Number(tourPackage.extraGuidePrice)
     return slots.map((slot) => ({
       ...slot,
-      hasMinimumReached: slot.booked >= slot.minCapacity,
+      ...groupSlotFields(slot, extraGuidePrice),
     }))
   })
 
@@ -195,8 +198,8 @@ export async function slotsRoute(app: FastifyInstance) {
               packageId: pkg.id,
               guideId: body!.guideId,
               startsAt: new Date(body!.startsAt),
-              capacity: body!.capacity,
-              minCapacity: body!.minCapacity,
+              capacity: body!.maxGuides * GROUP_SIZE_PER_GUIDE,
+              maxGuides: body!.maxGuides,
             },
           })
         })
@@ -260,12 +263,12 @@ export async function slotsRoute(app: FastifyInstance) {
               status: string
               booked: number
               capacity: number
-              minCapacity: number
+              maxGuides: number
               guideId: string | null
               startsAt: Date
             }>
           >`
-            SELECT status, booked, capacity, "minCapacity", "guideId", "startsAt"
+            SELECT status, booked, capacity, "maxGuides", "guideId", "startsAt"
             FROM "DepartureSlot" WHERE id = ${params!.slotId} FOR UPDATE
           `
           if (!row) throw new AppError('Slot não encontrado', 404)
@@ -273,23 +276,21 @@ export async function slotsRoute(app: FastifyInstance) {
             throw new AppError('Só é possível editar datas abertas ou lotadas', 422)
           }
 
-          const capacity = body!.capacity ?? row.capacity
-          const minCapacity = body!.minCapacity ?? row.minCapacity
-          if (capacity < row.booked) {
+          const maxGuides = body!.maxGuides ?? row.maxGuides
+          const capacity = maxGuides * GROUP_SIZE_PER_GUIDE
+          const needed = guidesFor(row.booked)
+          if (needed > maxGuides) {
             throw new AppError(
-              `Capacidade não pode ser menor que as ${row.booked} vaga(s) já reservada(s)`,
+              `Este horário já tem uma reserva que precisa de ${needed} guias`,
               422,
             )
-          }
-          if (minCapacity > capacity) {
-            throw new AppError('Mínimo não pode exceder capacidade máxima', 422)
           }
 
           const data: Prisma.DepartureSlotUpdateInput = {
             capacity,
-            minCapacity,
-            // Status acompanha a capacidade: lotada reabre ao ganhar vagas e vice-versa
-            status: row.booked >= capacity ? 'FULL' : 'OPEN',
+            maxGuides,
+            // Uma reserva ocupa o horário inteiro: com reserva fica FULL, sem reserva OPEN
+            status: row.booked > 0 ? 'FULL' : 'OPEN',
           }
 
           if (body!.startsAt !== undefined) {
@@ -376,7 +377,8 @@ export async function slotsRoute(app: FastifyInstance) {
           packageId: params!.id,
           ...(guideId ? { guideId } : {}),
           startsAt,
-          capacity: body!.capacity,
+          capacity: body!.maxGuides * GROUP_SIZE_PER_GUIDE,
+          maxGuides: body!.maxGuides,
           booked: 0,
           status: 'OPEN' as const,
         }))
@@ -594,6 +596,7 @@ export async function slotsRoute(app: FastifyInstance) {
           id: string
           startsAt: Date
           capacity: number
+          maxGuides: number
           booked: number
           status: string
         }>
@@ -606,6 +609,7 @@ export async function slotsRoute(app: FastifyInstance) {
           id: slot.id,
           startsAt: slot.startsAt,
           capacity: slot.capacity,
+          maxGuides: slot.maxGuides,
           booked: slot.booked,
           status: slot.status,
         })

@@ -15,6 +15,7 @@ import {
 import { isPlatformStaff } from '../../../shared/auth/roles'
 import { cancelFutureSlots } from '../../bookings/cancel-future-slots'
 import { httpsUrlSchema } from '../../../shared/utils/image-url'
+import { GROUP_SIZE_PER_GUIDE } from '../../../shared/utils/money'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -43,7 +44,11 @@ const createPackageBodySchema = z.object({
   description: z.string().min(1, { message: 'Descrição obrigatória' }),
   duration: z.number().int().positive({ message: 'Duração deve ser inteiro positivo' }),
   price: z.number().positive({ message: 'Preço deve ser positivo' }),
-  capacity: z.number().int().positive({ message: 'Capacidade deve ser inteiro positivo' }),
+  extraGuidePrice: z
+    .number()
+    .min(0, { message: 'Valor do guia extra não pode ser negativo' })
+    .nullable()
+    .optional(),
   difficulty: z.enum(['EASY', 'MODERATE', 'HARD'], { message: 'Dificuldade inválida' }),
   photos: photosSchema.optional(),
   highlights: highlightsSchema.optional(),
@@ -104,6 +109,7 @@ export async function crudPackagesRoute(app: FastifyInstance) {
           price: Number(p.price),
           duration: p.duration,
           capacity: p.capacity,
+          extraGuidePrice: p.extraGuidePrice === null ? null : Number(p.extraGuidePrice),
           difficulty: p.difficulty,
           photos: p.photos,
           highlights: p.highlights,
@@ -157,7 +163,10 @@ export async function crudPackagesRoute(app: FastifyInstance) {
             description: body.description,
             duration: body.duration,
             price: body.price,
-            capacity: body.capacity,
+            capacity: GROUP_SIZE_PER_GUIDE,
+            ...(body.extraGuidePrice !== undefined
+              ? { extraGuidePrice: body.extraGuidePrice }
+              : {}),
             difficulty: body.difficulty,
             ...(body.photos !== undefined ? { photos: body.photos } : {}),
             ...(body.highlights !== undefined ? { highlights: body.highlights } : {}),

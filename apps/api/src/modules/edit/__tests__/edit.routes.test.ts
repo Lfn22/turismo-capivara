@@ -40,7 +40,11 @@ const linkedTenant = {
 
 describe('GET /edit/scope', () => {
   it('equipe → ALL', async () => {
-    const res = await app.inject({ method: 'GET', url: '/edit/scope', headers: auth('SUPER_ADMIN') })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/edit/scope',
+      headers: auth('SUPER_ADMIN'),
+    })
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({
       destinations: 'ALL',
@@ -81,7 +85,11 @@ describe('GET /edit/scope', () => {
   })
 
   it('CONDUTOR pendente → 403', async () => {
-    const res = await app.inject({ method: 'GET', url: '/edit/scope', headers: auth('CONDUTOR', 'tenant-a', 'PENDING') })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/edit/scope',
+      headers: auth('CONDUTOR', 'tenant-a', 'PENDING'),
+    })
     expect(res.statusCode).toBe(403)
     expect(res.json().message).toBe('Disponível após verificação')
   })
@@ -101,7 +109,11 @@ describe('GET /edit/destinations', () => {
   it('ADMIN → findMany filtrado pelo destino ligado', async () => {
     db.tenant.findUnique.mockResolvedValue(linkedTenant)
     db.destination.findMany.mockResolvedValue([])
-    const res = await app.inject({ method: 'GET', url: '/edit/destinations', headers: auth('ADMIN') })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/edit/destinations',
+      headers: auth('ADMIN'),
+    })
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({ destinations: [] })
     expect(db.destination.findMany.mock.calls[0][0].where).toEqual({ id: 'dest-1' })
@@ -109,13 +121,21 @@ describe('GET /edit/destinations', () => {
 
   it('equipe → todos, sem filtro', async () => {
     db.destination.findMany.mockResolvedValue([{ slug: 'a' }])
-    const res = await app.inject({ method: 'GET', url: '/edit/destinations', headers: auth('PLATFORM_ADMIN') })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/edit/destinations',
+      headers: auth('PLATFORM_ADMIN'),
+    })
     expect(res.json().destinations).toHaveLength(1)
     expect(db.destination.findMany.mock.calls[0][0].where).toBeUndefined()
   })
 
   it('CONDUTOR → []', async () => {
-    const res = await app.inject({ method: 'GET', url: '/edit/destinations', headers: auth('CONDUTOR') })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/edit/destinations',
+      headers: auth('CONDUTOR'),
+    })
     expect(res.json()).toEqual({ destinations: [] })
     expect(db.destination.findMany).not.toHaveBeenCalled()
   })
@@ -123,8 +143,17 @@ describe('GET /edit/destinations', () => {
 
 describe('GET /edit/destinations/:destinationSlug', () => {
   it('equipe vê destino oculto/pendente', async () => {
-    db.destination.findUnique.mockResolvedValue({ id: 'dest-1', slug: 'serra', approvalStatus: 'PENDING', active: false })
-    const res = await app.inject({ method: 'GET', url: '/edit/destinations/serra', headers: auth('SUPER_ADMIN') })
+    db.destination.findUnique.mockResolvedValue({
+      id: 'dest-1',
+      slug: 'serra',
+      approvalStatus: 'PENDING',
+      active: false,
+    })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/edit/destinations/serra',
+      headers: auth('SUPER_ADMIN'),
+    })
     expect(res.statusCode).toBe(200)
     expect(res.json().active).toBe(false)
     expect(db.destination.findUnique.mock.calls[0][0].where).toEqual({ slug: 'serra' })
@@ -133,22 +162,42 @@ describe('GET /edit/destinations/:destinationSlug', () => {
   it('ADMIN não ligado → 403', async () => {
     db.destination.findUnique.mockResolvedValue({ id: 'dest-1' })
     db.tenant.findFirst.mockResolvedValue(null)
-    const res = await app.inject({ method: 'GET', url: '/edit/destinations/serra', headers: auth('ADMIN') })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/edit/destinations/serra',
+      headers: auth('ADMIN'),
+    })
     expect(res.statusCode).toBe(403)
   })
 
   it('inexistente → 404', async () => {
     db.destination.findUnique.mockResolvedValue(null)
-    const res = await app.inject({ method: 'GET', url: '/edit/destinations/nada', headers: auth('SUPER_ADMIN') })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/edit/destinations/nada',
+      headers: auth('SUPER_ADMIN'),
+    })
     expect(res.statusCode).toBe(404)
   })
 })
 
 describe('GET /edit/destinations/:destinationSlug/packages', () => {
   const pkg = (over: Record<string, unknown>) => ({
-    id: 'p', name: 'R', description: 'd', price: 100, duration: 4, capacity: 10, difficulty: 'EASY',
-    photos: [], highlights: [], active: true, publishedAt: new Date('2026-01-01'),
-    tenantId: 'tenant-a', conductorId: null, tenant: { slug: 'agencia-a' }, ...over,
+    id: 'p',
+    name: 'R',
+    description: 'd',
+    price: 100,
+    duration: 4,
+    capacity: 10,
+    difficulty: 'EASY',
+    photos: [],
+    highlights: [],
+    active: true,
+    publishedAt: new Date('2026-01-01'),
+    tenantId: 'tenant-a',
+    conductorId: null,
+    tenant: { slug: 'agencia-a' },
+    ...over,
   })
 
   it('ADMIN da agência A: rascunho de A, sem rascunho de B, publicado de B read-only', async () => {
@@ -156,25 +205,56 @@ describe('GET /edit/destinations/:destinationSlug/packages', () => {
     db.tenant.findFirst.mockResolvedValue({ id: 'tenant-a' })
     db.tourPackage.findMany.mockResolvedValue([
       pkg({ id: 'a-draft', publishedAt: null }),
-      pkg({ id: 'b-draft', publishedAt: null, tenantId: 'tenant-b', tenant: { slug: 'agencia-b' } }),
+      pkg({
+        id: 'b-draft',
+        publishedAt: null,
+        tenantId: 'tenant-b',
+        tenant: { slug: 'agencia-b' },
+      }),
       pkg({ id: 'b-pub', tenantId: 'tenant-b', tenant: { slug: 'agencia-b' } }),
       pkg({ id: 'b-hidden', active: false, tenantId: 'tenant-b', tenant: { slug: 'agencia-b' } }),
       pkg({ id: 'a-hidden', active: false }),
     ])
-    const res = await app.inject({ method: 'GET', url: '/edit/destinations/serra/packages', headers: auth('ADMIN') })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/edit/destinations/serra/packages',
+      headers: auth('ADMIN'),
+    })
     expect(res.statusCode).toBe(200)
     const list = res.json().packages
     expect(list.map((p: any) => p.id)).toEqual(['a-draft', 'b-pub', 'a-hidden'])
     expect(list[0]).toMatchObject({ editable: true, status: 'DRAFT', tenantSlug: 'agencia-a' })
     expect(list[1]).toMatchObject({ editable: false, status: 'PUBLISHED' })
     expect(list[2]).toMatchObject({ editable: true, status: 'HIDDEN' })
-    expect(db.tourPackage.findMany.mock.calls[0][0].where).toEqual({ tenant: { destinationId: 'dest-1' } })
+    expect(db.tourPackage.findMany.mock.calls[0][0].where).toEqual({
+      tenant: { destinationId: 'dest-1' },
+    })
+  })
+
+  it('traz extraGuidePrice (o editor reenvia o valor ao salvar)', async () => {
+    db.destination.findUnique.mockResolvedValue({ id: 'dest-1' })
+    db.tourPackage.findMany.mockResolvedValue([
+      pkg({ id: 'a', extraGuidePrice: { toString: () => '400' } }),
+      pkg({ id: 'b', extraGuidePrice: null }),
+    ])
+    const res = await app.inject({
+      method: 'GET',
+      url: '/edit/destinations/serra/packages',
+      headers: auth('SUPER_ADMIN'),
+    })
+    const [a, b] = res.json().packages
+    expect(a.extraGuidePrice).toBe(400)
+    expect(b.extraGuidePrice).toBeNull()
   })
 
   it('slug que não é de tenant → 200 (sem checagem de tenant)', async () => {
     db.destination.findUnique.mockResolvedValue({ id: 'dest-1' })
     db.tourPackage.findMany.mockResolvedValue([])
-    const res = await app.inject({ method: 'GET', url: '/edit/destinations/serra/packages', headers: auth('SUPER_ADMIN') })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/edit/destinations/serra/packages',
+      headers: auth('SUPER_ADMIN'),
+    })
     expect(res.statusCode).toBe(200)
     expect(db.tenant.findUnique).not.toHaveBeenCalled()
   })
@@ -185,11 +265,19 @@ describe('GET /edit/destinations/:destinationSlug/packages', () => {
       { id: 'tenant-b', slug: 'agencia-b', name: 'Agência B' },
     ]
     const get = (role: string, tenantId?: string) => {
-      db.destination.findUnique.mockResolvedValue({ id: 'dest-1', active: true, approvalStatus: 'APPROVED' })
+      db.destination.findUnique.mockResolvedValue({
+        id: 'dest-1',
+        active: true,
+        approvalStatus: 'APPROVED',
+      })
       db.tenant.findFirst.mockResolvedValue({ id: 'tenant-a' })
       db.tourPackage.findMany.mockResolvedValue([])
       db.tenant.findMany.mockResolvedValue(linked)
-      return app.inject({ method: 'GET', url: '/edit/destinations/serra/packages', headers: auth(role, tenantId) })
+      return app.inject({
+        method: 'GET',
+        url: '/edit/destinations/serra/packages',
+        headers: auth(role, tenantId),
+      })
     }
 
     it('equipe: todas as agências ligadas', async () => {
@@ -219,7 +307,11 @@ describe('GET /edit/destinations/:destinationSlug/packages', () => {
 
   it('destino inexistente → 404', async () => {
     db.destination.findUnique.mockResolvedValue(null)
-    const res = await app.inject({ method: 'GET', url: '/edit/destinations/x/packages', headers: auth('SUPER_ADMIN') })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/edit/destinations/x/packages',
+      headers: auth('SUPER_ADMIN'),
+    })
     expect(res.statusCode).toBe(404)
   })
 })

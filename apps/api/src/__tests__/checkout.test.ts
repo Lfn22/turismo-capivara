@@ -4,8 +4,8 @@
  * Integration tests for POST /tenants/:slug/bookings
  *  [1] 400 when required fields are missing
  *  [2] 400 when CPF format is invalid
- *  [3] 400 when slot is full (booked + pax > capacity)
- *  [4] 201 happy path — pax=3, price=150, amount=450, returns qrCode
+ *  [3] 400 when slot already has a booking (whole-slot booking)
+ *  [4] 201 happy path — pax=3, group price=600, amount=600, returns qrCode
  */
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest'
 import type { Mock } from 'vitest'
@@ -138,14 +138,14 @@ describe('POST /bookings — validation', () => {
 // ---------------------------------------------------------------------------
 // [3] Slot is full
 // ---------------------------------------------------------------------------
-describe('POST /bookings — capacity check', () => {
-  it('returns 400 when slot is full (booked + pax > capacity)', async () => {
+describe('POST /bookings — slot occupied', () => {
+  it('returns 400 when slot already has a booking (booked > 0)', async () => {
     db.$transaction.mockImplementation(async (fn: Function) => {
       const tx = {
         $queryRaw: vi.fn().mockResolvedValue([
           {
             id: 'slot-1',
-            booked: 10,
+            booked: 3,
             capacity: 10,
             status: 'OPEN',
             packageId: 'pkg-1',
@@ -153,6 +153,9 @@ describe('POST /bookings — capacity check', () => {
             active: true,
             publishedAt: new Date('2026-01-01'),
             startsAt: new Date(Date.now() + 48 * 3600_000),
+            maxGuides: 1,
+            price: '600.00',
+            extraGuidePrice: null,
           },
         ]),
         departureSlot: { update: vi.fn().mockResolvedValue({}) },
@@ -169,12 +172,12 @@ describe('POST /bookings — capacity check', () => {
 
     expect(res.statusCode).toBe(400)
     const body = res.json()
-    expect(body.message).toMatch(/Capacidade/i)
+    expect(body.message).toBe('Slot indisponível')
   })
 })
 
 // ---------------------------------------------------------------------------
-// [4] Happy path — 201 with qrCode, amount = price × pax
+// [4] Happy path — 201 with qrCode, amount = group price
 // ---------------------------------------------------------------------------
 describe('POST /bookings — happy path', () => {
   it('returns 201 with qrCode and calls createPixPayment with correct amount', async () => {
@@ -193,7 +196,7 @@ describe('POST /bookings — happy path', () => {
         $queryRaw: vi.fn().mockResolvedValue([
           {
             id: 'slot-1',
-            booked: 2,
+            booked: 0,
             capacity: 10,
             status: 'OPEN',
             packageId: 'pkg-1',
@@ -201,6 +204,9 @@ describe('POST /bookings — happy path', () => {
             active: true,
             publishedAt: new Date('2026-01-01'),
             startsAt: new Date(Date.now() + 48 * 3600_000),
+            maxGuides: 1,
+            price: '600.00',
+            extraGuidePrice: null,
           },
         ]),
         departureSlot: { update: vi.fn().mockResolvedValue({}) },
@@ -242,6 +248,6 @@ describe('POST /bookings — happy path', () => {
 
     expect(mockCreatePixPayment).toHaveBeenCalledOnce()
     const callArgs = mockCreatePixPayment.mock.calls[0][0]
-    expect(callArgs.transactionAmount).toBe(450) // 150 * 3
+    expect(callArgs.transactionAmount).toBe(600) // preço do grupo, independente de pax (3)
   })
 })

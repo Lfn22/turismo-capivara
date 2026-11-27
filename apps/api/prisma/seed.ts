@@ -3,6 +3,7 @@ import { createHmac, randomUUID } from 'crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 import { hashSync } from 'bcryptjs'
+import { GROUP_SIZE_PER_GUIDE, groupTotal, guidesFor } from '../src/shared/utils/money'
 
 function hashCpf(cpf: string): string {
   const secret = process.env.CPF_SECRET
@@ -43,7 +44,8 @@ async function createTenantData(
     description: string
     duration: number
     price: number
-    capacity: number
+    extraGuidePrice: number | null
+    maxGuides: number
     difficulty: string
   }[],
 ) {
@@ -127,7 +129,8 @@ async function createTenantData(
         description: pacote.description,
         duration: pacote.duration,
         price: pacote.price,
-        capacity: pacote.capacity,
+        extraGuidePrice: pacote.extraGuidePrice,
+        capacity: GROUP_SIZE_PER_GUIDE,
         difficulty: pacote.difficulty as 'EASY' | 'MODERATE' | 'HARD',
         publishedAt: new Date(),
       },
@@ -148,7 +151,12 @@ async function createTenantData(
       data.setDate(hoje.getDate() + i * 3)
       data.setHours(8, 0, 0, 0)
       const slot = await prisma.departureSlot.create({
-        data: { packageId: pkg.id, startsAt: data, capacity: pkg.capacity },
+        data: {
+          packageId: pkg.id,
+          startsAt: data,
+          maxGuides: pacote.maxGuides,
+          capacity: pacote.maxGuides * GROUP_SIZE_PER_GUIDE,
+        },
       })
       if (!primeiroSlotId) primeiroSlotId = slot.id
     }
@@ -163,13 +171,16 @@ async function createTenantData(
           customerPhone: '86999990000',
           customerCpfHash: hashCpf('11122233344'),
           pax: 2,
+          guides: guidesFor(2),
+          amount: groupTotal(pacote.price, pacote.extraGuidePrice, 2),
           status: 'PENDING',
           cancelToken: randomUUID(),
         },
       })
+      // Uma reserva ocupa o horário inteiro
       await prisma.departureSlot.update({
         where: { id: primeiroSlotId },
-        data: { booked: 2 },
+        data: { booked: 2, status: 'FULL' },
       })
       primeiroSlotId = null
     }
@@ -328,8 +339,9 @@ async function main() {
         description:
           'Visita guiada aos principais sítios arqueológicos com pinturas rupestres de até 30 mil anos.',
         duration: 4,
-        price: 150,
-        capacity: 8,
+        price: 600,
+        extraGuidePrice: 400,
+        maxGuides: 2,
         difficulty: 'MODERATE',
       },
       {
@@ -337,8 +349,9 @@ async function main() {
         description:
           'Trilha icônica até a Pedra Furada, um dos símbolos do parque, com vista panorâmica do vale.',
         duration: 6,
-        price: 220,
-        capacity: 6,
+        price: 800,
+        extraGuidePrice: 500,
+        maxGuides: 2,
         difficulty: 'HARD',
       },
     ],
@@ -374,8 +387,9 @@ async function main() {
         description:
           'Visita aos principais fervedouros do Jalapão: Buritizeiro, Ceiça e Encantado, com banho incluído.',
         duration: 8,
-        price: 280,
-        capacity: 10,
+        price: 1100,
+        extraGuidePrice: null,
+        maxGuides: 1,
         difficulty: 'EASY',
       },
       {
@@ -383,8 +397,9 @@ async function main() {
         description:
           'Passeio até as dunas de areia dourada com pôr do sol e observação do cerrado.',
         duration: 4,
-        price: 180,
-        capacity: 12,
+        price: 700,
+        extraGuidePrice: 450,
+        maxGuides: 2,
         difficulty: 'EASY',
       },
     ],
@@ -420,8 +435,9 @@ async function main() {
         description:
           'Visita a 3 vinícolas premiadas do Vale do São Francisco com degustação e almoço incluídos.',
         duration: 6,
-        price: 320,
-        capacity: 10,
+        price: 900,
+        extraGuidePrice: 500,
+        maxGuides: 1,
         difficulty: 'EASY',
       },
       {
@@ -429,8 +445,9 @@ async function main() {
         description:
           'Navegação pelo Rio São Francisco ao pôr do sol, com paradas em ilhas e cultura ribeirinha.',
         duration: 3,
-        price: 160,
-        capacity: 15,
+        price: 650,
+        extraGuidePrice: 400,
+        maxGuides: 1,
         difficulty: 'EASY',
       },
     ],

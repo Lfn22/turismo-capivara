@@ -6,6 +6,7 @@ import { BOOKING_CUTOFF_HOURS } from '../../bookings/booking-cutoff'
 import { parseParams, parseQuery } from '../../../shared/utils/zod-error'
 import { paginationQuerySchema, paginatedResponse } from '../../../shared/utils/pagination'
 import { destinationNotArchived } from '../package-visibility'
+import { GROUP_SIZE_PER_GUIDE } from '../../../shared/utils/money'
 
 const slugParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -15,6 +16,17 @@ const slugAndIdParamsSchema = z.object({
   slug: z.string().min(1, { message: 'Slug obrigatório' }),
   id: z.string().min(1, { message: 'ID obrigatório' }),
 })
+
+type SlotForGroup = { booked: number; status: string; minCapacity: number; maxGuides: number }
+
+// Campos do modelo de grupo: sem extraGuidePrice o roteiro aceita só 1 guia
+export function groupSlotFields(slot: SlotForGroup, extraGuidePrice: number | null) {
+  return {
+    hasMinimumReached: slot.booked >= slot.minCapacity,
+    available: slot.booked === 0 && slot.status === 'OPEN',
+    maxPax: (extraGuidePrice !== null ? slot.maxGuides : 1) * GROUP_SIZE_PER_GUIDE,
+  }
+}
 
 const packageIdParamsSchema = z.object({
   id: z.string().min(1, { message: 'ID obrigatório' }),
@@ -75,25 +87,30 @@ export async function publicPackagesRoute(app: FastifyInstance) {
       ...(dateTo ? { lte: new Date(dateTo) } : {}),
     }
 
-    // minAvailable compara duas colunas (capacity - booked), o que o where do Prisma não
-    // expressa: resolve os roteiros elegíveis no SQL ANTES de paginar (filtrar a página
+    // minAvailable: horário livre (booked = 0, a reserva ocupa o horário todo) cujo máximo de
+    // pessoas (guias × 8, mesma regra do maxPax) comporta o pedido; compara colunas de duas
+    // tabelas, o que o where do Prisma não expressa: resolve os roteiros elegíveis no SQL ANTES de paginar (filtrar a página
     // em memória deixava páginas vazias e cursor/hasMore errados)
     let availableIds: string[] | undefined
     if (minAvailable !== undefined) {
       const from = dateFrom && new Date(dateFrom) > bookableFrom ? new Date(dateFrom) : bookableFrom
       const rows = dateTo
         ? await prisma.$queryRaw<Array<{ packageId: string }>>`
-            SELECT DISTINCT "packageId" FROM "DepartureSlot"
-            WHERE status = 'OPEN'
-              AND "startsAt" >= ${from}
-              AND "startsAt" <= ${new Date(dateTo)}
-              AND capacity - booked >= ${minAvailable}
+            SELECT DISTINCT ds."packageId" FROM "DepartureSlot" ds
+            JOIN "TourPackage" tp ON tp.id = ds."packageId"
+            WHERE ds.status = 'OPEN'
+              AND ds."startsAt" >= ${from}
+              AND ds."startsAt" <= ${new Date(dateTo)}
+              AND ds.booked = 0
+              AND (CASE WHEN tp."extraGuidePrice" IS NULL THEN 1 ELSE ds."maxGuides" END) * ${GROUP_SIZE_PER_GUIDE} >= ${minAvailable}
           `
         : await prisma.$queryRaw<Array<{ packageId: string }>>`
-            SELECT DISTINCT "packageId" FROM "DepartureSlot"
-            WHERE status = 'OPEN'
-              AND "startsAt" >= ${from}
-              AND capacity - booked >= ${minAvailable}
+            SELECT DISTINCT ds."packageId" FROM "DepartureSlot" ds
+            JOIN "TourPackage" tp ON tp.id = ds."packageId"
+            WHERE ds.status = 'OPEN'
+              AND ds."startsAt" >= ${from}
+              AND ds.booked = 0
+              AND (CASE WHEN tp."extraGuidePrice" IS NULL THEN 1 ELSE ds."maxGuides" END) * ${GROUP_SIZE_PER_GUIDE} >= ${minAvailable}
           `
       availableIds = rows.map((r) => r.packageId)
     }
@@ -137,6 +154,7 @@ export async function publicPackagesRoute(app: FastifyInstance) {
         durationMaxHours: true,
         bufferMinutes: true,
         price: true,
+        extraGuidePrice: true,
         difficulty: true,
         active: true,
         conductorId: true,
@@ -156,13 +174,18 @@ export async function publicPackagesRoute(app: FastifyInstance) {
       },
     })
 
-    const packagesWithMinReached = packages.map((pkg) => ({
-      ...pkg,
-      departureSlots: pkg.departureSlots.map((slot) => ({
-        ...slot,
-        hasMinimumReached: slot.booked >= slot.minCapacity,
-      })),
-    }))
+    const packagesWithMinReached = packages.map((pkg) => {
+      const extraGuidePrice = pkg.extraGuidePrice === null ? null : Number(pkg.extraGuidePrice)
+      return {
+        ...pkg,
+        price: Number(pkg.price),
+        extraGuidePrice,
+        departureSlots: pkg.departureSlots.map((slot) => ({
+          ...slot,
+          ...groupSlotFields(slot, extraGuidePrice),
+        })),
+      }
+    })
     return reply.status(200).send(paginatedResponse(packagesWithMinReached, limit))
   })
 
@@ -201,11 +224,15 @@ export async function publicPackagesRoute(app: FastifyInstance) {
       throw new AppError('Roteiro não encontrado', 404)
     }
 
+    const extraGuidePrice =
+      tourPackage.extraGuidePrice === null ? null : Number(tourPackage.extraGuidePrice)
     const packageWithMinReached = {
       ...tourPackage,
+      price: Number(tourPackage.price),
+      extraGuidePrice,
       departureSlots: tourPackage.departureSlots.map((slot) => ({
         ...slot,
-        hasMinimumReached: slot.booked >= slot.minCapacity,
+        ...groupSlotFields(slot, extraGuidePrice),
       })),
     }
     return packageWithMinReached

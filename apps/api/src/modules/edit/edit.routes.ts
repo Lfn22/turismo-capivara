@@ -6,7 +6,13 @@ import { AppError } from '../../shared/errors/AppError'
 import { authenticate } from '../../shared/middlewares/authenticate'
 import { authorize } from '../../shared/middlewares/authorize'
 import { isPlatformStaff } from '../../shared/auth/roles'
-import { canCreatePackageIn, canEditDestination, canEditPackage, canManageDestinations, EditUser } from '../../shared/auth/edit-permissions'
+import {
+  canCreatePackageIn,
+  canEditDestination,
+  canEditPackage,
+  canManageDestinations,
+  EditUser,
+} from '../../shared/auth/edit-permissions'
 
 const paramsSchema = z.object({
   destinationSlug: z.string().min(1, { message: 'Slug obrigatório' }),
@@ -15,7 +21,10 @@ const paramsSchema = z.object({
 // Guia só entra no modo edição depois de verificado. Confere no banco: o claim do JWT pode estar velho.
 async function requireVerifiedConductor(request: FastifyRequest, reply: FastifyReply) {
   if (request.user.role !== 'CONDUTOR') return
-  const user = await prisma.user.findUnique({ where: { id: request.user.sub }, select: { approvalStatus: true } })
+  const user = await prisma.user.findUnique({
+    where: { id: request.user.sub },
+    select: { approvalStatus: true },
+  })
   if (!user || user.approvalStatus !== 'APPROVED') {
     return reply.status(403).send({ message: 'Disponível após verificação' })
   }
@@ -36,7 +45,11 @@ async function linkedTenant(tenantId: string) {
 
 export async function editRoutes(app: FastifyInstance) {
   const guard = {
-    preHandler: [authenticate, authorize(['SUPER_ADMIN', 'ADMIN', 'CONDUTOR']), requireVerifiedConductor],
+    preHandler: [
+      authenticate,
+      authorize(['SUPER_ADMIN', 'ADMIN', 'CONDUTOR']),
+      requireVerifiedConductor,
+    ],
   }
 
   app.get('/edit/scope', guard, async (request, reply) => {
@@ -86,7 +99,14 @@ export async function editRoutes(app: FastifyInstance) {
 
     const destinations = await prisma.destination.findMany({
       ...(where ? { where } : {}),
-      select: { slug: true, title: true, state: true, heroImageUrl: true, approvalStatus: true, active: true },
+      select: {
+        slug: true,
+        title: true,
+        state: true,
+        heroImageUrl: true,
+        approvalStatus: true,
+        active: true,
+      },
       orderBy: { title: 'asc' },
     })
 
@@ -151,6 +171,7 @@ export async function editRoutes(app: FastifyInstance) {
         price: true,
         duration: true,
         capacity: true,
+        extraGuidePrice: true,
         difficulty: true,
         photos: true,
         highlights: true,
@@ -174,6 +195,7 @@ export async function editRoutes(app: FastifyInstance) {
         price: Number(p.price),
         duration: p.duration,
         capacity: p.capacity,
+        extraGuidePrice: p.extraGuidePrice === null ? null : Number(p.extraGuidePrice),
         difficulty: p.difficulty,
         photos: p.photos,
         highlights: p.highlights,

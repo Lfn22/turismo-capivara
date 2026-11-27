@@ -70,6 +70,8 @@ export async function meRoutes(app: FastifyInstance) {
         code: true,
         status: true,
         pax: true,
+        guides: true,
+        isPrivate: true,
         createdAt: true,
         slot: {
           select: {
@@ -97,6 +99,8 @@ export async function meRoutes(app: FastifyInstance) {
         code: b.code,
         status: b.status,
         pax: b.pax,
+        guides: b.guides,
+        isPrivate: b.isPrivate,
         startsAt: b.slot.startsAt,
         packageId: b.slot.package.id,
         packageName: b.slot.package.name,

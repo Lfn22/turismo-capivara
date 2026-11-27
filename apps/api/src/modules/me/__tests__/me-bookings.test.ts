@@ -115,6 +115,16 @@ describe('GET /me/bookings', () => {
     })
   })
 
+  it('retorna guides e isPrivate da reserva', async () => {
+    db.booking.findMany.mockResolvedValue([
+      makeBooking('b1', { pax: 12, guides: 2, isPrivate: true }),
+    ])
+    const res = await app.inject({ method: 'GET', url: '/me/bookings', headers: auth() })
+    expect(res.json().data[0]).toMatchObject({ pax: 12, guides: 2, isPrivate: true })
+    const arg = db.booking.findMany.mock.calls[0][0]
+    expect(arg.select).toMatchObject({ guides: true, isPrivate: true })
+  })
+
   it('filtra por status=upcoming — passa statuses corretos', async () => {
     db.booking.findMany.mockResolvedValue([])
     await app.inject({ method: 'GET', url: '/me/bookings?status=upcoming', headers: auth() })

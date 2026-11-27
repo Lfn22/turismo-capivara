@@ -7,7 +7,10 @@ import * as paymentService from '../../../services/payment.service'
 import { isValidCPF } from '../../../shared/utils/cpf'
 import { clientIp } from '../../../shared/utils/client-ip'
 import { assertBeforeBookingCutoff } from '../booking-cutoff'
-import { lineTotal } from '../../../shared/utils/money'
+import { guidesFor } from '../../../shared/utils/money'
+
+const guidesInsufficient = (pax: number) =>
+  new AppError(`Este horário não tem guias suficientes para ${pax} pessoas`, 422)
 
 export async function repayRoute(app: FastifyInstance) {
   // POST /tenants/:slug/bookings/repay — public, no JWT — EXPIRED bookings only
@@ -64,26 +67,42 @@ export async function repayRoute(app: FastifyInstance) {
         throw new AppError('Novo pagamento só é possível para reservas expiradas', 422)
       }
 
+      // Reserva anterior ao preço por grupo não tem valor gravado: não dá para recobrar
+      if (booking.amount == null) {
+        throw new AppError(
+          'Esta reserva é anterior ao novo modelo de preço. Faça uma nova reserva.',
+          422,
+        )
+      }
+
       // Verify slot is still OPEN (and its roteiro published and active) before creating a new payment
       const slot = await prisma.departureSlot.findUnique({
         where: { id: booking.slotId },
-        select: { status: true, package: { select: { active: true, publishedAt: true } } },
+        select: {
+          status: true,
+          booked: true,
+          maxGuides: true,
+          package: { select: { active: true, publishedAt: true } },
+        },
       })
+      // A reserva ocupa o horário inteiro: checa antes de gerar o PIX (evita criar e cancelar)
       if (
         !slot ||
         slot.status !== 'OPEN' ||
+        slot.booked !== 0 ||
         !slot.package.active ||
         slot.package.publishedAt === null
       ) {
         throw new AppError('Slot indisponível para novo pagamento', 422)
       }
+      if (guidesFor(booking.pax) > slot.maxGuides) throw guidesInsufficient(booking.pax)
 
       // Mesmo corte de uma reserva nova: não cobra para passeio a menos de 24h
       assertBeforeBookingCutoff(booking.slot.startsAt)
 
       // Create new MP payment
       // CPF original não é recuperável (apenas hash armazenado) — cliente pode fornecer CPF no body
-      const transactionAmount = lineTotal(booking.slot.package.price, booking.pax)
+      const transactionAmount = Number(booking.amount)
       const expiryMinutes = Number(process.env.BOOKING_EXPIRY_MINUTES ?? '30')
       const paymentResult = await paymentService.createPixPayment({
         bookingId: booking.id,
@@ -102,19 +121,18 @@ export async function repayRoute(app: FastifyInstance) {
       try {
         await prisma.$transaction(async (tx) => {
           const [slotRow] = await tx.$queryRaw<
-            Array<{ status: string; booked: number; capacity: number }>
+            Array<{ status: string; booked: number; maxGuides: number }>
           >`
-          SELECT status, booked, capacity FROM "DepartureSlot"
+          SELECT status, booked, "maxGuides" FROM "DepartureSlot"
           WHERE id = ${booking.slotId}
           FOR UPDATE
         `
-          if (!slotRow || slotRow.status !== 'OPEN') {
+          // A reserva ocupa o horário inteiro: só reativa se ele continua vazio e aberto
+          if (!slotRow || slotRow.status !== 'OPEN' || slotRow.booked !== 0) {
             // MP payment was created but slot is gone — log for manual reconciliation
             throw new AppError('Slot indisponível para novo pagamento', 422)
           }
-          if (slotRow.booked + booking.pax > slotRow.capacity) {
-            throw new AppError('Não há mais vagas nesta data', 409)
-          }
+          if (guidesFor(booking.pax) > slotRow.maxGuides) throw guidesInsufficient(booking.pax)
           // Transição condicional: um repay concorrente (clique duplo) já reativou a reserva
           const reactivated = await tx.booking.updateMany({
             where: { id: booking.id, status: 'EXPIRED' },
@@ -129,13 +147,9 @@ export async function repayRoute(app: FastifyInstance) {
           if (reactivated.count === 0) {
             throw new AppError('Um novo pagamento já foi gerado para esta reserva', 409)
           }
-          const newBooked = slotRow.booked + booking.pax
           await tx.departureSlot.update({
             where: { id: booking.slotId },
-            data: {
-              booked: { increment: booking.pax },
-              status: newBooked >= slotRow.capacity ? 'FULL' : 'OPEN',
-            },
+            data: { booked: booking.pax, status: 'FULL' },
           })
         })
       } catch (txErr) {

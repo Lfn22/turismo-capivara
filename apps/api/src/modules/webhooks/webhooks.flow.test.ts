@@ -155,9 +155,9 @@ describe('pagamento aprovado fora de PENDING', () => {
     paymentGet.mockResolvedValue({ status: 'approved', external_reference: 'b1' })
   })
 
-  it('EXPIRED com vaga → reativa como CONFIRMED e ocupa a vaga, sem estorno', async () => {
+  it('EXPIRED com horário livre → reativa como CONFIRMED e ocupa o horário inteiro, sem estorno', async () => {
     db.booking.findFirst.mockResolvedValue(booking({ status: 'EXPIRED' }))
-    tx.$queryRaw.mockResolvedValue([{ status: 'OPEN', booked: 3, capacity: 5, startsAt: FUTURE }])
+    tx.$queryRaw.mockResolvedValue([{ status: 'OPEN', booked: 0, maxGuides: 1, startsAt: FUTURE }])
     tx.booking.updateMany.mockResolvedValue({ count: 1 })
 
     const res = await post()
@@ -169,7 +169,7 @@ describe('pagamento aprovado fora de PENDING', () => {
     })
     expect(tx.departureSlot.update).toHaveBeenCalledWith({
       where: { id: 's1' },
-      data: { booked: 5, status: 'FULL' },
+      data: { booked: 2, status: 'FULL' },
     })
     expect(refundPayment).not.toHaveBeenCalled()
     expect(notifyBookingEvent).toHaveBeenCalledWith(expect.anything(), 'b1', 'confirmed')
@@ -177,7 +177,7 @@ describe('pagamento aprovado fora de PENDING', () => {
 
   it('EXPIRED sem vaga → estorna e não reativa', async () => {
     db.booking.findFirst.mockResolvedValue(booking({ status: 'EXPIRED' }))
-    tx.$queryRaw.mockResolvedValue([{ status: 'FULL', booked: 5, capacity: 5, startsAt: FUTURE }])
+    tx.$queryRaw.mockResolvedValue([{ status: 'FULL', booked: 5, maxGuides: 1, startsAt: FUTURE }])
 
     await post()
 
@@ -188,11 +188,45 @@ describe('pagamento aprovado fora de PENDING', () => {
   it('EXPIRED com passeio já iniciado → estorna', async () => {
     db.booking.findFirst.mockResolvedValue(booking({ status: 'EXPIRED' }))
     tx.$queryRaw.mockResolvedValue([
-      { status: 'OPEN', booked: 0, capacity: 5, startsAt: new Date(Date.now() - 3600_000) },
+      { status: 'OPEN', booked: 0, maxGuides: 1, startsAt: new Date(Date.now() - 3600_000) },
     ])
 
     await post()
 
+    expect(refundPayment).toHaveBeenCalledWith(PAYMENT_ID)
+  })
+
+  it('A e B expiram; A paga tarde → FULL; B paga tarde → estorna sem confirmar', async () => {
+    // estado do horário em memória, compartilhado entre as duas entregas
+    const slotRow = { status: 'OPEN', booked: 0, maxGuides: 1, startsAt: FUTURE }
+    tx.$queryRaw.mockImplementation(async () => [{ ...slotRow }])
+    tx.departureSlot.update.mockImplementation(async ({ data }: any) =>
+      Object.assign(slotRow, data),
+    )
+    tx.booking.updateMany.mockResolvedValue({ count: 1 })
+    db.booking.findUnique.mockResolvedValue({ status: 'EXPIRED', paymentId: null })
+
+    db.booking.findFirst.mockResolvedValue(booking({ id: 'A', status: 'EXPIRED', pax: 3 }))
+    await post()
+    expect(slotRow).toMatchObject({ booked: 3, status: 'FULL' })
+    expect(refundPayment).not.toHaveBeenCalled()
+
+    tx.booking.updateMany.mockClear()
+    db.booking.findFirst.mockResolvedValue(booking({ id: 'B', status: 'EXPIRED', pax: 2 }))
+    db.processedWebhookEvent.findUnique.mockResolvedValue(null)
+    await post()
+    expect(tx.booking.updateMany).not.toHaveBeenCalled()
+    expect(slotRow).toMatchObject({ booked: 3, status: 'FULL' })
+    expect(refundPayment).toHaveBeenCalledWith(PAYMENT_ID)
+  })
+
+  it('EXPIRED com grupo maior que os guias do horário → estorna', async () => {
+    db.booking.findFirst.mockResolvedValue(booking({ status: 'EXPIRED', pax: 9 }))
+    tx.$queryRaw.mockResolvedValue([{ status: 'OPEN', booked: 0, maxGuides: 1, startsAt: FUTURE }])
+
+    await post()
+
+    expect(tx.booking.updateMany).not.toHaveBeenCalled()
     expect(refundPayment).toHaveBeenCalledWith(PAYMENT_ID)
   })
 

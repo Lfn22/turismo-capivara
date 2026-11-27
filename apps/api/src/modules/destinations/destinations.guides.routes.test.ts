@@ -25,8 +25,12 @@ import { destinationMembershipRoutes } from '../memberships/destination-membersh
 const db = prisma as unknown as Record<string, Record<string, Mock>>
 // Os dois plugins juntos: prova que /:slug/guides/:guideId e /:destinationSlug/guides/me coexistem
 const app = buildApp(destinationsRoutes, destinationMembershipRoutes)
-beforeAll(async () => { await app.ready() })
-afterAll(async () => { await app.close() })
+beforeAll(async () => {
+  await app.ready()
+})
+afterAll(async () => {
+  await app.close()
+})
 beforeEach(() => {
   vi.clearAllMocks()
   db.destination.findUnique.mockResolvedValue({ id: 'd1' })
@@ -50,5 +54,48 @@ describe('listagens públicas de guias usam GuideDestination', () => {
     expect(where.id).toBe('g9')
     expect(where.destinations).toEqual({ some: { destinationId: 'd1' } })
     expect(where.user).toEqual({ role: 'CONDUTOR', approvalStatus: 'APPROVED' })
+  })
+
+  it('GET /destinations/:slug/guides/:guideId traz available e maxPax nos horários', async () => {
+    db.guideProfile.findFirst.mockResolvedValue({
+      id: 'g9',
+      photoUrl: null,
+      bio: null,
+      especialidades: [],
+      regioes: [],
+      portfolioPhotos: [],
+      user: {
+        name: 'Guia',
+        tenant: { slug: 't' },
+        tourPackages: [
+          {
+            id: 'p1',
+            name: 'Trilha',
+            description: null,
+            duration: null,
+            price: '600',
+            extraGuidePrice: '400',
+            difficulty: null,
+            departureSlots: [
+              {
+                id: 's1',
+                startsAt: new Date(),
+                booked: 0,
+                status: 'OPEN',
+                minCapacity: 1,
+                maxGuides: 2,
+              },
+            ],
+          },
+        ],
+      },
+    })
+    const res = await app.inject({ method: 'GET', url: '/destinations/serra-azul/guides/g9' })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().packages[0].departureSlots[0]).toMatchObject({
+      id: 's1',
+      available: true,
+      maxPax: 16,
+    })
   })
 })

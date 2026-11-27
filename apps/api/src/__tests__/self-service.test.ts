@@ -67,6 +67,7 @@ const BASE_BOOKING = {
   customerEmail: 'joao@example.com',
   pax: 2,
   totalPrice: 200,
+  amount: 200,
   qrCode: 'qr-code-data',
   paymentUrl: 'https://mp.com/pay/123',
   expiresAt: new Date(Date.now() + 30 * 60 * 1000),
@@ -280,7 +281,12 @@ describe('POST /tenants/:slug/bookings/cancel-self', () => {
 // ---------------------------------------------------------------------------
 describe('POST /tenants/:slug/bookings/repay', () => {
   const VALID_CPF = '52998224725'
-  const PUBLISHED_OPEN_SLOT = { status: 'OPEN', package: { active: true, publishedAt: new Date() } }
+  const PUBLISHED_OPEN_SLOT = {
+    status: 'OPEN',
+    booked: 0,
+    maxGuides: 1,
+    package: { active: true, publishedAt: new Date() },
+  }
 
   it('creates new PIX payment and resets EXPIRED booking to PENDING', async () => {
     const expiredBooking = { ...BASE_BOOKING, status: 'EXPIRED', qrCode: null, paymentUrl: null }
@@ -294,7 +300,7 @@ describe('POST /tenants/:slug/bookings/repay', () => {
     })
     db.$transaction.mockImplementation(async (fn: Function) => {
       const tx = {
-        $queryRaw: vi.fn().mockResolvedValue([{ status: 'OPEN', booked: 0, capacity: 10 }]),
+        $queryRaw: vi.fn().mockResolvedValue([{ status: 'OPEN', booked: 0, maxGuides: 1 }]),
         departureSlot: { update: vi.fn().mockResolvedValue({}) },
         booking: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
       }
@@ -320,6 +326,147 @@ describe('POST /tenants/:slug/bookings/repay', () => {
     expect(input.idempotencyKey).not.toBe(BASE_BOOKING.id)
   })
 
+  it('cobra o valor gravado na reserva, não o preço atual do roteiro, e ocupa o horário inteiro', async () => {
+    db.booking.findFirst.mockResolvedValue({
+      ...BASE_BOOKING,
+      status: 'EXPIRED',
+      amount: 1000,
+      slot: { ...BASE_BOOKING.slot, package: { ...BASE_BOOKING.slot.package, price: 800 } },
+    })
+    db.departureSlot.findUnique.mockResolvedValue(PUBLISHED_OPEN_SLOT)
+    mockCreatePixPayment.mockResolvedValue({
+      paymentId: 'mp-1',
+      paymentUrl: 'u',
+      qrCode: 'q',
+      expiresAt: new Date(),
+    })
+    const slotUpdate = vi.fn().mockResolvedValue({})
+    db.$transaction.mockImplementation(async (fn: Function) =>
+      fn({
+        $queryRaw: vi.fn().mockResolvedValue([{ status: 'OPEN', booked: 0, maxGuides: 1 }]),
+        departureSlot: { update: slotUpdate },
+        booking: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      }),
+    )
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/capivara/bookings/repay',
+      payload: { email: 'joao@example.com', code: 'ab1234', cpf: VALID_CPF },
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(mockCreatePixPayment.mock.calls[0][0].transactionAmount).toBe(1000)
+    expect(slotUpdate).toHaveBeenCalledWith({
+      where: { id: 'slot-1' },
+      data: { booked: 2, status: 'FULL' },
+    })
+  })
+
+  it('reserva sem valor gravado (anterior ao preço por grupo) → 422 sem chamar o Mercado Pago', async () => {
+    db.booking.findFirst.mockResolvedValue({ ...BASE_BOOKING, status: 'EXPIRED', amount: null })
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/capivara/bookings/repay',
+      payload: { email: 'joao@example.com', code: 'ab1234', cpf: VALID_CPF },
+    })
+
+    expect(res.statusCode).toBe(422)
+    expect(res.json().message).toContain('anterior ao novo modelo de preço')
+    expect(mockCreatePixPayment).not.toHaveBeenCalled()
+  })
+
+  it('horário já ocupado (booked > 0) → 422, cancela o PIX novo e não altera o horário', async () => {
+    db.booking.findFirst.mockResolvedValue({ ...BASE_BOOKING, status: 'EXPIRED' })
+    db.departureSlot.findUnique.mockResolvedValue(PUBLISHED_OPEN_SLOT)
+    mockCreatePixPayment.mockResolvedValue({
+      paymentId: 'mp-busy',
+      paymentUrl: 'u',
+      qrCode: 'q',
+      expiresAt: new Date(),
+    })
+    const slotUpdate = vi.fn()
+    db.$transaction.mockImplementation(async (fn: Function) =>
+      fn({
+        $queryRaw: vi.fn().mockResolvedValue([{ status: 'OPEN', booked: 2, maxGuides: 1 }]),
+        departureSlot: { update: slotUpdate },
+        booking: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      }),
+    )
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/capivara/bookings/repay',
+      payload: { email: 'joao@example.com', code: 'ab1234', cpf: VALID_CPF },
+    })
+
+    expect(res.statusCode).toBe(422)
+    expect(res.json().message).toBe('Slot indisponível para novo pagamento')
+    expect(slotUpdate).not.toHaveBeenCalled()
+    expect(paymentService.cancelPixPayment).toHaveBeenCalledWith('mp-busy')
+  })
+
+  it('horário já ocupado na checagem prévia → 422 sem chamar o Mercado Pago', async () => {
+    db.booking.findFirst.mockResolvedValue({ ...BASE_BOOKING, status: 'EXPIRED' })
+    db.departureSlot.findUnique.mockResolvedValue({ ...PUBLISHED_OPEN_SLOT, booked: 3 })
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/capivara/bookings/repay',
+      payload: { email: 'joao@example.com', code: 'ab1234', cpf: VALID_CPF },
+    })
+
+    expect(res.statusCode).toBe(422)
+    expect(res.json().message).toBe('Slot indisponível para novo pagamento')
+    expect(mockCreatePixPayment).not.toHaveBeenCalled()
+  })
+
+  it('grupo maior que os guias atuais do horário → 422 sem chamar o Mercado Pago', async () => {
+    db.booking.findFirst.mockResolvedValue({ ...BASE_BOOKING, status: 'EXPIRED', pax: 12 })
+    db.departureSlot.findUnique.mockResolvedValue({ ...PUBLISHED_OPEN_SLOT, maxGuides: 1 })
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/capivara/bookings/repay',
+      payload: { email: 'joao@example.com', code: 'ab1234', cpf: VALID_CPF },
+    })
+
+    expect(res.statusCode).toBe(422)
+    expect(res.json().message).toBe('Este horário não tem guias suficientes para 12 pessoas')
+    expect(mockCreatePixPayment).not.toHaveBeenCalled()
+  })
+
+  it('guias reduzidos durante o repay (dentro do lock) → 422, cancela o PIX novo', async () => {
+    db.booking.findFirst.mockResolvedValue({ ...BASE_BOOKING, status: 'EXPIRED', pax: 12 })
+    db.departureSlot.findUnique.mockResolvedValue({ ...PUBLISHED_OPEN_SLOT, maxGuides: 2 })
+    mockCreatePixPayment.mockResolvedValue({
+      paymentId: 'mp-guides',
+      paymentUrl: 'u',
+      qrCode: 'q',
+      expiresAt: new Date(),
+    })
+    const slotUpdate = vi.fn()
+    db.$transaction.mockImplementation(async (fn: Function) =>
+      fn({
+        $queryRaw: vi.fn().mockResolvedValue([{ status: 'OPEN', booked: 0, maxGuides: 1 }]),
+        departureSlot: { update: slotUpdate },
+        booking: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      }),
+    )
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/tenants/capivara/bookings/repay',
+      payload: { email: 'joao@example.com', code: 'ab1234', cpf: VALID_CPF },
+    })
+
+    expect(res.statusCode).toBe(422)
+    expect(res.json().message).toBe('Este horário não tem guias suficientes para 12 pessoas')
+    expect(slotUpdate).not.toHaveBeenCalled()
+    expect(paymentService.cancelPixPayment).toHaveBeenCalledWith('mp-guides')
+  })
+
   it('repay concorrente: a reserva já saiu de EXPIRED → 409, cancela o PIX novo e não ocupa vaga', async () => {
     db.booking.findFirst.mockResolvedValue({ ...BASE_BOOKING, status: 'EXPIRED' })
     db.departureSlot.findUnique.mockResolvedValue(PUBLISHED_OPEN_SLOT)
@@ -332,7 +479,7 @@ describe('POST /tenants/:slug/bookings/repay', () => {
     const slotUpdate = vi.fn()
     db.$transaction.mockImplementation(async (fn: Function) =>
       fn({
-        $queryRaw: vi.fn().mockResolvedValue([{ status: 'OPEN', booked: 0, capacity: 10 }]),
+        $queryRaw: vi.fn().mockResolvedValue([{ status: 'OPEN', booked: 0, maxGuides: 1 }]),
         departureSlot: { update: slotUpdate },
         booking: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
       }),
@@ -372,7 +519,7 @@ describe('POST /tenants/:slug/bookings/repay', () => {
     ['arquivado', { active: false, publishedAt: new Date() }],
   ])('returns 422 without charging when the roteiro is %s', async (_label, pkg) => {
     db.booking.findFirst.mockResolvedValue({ ...BASE_BOOKING, status: 'EXPIRED' })
-    db.departureSlot.findUnique.mockResolvedValue({ status: 'OPEN', package: pkg })
+    db.departureSlot.findUnique.mockResolvedValue({ ...PUBLISHED_OPEN_SLOT, package: pkg })
 
     const res = await app.inject({
       method: 'POST',

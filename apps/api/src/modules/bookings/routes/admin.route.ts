@@ -78,7 +78,10 @@ export async function adminBookingsRoute(app: FastifyInstance) {
       // Rota pública: nunca devolver token de cancelamento nem dados sensíveis
       const { customerCpfHash, customerPhone, cancelToken, idempotencyKey, ...safeBooking } =
         booking
-      return safeBooking
+      return {
+        ...safeBooking,
+        amount: safeBooking.amount == null ? null : Number(safeBooking.amount),
+      }
     },
   )
 
@@ -254,6 +257,9 @@ export async function adminBookingsRoute(app: FastifyInstance) {
           customerName: true,
           customerEmail: true,
           pax: true,
+          guides: true,
+          isPrivate: true,
+          amount: true,
           status: true,
           paymentId: true,
           paymentUrl: true,
@@ -264,7 +270,12 @@ export async function adminBookingsRoute(app: FastifyInstance) {
         orderBy: { createdAt: 'desc' },
       })
 
-      return reply.status(200).send(paginatedResponse(bookings, pagination.limit))
+      return reply.status(200).send(
+        paginatedResponse(
+          bookings.map((b) => ({ ...b, amount: b.amount == null ? null : Number(b.amount) })),
+          pagination.limit,
+        ),
+      )
     },
   )
 }

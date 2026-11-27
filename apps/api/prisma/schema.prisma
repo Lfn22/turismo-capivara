@@ -183,7 +183,8 @@ model TourPackage {
   name             String
   description      String
   duration         Int
-  price            Decimal    @db.Decimal(10, 2)
+  price            Decimal    @db.Decimal(10, 2) // price = valor do grupo (1 guia, até 8 pessoas)
+  extraGuidePrice  Decimal?   @db.Decimal(10, 2)
   capacity         Int
   difficulty       Difficulty
   photos           String[]   @default([])
@@ -219,6 +220,7 @@ model DepartureSlot {
   capacity    Int
   minCapacity Int        @default(1)
   booked      Int        @default(0)
+  maxGuides   Int        @default(1)
   status      SlotStatus @default(OPEN)
   createdAt   DateTime   @default(now())
 
@@ -241,6 +243,9 @@ model Booking {
   customerEmail        String
   customerPhone        String
   pax                  Int
+  guides               Int           @default(1)
+  isPrivate            Boolean       @default(false)
+  amount               Decimal?      @db.Decimal(10, 2)
   customerCpfHash      String?
   paymentId            String?
   paymentUrl           String?
