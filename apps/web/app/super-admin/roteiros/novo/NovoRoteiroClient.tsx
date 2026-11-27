@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
 import { Alert, Button, Input, PageHeader, Select, Textarea } from '@/src/components/ui/capi'
 import PainelCard from '@/src/components/painel/PainelCard'
+import NovoRoteiroExtras from '@/src/components/painel/NovoRoteiroExtras'
 import { useOperadoras } from '../useOperadoras'
 
 const DIFFICULTIES = [
@@ -22,10 +23,12 @@ export default function NovoRoteiroClient({ initialSlug }: { initialSlug: string
     name: '',
     description: '',
     price: '',
+    extraGuidePrice: '',
     duration: '',
-    capacity: '',
     difficulty: 'MODERATE',
   })
+  const [photos, setPhotos] = useState<string[]>([])
+  const [highlights, setHighlights] = useState<string[]>([])
 
   const backHref = form.operadora
     ? `/super-admin/roteiros?operadora=${form.operadora}`
@@ -39,6 +42,11 @@ export default function NovoRoteiroClient({ initialSlug }: { initialSlug: string
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    const cleanHighlights = highlights.map((h) => h.trim()).filter(Boolean)
+    if (cleanHighlights.some((h) => h.length < 5 || h.length > 200)) {
+      setError('Cada destaque deve ter entre 5 e 200 caracteres.')
+      return
+    }
     setIsLoading(true)
     setError(null)
     try {
@@ -49,9 +57,12 @@ export default function NovoRoteiroClient({ initialSlug }: { initialSlug: string
           name: form.name.trim(),
           description: form.description.trim(),
           price: parseFloat(form.price),
+          extraGuidePrice:
+            form.extraGuidePrice.trim() === '' ? null : parseFloat(form.extraGuidePrice),
           duration: parseInt(form.duration, 10),
-          capacity: parseInt(form.capacity, 10),
           difficulty: form.difficulty,
+          photos,
+          highlights: cleanHighlights,
         }),
       })
       if (!res.ok) {
@@ -74,7 +85,7 @@ export default function NovoRoteiroClient({ initialSlug }: { initialSlug: string
         backLabel="Roteiros"
         eyebrow="Catálogo"
         title="Novo roteiro"
-        description="O roteiro nasce como rascunho da operadora escolhida. Fotos e experiências você adiciona depois, no site."
+        description="Preencha as informações do roteiro. Você pode ajustar tudo depois."
       />
 
       {error && (
@@ -133,11 +144,24 @@ export default function NovoRoteiroClient({ initialSlug }: { initialSlug: string
               inputMode="decimal"
               min="0"
               step="0.01"
-              label="Preço por pessoa (R$)"
+              label="Valor do grupo (R$)"
+              hint="Vale para 1 guia e até 8 pessoas. O valor não muda se o grupo for menor."
               value={form.price}
               onChange={handleChange}
               required
               placeholder="150.00"
+            />
+            <Input
+              name="extraGuidePrice"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              label="Acréscimo por guia extra (R$)"
+              hint="Cobrado a cada 8 pessoas a mais. Deixe vazio se você não atende grupos acima de 8."
+              value={form.extraGuidePrice}
+              onChange={handleChange}
+              placeholder="100.00"
             />
             <Input
               name="duration"
@@ -154,21 +178,8 @@ export default function NovoRoteiroClient({ initialSlug }: { initialSlug: string
           </div>
         </PainelCard>
 
-        <PainelCard title="Grupo e dificuldade">
+        <PainelCard title="Dificuldade">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              name="capacity"
-              type="number"
-              inputMode="numeric"
-              min="1"
-              max="100"
-              label="Capacidade máxima"
-              hint="Número máximo de pessoas por saída."
-              value={form.capacity}
-              onChange={handleChange}
-              required
-              placeholder="12"
-            />
             <Select
               name="difficulty"
               label="Dificuldade"
@@ -178,6 +189,13 @@ export default function NovoRoteiroClient({ initialSlug }: { initialSlug: string
             />
           </div>
         </PainelCard>
+
+        <NovoRoteiroExtras
+          photos={photos}
+          highlights={highlights}
+          onPhotosChange={setPhotos}
+          onHighlightsChange={setHighlights}
+        />
 
         <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="secondary" href={backHref}>

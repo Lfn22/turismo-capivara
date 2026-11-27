@@ -59,4 +59,36 @@ describe('Roteiro (público) — bloco "Seu guia"', () => {
       screen.getByRole('link', { name: /Ana Condutora[\s\S]*Guia verificado/ }),
     ).toHaveAttribute('href', '/agencia-x/guias/gp1')
   })
+
+  it('"Datas abertas" conta só horários livres (available), não vagas', async () => {
+    const slot = { startsAt: '2026-12-10T12:00:00.000Z', capacity: 8, status: 'OPEN', maxPax: 8 }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url.endsWith('/tenants/agencia-x/packages/p1')) {
+          return json({
+            id: 'p1',
+            name: 'Trilha',
+            description: 'd',
+            duration: 4,
+            price: '150',
+            difficulty: 'EASY',
+            conductorId: 'u1',
+            departureSlots: [
+              { ...slot, id: 's1', booked: 0, available: true },
+              { ...slot, id: 's2', booked: 3, available: false },
+            ],
+            photos: [],
+            highlights: [],
+          })
+        }
+        return new Response('[]', { status: 200 })
+      }),
+    )
+
+    render(await RoteiroPage({ params: Promise.resolve({ slug: 'agencia-x', packageId: 'p1' }) }))
+
+    const label = screen.getByText('Datas abertas')
+    expect(label.parentElement).toHaveTextContent(/Datas abertas\s*1/)
+  })
 })

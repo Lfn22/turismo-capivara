@@ -7,6 +7,7 @@ import { CalendarDays, Check, Mail, Users, X } from 'lucide-react'
 import {
   Alert,
   Avatar,
+  Badge,
   Button,
   ListGroup,
   ListRow,
@@ -19,12 +20,16 @@ import {
 } from '@/src/components/ui/capi'
 import CancelDialog from '@/src/components/ui/CancelDialog'
 import EmptyState from '@/src/components/ui/EmptyState'
+import { bookingValueReais } from '@/src/lib/group-price'
 
 interface Booking {
   id: string
   customerName: string
   customerEmail: string
   pax: number
+  guides?: number
+  isPrivate?: boolean
+  amount?: number | string | null
   status: string
   createdAt: string
   slot: {
@@ -47,14 +52,22 @@ function formatBRL(n: number) {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
-/** Valor estimado: preço por pessoa do roteiro × nº de pessoas. */
 function bookingValue(b: Booking) {
-  const price = Number(b.slot?.package?.price)
-  return Number.isFinite(price) ? formatBRL(price * b.pax) : null
+  const value = bookingValueReais(b)
+  return value == null ? null : formatBRL(value)
 }
 
 function pessoas(n: number) {
   return `${n} ${n === 1 ? 'pessoa' : 'pessoas'}`
+}
+
+function guias(n: number) {
+  return `${n} ${n === 1 ? 'guia' : 'guias'}`
+}
+
+/** "12 pessoas · 2 guias" (omite guias em dados antigos sem o campo). */
+function groupLabel(b: Booking) {
+  return b.guides ? `${pessoas(b.pax)} · ${guias(b.guides)}` : pessoas(b.pax)
 }
 
 const STATUS_TABS: Array<{ value: string; label: string }> = [
@@ -233,9 +246,14 @@ export default function ReservasPage({ params }: { params: Promise<{ slug: strin
               key={b.id}
               onClick={() => setDetailId(b.id)}
               leading={<Avatar name={b.customerName} size={40} />}
-              title={`${b.customerName} · ${pessoas(b.pax)}`}
+              title={`${b.customerName} · ${groupLabel(b)}`}
               subtitle={`${b.slot?.package?.name ?? ''} · ${formatDate(b.slot?.startsAt)}`}
-              trailing={<StatusBadge status={b.status} />}
+              trailing={
+                <span className="inline-flex items-center gap-1.5">
+                  {b.isPrivate && <Badge tone="brand">Privativo</Badge>}
+                  <StatusBadge status={b.status} />
+                </span>
+              }
               meta={bookingValue(b)}
             />
           ))}
@@ -300,7 +318,10 @@ export default function ReservasPage({ params }: { params: Promise<{ slug: strin
                 <Users size={16} strokeWidth={1.75} aria-hidden="true" />
                 Pessoas
               </dt>
-              <dd className="text-fg font-semibold">{pessoas(detail.pax)}</dd>
+              <dd className="text-fg font-semibold">
+                {groupLabel(detail)}
+                {detail.isPrivate && ' · Privativo'}
+              </dd>
             </div>
             {detail.customerEmail && (
               <div className="flex items-center justify-between gap-3">

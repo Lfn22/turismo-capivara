@@ -28,6 +28,8 @@ interface Booking {
   id: string
   status: string
   pax: number
+  guides?: number
+  isPrivate?: boolean
   expiresAt: string | null
   qrCode: string | null
   paymentUrl: string | null
@@ -373,7 +375,12 @@ export default function CheckoutClient({ slug, bookingId, email }: CheckoutClien
             {
               icon: Users,
               label: 'Pessoas',
-              value: `${booking.pax} pessoa${booking.pax !== 1 ? 's' : ''}`,
+              value:
+                `${booking.pax} pessoa${booking.pax !== 1 ? 's' : ''}` +
+                (booking.guides
+                  ? ` · ${booking.guides} ${booking.guides === 1 ? 'guia' : 'guias'}`
+                  : '') +
+                (booking.isPrivate ? ' · Privativo' : ''),
             },
             {
               icon: Ticket,

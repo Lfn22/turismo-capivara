@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Minus, Plus } from 'lucide-react'
 import { Alert, Button, IconButton, Input } from '@/src/components/ui/capi'
 import '@/src/styles/animations.css'
 import { posthog } from '@/src/lib/posthog'
 import { errorText } from '@/lib/edit-client'
+import { formatCurrency } from '@/src/lib/format'
+import { guidesFor, groupTotalCents } from '@/src/lib/group-price'
 
 const PAX_MIN = 1
-const PAX_MAX = 20
+const PAX_FALLBACK_MAX = 8
 
 function isValidCPF(cpf: string): boolean {
   if (/^(\d)\1{10}$/.test(cpf)) return false
@@ -32,6 +34,21 @@ interface BookingFormProps {
   slug: string
 }
 
+interface PackageSlot {
+  id: string
+  maxGuides: number
+  maxPax: number
+  available: boolean
+}
+
+interface PackageInfo {
+  price: number
+  extraGuidePrice: number | null
+  departureSlots: PackageSlot[]
+}
+
+const toCents = (reais: number) => Math.round(reais * 100)
+
 interface FormState {
   guestName: string
   email: string
@@ -52,6 +69,40 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [cpfError, setCpfError] = useState<string | null>(null)
+  const [pkg, setPkg] = useState<PackageInfo | null>(null)
+  const [pkgLoading, setPkgLoading] = useState(true)
+  const [isPrivate, setIsPrivate] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/tenants/${slug}/packages/${packageId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setPkg(data)
+      })
+      .catch(() => {
+        // sem dados do roteiro: a API valida a reserva
+      })
+      .finally(() => {
+        if (!cancelled) setPkgLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [slug, packageId])
+
+  const slot = pkg?.departureSlots?.find((s) => s.id === slotId) ?? null
+  const paxMax = slot?.maxPax ?? PAX_FALLBACK_MAX
+  // o detalhe público só lista horários OPEN futuros: fora da lista = já reservado
+  const unavailable = pkg != null && (slot == null || !slot.available)
+  const guides = guidesFor(form.pax)
+  const totalCents = pkg
+    ? groupTotalCents(
+        toCents(pkg.price),
+        pkg.extraGuidePrice == null ? null : toCents(pkg.extraGuidePrice),
+        form.pax,
+      )
+    : null
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value, type } = e.target
@@ -87,6 +138,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
           customerPhone: form.phone,
           customerCpf: form.cpf.replace(/\D/g, ''),
           pax: form.pax,
+          isPrivate,
         }),
       })
 
@@ -114,7 +166,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
   function changePax(delta: number) {
     setForm((prev) => ({
       ...prev,
-      pax: Math.min(PAX_MAX, Math.max(PAX_MIN, prev.pax + delta)),
+      pax: Math.min(paxMax, Math.max(PAX_MIN, prev.pax + delta)),
     }))
   }
 
@@ -130,7 +182,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
             <p id="pax-label" className="m-0 font-semibold text-fg">
               Número de pessoas
             </p>
-            <p className="m-0 text-sm text-fg-secondary">Até {PAX_MAX} por reserva</p>
+            <p className="m-0 text-sm text-fg-secondary">Até {paxMax} por reserva</p>
           </div>
           <div className="flex items-center gap-2" role="group" aria-labelledby="pax-label">
             <IconButton
@@ -152,12 +204,52 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
               label="Adicionar uma pessoa"
               variant="secondary"
               onClick={() => changePax(1)}
-              disabled={loading || form.pax >= PAX_MAX}
+              disabled={loading || pkgLoading || form.pax >= paxMax}
             />
             <input id="pax" name="pax" type="hidden" value={form.pax} />
           </div>
         </div>
+        {pkg && totalCents != null && (
+          <dl className="m-0 mt-4 flex flex-col gap-1 border-t border-line pt-3 text-sm">
+            <p className="m-0 font-semibold text-fg">
+              {form.pax} {form.pax === 1 ? 'pessoa' : 'pessoas'} · {guides}{' '}
+              {guides === 1 ? 'guia' : 'guias'}
+            </p>
+            <div className="flex justify-between">
+              <dt>Valor do grupo (até 8 pessoas)</dt>
+              <dd className="m-0">{formatCurrency(toCents(pkg.price), 'BRL')}</dd>
+            </div>
+            {guides > 1 && pkg.extraGuidePrice != null && (
+              <div className="flex justify-between">
+                <dt>Guia extra × {guides - 1}</dt>
+                <dd className="m-0">
+                  {formatCurrency(toCents(pkg.extraGuidePrice) * (guides - 1), 'BRL')}
+                </dd>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-fg">
+              <dt>Total</dt>
+              <dd className="m-0">{formatCurrency(totalCents, 'BRL')}</dd>
+            </div>
+          </dl>
+        )}
       </section>
+
+      <label className="flex items-start gap-3 rounded-2xl border border-line bg-surface p-4 text-sm text-fg">
+        <input
+          type="checkbox"
+          name="isPrivate"
+          className="mt-1"
+          checked={isPrivate}
+          onChange={(e) => setIsPrivate(e.target.checked)}
+          disabled={loading}
+        />
+        <span>Grupo privativo — somos um grupo fechado e não queremos dividir o passeio</span>
+      </label>
+
+      {unavailable && (
+        <Alert tone="warning">Este horário já foi reservado. Escolha outro horário.</Alert>
+      )}
 
       {/* Dados do responsável */}
       <section aria-labelledby="guest-title" className="flex flex-col gap-4">
@@ -243,6 +335,7 @@ export default function BookingForm({ slotId, packageId, slug }: BookingFormProp
             size="lg"
             fullWidth
             loading={loading}
+            disabled={pkgLoading || unavailable}
             iconRight={loading ? undefined : ArrowRight}
           >
             {loading ? 'Processando…' : 'Ir para pagamento'}

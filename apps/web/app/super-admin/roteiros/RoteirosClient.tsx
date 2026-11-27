@@ -185,7 +185,7 @@ export default function RoteirosClient({ initialSlug }: { initialSlug: string })
                 <div className="capi-row__main">
                   <p className="capi-row__title">{pkg.name}</p>
                   <p className="capi-row__sub">
-                    {formatPrice(pkg.price)} /pessoa · até {pkg.capacity} pessoas
+                    {formatPrice(pkg.price)} /grupo · até {pkg.capacity} pessoas
                   </p>
                 </div>
                 <div className="flex w-full flex-wrap items-center justify-between gap-2 lg:w-auto lg:flex-nowrap lg:justify-end">

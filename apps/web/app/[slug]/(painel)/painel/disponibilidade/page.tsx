@@ -25,7 +25,7 @@ interface Slot {
   id: string
   packageId: string
   startsAt: string
-  capacity: number
+  maxGuides: number
   booked: number
   status: 'OPEN' | 'FULL' | 'CANCELLED' | 'COMPLETED'
 }
@@ -38,6 +38,16 @@ interface Package {
 interface Guide {
   guideId: string
   name: string
+}
+
+const GROUP_SIZE_PER_GUIDE = 8
+
+function slotOccupancy(slot: Slot): string {
+  if (slot.booked > 0) {
+    const guides = Math.ceil(slot.booked / GROUP_SIZE_PER_GUIDE)
+    return `Reservado · ${slot.booked} pessoas · ${guides} ${guides === 1 ? 'guia' : 'guias'}`
+  }
+  return `Livre · até ${slot.maxGuides * GROUP_SIZE_PER_GUIDE} pessoas`
 }
 
 function toLocalDateStr(date: Date): string {
@@ -73,8 +83,7 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
   const [formPackageId, setFormPackageId] = useState('')
   const [formStartTime, setFormStartTime] = useState('')
   const [formEndTime, setFormEndTime] = useState('')
-  const [formVagas, setFormVagas] = useState<number>(1)
-  const [formMinCapacity, setFormMinCapacity] = useState<number>(1)
+  const [formMaxGuides, setFormMaxGuides] = useState<number>(1)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [formSubmitting, setFormSubmitting] = useState(false)
   const [formApiError, setFormApiError] = useState<string | null>(null)
@@ -215,10 +224,6 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
     else if (formStartTime && formEndTime && formEndTime <= formStartTime) {
       errs.endTime = 'O horário de fim deve ser após o início.'
     }
-    if (!formVagas || formVagas < 1) errs.vagas = 'Informe ao menos 1 vaga.'
-    if (!formMinCapacity || formMinCapacity < 1)
-      errs.minCapacity = 'Informe o mínimo de participantes.'
-    else if (formMinCapacity > formVagas) errs.minCapacity = 'Mínimo não pode exceder a capacidade.'
     setFormErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -239,8 +244,7 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           startsAt,
-          capacity: formVagas,
-          minCapacity: formMinCapacity,
+          maxGuides: formMaxGuides,
           guideId: formGuideId,
         }),
       })
@@ -261,8 +265,7 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
       setModalOpen(false)
       setFormStartTime('')
       setFormEndTime('')
-      setFormVagas(1)
-      setFormMinCapacity(1)
+      setFormMaxGuides(1)
       setFormErrors({})
       toast.success('Slot criado com sucesso.')
     } catch (err: unknown) {
@@ -330,7 +333,7 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
           </span>
         }
         title={formatTime(slot.startsAt)}
-        subtitle={`${slot.booked}/${slot.capacity} vagas${name ? ` · ${name}` : ''}`}
+        subtitle={`${slotOccupancy(slot)}${name ? ` · ${name}` : ''}`}
         trailing={
           <div className="flex items-center gap-2">
             <Badge tone={tone} dot>
@@ -358,7 +361,7 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
     <ul className="agenda-legend" aria-label="Legenda do calendário">
       <li>
         <span className="agenda-dot" style={{ background: 'var(--primary)' }} aria-hidden="true" />
-        Com vagas
+        Livre
       </li>
       <li>
         <span className="agenda-dot" style={{ background: 'var(--danger)' }} aria-hidden="true" />
@@ -444,7 +447,7 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
       <PageHeader
         eyebrow={painelEyebrow(session?.user?.role)}
         title="Agenda"
-        description="Abra horários para seus roteiros e acompanhe as vagas de cada dia."
+        description="Abra horários para seus roteiros e acompanhe os horários reservados."
         actions={
           selectedDate ? (
             <Button iconLeft={Plus} onClick={() => setModalOpen(true)}>
@@ -658,29 +661,19 @@ export default function DisponibilidadePage({ params }: { params: Promise<{ slug
             />
           </div>
 
-          <Input
-            id="slot-vagas"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            label="Vagas (capacidade máxima)"
-            value={formVagas}
-            onChange={(e) => setFormVagas(parseInt(e.target.value) || 1)}
-            required
-            error={formErrors.vagas}
-          />
-
-          <Input
-            id="slot-min-capacity"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            label="Mínimo de participantes"
-            value={formMinCapacity}
-            onChange={(e) => setFormMinCapacity(parseInt(e.target.value) || 1)}
-            required
-            error={formErrors.minCapacity}
-          />
+          <Select
+            id="slot-max-guides"
+            label="Guias neste horário"
+            hint={`Até ${formMaxGuides * GROUP_SIZE_PER_GUIDE} pessoas. Indique colegas da sua agência para os guias extras.`}
+            value={formMaxGuides}
+            onChange={(e) => setFormMaxGuides(parseInt(e.target.value) || 1)}
+          >
+            {[1, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </Select>
 
           {formApiError && (
             <Alert

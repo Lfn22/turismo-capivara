@@ -1,16 +1,37 @@
-"use client"
+'use client'
 
-import { ShieldCheck, type LucideIcon } from "lucide-react"
-import type { ReactNode } from "react"
-import { Button } from "./Button"
-import { cx } from "./utils"
+import { ShieldCheck, type LucideIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { Button } from './Button'
+import { cx } from './utils'
 
 /* ── SlotPicker ───────────────────────────────────────── */
-export type SlotDay = { value: string; weekday: string; day: string; month: string; available?: boolean }
-export type SlotTime = { value: string; label?: string; spots: number }
+export type SlotDay = {
+  value: string
+  weekday: string
+  day: string
+  month: string
+  available?: boolean
+}
+export type SlotTime = {
+  value: string
+  label?: string
+  spots: number
+  /** substitui "N vagas" */ note?: string
+}
 
 /** Datas em faixa horizontal com snap + horários com vagas restantes. */
-export function SlotPicker({ days, selectedDay, onSelectDay, times = [], selectedTime, onSelectTime, dayLabel = "Escolha a data", timeLabel = "Horário", emptyTimes }: {
+export function SlotPicker({
+  days,
+  selectedDay,
+  onSelectDay,
+  times = [],
+  selectedTime,
+  onSelectTime,
+  dayLabel = 'Escolha a data',
+  timeLabel = 'Horário',
+  emptyTimes,
+}: {
   days: SlotDay[]
   selectedDay?: string | null
   onSelectDay?: (v: string) => void
@@ -28,7 +49,16 @@ export function SlotPicker({ days, selectedDay, onSelectDay, times = [], selecte
         {days.map((d) => {
           const on = d.value === selectedDay
           return (
-            <button key={d.value} type="button" role="option" aria-selected={on} aria-label={`${d.weekday}, ${d.day} de ${d.month}${d.available === false ? " — indisponível" : ""}`} disabled={d.available === false} className={cx("capi-slots__day", on && "is-selected")} onClick={() => onSelectDay?.(d.value)}>
+            <button
+              key={d.value}
+              type="button"
+              role="option"
+              aria-selected={on}
+              aria-label={`${d.weekday}, ${d.day} de ${d.month}${d.available === false ? ' — indisponível' : ''}`}
+              disabled={d.available === false}
+              className={cx('capi-slots__day', on && 'is-selected')}
+              onClick={() => onSelectDay?.(d.value)}
+            >
               <span className="capi-slots__wd">{d.weekday}</span>
               <span className="capi-slots__dn">{d.day}</span>
               <span className="capi-slots__mo">{d.month}</span>
@@ -40,16 +70,30 @@ export function SlotPicker({ days, selectedDay, onSelectDay, times = [], selecte
         <>
           <p className="capi-slots__label">{timeLabel}</p>
           {times.length === 0 ? (
-            emptyTimes ?? <p style={{ margin: 0, fontSize: 14, color: "var(--text-secondary)" }}>Nenhum horário disponível nesta data.</p>
+            (emptyTimes ?? (
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)' }}>
+                Nenhum horário disponível nesta data.
+              </p>
+            ))
           ) : (
             <div className="capi-slots__times" role="listbox" aria-label="Horários disponíveis">
               {times.map((t) => {
                 const on = t.value === selectedTime
                 const full = t.spots === 0
+                const spotsText = t.note ?? `${t.spots} ${t.spots === 1 ? 'vaga' : 'vagas'}`
                 return (
-                  <button key={t.value} type="button" role="option" aria-selected={on} aria-label={`${t.label ?? t.value} — ${full ? "esgotado" : `${t.spots} ${t.spots === 1 ? "vaga" : "vagas"}`}`} disabled={full} className={cx("capi-slots__time", on && "is-selected")} onClick={() => onSelectTime?.(t.value)}>
+                  <button
+                    key={t.value}
+                    type="button"
+                    role="option"
+                    aria-selected={on}
+                    aria-label={`${t.label ?? t.value} — ${full ? 'esgotado' : spotsText}`}
+                    disabled={full}
+                    className={cx('capi-slots__time', on && 'is-selected')}
+                    onClick={() => onSelectTime?.(t.value)}
+                  >
                     <span className="capi-slots__t">{t.label ?? t.value}</span>
-                    <span className="capi-slots__spots">{full ? "Esgotado" : `${t.spots} ${t.spots === 1 ? "vaga" : "vagas"}`}</span>
+                    <span className="capi-slots__spots">{full ? 'Esgotado' : spotsText}</span>
                   </button>
                 )
               })}
@@ -75,9 +119,20 @@ export type BookingSummaryProps = {
   className?: string
 }
 
-export function BookingSummary({ title, subtitle, image, details = [], lines = [], total, totalLabel = "Total", action, note, className }: BookingSummaryProps) {
+export function BookingSummary({
+  title,
+  subtitle,
+  image,
+  details = [],
+  lines = [],
+  total,
+  totalLabel = 'Total',
+  action,
+  note,
+  className,
+}: BookingSummaryProps) {
   return (
-    <aside className={cx("capi-summary", className)}>
+    <aside className={cx('capi-summary', className)}>
       {title ? (
         <div className="capi-summary__head">
           {image}
@@ -93,7 +148,10 @@ export function BookingSummary({ title, subtitle, image, details = [], lines = [
             const Icon = d.icon
             return (
               <div key={d.label}>
-                <dt>{Icon ? <Icon size={16} strokeWidth={1.75} aria-hidden="true" /> : null}{d.label}</dt>
+                <dt>
+                  {Icon ? <Icon size={16} strokeWidth={1.75} aria-hidden="true" /> : null}
+                  {d.label}
+                </dt>
                 <dd>{d.value}</dd>
               </div>
             )
@@ -103,20 +161,40 @@ export function BookingSummary({ title, subtitle, image, details = [], lines = [
       {lines.length > 0 ? (
         <dl className="capi-summary__lines">
           {lines.map((l) => (
-            <div key={l.label}><dt>{l.label}</dt><dd>{l.value}</dd></div>
+            <div key={l.label}>
+              <dt>{l.label}</dt>
+              <dd>{l.value}</dd>
+            </div>
           ))}
         </dl>
       ) : null}
-      {total ? <div className="capi-summary__total"><span>{totalLabel}</span><strong>{total}</strong></div> : null}
+      {total ? (
+        <div className="capi-summary__total">
+          <span>{totalLabel}</span>
+          <strong>{total}</strong>
+        </div>
+      ) : null}
       {action ? <div className="capi-summary__action">{action}</div> : null}
-      {note ? <p className="capi-summary__note"><ShieldCheck size={16} strokeWidth={1.75} aria-hidden="true" />{note}</p> : null}
+      {note ? (
+        <p className="capi-summary__note">
+          <ShieldCheck size={16} strokeWidth={1.75} aria-hidden="true" />
+          {note}
+        </p>
+      ) : null}
     </aside>
   )
 }
 
 /* ── BookingBar ───────────────────────────────────────── */
 /** Barra fixa no rodapé do celular (some ≥1024px). Substitui a BottomNav nas páginas de roteiro. */
-export function BookingBar({ price, prefix = "a partir de", unit = "/pessoa", ctaLabel = "Reservar", href, onClick }: {
+export function BookingBar({
+  price,
+  prefix = 'a partir de',
+  unit = '/grupo',
+  ctaLabel = 'Reservar',
+  href,
+  onClick,
+}: {
   price: ReactNode
   prefix?: string
   unit?: string
@@ -128,9 +206,14 @@ export function BookingBar({ price, prefix = "a partir de", unit = "/pessoa", ct
     <div className="capi-bookbar">
       <div className="capi-bookbar__price">
         <span className="capi-bookbar__from">{prefix}</span>
-        <span><strong>{price}</strong><span className="capi-bookbar__unit"> {unit}</span></span>
+        <span>
+          <strong>{price}</strong>
+          <span className="capi-bookbar__unit"> {unit}</span>
+        </span>
       </div>
-      <Button size="lg" href={href} onClick={onClick}>{ctaLabel}</Button>
+      <Button size="lg" href={href} onClick={onClick}>
+        {ctaLabel}
+      </Button>
     </div>
   )
 }

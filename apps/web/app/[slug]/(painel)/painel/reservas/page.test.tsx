@@ -70,4 +70,35 @@ describe('ReservasPage', () => {
       `/api/proxy?path=${encodeURIComponent('/tenants/agencia-x/guides/me/bookings')}`,
     )
   })
+
+  it('mostra guias e selo Privativo da reserva por grupo', async () => {
+    stubFetch({
+      data: [{ ...booking, pax: 12, guides: 2, isPrivate: true, amount: 300 }],
+      nextCursor: null,
+      hasMore: false,
+    })
+
+    await renderPage()
+
+    expect(await screen.findByText(/12 pessoas · 2 guias/)).toBeInTheDocument()
+    expect(screen.getByText('Privativo')).toBeInTheDocument()
+  })
+
+  it('legado sem amount usa preço × pessoas', async () => {
+    stubFetch({ data: [{ ...booking, amount: null }], nextCursor: null, hasMore: false })
+    await renderPage()
+    expect(await screen.findByText(/Maria Turista/)).toBeInTheDocument()
+    expect(screen.getByText(/300,00/)).toBeInTheDocument()
+  })
+
+  it('amount como string Decimal vira moeda', async () => {
+    stubFetch({
+      data: [{ ...booking, pax: 12, guides: 2, amount: '450.00' }],
+      nextCursor: null,
+      hasMore: false,
+    })
+    await renderPage()
+    expect(await screen.findByText(/Maria Turista/)).toBeInTheDocument()
+    expect(screen.getByText(/450,00/)).toBeInTheDocument()
+  })
 })

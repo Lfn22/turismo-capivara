@@ -1,44 +1,40 @@
-import { getToken } from "next-auth/jwt"
-import { cookies } from "next/headers"
-import { apiFetch } from "@/lib/api/client"
-import { painelEyebrow } from "@/lib/painel"
-import { CalendarDays, ExternalLink, Images, Plus, Users } from "lucide-react"
-import EmptyState from "@/src/components/ui/EmptyState"
-import { Alert, Badge, Button, Media, PageHeader, StatusBadge } from "@/src/components/ui/capi"
+import { getToken } from 'next-auth/jwt'
+import { cookies } from 'next/headers'
+import { apiFetch } from '@/lib/api/client'
+import { painelEyebrow } from '@/lib/painel'
+import { CalendarDays, ExternalLink, Images, Plus, Users } from 'lucide-react'
+import EmptyState from '@/src/components/ui/EmptyState'
+import { Alert, Badge, Button, Media, PageHeader, StatusBadge } from '@/src/components/ui/capi'
 
 interface Package {
   id: string
   name: string
   description: string
   price: string | number
-  difficulty: "EASY" | "MODERATE" | "HARD" | "EXTREME"
-  status: "PUBLISHED" | "DRAFT" | "HIDDEN"
+  difficulty: 'EASY' | 'MODERATE' | 'HARD' | 'EXTREME'
+  status: 'PUBLISHED' | 'DRAFT' | 'HIDDEN'
   capacity: number
   photos?: string[]
 }
 
-function DifficultyBadge({ difficulty }: { difficulty: Package["difficulty"] }) {
-  if (difficulty === "EXTREME") return <Badge tone="danger">Extremo</Badge>
-  return <StatusBadge kind="difficulty" status={difficulty ?? "MODERATE"} />
+function DifficultyBadge({ difficulty }: { difficulty: Package['difficulty'] }) {
+  if (difficulty === 'EXTREME') return <Badge tone="danger">Extremo</Badge>
+  return <StatusBadge kind="difficulty" status={difficulty ?? 'MODERATE'} />
 }
 
 function formatPrice(price: string | number) {
-  const n = typeof price === "string" ? parseFloat(price) : price
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+  const n = typeof price === 'string' ? parseFloat(price) : price
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
-export default async function RoteirosPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
+export default async function RoteirosPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const cookieStore = await cookies()
   const jwt = await getToken({
     req: { cookies: Object.fromEntries(cookieStore.getAll().map((c) => [c.name, c.value])) } as any,
     secret: process.env.NEXTAUTH_SECRET,
   })
-  const token = (jwt?.apiToken as string) ?? ""
+  const token = (jwt?.apiToken as string) ?? ''
 
   let packages: Package[] = []
   let destinationSlug: string | null = null
@@ -109,14 +105,33 @@ export default async function RoteirosPage({
             <article key={pkg.id} className="roteiro-card">
               <div className="roteiro-card__head">
                 <div className="roteiro-card__thumb">
-                  <Media src={pkg.photos?.[0]} alt="" ratio="1 / 1" sizes="56px" placeholder="mountain" />
+                  <Media
+                    src={pkg.photos?.[0]}
+                    alt=""
+                    ratio="1 / 1"
+                    sizes="56px"
+                    placeholder="mountain"
+                  />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <h2 className="roteiro-card__title">{pkg.name}</h2>
                   <div className="flex flex-wrap items-center gap-2">
                     <DifficultyBadge difficulty={pkg.difficulty} />
-                    <Badge tone={pkg.status === "PUBLISHED" ? "success" : pkg.status === "DRAFT" ? "warning" : "neutral"} dot>
-                      {pkg.status === "PUBLISHED" ? "Publicado" : pkg.status === "DRAFT" ? "Rascunho" : "Oculto"}
+                    <Badge
+                      tone={
+                        pkg.status === 'PUBLISHED'
+                          ? 'success'
+                          : pkg.status === 'DRAFT'
+                            ? 'warning'
+                            : 'neutral'
+                      }
+                      dot
+                    >
+                      {pkg.status === 'PUBLISHED'
+                        ? 'Publicado'
+                        : pkg.status === 'DRAFT'
+                          ? 'Rascunho'
+                          : 'Oculto'}
                     </Badge>
                   </div>
                 </div>
@@ -126,9 +141,12 @@ export default async function RoteirosPage({
 
               <div className="roteiro-card__foot">
                 <p className="roteiro-card__price">
-                  {formatPrice(pkg.price)} <span>/pessoa</span>
+                  {formatPrice(pkg.price)} <span>/grupo</span>
                 </p>
-                <span className="inline-flex items-center gap-1 text-fg-secondary" style={{ fontSize: 13 }}>
+                <span
+                  className="inline-flex items-center gap-1 text-fg-secondary"
+                  style={{ fontSize: 13 }}
+                >
                   <Users size={14} strokeWidth={1.75} aria-hidden="true" />
                   até {pkg.capacity}
                 </span>
@@ -138,12 +156,25 @@ export default async function RoteirosPage({
                 <Button href={`/${slug}/painel/roteiros/${pkg.id}`} size="sm" iconLeft={Images}>
                   Fotos e experiências
                 </Button>
-                <Button href={`/${slug}/painel/disponibilidade`} variant="secondary" size="sm" iconLeft={CalendarDays}>
+                <Button
+                  href={`/${slug}/painel/disponibilidade`}
+                  variant="secondary"
+                  size="sm"
+                  iconLeft={CalendarDays}
+                >
                   Gerenciar horários
                 </Button>
-                {pkg.status === "PUBLISHED" || (pkg.status === "DRAFT" && destinationSlug) ? (
+                {pkg.status === 'PUBLISHED' || (pkg.status === 'DRAFT' && destinationSlug) ? (
                   <Button
-                    href={pkg.status === "PUBLISHED" ? `/${slug}/roteiros/${pkg.id}?editar=1` : `/destinos/${destinationSlug}/roteiros?editar=1`} variant="secondary" size="sm" iconLeft={ExternalLink}>
+                    href={
+                      pkg.status === 'PUBLISHED'
+                        ? `/${slug}/roteiros/${pkg.id}?editar=1`
+                        : `/destinos/${destinationSlug}/roteiros?editar=1`
+                    }
+                    variant="secondary"
+                    size="sm"
+                    iconLeft={ExternalLink}
+                  >
                     Ver e editar no site
                   </Button>
                 ) : null}

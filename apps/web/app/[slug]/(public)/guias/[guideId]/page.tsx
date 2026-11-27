@@ -20,6 +20,8 @@ interface DepartureSlot {
   capacity: number
   booked: number
   status: string
+  available: boolean
+  maxPax: number
 }
 
 interface TourPackage {
@@ -162,9 +164,7 @@ export default async function GuideProfilePage({
         ) : (
           <div className="flex flex-col gap-6">
             {packages.map((pkg) => {
-              const openSlots = (pkg.departureSlots ?? []).filter(
-                (s) => s.status === 'OPEN' && s.booked < s.capacity,
-              )
+              const openSlots = (pkg.departureSlots ?? []).filter((s) => s.available)
               const difficulty = DIFFICULTY_KEY[pkg.difficulty]
               return (
                 <article
@@ -183,7 +183,7 @@ export default async function GuideProfilePage({
                     </h3>
                     <p className="m-0 shrink-0 text-right">
                       <strong className="text-lg text-fg">{formatPriceBRL(pkg.price)}</strong>
-                      <span className="text-xs text-fg-secondary"> /pessoa</span>
+                      <span className="text-xs text-fg-secondary"> /grupo</span>
                     </p>
                   </div>
 

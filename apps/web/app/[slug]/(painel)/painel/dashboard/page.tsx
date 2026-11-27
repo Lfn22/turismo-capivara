@@ -3,6 +3,7 @@ import { getToken } from 'next-auth/jwt'
 import { painelEyebrow } from '@/lib/painel'
 import { cookies } from 'next/headers'
 import { apiFetch } from '@/lib/api/client'
+import { bookingValueReais } from '@/src/lib/group-price'
 import {
   ArrowRight,
   CalendarCheck,
@@ -31,6 +32,7 @@ interface Booking {
   id: string
   customerName: string
   pax: number
+  amount?: number | string | null
   status: string
   createdAt: string
   slot: {
@@ -62,6 +64,7 @@ type DashboardMetrics = {
     startsAt: string
     booked: number
     capacity: number
+    maxPax: number
     package: { name: string }
   }>
 }
@@ -91,8 +94,8 @@ function formatBRL(n: number) {
 }
 
 function bookingValue(b: Booking) {
-  const price = Number(b.slot?.package?.price)
-  return Number.isFinite(price) ? formatBRL(price * b.pax) : null
+  const value = bookingValueReais(b)
+  return value == null ? null : formatBRL(value)
 }
 
 function pessoas(n: number) {
@@ -315,8 +318,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
                   title={s.package?.name}
                   subtitle={formatSlotDate(s.startsAt)}
                   trailing={
-                    <Badge tone={s.booked >= s.capacity ? 'danger' : 'neutral'}>
-                      {s.booked}/{s.capacity} vagas
+                    <Badge tone={s.booked > 0 ? 'danger' : 'neutral'}>
+                      {s.booked > 0
+                        ? `Reservado · ${pessoas(s.booked)}`
+                        : `Livre · até ${s.maxPax} pessoas`}
                     </Badge>
                   }
                 />

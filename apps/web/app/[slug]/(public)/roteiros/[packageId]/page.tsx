@@ -26,6 +26,8 @@ interface Slot {
   capacity: number
   booked: number
   status: string
+  available: boolean
+  maxPax: number
 }
 
 interface TourPackage {
@@ -33,6 +35,7 @@ interface TourPackage {
   name: string
   description: string
   price: number
+  extraGuidePrice?: number | null
   duration: string
   difficulty: string
   conductorId: string
@@ -171,9 +174,7 @@ export default async function RoteirDetalhe({
       }
     : null
 
-  const openSlots = (pkg.departureSlots ?? []).filter(
-    (s) => s.status === 'OPEN' && s.booked < s.capacity,
-  )
+  const openSlots = (pkg.departureSlots ?? []).filter((s) => s.available)
   const hasSlots = openSlots.length > 0
 
   return (
@@ -202,8 +203,8 @@ export default async function RoteirDetalhe({
                 name: pkg.name,
                 description: pkg.description,
                 price: Number(pkg.price),
+                extraGuidePrice: pkg.extraGuidePrice ?? null,
                 duration: parseInt(pkg.duration) || 1,
-                capacity: pkg.capacity,
                 difficulty: difficulty ?? 'EASY',
                 photos: pkg.photos ?? [],
                 highlights: pkg.highlights ?? [],
@@ -251,7 +252,15 @@ export default async function RoteirDetalhe({
                   <p className="m-0 mb-4 lg:hidden">
                     <span className="text-sm text-fg-secondary">a partir de </span>
                     <strong className="text-2xl text-fg">{formatPrice(pkg.price)}</strong>
-                    <span className="text-sm text-fg-secondary"> /pessoa</span>
+                    <span className="text-sm text-fg-secondary">
+                      {' '}
+                      por grupo · até 8 pessoas por guia
+                    </span>
+                    {pkg.extraGuidePrice != null && (
+                      <span className="block text-sm text-fg-secondary">
+                        + {formatPrice(pkg.extraGuidePrice)} por guia extra (grupos acima de 8)
+                      </span>
+                    )}
                   </p>
 
                   {pkg.description && (
@@ -277,9 +286,7 @@ export default async function RoteirDetalhe({
                           />
                         }
                         title={guide.name}
-                        subtitle={
-                          guide.approvalStatus === 'APPROVED' ? 'Guia verificado' : 'Guia'
-                        }
+                        subtitle={guide.approvalStatus === 'APPROVED' ? 'Guia verificado' : 'Guia'}
                       />
                     </ListGroup>
                   </section>
@@ -342,7 +349,11 @@ export default async function RoteirDetalhe({
               title={pkg.name}
               subtitle={
                 <>
-                  a partir de <strong className="text-fg">{formatPrice(pkg.price)}</strong> /pessoa
+                  a partir de <strong className="text-fg">{formatPrice(pkg.price)}</strong> por
+                  grupo
+                  {pkg.extraGuidePrice != null && (
+                    <> · + {formatPrice(pkg.extraGuidePrice)} por guia extra (grupos acima de 8)</>
+                  )}
                 </>
               }
               details={[

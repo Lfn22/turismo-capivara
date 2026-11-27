@@ -7,6 +7,8 @@ export type BookingCardData = {
   code: string
   status: string
   pax: number
+  guides?: number
+  isPrivate?: boolean
   startsAt: string
   packageName: string
   coverImageUrl?: string | null
@@ -28,7 +30,8 @@ function formatDate(iso: string) {
 }
 
 export default function BookingCard({ booking }: Props) {
-  const { id, status, pax, startsAt, packageName, coverImageUrl, tenantName } = booking
+  const { id, status, pax, guides, isPrivate, startsAt, packageName, coverImageUrl, tenantName } =
+    booking
   return (
     <>
       <style>{`
@@ -115,6 +118,8 @@ export default function BookingCard({ booking }: Props) {
           <span className="bcard__name">{packageName}</span>
           <span className="bcard__meta">
             {formatDate(startsAt)} · {pax} {pax === 1 ? 'pessoa' : 'pessoas'}
+            {guides ? ` · ${guides} ${guides === 1 ? 'guia' : 'guias'}` : ''}
+            {isPrivate ? ' · Privativo' : ''}
           </span>
           <div className="bcard__footer">
             <BookingStatusBadge status={status} />

@@ -1,28 +1,28 @@
-import { PackageCard as CapiPackageCard } from '@/src/components/ui/capi';
+import { PackageCard as CapiPackageCard } from '@/src/components/ui/capi'
 
 export interface PackageCardPackage {
-  id: string;
-  name: string;
-  durationMinutes: number;
-  priceFrom: number; // minimum price in BRL cents
-  difficulty: 'EASY' | 'MODERATE' | 'HARD';
-  coverImageUrl?: string | null;
-  coverImageBlurDataUrl?: string | null;
-  tags: string[];
+  id: string
+  name: string
+  durationMinutes: number
+  priceFrom: number // minimum price in BRL cents
+  difficulty: 'EASY' | 'MODERATE' | 'HARD'
+  coverImageUrl?: string | null
+  coverImageBlurDataUrl?: string | null
+  tags: string[]
   /** Opcionais (v2) */
-  groupSize?: number | null;
-  rating?: number | null;
-  reviewCount?: number | null;
-  guideName?: string | null;
+  groupSize?: number | null
+  rating?: number | null
+  reviewCount?: number | null
+  guideName?: string | null
 }
 
 export interface PackageCardProps {
-  package: PackageCardPackage;
+  package: PackageCardPackage
   /** Full href — card is route-agnostic */
-  href: string;
+  href: string
 }
 
-/** Wrapper legado → `PackageCard` do CAPI v2 (foto 4:3, dificuldade, duração e preço por pessoa). */
+/** Wrapper legado → `PackageCard` do CAPI v2 (foto 4:3, dificuldade, duração e preço por grupo). */
 export default function PackageCard({ package: pkg, href }: PackageCardProps) {
   return (
     <CapiPackageCard
@@ -41,5 +41,5 @@ export default function PackageCard({ package: pkg, href }: PackageCardProps) {
         guideName: pkg.guideName,
       }}
     />
-  );
+  )
 }

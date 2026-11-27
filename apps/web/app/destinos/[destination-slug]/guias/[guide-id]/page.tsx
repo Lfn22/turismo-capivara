@@ -27,6 +27,8 @@ interface DepartureSlot {
   capacity: number
   booked: number
   status: string
+  available: boolean
+  maxPax: number
 }
 
 interface GuidePackage {
@@ -258,9 +260,7 @@ export default async function GuideProfilePage({ params }: Props) {
               {guide.packages.length > 0 ? (
                 <div className="gprofile__pkgs">
                   {guide.packages.map((pkg) => {
-                    const openSlots = (pkg.departureSlots ?? []).filter(
-                      (s) => s.status === 'OPEN' && s.booked < s.capacity,
-                    )
+                    const openSlots = (pkg.departureSlots ?? []).filter((s) => s.available)
                     const difficulty = DIFFICULTY_KEY[pkg.difficulty] ?? pkg.difficulty
                     return (
                       <article key={pkg.id} className="gprofile__pkg">

@@ -3,7 +3,7 @@ import { Plus, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { compressImage } from '@/lib/compress-image'
+import { uploadPackagePhoto } from '@/lib/upload-package-photo'
 import { Alert, Button, IconButton, Input, Select, Textarea } from '@/src/components/ui/capi'
 import { PhotoUploadArea } from '@/src/components/ui/PhotoUploadArea'
 import { editCall, errorText } from '@/lib/edit-client'
@@ -18,8 +18,8 @@ export type EditablePackage = {
   name: string
   description: string
   price: number
+  extraGuidePrice: number | null
   duration: number // horas inteiras, como a API guarda
-  capacity: number
   difficulty: 'EASY' | 'MODERATE' | 'HARD'
   photos: string[]
   highlights: string[]
@@ -30,8 +30,8 @@ type Form = {
   name: string
   description: string
   price: string
+  extraGuidePrice: string
   duration: string
-  capacity: string
   difficulty: string
   photos: string[]
   highlights: string[]
@@ -41,8 +41,8 @@ const EMPTY: Form = {
   name: '',
   description: '',
   price: '',
+  extraGuidePrice: '',
   duration: '',
-  capacity: '',
   difficulty: 'EASY',
   photos: [],
   highlights: [],
@@ -54,8 +54,8 @@ const toForm = (p: EditablePackage | null): Form =>
         name: p.name,
         description: p.description,
         price: String(Number(p.price)),
+        extraGuidePrice: p.extraGuidePrice == null ? '' : String(Number(p.extraGuidePrice)),
         duration: String(p.duration),
-        capacity: String(p.capacity),
         difficulty: p.difficulty,
         photos: p.photos ?? [],
         highlights: p.highlights ?? [],
@@ -119,19 +119,6 @@ export function PackageEditor({
     discardAndClose()
   }, [dirty, discardAndClose])
 
-  async function upload(file: File): Promise<string> {
-    const toSend = await compressImage(file)
-    const data = new FormData()
-    data.append('file', toSend, toSend.name)
-    const res = await fetch('/api/uploads/photos?folder=packages', { method: 'POST', body: data })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: 'Erro no upload' }))
-      throw new Error(err.message ?? 'Erro no upload')
-    }
-    const { url } = await res.json()
-    return url
-  }
-
   const call = (action: string, data?: unknown, packageId = pkg?.id) =>
     editCall('POST', '/api/edit/packages', {
       action,
@@ -148,18 +135,18 @@ export function PackageEditor({
     const name = form.name.trim()
     const description = form.description.trim()
     const price = Number(form.price)
+    const extraGuidePrice = form.extraGuidePrice.trim() === '' ? null : Number(form.extraGuidePrice)
     const duration = Number(form.duration)
-    const capacity = Number(form.capacity)
     const invalid = !name
       ? 'Informe o nome.'
       : !description
         ? 'Informe a descrição.'
         : !(price > 0)
           ? 'O preço deve ser maior que zero.'
-          : !Number.isInteger(duration) || duration <= 0
-            ? 'A duração deve ser um número inteiro de horas.'
-            : !Number.isInteger(capacity) || capacity <= 0
-              ? 'A capacidade deve ser um número inteiro maior que zero.'
+          : extraGuidePrice !== null && !(extraGuidePrice >= 0)
+            ? 'O acréscimo por guia extra não pode ser negativo.'
+            : !Number.isInteger(duration) || duration <= 0
+              ? 'A duração deve ser um número inteiro de horas.'
               : null
     if (invalid) {
       setError(invalid)
@@ -172,8 +159,8 @@ export function PackageEditor({
       name,
       description,
       price,
+      extraGuidePrice,
       duration,
-      capacity,
       difficulty: form.difficulty,
       photos: form.photos,
       highlights,
@@ -189,8 +176,8 @@ export function PackageEditor({
       name,
       description,
       price: String(price),
+      extraGuidePrice: extraGuidePrice === null ? '' : String(extraGuidePrice),
       duration: String(duration),
-      capacity: String(capacity),
       highlights,
     }
     setBaseline(saved)
@@ -313,13 +300,24 @@ export function PackageEditor({
           onChange={(e) => set('description', e.target.value)}
         />
         <Input
-          label="Preço (R$)"
+          label="Valor do grupo (R$)"
+          hint="Vale para 1 guia e até 8 pessoas. O valor não muda se o grupo for menor."
           type="number"
           min="0"
           step="0.01"
           inputMode="decimal"
           value={form.price}
           onChange={(e) => set('price', e.target.value)}
+        />
+        <Input
+          label="Acréscimo por guia extra (R$)"
+          hint="Cobrado a cada 8 pessoas a mais. Deixe vazio se você não atende grupos acima de 8."
+          type="number"
+          min="0"
+          step="0.01"
+          inputMode="decimal"
+          value={form.extraGuidePrice}
+          onChange={(e) => set('extraGuidePrice', e.target.value)}
         />
         <Input
           label="Duração (horas)"
@@ -329,15 +327,6 @@ export function PackageEditor({
           inputMode="numeric"
           value={form.duration}
           onChange={(e) => set('duration', e.target.value)}
-        />
-        <Input
-          label="Capacidade"
-          type="number"
-          min="1"
-          step="1"
-          inputMode="numeric"
-          value={form.capacity}
-          onChange={(e) => set('capacity', e.target.value)}
         />
         <Select
           label="Dificuldade"
@@ -355,7 +344,7 @@ export function PackageEditor({
             photos={form.photos}
             maxPhotos={5}
             onAdd={async (file) => {
-              const url = await upload(file)
+              const url = await uploadPackagePhoto(file)
               setForm((f) => ({ ...f, photos: [...f.photos, url] }))
             }}
             onRemove={(url) =>
